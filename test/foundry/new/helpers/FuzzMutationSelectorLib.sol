@@ -119,12 +119,12 @@ enum Failure {
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
     InvalidERC721TransferAmount, // ERC721 transfer amount is not 1
-    ConsiderationNotMet,
+    ConsiderationNotMet, // Consideration item not fully credited (match case)
     PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
-    InexactFraction,
-    Panic_PartialFillOverflow,
-    NoSpecifiedOrdersAvailable_match,
-    NoSpecifiedOrdersAvailable_available,
+    InexactFraction, // numerator / denominator cannot be applied to item w/ no remainder
+    Panic_PartialFillOverflow, // numerator / denominator overflow current fill fraction
+    // NoSpecifiedOrdersAvailable_match, // all match executions are filtered
+    // NoSpecifiedOrdersAvailable_available, // all fulfillAvailable executions are filtered
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -403,14 +403,6 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.Panic_PartialFillOverflow.withOrder(
             MutationFilters.ineligibleForPanic_PartialFillOverflow
-        );
-
-        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable_match.withGeneric(
-            MutationFilters.ineligibleForNoSpecifiedOrdersAvailable_match
-        );
-
-        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable_available.withGeneric(
-            MutationFilters.ineligibleForNoSpecifiedOrdersAvailable_available
         );
         ////////////////////////////////////////////////////////////////////////
 
@@ -996,22 +988,6 @@ library FailureDetailsLib {
                 "Panic_PartialFillOverflow",
                 FuzzMutations.mutation_partialFillOverflow.selector,
                 details_PanicOverflow
-            );
-
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .NoSpecifiedOrdersAvailable
-            .selector
-            .withGeneric(
-                "NoSpecifiedOrdersAvailable_match",
-                FuzzMutations.mutation_noSpecifiedOrdersAvailableViaMatch.selector
-            );
-
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .NoSpecifiedOrdersAvailable
-            .selector
-            .withGeneric(
-                "NoSpecifiedOrdersAvailable_available",
-                FuzzMutations.mutation_noSpecifiedOrdersAvailableViaAvailable.selector
             );
         ////////////////////////////////////////////////////////////////////////
 

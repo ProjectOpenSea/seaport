@@ -1493,26 +1493,6 @@ library MutationFilters {
 
         return (order.parameters.offer.length + order.parameters.consideration.length == 0);
     }
-
-    function ineligibleForNoSpecifiedOrdersAvailable_match(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-        return (
-            action != context.seaport.matchAdvancedOrders.selector &&
-            action != context.seaport.matchOrders.selector
-        );
-    }
-
-    function ineligibleForNoSpecifiedOrdersAvailable_available(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-        return (
-            action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
-            action != context.seaport.fulfillAvailableOrders.selector
-        );
-    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2872,27 +2852,6 @@ contract FuzzMutations is Test, FuzzExecutor {
             664613997892457936451903530140172297,
             context.seaport
         );
-
-        exec(context);
-    }
-
-    function mutation_noSpecifiedOrdersAvailableViaMatch(
-        FuzzTestContext memory context,
-        MutationState memory /* mutationState */
-    ) external {
-        // TODO: get smarter about only removing unfiltered components
-        context.executionState.fulfillments = new Fulfillment[](0);
-
-        exec(context);
-    }
-
-    function mutation_noSpecifiedOrdersAvailableViaAvailable(
-        FuzzTestContext memory context,
-        MutationState memory /* mutationState */
-    ) external {
-        // TODO: get smarter about only removing unfiltered components
-        context.executionState.offerFulfillments = new FulfillmentComponent[][](0);
-        context.executionState.considerationFulfillments = new FulfillmentComponent[][](0);
 
         exec(context);
     }
