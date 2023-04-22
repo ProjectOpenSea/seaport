@@ -748,7 +748,7 @@ library MutationFilters {
         // Note: We're speculatively applying the mutation here and slightly
         // breaking the rules. Make sure to undo this mutation.
         bytes32 oldConduitKey = order.parameters.conduitKey;
-        context.executionState.previewedOrders[orderIndex].parameters.conduitKey = keccak256("invalid conduit");
+        context.executionState.orderDetails[orderIndex].conduitKey = keccak256("invalid conduit");
         (
             Execution[] memory explicitExecutions,
             ,
@@ -784,7 +784,7 @@ library MutationFilters {
         }
 
         // Note: mutation is undone here as referenced above.
-        context.executionState.previewedOrders[orderIndex].parameters.conduitKey = oldConduitKey;
+        context.executionState.orderDetails[orderIndex].conduitKey = oldConduitKey;
 
         if (!locatedInvalidConduitExecution) {
             return true;
