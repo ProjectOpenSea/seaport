@@ -1403,7 +1403,6 @@ library MutationFilters {
         }
 
         // Order must be available
-
         if (!context.expectations.expectedAvailableOrders[orderIndex]) {
             return true;
         }
@@ -1412,7 +1411,7 @@ library MutationFilters {
         if (order.parameters.consideration.length == 0) {
             return true;
         }
-        
+
         return false;
     }
 
