@@ -938,7 +938,7 @@ library FailureDetailsLib {
                 "InvalidERC721TransferAmount",
                 FuzzMutations.mutation_invalidERC721TransferAmount.selector,
                 details_InvalidERC721TransferAmount
-        );
+            );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .ConsiderationNotMet
