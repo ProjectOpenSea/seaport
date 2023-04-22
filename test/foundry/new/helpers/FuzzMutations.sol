@@ -1265,6 +1265,10 @@ library MutationFilters {
             return true;
         }
 
+        if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
+            return true;
+        }
+
         for (uint256 i; i < order.parameters.offer.length; i++) {
             OfferItem memory item = order.parameters.offer[i];
             if (item.itemType == ItemType.NATIVE) {
