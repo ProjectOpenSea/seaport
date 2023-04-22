@@ -1193,8 +1193,6 @@ library FailureDetailsLib {
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            mutationState.selectedOrderIndex,
-            mutationState.selectedOrder.parameters.consideration.length,
             mutationState.selectedArbitraryAddress
         );
     }
