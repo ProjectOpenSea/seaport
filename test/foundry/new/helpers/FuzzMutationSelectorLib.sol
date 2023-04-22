@@ -111,16 +111,16 @@ enum Failure {
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier   
-    Scuffed_FulfillBasicOrderEfficient6GL6yc,
-    Scuffed_Validate,
-    Scuffed_Cancel,
-    Scuffed_MatchAdvancedOrders,
-    Scuffed_MatchOrders,
-    Scuffed_FulfillAvailableAdvancedOrders,
-    Scuffed_FulfillAvailableOrders,
-    Scuffed_FulfillAdvancedOrder,
-    Scuffed_FulfillOrder,
-    Scuffed_FulfillBasicOrder,
+    // Scuffed_FulfillBasicOrderEfficient6GL6yc,
+    // Scuffed_Validate,
+    // Scuffed_Cancel,
+    // Scuffed_MatchAdvancedOrders,
+    // Scuffed_MatchOrders,
+    // Scuffed_FulfillAvailableAdvancedOrders,
+    // Scuffed_FulfillAvailableOrders,
+    // Scuffed_FulfillAdvancedOrder,
+    // Scuffed_FulfillOrder,
+    // Scuffed_FulfillBasicOrder,
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -353,45 +353,45 @@ library FuzzMutationSelectorLib {
                 MutationFilters.ineligibleForUnusedItemParameters_Identifier
             );
         
-        failuresAndFilters[i++] = Failure.Scuffed_FulfillBasicOrderEfficient6GL6yc.withGeneric(
-          MutationFilters.ineligibleForScuffed_FulfillBasicOrderEfficient6GL6yc
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_FulfillBasicOrderEfficient6GL6yc.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_FulfillBasicOrderEfficient6GL6yc
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_Validate.withGeneric(
-          MutationFilters.ineligibleForScuffed_Validate
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_Validate.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_Validate
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_Cancel.withGeneric(
-          MutationFilters.ineligibleForScuffed_Cancel
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_Cancel.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_Cancel
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_MatchAdvancedOrders.withGeneric(
-          MutationFilters.ineligibleForScuffed_MatchAdvancedOrders
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_MatchAdvancedOrders.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_MatchAdvancedOrders
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_MatchOrders.withGeneric(
-          MutationFilters.ineligibleForScuffed_MatchOrders
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_MatchOrders.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_MatchOrders
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_FulfillAvailableAdvancedOrders.withGeneric(
-          MutationFilters.ineligibleForScuffed_FulfillAvailableAdvancedOrders
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_FulfillAvailableAdvancedOrders.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_FulfillAvailableAdvancedOrders
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_FulfillAvailableOrders.withGeneric(
-          MutationFilters.ineligibleForScuffed_FulfillAvailableOrders
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_FulfillAvailableOrders.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_FulfillAvailableOrders
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_FulfillAdvancedOrder.withGeneric(
-          MutationFilters.ineligibleForScuffed_FulfillAdvancedOrder
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_FulfillAdvancedOrder.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_FulfillAdvancedOrder
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_FulfillOrder.withGeneric(
-          MutationFilters.ineligibleForScuffed_FulfillOrder
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_FulfillOrder.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_FulfillOrder
+        // );
         
-        failuresAndFilters[i++] = Failure.Scuffed_FulfillBasicOrder.withGeneric(
-          MutationFilters.ineligibleForScuffed_FulfillBasicOrder
-        );
+        // failuresAndFilters[i++] = Failure.Scuffed_FulfillBasicOrder.withGeneric(
+        //   MutationFilters.ineligibleForScuffed_FulfillBasicOrder
+        // );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -1128,77 +1128,6 @@ library FailureDetailsLib {
             resolver.orderIndex,
             resolver.index
         );
-    }
-
-    function details_Scuffed_FulfillBasicOrderEfficient6GL6yc(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_FulfillBasicOrderEfficient6GL6yc
-    }
-    function details_Scuffed_Validate(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_Validate
-    }
-    function details_Scuffed_Cancel(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_Cancel
-    }
-    function details_Scuffed_MatchAdvancedOrders(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_MatchAdvancedOrders
-    }
-    function details_Scuffed_MatchOrders(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_MatchOrders
-    }
-    function details_Scuffed_FulfillAvailableAdvancedOrders(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_FulfillAvailableAdvancedOrders
-    }
-    function details_Scuffed_FulfillAvailableOrders(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_FulfillAvailableOrders
-    }
-    function details_Scuffed_FulfillAdvancedOrder(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_FulfillAdvancedOrder
-    }
-    function details_Scuffed_FulfillOrder(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_FulfillOrder
-    }
-    function details_Scuffed_FulfillBasicOrder(
-      FuzzTestContext memory context,
-      MutationState memory mutationState,
-      bytes4 errorSelector
-    ) internal pure returns (bytes memory expectedMemoryReason) {
-      // Scuffed_FulfillBasicOrder
     }
 
     function errorString(
