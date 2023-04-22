@@ -67,7 +67,9 @@ enum Failure {
     BadContractSignature_BadSignature, // 1271 call to offerer, signature tampered with
     BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
     BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
-    // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
+    ConsiderationLengthNotEqualToTotalOriginal_ExtraItems, // Tips on contract order or validate
+    ConsiderationLengthNotEqualToTotalOriginal_MissingItems, // Tips on contract order or validate
+    MissingOriginalConsiderationItems, // Consideration array shorter than totalOriginalConsiderationItems
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
     InvalidConduit, // Order with invalid conduit
@@ -192,6 +194,26 @@ library FuzzMutationSelectorLib {
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
             .withOrder(MutationFilters.ineligibleForBadContractSignature);
+
+        failuresAndFilters[i++] = Failure
+            .MissingOriginalConsiderationItems
+            .withOrder(
+                MutationFilters.ineligibleForMissingOriginalConsiderationItems
+            );
+
+        failuresAndFilters[i++] = Failure
+            .ConsiderationLengthNotEqualToTotalOriginal_ExtraItems
+            .withOrder(
+                MutationFilters
+                    .ineligibleForConsiderationLengthNotEqualToTotalOriginal
+            );
+
+        failuresAndFilters[i++] = Failure
+            .ConsiderationLengthNotEqualToTotalOriginal_MissingItems
+            .withOrder(
+                MutationFilters
+                    .ineligibleForConsiderationLengthNotEqualToTotalOriginal
+            );
 
         failuresAndFilters[i++] = Failure
             .InvalidFulfillmentComponentData
@@ -463,6 +485,36 @@ library FailureDetailsLib {
                 "BadContractSignature_MissingMagic",
                 FuzzMutations
                     .mutation_badContractSignature_MissingMagic
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .ConsiderationLengthNotEqualToTotalOriginal
+            .selector
+            .withOrder(
+                "ConsiderationLengthNotEqualToTotalOriginal_ExtraItems",
+                FuzzMutations
+                    .mutation_considerationLengthNotEqualToTotalOriginal_ExtraItems
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .ConsiderationLengthNotEqualToTotalOriginal
+            .selector
+            .withOrder(
+                "ConsiderationLengthNotEqualToTotalOriginal_MissingItens",
+                FuzzMutations
+                    .mutation_considerationLengthNotEqualToTotalOriginal_MissingItems
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .MissingOriginalConsiderationItems
+            .selector
+            .withOrder(
+                "MissingOriginalConsiderationItems",
+                FuzzMutations
+                    .mutation_missingOriginalConsiderationItems
                     .selector
             );
 

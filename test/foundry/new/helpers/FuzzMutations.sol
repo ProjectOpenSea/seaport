@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "forge-std/console.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
@@ -32,7 +33,8 @@ import {
     AdvancedOrderLib,
     OrderParametersLib,
     ItemType,
-    BasicOrderType
+    BasicOrderType,
+    ConsiderationItemLib
 } from "seaport-sol/SeaportSol.sol";
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
@@ -611,6 +613,46 @@ library MutationFilters {
                 return true;
             }
         } catch {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForConsiderationLengthNotEqualToTotalOriginal(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.parameters.orderType != OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (order.parameters.consideration.length == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMissingOriginalConsiderationItems(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (order.parameters.consideration.length == 0) {
             return true;
         }
 
@@ -1302,6 +1344,7 @@ contract FuzzMutations is Test, FuzzExecutor {
     using CheckHelpers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
     using MutationFilters for FuzzTestContext;
+    using ConsiderationItemLib for ConsiderationItem;
 
     function mutation_invalidContractOrderRatifyReverts(
         FuzzTestContext memory context,
@@ -1727,6 +1770,45 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         EIP1271Offerer(payable(order.parameters.offerer)).returnEmpty();
+
+        exec(context);
+    }
+
+    function mutation_considerationLengthNotEqualToTotalOriginal_ExtraItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length -
+            1;
+
+        exec(context);
+    }
+
+    function mutation_considerationLengthNotEqualToTotalOriginal_MissingItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length +
+            1;
+
+        exec(context);
+    }
+
+    function mutation_missingOriginalConsiderationItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length +
+            1;
 
         exec(context);
     }
