@@ -40,8 +40,6 @@ library ExecutionHelper {
     using SpentItemLib for SpentItem[];
     using ReceivedItemLib for ReceivedItem[];
 
-    error InsufficientNativeTokensSupplied();
-
     /**
      * @dev get explicit and implicit executions for a fulfillAvailable call
      *
@@ -133,9 +131,7 @@ library ExecutionHelper {
 
         uint256 filteredExecutions = 0;
 
-        bool[] memory availableOrders = new bool[](
-            details.orders.length
-        );
+        bool[] memory availableOrders = new bool[](details.orders.length);
 
         for (uint256 i = 0; i < details.orders.length; ++i) {
             availableOrders[i] = true;
@@ -229,10 +225,14 @@ library ExecutionHelper {
         address recipient,
         uint256 nativeTokensSupplied,
         address seaport
-    ) public pure returns (
-        Execution[] memory implicitExecutions,
-        uint256 nativeTokensReturned
-    ) {
+    )
+        public
+        pure
+        returns (
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
+        )
+    {
         uint256 currentSeaportBalance = 0;
 
         // implicit executions (use max and resize at end):
@@ -314,9 +314,7 @@ library ExecutionHelper {
         for (uint256 i = 0; i < orderDetails.consideration.length; i++) {
             ReceivedItem memory item = orderDetails.consideration[i];
             implicitExecutions[executionIndex++] = Execution({
-                offerer: item.itemType == ItemType.NATIVE
-                    ? seaport
-                    : fulfiller,
+                offerer: item.itemType == ItemType.NATIVE ? seaport : fulfiller,
                 conduitKey: fulfillerConduitKey,
                 item: item
             });
@@ -363,10 +361,14 @@ library ExecutionHelper {
         bytes32 fulfillerConduitKey,
         uint256 nativeTokensSupplied,
         address seaport
-    ) public pure returns (
-        Execution[] memory implicitExecutions,
-        uint256 nativeTokensReturned
-    ) {
+    )
+        public
+        pure
+        returns (
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
+        )
+    {
         if (orderDetails.offer.length != 1) {
             revert("not a basic order");
         }
@@ -1100,7 +1102,9 @@ library ExecutionHelper {
         }
     }
 
-    function copy(OrderDetails[] memory orderDetails) internal pure returns (OrderDetails[] memory copiedOrderDetails) {
+    function copy(
+        OrderDetails[] memory orderDetails
+    ) internal pure returns (OrderDetails[] memory copiedOrderDetails) {
         copiedOrderDetails = new OrderDetails[](orderDetails.length);
         for (uint256 i = 0; i < orderDetails.length; ++i) {
             OrderDetails memory order = orderDetails[i];
@@ -1115,13 +1119,16 @@ library ExecutionHelper {
         }
     }
 
-    function copy(FulfillmentDetails memory fulfillmentDetails) internal pure returns (FulfillmentDetails memory) {
-        return FulfillmentDetails({
-            orders: copy(fulfillmentDetails.orders),
-            recipient: fulfillmentDetails.recipient,
-            fulfiller: fulfillmentDetails.fulfiller,
-            fulfillerConduitKey: fulfillmentDetails.fulfillerConduitKey,
-            seaport: fulfillmentDetails.seaport
-        });
+    function copy(
+        FulfillmentDetails memory fulfillmentDetails
+    ) internal pure returns (FulfillmentDetails memory) {
+        return
+            FulfillmentDetails({
+                orders: copy(fulfillmentDetails.orders),
+                recipient: fulfillmentDetails.recipient,
+                fulfiller: fulfillmentDetails.fulfiller,
+                fulfillerConduitKey: fulfillmentDetails.fulfillerConduitKey,
+                seaport: fulfillmentDetails.seaport
+            });
     }
 }
