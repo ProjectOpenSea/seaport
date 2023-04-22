@@ -241,7 +241,7 @@ library MutationFilters {
                 continue;
             }
 
-            AdvancedOrder memory order = context.executionState.orders[i];
+            AdvancedOrder memory order = context.executionState.previewedOrders[i];
             uint256 items = order.parameters.offer.length +
                 order.parameters.consideration.length;
             if (items != 0) {
@@ -1488,7 +1488,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                 continue;
             }
 
-            AdvancedOrder memory order = context.executionState.orders[
+            AdvancedOrder memory order = context.executionState.previewedOrders[
                 orderIndex
             ];
             if (order.parameters.offer.length > 0) {
