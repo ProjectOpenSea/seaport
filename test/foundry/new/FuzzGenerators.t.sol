@@ -18,6 +18,7 @@ import {
     BroadOrderType,
     Caller,
     ConduitChoice,
+    ContractOrderRebate,
     Criteria,
     EOASignature,
     ExtraData,
@@ -147,7 +148,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
             unavailableReason: UnavailableReason.AVAILABLE,
-            extraData: ExtraData.NONE
+            extraData: ExtraData.NONE,
+            rebate: ContractOrderRebate.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -200,7 +202,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
             unavailableReason: UnavailableReason.AVAILABLE,
-            extraData: ExtraData.NONE
+            extraData: ExtraData.NONE,
+            rebate: ContractOrderRebate.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
@@ -264,7 +267,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             conduit: ConduitChoice.NONE,
             tips: Tips.NONE,
             unavailableReason: UnavailableReason.AVAILABLE,
-            extraData: ExtraData.NONE
+            extraData: ExtraData.NONE,
+            rebate: ContractOrderRebate.NONE
         });
 
         OrderComponentsSpace[] memory components = new OrderComponentsSpace[](
