@@ -2025,6 +2025,8 @@ contract FuzzMutations is Test, FuzzExecutor {
                 context.generatorContext
             );
         }
+
+        context.executionState.orderDetails[orderIndex].conduitKey = keccak256("invalid conduit");
         context = context.withDerivedFulfillments();
         if (
             context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
