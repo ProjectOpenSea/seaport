@@ -1210,9 +1210,26 @@ library MutationFilters {
         return true;
     }
 
+    function ineligibleWhenOrderHasRebates(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            if (
+                context.executionState.orderDetails[orderIndex].offer.length != order.parameters.offer.length ||
+                context.executionState.orderDetails[orderIndex].consideration.length != order.parameters.consideration.length
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function ineligibleForUnusedItemParameters_Identifier(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
@@ -1226,15 +1243,10 @@ library MutationFilters {
             return true;
         }
 
-        for (uint256 i; i < order.parameters.offer.length; i++) {
-            OfferItem memory item = order.parameters.offer[i];
-            if (
-                item.itemType == ItemType.ERC20 ||
-                item.itemType == ItemType.NATIVE
-            ) {
-                return false;
-            }
+        if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
+            return true;
         }
+
         for (uint256 i; i < order.parameters.consideration.length; i++) {
             ConsiderationItem memory item = order.parameters.consideration[i];
             if (
