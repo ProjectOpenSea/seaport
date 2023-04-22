@@ -141,7 +141,6 @@ contract FractionUtilTest is Test {
 
         uint120 numeratorToFill = 1;
         uint120 denominatorToFill = 2;
-        vm.breakpoint("a");
 
         FractionResults memory results3 = FractionUtil.getPartialFillResults(
             currentStatusNumerator,
