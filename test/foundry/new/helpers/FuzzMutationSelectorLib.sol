@@ -1218,6 +1218,7 @@ library FailureDetailsLib {
             errorSelector,
             mutationState.selectedArbitraryAddress
         );
+    }
 
     function errorString(
         string memory errorMessage

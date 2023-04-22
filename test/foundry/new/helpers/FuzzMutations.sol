@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "forge-std/console.sol";
-import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
@@ -2692,7 +2690,6 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
-        console.log(context.actionName());
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
