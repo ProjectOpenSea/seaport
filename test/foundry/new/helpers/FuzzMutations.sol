@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
@@ -1252,7 +1251,7 @@ library MutationFilters {
 
     function ineligibleForUnusedItemParameters_Token(
         AdvancedOrder memory order,
-        uint256 /* orderIndex */,
+        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
@@ -1263,6 +1262,10 @@ library MutationFilters {
             action == context.seaport.matchAdvancedOrders.selector ||
             action == context.seaport.matchOrders.selector
         ) {
+            return true;
+        }
+
+        if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
 
@@ -1332,6 +1335,53 @@ library MutationFilters {
         return true;
     }
 
+    function ineligibleForInvalidERC721TransferAmount(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // TODO: this is so the item is not filtered; add test case where
+        // executions are checked
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.fulfillAdvancedOrder.selector ||
+            action == context.seaport.matchOrders.selector
+        ) {
+            return true;
+        }
+
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
+            return true;
+        }
+
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return false;
+            }
+        }
+
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     function ineligibleForConsiderationNotMet(
         AdvancedOrder memory order,
@@ -1368,7 +1418,7 @@ library MutationFilters {
         if (order.parameters.consideration.length == 0) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -2619,6 +2669,62 @@ contract FuzzMutations is Test, FuzzExecutor {
                     item.itemType == ItemType.NATIVE
                 ) {
                     item.identifierOrCriteria = 1;
+                    validItemFound = true;
+                    break;
+                }
+            }
+        }
+
+        // Re-sign order
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
+
+        exec(context);
+    }
+
+    function mutation_invalidERC721TransferAmount(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // Add invalid amount to first valid item
+        bool validItemFound;
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            if (
+                item.itemType == ItemType.ERC721 ||
+                item.itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                item.startAmount = 2;
+                item.endAmount = 2;
+                validItemFound = true;
+                break;
+            }
+        }
+
+        if (!validItemFound) {
+            for (uint256 i; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    item.startAmount = 2;
+                    item.endAmount = 2;
                     validItemFound = true;
                     break;
                 }

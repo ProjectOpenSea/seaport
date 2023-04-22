@@ -114,6 +114,7 @@ enum Failure {
     NoContract, // Trying to transfer a token at an address that has no contract
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
+    InvalidERC721TransferAmount, // ERC721 transfer amount is not 1
     ConsiderationNotMet,
     PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
     length // NOT A FAILURE; used to get the number of failures in the enum
@@ -361,6 +362,7 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure.NoContract.withGeneric(
             MutationFilters.ineligibleForNoContract
         );
+
         failuresAndFilters[i++] = Failure.UnusedItemParameters_Token.withOrder(
             MutationFilters.ineligibleForUnusedItemParameters_Token
         );
@@ -370,6 +372,10 @@ library FuzzMutationSelectorLib {
             .withOrder(
                 MutationFilters.ineligibleForUnusedItemParameters_Identifier
             );
+
+        failuresAndFilters[i++] = Failure.InvalidERC721TransferAmount.withOrder(
+            MutationFilters.ineligibleForInvalidERC721TransferAmount
+        );
 
         failuresAndFilters[i++] = Failure.ConsiderationNotMet.withOrder(
             MutationFilters.ineligibleForConsiderationNotMet
@@ -925,6 +931,15 @@ library FailureDetailsLib {
                 FuzzMutations.mutation_unusedItemParameters_Identifier.selector
             );
 
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .InvalidERC721TransferAmount
+            .selector
+            .withOrder(
+                "InvalidERC721TransferAmount",
+                FuzzMutations.mutation_invalidERC721TransferAmount.selector,
+                details_InvalidERC721TransferAmount
+            );
+
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .ConsiderationNotMet
             .selector
@@ -1171,6 +1186,14 @@ library FailureDetailsLib {
             resolver.orderIndex,
             resolver.index
         );
+    }
+
+    function details_InvalidERC721TransferAmount(
+        FuzzTestContext memory /* context */,
+        MutationState memory /* mutationState */,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, 2);
     }
 
     function details_ConsiderationNotMet(
