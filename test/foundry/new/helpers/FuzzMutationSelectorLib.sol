@@ -926,7 +926,6 @@ library FailureDetailsLib {
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
-
             .ConsiderationNotMet
             .selector
             .withOrder(
@@ -1174,7 +1173,6 @@ library FailureDetailsLib {
         );
     }
 
-
     function details_ConsiderationNotMet(
         FuzzTestContext memory /* context */,
         MutationState memory mutationState,
@@ -1186,6 +1184,7 @@ library FailureDetailsLib {
             mutationState.selectedOrder.parameters.consideration.length,
             100
         );
+    }
 
     function details_NoContract(
         FuzzTestContext memory /* context */,
