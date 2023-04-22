@@ -1345,8 +1345,8 @@ library MutationFilters {
         bytes4 action = context.action();
         if (
             action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
+            action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector ||
-            action == context.seaport.fulfillAdvancedOrder.selector ||
             action == context.seaport.matchOrders.selector
         ) {
             return true;
