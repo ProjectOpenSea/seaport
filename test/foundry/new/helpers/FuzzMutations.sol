@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-import "forge-std/console.sol";
+
 import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
@@ -33,7 +33,8 @@ import {
     OrderParametersLib,
     ConsiderationItemLib,
     ItemType,
-    BasicOrderType
+    BasicOrderType,
+    ConsiderationItemLib
 } from "seaport-sol/SeaportSol.sol";
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
@@ -618,6 +619,46 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleForConsiderationLengthNotEqualToTotalOriginal(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.parameters.orderType != OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (order.parameters.consideration.length == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForMissingOriginalConsiderationItems(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            return true;
+        }
+
+        if (order.parameters.consideration.length == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
     // Determine if an order is unavailable, has been validated, has an offerer
     // with code, has an offerer equal to the caller, or is a contract order.
     function ineligibleForInvalidSignature(
@@ -1179,6 +1220,36 @@ library MutationFilters {
         return false;
     }
 
+    function ineligibleForNoContract(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        // Can't be one of the fulfillAvailable actions.
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        // One non-native execution is necessary.
+        for (
+            uint256 i;
+            i < context.expectations.expectedExplicitExecutions.length;
+            i++
+        ) {
+            if (
+                context.expectations.expectedExplicitExecutions[i].item.token !=
+                address(0)
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function ineligibleForUnusedItemParameters_Token(
         AdvancedOrder memory order,
         uint256 /* orderIndex */,
@@ -1261,6 +1332,7 @@ library MutationFilters {
         return true;
     }
 
+
     function ineligibleForConsiderationNotMet(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -1294,6 +1366,41 @@ library MutationFilters {
 
         // Order must have at least one consideration item
         if (order.parameters.consideration.length == 0) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    function ineligibleForPartialFillsNotEnabledForOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Exclude methods that don't support partial fills
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        // Exclude partial and contract orders
+        if (
+            order.parameters.orderType == OrderType.PARTIAL_OPEN ||
+            order.parameters.orderType == OrderType.PARTIAL_RESTRICTED ||
+            order.parameters.orderType == OrderType.CONTRACT
+        ) {
+            return true;
+        }
+
+        // Order must be available
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
             return true;
         }
 
@@ -1738,6 +1845,45 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         EIP1271Offerer(payable(order.parameters.offerer)).returnEmpty();
+
+        exec(context);
+    }
+
+    function mutation_considerationLengthNotEqualToTotalOriginal_ExtraItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length -
+            1;
+
+        exec(context);
+    }
+
+    function mutation_considerationLengthNotEqualToTotalOriginal_MissingItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length +
+            1;
+
+        exec(context);
+    }
+
+    function mutation_missingOriginalConsiderationItems(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+        order.parameters.totalOriginalConsiderationItems =
+            order.parameters.consideration.length +
+            1;
 
         exec(context);
     }
@@ -2332,6 +2478,67 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_noContract(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        address targetContract;
+
+        for (
+            uint256 i;
+            i < context.expectations.expectedExplicitExecutions.length;
+            i++
+        ) {
+            address candidate = context
+                .expectations
+                .expectedExplicitExecutions[i]
+                .item
+                .token;
+
+            if (candidate != address(0)) {
+                targetContract = candidate;
+                break;
+            }
+        }
+
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            AdvancedOrder memory order = context.executionState.orders[i];
+
+            for (uint256 j; j < order.parameters.consideration.length; j++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    j
+                ];
+                if (item.token == targetContract) {
+                    item.token = mutationState.selectedArbitraryAddress;
+                }
+            }
+
+            for (uint256 j; j < order.parameters.offer.length; j++) {
+                OfferItem memory item = order.parameters.offer[j];
+                if (item.token == targetContract) {
+                    item.token = mutationState.selectedArbitraryAddress;
+                }
+            }
+
+            if (
+                context.advancedOrdersSpace.orders[i].signatureMethod ==
+                SignatureMethod.VALIDATE
+            ) {
+                order.inscribeOrderStatusValidated(true, context.seaport);
+            } else if (
+                context.executionState.caller != order.parameters.offerer
+            ) {
+                AdvancedOrdersSpaceGenerator._signOrders(
+                    context.advancedOrdersSpace,
+                    context.executionState.orders,
+                    context.generatorContext
+                );
+            }
+        }
+
+        exec(context);
+    }
+
     function mutation_unusedItemParameters_Token(
         FuzzTestContext memory context,
         MutationState memory mutationState
@@ -2355,6 +2562,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                 ConsiderationItem memory item = order.parameters.consideration[
                     i
                 ];
+
                 if (item.itemType == ItemType.NATIVE) {
                     item.token = address(1);
                     nativeItemFound = true;
@@ -2439,8 +2647,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         MutationState memory mutationState
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];
-        console.log(context.actionName());
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];    
 
         ConsiderationItem[] memory newConsideration = new ConsiderationItem[](
             order.parameters.consideration.length + 1
@@ -2455,6 +2662,19 @@ contract FuzzMutations is Test, FuzzExecutor {
             .withItemType(ItemType.NATIVE)
             .withAmount(100);
         order.parameters.consideration = newConsideration;
+        
+        exec(context);
+    }
+
+    function mutation_partialFillsNotEnabledForOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.numerator = 1;
+        order.denominator = 10;
 
         exec(context);
     }
