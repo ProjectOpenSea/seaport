@@ -769,20 +769,6 @@ library MutationFilters {
             }
         }
 
-        // If we haven't found one yet, keep looking in implicit executions...
-        if (!locatedInvalidConduitExecution) {
-            for (uint256 i = 0; i < implicitExecutionsPost.length; ++i) {
-                if (
-                    implicitExecutionsPost[i].conduitKey ==
-                    keccak256("invalid conduit") &&
-                    implicitExecutionsPost[i].item.itemType != ItemType.NATIVE
-                ) {
-                    locatedInvalidConduitExecution = true;
-                    break;
-                }
-            }
-        }
-
         // Note: mutation is undone here as referenced above.
         context.executionState.orderDetails[orderIndex].conduitKey = oldConduitKey;
 
@@ -2026,8 +2012,9 @@ contract FuzzMutations is Test, FuzzExecutor {
             );
         }
 
-        context.executionState.orderDetails[orderIndex].conduitKey = keccak256("invalid conduit");
-        context = context.withDerivedFulfillments();
+        context.executionState.previewedOrders[orderIndex].parameters.conduitKey = keccak256("invalid conduit");
+
+        context = context.withDerivedOrderDetails().withDerivedFulfillments();
         if (
             context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
             SignatureMethod.VALIDATE

@@ -478,7 +478,7 @@ library ExecutionHelper {
             }
 
             {
-                if (orderDetails.consideration.length > 1) {
+                if (orderDetails.consideration.length < 1) {
                     revert(
                         "ExecutionHelper: wrong length for basic consideration"
                     );
