@@ -1016,7 +1016,7 @@ library MutationFilters {
             if (
                 context
                     .executionState
-                    .orders[fulfillmentComponent.orderIndex]
+                    .previewedOrders[fulfillmentComponent.orderIndex]
                     .parameters
                     .offer.length <= fulfillmentComponent.itemIndex
             ) {
@@ -1128,7 +1128,7 @@ library MutationFilters {
     }
 
     function ineligibleForMissingItemAmount_ConsiderationItem(
-        AdvancedOrder memory order,
+        AdvancedOrder memory /* order */,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
@@ -1138,14 +1138,14 @@ library MutationFilters {
         }
 
         // Order must have at least one offer item
-        if (order.parameters.offer.length < 1) {
+        if (context.executionState.previewedOrders[orderIndex].parameters.offer.length < 1) {
             return true;
         }
 
         // At least one consideration item must be native, ERC20, or ERC1155
         bool hasValidItem;
-        for (uint256 i; i < order.parameters.consideration.length; i++) {
-            ConsiderationItem memory item = order.parameters.consideration[i];
+        for (uint256 i; i < context.executionState.previewedOrders[orderIndex].parameters.consideration.length; i++) {
+            ConsiderationItem memory item = context.executionState.previewedOrders[orderIndex].parameters.consideration[i];
             if (
                 item.itemType != ItemType.ERC721 &&
                 item.itemType != ItemType.ERC721_WITH_CRITERIA
@@ -2075,6 +2075,17 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .parameters
                     .offer[fulfillmentComponent.itemIndex]
                     .endAmount = 0;
+
+                if (order.parameters.orderType == OrderType.CONTRACT) {
+                    HashCalldataContractOfferer(
+                        payable(order.parameters.offerer)
+                    ).addItemAmountMutation(
+                        Side.OFFER,
+                        fulfillmentComponent.itemIndex,
+                        0,
+                        context.executionState.orderHashes[fulfillmentComponent.orderIndex]
+                    );
+                }
 
                 if (
                     context
