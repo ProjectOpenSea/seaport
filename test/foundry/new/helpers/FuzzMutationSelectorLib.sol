@@ -114,6 +114,7 @@ enum Failure {
     NoContract, // Trying to transfer a token at an address that has no contract
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
+    ConsiderationNotMet,
     PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
@@ -369,6 +370,10 @@ library FuzzMutationSelectorLib {
             .withOrder(
                 MutationFilters.ineligibleForUnusedItemParameters_Identifier
             );
+
+        failuresAndFilters[i++] = Failure.ConsiderationNotMet.withOrder(
+            MutationFilters.ineligibleForConsiderationNotMet
+        );
 
         failuresAndFilters[i++] = Failure
             .PartialFillsNotEnabledForOrder
@@ -921,6 +926,15 @@ library FailureDetailsLib {
             );
 
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .ConsiderationNotMet
+            .selector
+            .withOrder(
+                "ConsiderationNotMet",
+                FuzzMutations.mutation_considerationNotMet.selector,
+                details_ConsiderationNotMet
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .PartialFillsNotEnabledForOrder
             .selector
             .withOrder(
@@ -1156,6 +1170,19 @@ library FailureDetailsLib {
             errorSelector,
             resolver.orderIndex,
             resolver.index
+        );
+    }
+
+    function details_ConsiderationNotMet(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            mutationState.selectedOrderIndex,
+            mutationState.selectedOrder.parameters.consideration.length,
+            100
         );
     }
 
