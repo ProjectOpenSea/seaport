@@ -1336,11 +1336,14 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // TODO: this is so the item is not filtered; add test case where
+        // executions are checked
         bytes4 action = context.action();
         if (
             action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector ||
-            action == context.seaport.fulfillAdvancedOrder.selector
+            action == context.seaport.fulfillAdvancedOrder.selector ||
+            action == context.seaport.matchOrders.selector
         ) {
             return true;
         }
