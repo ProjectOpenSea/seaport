@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-
+import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 import { dumpExecutions } from "./DebugUtil.sol";
@@ -76,6 +76,7 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
 import { logMutation } from "./Metrics.sol";
+import "./pointer-libs/Index.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -145,6 +146,7 @@ contract FuzzEngine is
     FulfillAvailableHelper,
     MatchFulfillmentHelper
 {
+    using LibPRNG for LibPRNG.PRNG;
     // Use the various builder libraries.  These allow for creating structs in a
     // more readable way.
     using AdvancedOrderLib for AdvancedOrder;
@@ -389,7 +391,23 @@ contract FuzzEngine is
         registerFunctionSpecificChecks(context);
     }
 
+    function execFailureScuff(FuzzTestContext memory context) internal {
+        bytes memory callData = abi.encodeWithSelector(
+            mutations.mutation_Scuffed.selector,
+            context
+        );
+        (bool success, bytes memory data) = mutations.mutation_Scuffed{
+            gas: (gasleft() * 90) / 100
+        }(context);
+        assertFalse(success, string.concat("Scuff mutation did not revert: "));
+    }
+
+    /* context.prng.next() */
     function execFailure(FuzzTestContext memory context) internal {
+        LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
+        if (prng.next() % 2 == 0) {
+            return execFailureScuff(context);
+        }
         (
             string memory name,
             bytes4 mutationSelector,

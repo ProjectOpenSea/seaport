@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-
+import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 import { Test } from "forge-std/Test.sol";
 import { FuzzExecutor } from "./FuzzExecutor.sol";
-import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
+import {
+    FuzzTestContext,
+    FuzzTestContextLib,
+    MutationState
+} from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
@@ -13,6 +17,7 @@ import {
 } from "./FuzzMutationHelpers.sol";
 
 import {
+    BasicOrderParameters,
     Fulfillment,
     AdvancedOrder,
     ConsiderationItem,
@@ -23,7 +28,8 @@ import {
     OrderComponents,
     OrderParameters,
     ReceivedItem,
-    SpentItem
+    SpentItem,
+    Order
 } from "seaport-sol/SeaportStructs.sol";
 
 import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
@@ -34,7 +40,9 @@ import {
     AdvancedOrderLib,
     OrderParametersLib,
     ItemType,
-    BasicOrderType
+    BasicOrderType,
+    OrderComponentsLib,
+    OrderLib
 } from "seaport-sol/SeaportSol.sol";
 
 import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
@@ -72,6 +80,8 @@ import {
     OffererZoneFailureReason
 } from "../../../../contracts/test/OffererZoneFailureReason.sol";
 
+import "./pointer-libs/Index.sol";
+
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -81,9 +91,17 @@ interface TestNFT {
 }
 
 library MutationFilters {
+    using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
+
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
-    using AdvancedOrderLib for AdvancedOrder;
+    using FuzzHelpers for AdvancedOrder[];
+    using FuzzTestContextLib for FuzzTestContext;
+
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
 
@@ -1213,78 +1231,14 @@ library MutationFilters {
 
         return true;
     }
-
-    function ineligibleForScuffed_FulfillBasicOrderEfficient6GL6yc(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return
-            context.action() !=
-            context.seaport.fulfillBasicOrderEfficient6GL6yc.selector;
-    }
-
-    function ineligibleForScuffed_Validate(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return context.action() != context.seaport.validate.selector;
-    }
-
-    function ineligibleForScuffed_Cancel(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return context.action() != context.seaport.cancel.selector;
-    }
-
-    function ineligibleForScuffed_MatchAdvancedOrders(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return context.action() != context.seaport.matchAdvancedOrders.selector;
-    }
-
-    function ineligibleForScuffed_MatchOrders(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return context.action() != context.seaport.matchOrders.selector;
-    }
-
-    function ineligibleForScuffed_FulfillAvailableAdvancedOrders(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return
-            context.action() !=
-            context.seaport.fulfillAvailableAdvancedOrders.selector;
-    }
-
-    function ineligibleForScuffed_FulfillAvailableOrders(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return
-            context.action() != context.seaport.fulfillAvailableOrders.selector;
-    }
-
-    function ineligibleForScuffed_FulfillAdvancedOrder(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return
-            context.action() != context.seaport.fulfillAdvancedOrder.selector;
-    }
-
-    function ineligibleForScuffed_FulfillOrder(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return context.action() != context.seaport.fulfillOrder.selector;
-    }
-
-    function ineligibleForScuffed_FulfillBasicOrder(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        return context.action() != context.seaport.fulfillBasicOrder.selector;
-    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
+    using LibPRNG for LibPRNG.PRNG;
     using FuzzEngineLib for FuzzTestContext;
     using MutationEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
     using FuzzHelpers for AdvancedOrder;
     using OrderParametersLib for OrderParameters;
     using FuzzDerivers for FuzzTestContext;
@@ -1292,6 +1246,8 @@ contract FuzzMutations is Test, FuzzExecutor {
     using CheckHelpers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
     using MutationFilters for FuzzTestContext;
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
 
     function mutation_invalidContractOrderRatifyReverts(
         FuzzTestContext memory context,
@@ -2391,73 +2347,185 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
-    function mutation_Scuffed_FulfillBasicOrderEfficient6GL6yc(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_FulfillBasicOrderEfficient6GL6yc
+    function getActionCalldata(
+        FuzzTestContext memory context
+    ) internal view returns (bytes memory data) {
+        bytes4 _action = context.action();
+        if (_action == context.seaport.fulfillOrder.selector) {
+            AdvancedOrder memory order = context.executionState.orders[0];
+
+            data = abi.encodeWithSelector(
+                context.seaport.fulfillOrder.selector,
+                order.toOrder(),
+                context.executionState.fulfillerConduitKey
+            );
+        } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
+            AdvancedOrder memory order = context.executionState.orders[0];
+
+            data = abi.encodeWithSelector(
+                context.seaport.fulfillAdvancedOrder.selector,
+                order,
+                context.executionState.criteriaResolvers,
+                context.executionState.fulfillerConduitKey,
+                context.executionState.recipient
+            );
+        } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            BasicOrderParameters memory basicOrderParameters = context
+                .executionState
+                .orders[0]
+                .toBasicOrderParameters(
+                    context.executionState.orders[0].getBasicOrderType()
+                );
+
+            basicOrderParameters.fulfillerConduitKey = context
+                .executionState
+                .fulfillerConduitKey;
+
+            data = abi.encodeWithSelector(
+                context.seaport.fulfillBasicOrder.selector,
+                basicOrderParameters
+            );
+        } else if (
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            BasicOrderParameters memory basicOrderParameters = context
+                .executionState
+                .orders[0]
+                .toBasicOrderParameters(
+                    context.executionState.orders[0].getBasicOrderType()
+                );
+
+            basicOrderParameters.fulfillerConduitKey = context
+                .executionState
+                .fulfillerConduitKey;
+
+            data = abi.encodeWithSelector(
+                context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector,
+                basicOrderParameters
+            );
+        } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            data = abi.encodeWithSelector(
+                context.seaport.fulfillAvailableOrders.selector,
+                context.executionState.orders.toOrders(),
+                context.executionState.offerFulfillments,
+                context.executionState.considerationFulfillments,
+                context.executionState.fulfillerConduitKey,
+                context.executionState.maximumFulfilled
+            );
+        } else if (
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            data = abi.encodeWithSelector(
+                context.seaport.fulfillAvailableAdvancedOrders.selector,
+                context.executionState.orders,
+                context.executionState.criteriaResolvers,
+                context.executionState.offerFulfillments,
+                context.executionState.considerationFulfillments,
+                context.executionState.fulfillerConduitKey,
+                context.executionState.recipient,
+                context.executionState.maximumFulfilled
+            );
+        } else if (_action == context.seaport.matchOrders.selector) {
+            data = abi.encodeWithSelector(
+                context.seaport.matchOrders.selector,
+                context.executionState.orders.toOrders(),
+                context.executionState.fulfillments
+            );
+        } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            data = abi.encodeWithSelector(
+                context.seaport.matchAdvancedOrders.selector,
+                context.executionState.orders,
+                context.executionState.criteriaResolvers,
+                context.executionState.fulfillments,
+                context.executionState.recipient
+            );
+        } else if (_action == context.seaport.cancel.selector) {
+            AdvancedOrder[] memory orders = context.executionState.orders;
+            OrderComponents[] memory orderComponents = new OrderComponents[](
+                orders.length
+            );
+
+            for (uint256 i; i < orders.length; ++i) {
+                AdvancedOrder memory order = orders[i];
+                orderComponents[i] = order
+                    .toOrder()
+                    .parameters
+                    .toOrderComponents(context.executionState.counter);
+            }
+            data = abi.encodeWithSelector(
+                context.seaport.cancel.selector,
+                orderComponents
+            );
+        } else if (_action == context.seaport.validate.selector) {
+            data = abi.encodeWithSelector(
+                context.seaport.validate.selector,
+                context.executionState.orders.toOrders()
+            );
+        } else {
+            revert("FuzzEngine: scuff action not implemented");
+        }
     }
 
-    function mutation_Scuffed_Validate(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_Validate
-    }
+    function mutation_Scuffed(
+        FuzzTestContext memory context
+    ) external returns (bool success, bytes memory returnData) {
+        bytes4 _action = context.action();
+        bytes memory data = getActionCalldata(context);
+        ScuffDirective[] memory directives;
 
-    function mutation_Scuffed_Cancel(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_Cancel
-    }
+        if (
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            directives = FulfillBasicOrderPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.fulfillBasicOrder.selector) {
+            directives = FulfillBasicOrderEfficient6GL6ycPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.fulfillOrder.selector) {
+            directives = FulfillOrderPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
+            directives = FulfillAdvancedOrderPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
+            directives = FulfillAvailableOrdersPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            directives = FulfillAvailableAdvancedOrdersPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.matchOrders.selector) {
+            directives = MatchOrdersPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.matchAdvancedOrders.selector) {
+            directives = MatchAdvancedOrdersPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.cancel.selector) {
+            directives = CancelPointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        } else if (_action == context.seaport.validate.selector) {
+            directives = ValidatePointerLibrary
+                .fromBytes(data)
+                .getScuffDirectives();
+        }
 
-    function mutation_Scuffed_MatchAdvancedOrders(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_MatchAdvancedOrders
-    }
-
-    function mutation_Scuffed_MatchOrders(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_MatchOrders
-    }
-
-    function mutation_Scuffed_FulfillAvailableAdvancedOrders(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_FulfillAvailableAdvancedOrders
-    }
-
-    function mutation_Scuffed_FulfillAvailableOrders(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_FulfillAvailableOrders
-    }
-
-    function mutation_Scuffed_FulfillAdvancedOrder(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_FulfillAdvancedOrder
-    }
-
-    function mutation_Scuffed_FulfillOrder(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_FulfillOrder
-    }
-
-    function mutation_Scuffed_FulfillBasicOrder(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        // Scuffed_FulfillBasicOrder
+        if (context.executionState.caller != address(0)) {
+            vm.prank(context.executionState.caller);
+        }
+        (success, returnData) = address(context.seaport).call{
+            value: context.executionState.value
+        }(data);
     }
 }
