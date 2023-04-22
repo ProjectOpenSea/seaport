@@ -1016,11 +1016,11 @@ library MutationFilters {
             if (
                 context
                     .executionState
-                    .previewedOrders[fulfillmentComponent.orderIndex]
+                    .orders[fulfillmentComponent.orderIndex]
                     .parameters
                     .offer.length <= fulfillmentComponent.itemIndex
             ) {
-                continue;
+                return true;
             }
 
             if (
@@ -2049,16 +2049,6 @@ contract FuzzMutations is Test, FuzzExecutor {
             AdvancedOrder memory order = context.executionState.orders[
                 fulfillmentComponent.orderIndex
             ];
-
-            if (
-                context
-                    .executionState
-                    .orders[fulfillmentComponent.orderIndex]
-                    .parameters
-                    .offer.length <= fulfillmentComponent.itemIndex
-            ) {
-                continue;
-            }
 
             if (
                 context
