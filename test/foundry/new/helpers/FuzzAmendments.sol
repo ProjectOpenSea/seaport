@@ -92,10 +92,13 @@ abstract contract FuzzAmendments is Test {
                     } else if (
                         rebate == ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS
                     ) {
+                        uint256 itemIdx = _findFirstNon721Index(
+                            orderParams.offer
+                        );
                         offerer.addItemAmountMutation(
                             Side.OFFER,
-                            0,
-                            orderParams.offer[0].startAmount + 1,
+                            itemIdx,
+                            orderParams.offer[itemIdx].startAmount + 1,
                             orderHash
                         );
                     } else if (
@@ -110,10 +113,13 @@ abstract contract FuzzAmendments is Test {
                         rebate ==
                         ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS
                     ) {
+                        uint256 itemIdx = _findFirstNon721Index(
+                            orderParams.consideration
+                        );
                         offerer.addItemAmountMutation(
                             Side.CONSIDERATION,
-                            0,
-                            orderParams.consideration[0].startAmount - 1,
+                            itemIdx,
+                            orderParams.consideration[itemIdx].startAmount - 1,
                             orderHash
                         );
                     } else {
@@ -166,6 +172,40 @@ abstract contract FuzzAmendments is Test {
                     .consideration = _toConsideration(consideration);
             }
         }
+    }
+
+    function _findFirstNon721Index(
+        OfferItem[] memory items
+    ) internal pure returns (uint256) {
+        for (uint256 i = 0; i < items.length; ++i) {
+            ItemType itemType = items[i].itemType;
+            if (
+                itemType != ItemType.ERC721 &&
+                itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return i;
+            }
+        }
+
+        revert("FuzzAmendments: could not locate non-721 offer item index");
+    }
+
+    function _findFirstNon721Index(
+        ConsiderationItem[] memory items
+    ) internal pure returns (uint256) {
+        for (uint256 i = 0; i < items.length; ++i) {
+            ItemType itemType = items[i].itemType;
+            if (
+                itemType != ItemType.ERC721 &&
+                itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return i;
+            }
+        }
+
+        revert(
+            "FuzzAmendments: could not locate non-721 consideration item index"
+        );
     }
 
     function _toSpent(
