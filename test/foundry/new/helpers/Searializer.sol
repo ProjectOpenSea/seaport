@@ -686,8 +686,8 @@ library Searializer {
         tojsonDynArrayAdvancedOrder(obj, "orders", value.executionState.orders);
         tojsonDynArrayAdvancedOrder(
             obj,
-            "initialOrders",
-            value.executionState.initialOrders
+            "previewedOrders",
+            value.executionState.previewedOrders
         );
         tojsonUint256(obj, "counter", value.executionState.counter);
         tojsonBytes32(

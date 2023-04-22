@@ -28,7 +28,7 @@ struct ContextOutputSelection {
     bool fuzzParams;
     bool orders;
     bool orderHashes;
-    bool initialOrders;
+    bool previewedOrders;
     bool counter;
     bool fulfillerConduitKey;
     bool criteriaResolvers;
@@ -130,13 +130,13 @@ function dumpContext(
             context.executionState.orderHashes
         );
     }
-    // if (outputSelection.initialOrders) {
-    //     jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
-    //         "root",
-    //         "initialOrders",
-    //         context.executionState.initialOrders
-    //     );
-    // }
+    if (outputSelection.previewedOrders) {
+        jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
+            "root",
+            "previewedOrders",
+            context.executionState.previewedOrders
+        );
+    }
     // if (outputSelection.counter) {
     //     jsonOut = Searializer.tojsonUint256("root", "counter", context.executionState.counter);
     // }

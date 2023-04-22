@@ -5,9 +5,16 @@ import { Test } from "forge-std/Test.sol";
 
 import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+import {
+    AdvancedOrder,
+    ConsiderationItem,
+    OfferItem,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
+} from "seaport-sol/SeaportStructs.sol";
 
-import { OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import { FuzzChecks } from "./FuzzChecks.sol";
 
@@ -21,7 +28,14 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CheckHelpers } from "./FuzzSetup.sol";
 
-import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import {
+    OrderStatusEnum,
+    ContractOrderRebate
+} from "seaport-sol/SpaceEnums.sol";
+
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 /**
  *  @dev Make amendments to state based on the fuzz test context.
@@ -34,6 +48,228 @@ abstract contract FuzzAmendments is Test {
     using FuzzEngineLib for FuzzTestContext;
     using FuzzInscribers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder;
+
+    // TODO: make it so it adds / removes / modifies more than a single thing
+    // and create arbitrary new items.
+    function prepareRebates(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory orderParams = (
+                context.executionState.orders[i].parameters
+            );
+
+            if (orderParams.orderType == OrderType.CONTRACT) {
+                uint256 contractNonce;
+                HashCalldataContractOfferer offerer;
+                {
+                    ContractOrderRebate rebate = (
+                        context.advancedOrdersSpace.orders[i].rebate
+                    );
+
+                    if (rebate == ContractOrderRebate.NONE) {
+                        continue;
+                    }
+
+                    offerer = (
+                        HashCalldataContractOfferer(
+                            payable(orderParams.offerer)
+                        )
+                    );
+
+                    bytes32 orderHash = context.executionState.orderHashes[i];
+
+                    if (rebate == ContractOrderRebate.MORE_OFFER_ITEMS) {
+                        offerer.addExtraItemMutation(
+                            Side.OFFER,
+                            ReceivedItem({
+                                itemType: ItemType.NATIVE,
+                                token: address(0),
+                                identifier: 0,
+                                amount: 1,
+                                recipient: payable(orderParams.offerer)
+                            }),
+                            orderHash
+                        );
+                    } else if (
+                        rebate == ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS
+                    ) {
+                        uint256 itemIdx = _findFirstNon721Index(
+                            orderParams.offer
+                        );
+                        offerer.addItemAmountMutation(
+                            Side.OFFER,
+                            itemIdx,
+                            orderParams.offer[itemIdx].startAmount + 1,
+                            orderHash
+                        );
+                    } else if (
+                        rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEMS
+                    ) {
+                        offerer.addDropItemMutation(
+                            Side.CONSIDERATION,
+                            orderParams.consideration.length - 1,
+                            orderHash
+                        );
+                    } else if (
+                        rebate ==
+                        ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS
+                    ) {
+                        uint256 itemIdx = _findFirstNon721Index(
+                            orderParams.consideration
+                        );
+                        offerer.addItemAmountMutation(
+                            Side.CONSIDERATION,
+                            itemIdx,
+                            orderParams.consideration[itemIdx].startAmount - 1,
+                            orderHash
+                        );
+                    } else {
+                        revert("FuzzAmendments: unknown rebate type");
+                    }
+
+                    uint256 shiftedOfferer = (uint256(
+                        uint160(orderParams.offerer)
+                    ) << 96);
+                    contractNonce = uint256(orderHash) ^ shiftedOfferer;
+                }
+
+                uint256 originalContractNonce = (
+                    context.seaport.getContractOffererNonce(orderParams.offerer)
+                );
+
+                // Temporarily adjust the contract nonce and reset it after.
+                FuzzInscribers.inscribeContractOffererNonce(
+                    orderParams.offerer,
+                    contractNonce,
+                    context.seaport
+                );
+
+                (
+                    SpentItem[] memory offer,
+                    ReceivedItem[] memory consideration
+                ) = offerer.previewOrder(
+                        address(context.seaport),
+                        context.executionState.caller,
+                        _toSpent(orderParams.offer),
+                        _toSpent(orderParams.consideration),
+                        context.executionState.orders[i].extraData
+                    );
+
+                FuzzInscribers.inscribeContractOffererNonce(
+                    orderParams.offerer,
+                    originalContractNonce,
+                    context.seaport
+                );
+
+                context
+                    .executionState
+                    .previewedOrders[i]
+                    .parameters
+                    .offer = _toOffer(offer);
+                context
+                    .executionState
+                    .previewedOrders[i]
+                    .parameters
+                    .consideration = _toConsideration(consideration);
+            }
+        }
+    }
+
+    function _findFirstNon721Index(
+        OfferItem[] memory items
+    ) internal pure returns (uint256) {
+        for (uint256 i = 0; i < items.length; ++i) {
+            ItemType itemType = items[i].itemType;
+            if (
+                itemType != ItemType.ERC721 &&
+                itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return i;
+            }
+        }
+
+        revert("FuzzAmendments: could not locate non-721 offer item index");
+    }
+
+    function _findFirstNon721Index(
+        ConsiderationItem[] memory items
+    ) internal pure returns (uint256) {
+        for (uint256 i = 0; i < items.length; ++i) {
+            ItemType itemType = items[i].itemType;
+            if (
+                itemType != ItemType.ERC721 &&
+                itemType != ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return i;
+            }
+        }
+
+        revert(
+            "FuzzAmendments: could not locate non-721 consideration item index"
+        );
+    }
+
+    function _toSpent(
+        OfferItem[] memory offer
+    ) internal pure returns (SpentItem[] memory spent) {
+        spent = new SpentItem[](offer.length);
+        for (uint256 i = 0; i < offer.length; ++i) {
+            OfferItem memory item = offer[i];
+            spent[i] = SpentItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifier: item.identifierOrCriteria,
+                amount: item.startAmount
+            });
+        }
+    }
+
+    function _toSpent(
+        ConsiderationItem[] memory consideration
+    ) internal pure returns (SpentItem[] memory spent) {
+        spent = new SpentItem[](consideration.length);
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            ConsiderationItem memory item = consideration[i];
+            spent[i] = SpentItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifier: item.identifierOrCriteria,
+                amount: item.startAmount
+            });
+        }
+    }
+
+    function _toOffer(
+        SpentItem[] memory spent
+    ) internal pure returns (OfferItem[] memory offer) {
+        offer = new OfferItem[](spent.length);
+        for (uint256 i = 0; i < spent.length; ++i) {
+            SpentItem memory item = spent[i];
+            offer[i] = OfferItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifierOrCriteria: item.identifier,
+                startAmount: item.amount,
+                endAmount: item.amount
+            });
+        }
+    }
+
+    function _toConsideration(
+        ReceivedItem[] memory received
+    ) internal pure returns (ConsiderationItem[] memory consideration) {
+        consideration = new ConsiderationItem[](received.length);
+        for (uint256 i = 0; i < received.length; ++i) {
+            ReceivedItem memory item = received[i];
+            consideration[i] = ConsiderationItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifierOrCriteria: item.identifier,
+                startAmount: item.amount,
+                endAmount: item.amount,
+                recipient: item.recipient
+            });
+        }
+    }
 
     /**
      *  @dev Validate orders.
