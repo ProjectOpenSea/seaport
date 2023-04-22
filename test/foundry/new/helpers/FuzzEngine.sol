@@ -333,8 +333,8 @@ contract FuzzEngine is
         context = context
             .withDerivedAvailableOrders()
             .withDerivedCriteriaResolvers()
-            .withDetectedRemainders()
             .withDerivedOrderDetails()
+            .withDetectedRemainders()
             .withDerivedFulfillments()
             .withDerivedCallValue()
             .withDerivedExecutions()
@@ -376,6 +376,7 @@ contract FuzzEngine is
         // generation phase.
         setCounter(context);
         setContractOffererNonce(context);
+        prepareRebates(context);
     }
 
     /**

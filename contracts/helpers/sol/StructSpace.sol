@@ -8,6 +8,7 @@ import {
     BroadOrderType,
     Caller,
     ConduitChoice,
+    ContractOrderRebate,
     Criteria,
     EOASignature,
     ExtraData,
@@ -65,6 +66,7 @@ struct OrderComponentsSpace {
     Tips tips;
     UnavailableReason unavailableReason; // ignored unless unavailable
     ExtraData extraData;
+    ContractOrderRebate rebate;
 }
 
 struct AdvancedOrdersSpace {
