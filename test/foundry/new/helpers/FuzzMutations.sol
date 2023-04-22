@@ -1341,12 +1341,13 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // TODO: this is so the item is not filtered; add test case where
-        // executions are checked
+        // executions are checked. Also deals with partial fills
         bytes4 action = context.action();
         if (
             action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.matchAdvancedOrders.selector ||
+            action == context.seaport.fulfillAdvancedOrder.selector ||
             action == context.seaport.matchOrders.selector
         ) {
             return true;
