@@ -38,14 +38,6 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
-    /**
-     * @dev used to store address and key outputs from makeAddrAndKey(name)
-     */
-    struct Account {
-        address addr;
-        uint256 key;
-    }
-
     FulfillmentComponent firstOrderFirstItem;
     FulfillmentComponent firstOrderSecondItem;
     FulfillmentComponent secondOrderFirstItem;
@@ -88,14 +80,6 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
             vm.deal(address(this), uint128(MAX_INT));
         }
         _;
-    }
-
-    /**
-     * @dev convenience wrapper for makeAddrAndKey
-     */
-    function makeAccount(string memory name) internal returns (Account memory) {
-        (address addr, uint256 key) = makeAddrAndKey(name);
-        return Account(addr, key);
     }
 
     /**

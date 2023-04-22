@@ -44,7 +44,7 @@ import {
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { Account } from "../BaseOrderTest.sol";
+import { StdCheats } from "forge-std/StdCheats.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 
@@ -73,7 +73,7 @@ interface TestHelpers {
 
     function makeAccount(
         string memory name
-    ) external view returns (Account memory);
+    ) external view returns (StdCheats.Account memory);
 
     function getNaiveFulfillmentComponents(
         OrderDetails[] memory orderDetails
@@ -166,10 +166,8 @@ struct Expectations {
     bytes32[] expectedSeaportEventHashes;
     bool[] ineligibleOrders;
     bool[] ineligibleFailures;
-
     uint256 expectedImpliedNativeExecutions;
     uint256 expectedNativeTokensReturned;
-
     uint256 minimumValue;
 }
 

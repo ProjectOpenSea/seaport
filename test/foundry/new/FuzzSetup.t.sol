@@ -25,7 +25,7 @@ import {
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
+import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 import {
     FuzzParams,
