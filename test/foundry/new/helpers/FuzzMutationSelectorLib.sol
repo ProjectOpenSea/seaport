@@ -67,7 +67,9 @@ enum Failure {
     BadContractSignature_BadSignature, // 1271 call to offerer, signature tampered with
     BadContractSignature_ModifiedOrder, // Order with offerer with code tampered with
     BadContractSignature_MissingMagic, // 1271 call to offerer, no magic value returned
-    // ConsiderationLengthNotEqualToTotalOriginal, // Tips on contract order or validate
+    ConsiderationLengthNotEqualToTotalOriginal_ExtraItems, // Tips on contract order or validate
+    ConsiderationLengthNotEqualToTotalOriginal_MissingItems, // Tips on contract order or validate
+    MissingOriginalConsiderationItems, // Consideration array shorter than totalOriginalConsiderationItems
     InvalidTime_NotStarted, // Order with start time in the future
     InvalidTime_Expired, // Order with end time in the past
     InvalidConduit, // Order with invalid conduit
@@ -109,9 +111,12 @@ enum Failure {
     InvalidContractOrder_ConsiderationAmountMismatch, // startAmount != endAmount on contract order consideration item
     InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
+    NoContract, // Trying to transfer a token at an address that has no contract
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
     InvalidERC721TransferAmount, // ERC721 transfer amount is not 1
+    ConsiderationNotMet,
+    PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -192,6 +197,26 @@ library FuzzMutationSelectorLib {
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
             .withOrder(MutationFilters.ineligibleForBadContractSignature);
+
+        failuresAndFilters[i++] = Failure
+            .MissingOriginalConsiderationItems
+            .withOrder(
+                MutationFilters.ineligibleForMissingOriginalConsiderationItems
+            );
+
+        failuresAndFilters[i++] = Failure
+            .ConsiderationLengthNotEqualToTotalOriginal_ExtraItems
+            .withOrder(
+                MutationFilters
+                    .ineligibleForConsiderationLengthNotEqualToTotalOriginal
+            );
+
+        failuresAndFilters[i++] = Failure
+            .ConsiderationLengthNotEqualToTotalOriginal_MissingItems
+            .withOrder(
+                MutationFilters
+                    .ineligibleForConsiderationLengthNotEqualToTotalOriginal
+            );
 
         failuresAndFilters[i++] = Failure
             .InvalidFulfillmentComponentData
@@ -334,6 +359,10 @@ library FuzzMutationSelectorLib {
                 MutationFilters.ineligibleWhenNotAvailableOrNotRestrictedOrder
             );
 
+        failuresAndFilters[i++] = Failure.NoContract.withGeneric(
+            MutationFilters.ineligibleForNoContract
+        );
+
         failuresAndFilters[i++] = Failure.UnusedItemParameters_Token.withOrder(
             MutationFilters.ineligibleForUnusedItemParameters_Token
         );
@@ -347,6 +376,16 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure.InvalidERC721TransferAmount.withOrder(
             MutationFilters.ineligibleForInvalidERC721TransferAmount
         );
+
+        failuresAndFilters[i++] = Failure.ConsiderationNotMet.withOrder(
+            MutationFilters.ineligibleForConsiderationNotMet
+        );
+
+        failuresAndFilters[i++] = Failure
+            .PartialFillsNotEnabledForOrder
+            .withOrder(
+                MutationFilters.ineligibleForPartialFillsNotEnabledForOrder
+            );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
@@ -464,6 +503,36 @@ library FailureDetailsLib {
                 "BadContractSignature_MissingMagic",
                 FuzzMutations
                     .mutation_badContractSignature_MissingMagic
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .ConsiderationLengthNotEqualToTotalOriginal
+            .selector
+            .withOrder(
+                "ConsiderationLengthNotEqualToTotalOriginal_ExtraItems",
+                FuzzMutations
+                    .mutation_considerationLengthNotEqualToTotalOriginal_ExtraItems
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .ConsiderationLengthNotEqualToTotalOriginal
+            .selector
+            .withOrder(
+                "ConsiderationLengthNotEqualToTotalOriginal_MissingItens",
+                FuzzMutations
+                    .mutation_considerationLengthNotEqualToTotalOriginal_MissingItems
+                    .selector
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .MissingOriginalConsiderationItems
+            .selector
+            .withOrder(
+                "MissingOriginalConsiderationItems",
+                FuzzMutations
+                    .mutation_missingOriginalConsiderationItems
                     .selector
             );
 
@@ -837,6 +906,14 @@ library FailureDetailsLib {
                     .selector,
                 details_withOrderHash
             );
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .NoContract
+            .selector
+            .withGeneric(
+                "NoContract",
+                FuzzMutations.mutation_noContract.selector,
+                details_NoContract
+            );
 
         failureDetailsArray[i++] = TokenTransferrerErrors
             .UnusedItemParameters
@@ -861,6 +938,23 @@ library FailureDetailsLib {
                 "InvalidERC721TransferAmount",
                 FuzzMutations.mutation_invalidERC721TransferAmount.selector,
                 details_InvalidERC721TransferAmount
+        );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .ConsiderationNotMet
+            .selector
+            .withOrder(
+                "ConsiderationNotMet",
+                FuzzMutations.mutation_considerationNotMet.selector,
+                details_ConsiderationNotMet
+            );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .PartialFillsNotEnabledForOrder
+            .selector
+            .withOrder(
+                "PartialFillsNotEnabledForOrder",
+                FuzzMutations.mutation_partialFillsNotEnabledForOrder.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
@@ -1101,6 +1195,29 @@ library FailureDetailsLib {
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 2);
     }
+
+    function details_ConsiderationNotMet(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            mutationState.selectedOrderIndex,
+            mutationState.selectedOrder.parameters.consideration.length,
+            100
+        );
+    }
+
+    function details_NoContract(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            mutationState.selectedArbitraryAddress
+        );
 
     function errorString(
         string memory errorMessage
