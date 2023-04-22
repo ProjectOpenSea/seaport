@@ -45,7 +45,7 @@ contract FractionUtilTest is Test {
         assertEq(
             uint256(results.status),
             uint256(FractionStatus.WHOLE_FILL),
-            "Status should be PARTIAL_FILL"
+            "Status should be WHOLE_FILL"
         );
     }
 
@@ -109,22 +109,22 @@ contract FractionUtilTest is Test {
         assertEq(
             results2.realizedNumerator,
             2,
-            "Realized numerator should be 1"
+            "Realized numerator should be 2"
         );
         assertEq(
             results2.realizedDenominator,
             6,
-            "Realized denominator should be 3"
+            "Realized denominator should be 6"
         );
         assertEq(
             results2.finalFilledNumerator,
             1,
-            "Final filled numerator should be 5"
+            "Final filled numerator should be 1"
         );
         assertEq(
             results2.finalFilledDenominator,
             1,
-            "Final filled denominator should be 6"
+            "Final filled denominator should be 1"
         );
         assertEq(
             uint256(results2.status),
@@ -141,7 +141,6 @@ contract FractionUtilTest is Test {
 
         uint120 numeratorToFill = 1;
         uint120 denominatorToFill = 2;
-        vm.breakpoint("a");
 
         FractionResults memory results3 = FractionUtil.getPartialFillResults(
             currentStatusNumerator,

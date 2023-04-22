@@ -596,10 +596,9 @@ library FuzzHelpers {
      */
     function getExpectedContractOffererCalldataHashes(
         AdvancedOrder[] memory orders,
-        address seaport,
-        address fulfiller
-    ) internal view returns (bytes32[2][] memory) {
-        bytes32[] memory orderHashes = orders.getOrderHashes(seaport);
+        address fulfiller,
+        bytes32[] memory orderHashes
+    ) internal pure returns (bytes32[2][] memory) {
         bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
 
         // Iterate over contract orders to derive calldataHashes

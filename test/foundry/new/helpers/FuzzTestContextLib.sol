@@ -105,11 +105,6 @@ interface TestHelpers {
             MatchComponent[] memory remainingConsiderationComponents
         );
 
-    function toOrderDetails(
-        AdvancedOrder[] memory orders,
-        CriteriaResolver[] memory resolvers
-    ) external returns (OrderDetails[] memory);
-
     function allocateTokensAndApprovals(address _to, uint128 _amount) external;
 }
 
@@ -209,12 +204,11 @@ struct ExecutionState {
     bytes32[] orderHashes;
     OrderDetails[] orderDetails;
     /**
-     * @dev A copy of the original orders array. Use this to make assertions
-     *      about the final state of the orders after calling exec. This is
-     *      automatically copied if you use the FuzzTestContextLib.from()
-     *      function.
+     * @dev A copy of the original orders array. Modify this when calling
+     *      previewOrder on contract orders and use it to derive order
+     *      details (which is used to derive fulfillments and executions).
      */
-    AdvancedOrder[] initialOrders;
+    AdvancedOrder[] previewedOrders;
     /**
      * @dev An array of CriteriaResolvers. These allow specification of an
      *      order, offer or consideration, an identifier, and a proof.  They
@@ -384,7 +378,7 @@ library FuzzTestContextLib {
                     fulfillerConduitKey: bytes32(0),
                     basicOrderParameters: BasicOrderParametersLib.empty(),
                     preExecOrderStatuses: new OrderStatusEnum[](0),
-                    initialOrders: orders,
+                    previewedOrders: orders,
                     orders: orders,
                     orderHashes: new bytes32[](0),
                     orderDetails: new OrderDetails[](0),
@@ -423,7 +417,7 @@ library FuzzTestContextLib {
                 .withSeaport(seaport)
                 .withOrderHashes()
                 .withCaller(caller)
-                .withInitialOrders(orders.copy())
+                .withPreviewedOrders(orders.copy())
                 .withProvisionedIneligbleOrdersArray();
     }
 
@@ -443,7 +437,7 @@ library FuzzTestContextLib {
                 .withOrders(orders)
                 .withSeaport(seaport)
                 .withOrderHashes()
-                .withInitialOrders(orders.copy())
+                .withPreviewedOrders(orders.copy())
                 .withProvisionedIneligbleOrdersArray();
     }
 
@@ -485,11 +479,11 @@ library FuzzTestContextLib {
         return context;
     }
 
-    function withInitialOrders(
+    function withPreviewedOrders(
         FuzzTestContext memory context,
         AdvancedOrder[] memory orders
     ) internal pure returns (FuzzTestContext memory) {
-        context.executionState.initialOrders = orders.copy();
+        context.executionState.previewedOrders = orders.copy();
         return context;
     }
 
