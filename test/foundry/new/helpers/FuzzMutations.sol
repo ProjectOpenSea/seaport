@@ -1331,6 +1331,41 @@ library MutationFilters {
 
         return true;
     }
+
+    function ineligibleForPartialFillsNotEnabledForOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Exclude methods that don't support partial fills
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        // Exclude partial and contract orders
+        if (
+            order.parameters.orderType == OrderType.PARTIAL_OPEN ||
+            order.parameters.orderType == OrderType.PARTIAL_RESTRICTED ||
+            order.parameters.orderType == OrderType.CONTRACT
+        ) {
+            return true;
+        }
+
+        // Order must be available
+        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+            return true;
+        }
+
+        return false;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2564,6 +2599,20 @@ contract FuzzMutations is Test, FuzzExecutor {
             );
         }
 
+        exec(context);
+    }
+
+    function mutation_partialFillsNotEnabledForOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 orderIndex = mutationState.selectedOrderIndex;
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        order.numerator = 1;
+        order.denominator = 10;
+
+        dumpExecutions(context);
         exec(context);
     }
 }
