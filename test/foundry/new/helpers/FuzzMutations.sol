@@ -1213,6 +1213,72 @@ library MutationFilters {
 
         return true;
     }
+
+    function ineligibleForScuffed_FulfillBasicOrderEfficient6GL6yc(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return
+            context.action() !=
+            context.seaport.fulfillBasicOrderEfficient6GL6yc.selector;
+    }
+
+    function ineligibleForScuffed_Validate(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return context.action() != context.seaport.validate.selector;
+    }
+
+    function ineligibleForScuffed_Cancel(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return context.action() != context.seaport.cancel.selector;
+    }
+
+    function ineligibleForScuffed_MatchAdvancedOrders(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return context.action() != context.seaport.matchAdvancedOrders.selector;
+    }
+
+    function ineligibleForScuffed_MatchOrders(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return context.action() != context.seaport.matchOrders.selector;
+    }
+
+    function ineligibleForScuffed_FulfillAvailableAdvancedOrders(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return
+            context.action() !=
+            context.seaport.fulfillAvailableAdvancedOrders.selector;
+    }
+
+    function ineligibleForScuffed_FulfillAvailableOrders(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return
+            context.action() != context.seaport.fulfillAvailableOrders.selector;
+    }
+
+    function ineligibleForScuffed_FulfillAdvancedOrder(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return
+            context.action() != context.seaport.fulfillAdvancedOrder.selector;
+    }
+
+    function ineligibleForScuffed_FulfillOrder(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return context.action() != context.seaport.fulfillOrder.selector;
+    }
+
+    function ineligibleForScuffed_FulfillBasicOrder(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        return context.action() != context.seaport.fulfillBasicOrder.selector;
+    }
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
@@ -2323,5 +2389,75 @@ contract FuzzMutations is Test, FuzzExecutor {
         }
 
         exec(context);
+    }
+
+    function mutation_Scuffed_FulfillBasicOrderEfficient6GL6yc(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_FulfillBasicOrderEfficient6GL6yc
+    }
+
+    function mutation_Scuffed_Validate(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_Validate
+    }
+
+    function mutation_Scuffed_Cancel(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_Cancel
+    }
+
+    function mutation_Scuffed_MatchAdvancedOrders(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_MatchAdvancedOrders
+    }
+
+    function mutation_Scuffed_MatchOrders(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_MatchOrders
+    }
+
+    function mutation_Scuffed_FulfillAvailableAdvancedOrders(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_FulfillAvailableAdvancedOrders
+    }
+
+    function mutation_Scuffed_FulfillAvailableOrders(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_FulfillAvailableOrders
+    }
+
+    function mutation_Scuffed_FulfillAdvancedOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_FulfillAdvancedOrder
+    }
+
+    function mutation_Scuffed_FulfillOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_FulfillOrder
+    }
+
+    function mutation_Scuffed_FulfillBasicOrder(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        // Scuffed_FulfillBasicOrder
     }
 }
