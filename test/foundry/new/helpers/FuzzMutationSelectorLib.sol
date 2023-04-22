@@ -109,6 +109,7 @@ enum Failure {
     InvalidContractOrder_ConsiderationAmountMismatch, // startAmount != endAmount on contract order consideration item
     InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
     InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
+    NoContract, // Trying to transfer a token at an address that has no contract
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
     length // NOT A FAILURE; used to get the number of failures in the enum
@@ -333,6 +334,9 @@ library FuzzMutationSelectorLib {
                 MutationFilters.ineligibleWhenNotAvailableOrNotRestrictedOrder
             );
 
+        failuresAndFilters[i++] = Failure.NoContract.withGeneric(
+            MutationFilters.ineligibleForNoContract
+        );
         failuresAndFilters[i++] = Failure.UnusedItemParameters_Token.withOrder(
             MutationFilters.ineligibleForUnusedItemParameters_Token
         );
@@ -832,6 +836,14 @@ library FailureDetailsLib {
                     .selector,
                 details_withOrderHash
             );
+        failureDetailsArray[i++] = TokenTransferrerErrors
+            .NoContract
+            .selector
+            .withGeneric(
+                "NoContract",
+                FuzzMutations.mutation_noContract.selector,
+                details_NoContract
+            );
 
         failureDetailsArray[i++] = TokenTransferrerErrors
             .UnusedItemParameters
@@ -1077,6 +1089,17 @@ library FailureDetailsLib {
             errorSelector,
             resolver.orderIndex,
             resolver.index
+        );
+    }
+
+    function details_NoContract(
+        FuzzTestContext memory /* context */,
+        MutationState memory mutationState,
+        bytes4 errorSelector
+    ) internal pure returns (bytes memory expectedRevertReason) {
+        expectedRevertReason = abi.encodeWithSelector(
+            errorSelector,
+            mutationState.selectedArbitraryAddress
         );
     }
 

@@ -247,6 +247,7 @@ struct MutationState {
     Side side;
     CriteriaResolver selectedCriteriaResolver;
     uint256 selectedCriteriaResolverIndex;
+    address selectedArbitraryAddress;
 }
 
 struct FuzzTestContext {
