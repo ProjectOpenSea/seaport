@@ -399,12 +399,9 @@ library FuzzDerivers {
             uint256 nativeTokensReturned
         )
     {
-        // Get the action.
-        bytes4 action = context.action();
-
         if (
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillAdvancedOrder.selector
+            context.action() == context.seaport.fulfillOrder.selector ||
+            context.action() == context.seaport.fulfillAdvancedOrder.selector
         ) {
             // For the fulfill functions, derive the expected implicit
             // (standard) executions. There are no explicit executions here
@@ -417,8 +414,8 @@ library FuzzDerivers {
                 nativeTokensSupplied
             );
         } else if (
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
+            context.action() == context.seaport.fulfillBasicOrder.selector ||
+            context.action() ==
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             // For the fulfillBasic functions, derive the expected implicit
@@ -432,8 +429,8 @@ library FuzzDerivers {
                 nativeTokensSupplied
             );
         } else if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+            context.action() == context.seaport.fulfillAvailableOrders.selector ||
+            context.action() == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
             // For the fulfillAvailable functions, derive the expected implicit
             // and explicit executions.
@@ -461,8 +458,8 @@ library FuzzDerivers {
                 );
             }
         } else if (
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector
+            context.action() == context.seaport.matchOrders.selector ||
+            context.action() == context.seaport.matchAdvancedOrders.selector
         ) {
             // For the match functions, derive the expected implicit and
             // explicit executions.
