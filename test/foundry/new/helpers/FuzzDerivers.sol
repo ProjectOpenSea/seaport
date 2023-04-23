@@ -383,6 +383,144 @@ library FuzzDerivers {
         }
     }
 
+    function getDerivedExecutionsFromDirectInputs(
+        FuzzTestContext memory context,
+        uint256 nativeTokensSupplied,
+        FulfillmentDetails memory details,
+        FulfillmentComponent[][] memory offerFulfillments,
+        FulfillmentComponent[][] memory considerationFulfillments,
+        Fulfillment[] memory fulfillments
+    )
+        internal
+        returns (
+            Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
+            uint256 nativeTokensReturned
+        )
+    {
+        // Get the action.
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.fulfillAdvancedOrder.selector
+        ) {
+            // For the fulfill functions, derive the expected implicit
+            // (standard) executions. There are no explicit executions here
+            // because the caller doesn't pass in fulfillments for these
+            // functions.
+            (
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = details.getStandardExecutions(
+                nativeTokensSupplied
+            );
+        } else if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            // For the fulfillBasic functions, derive the expected implicit
+            // (basic) executions. There are no explicit executions here
+            // because the caller doesn't pass in fulfillments for these
+            // functions.
+            (
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = details.getBasicExecutions(
+                nativeTokensSupplied
+            );
+        } else if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            // For the fulfillAvailable functions, derive the expected implicit
+            // and explicit executions.
+            (
+                explicitExecutions,
+                implicitExecutionsPre,
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = details.getFulfillAvailableExecutions(
+                offerFulfillments,
+                considerationFulfillments,
+                nativeTokensSupplied,
+                context.expectations.expectedAvailableOrders
+            );
+
+            // TEMP (TODO: handle upstream)
+            assume(
+                explicitExecutions.length > 0,
+                "no_explicit_executions_fulfillAvailable_direct_in"
+            );
+
+            if (explicitExecutions.length == 0) {
+                revert(
+                    "FuzzDerivers: no explicit execs (direct) - fulfillAvailable"
+                );
+            }
+        } else if (
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            // For the match functions, derive the expected implicit and
+            // explicit executions.
+            (
+                explicitExecutions,
+                implicitExecutionsPre,
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = details.getMatchExecutions(
+                fulfillments,
+                nativeTokensSupplied
+            );
+
+            // TEMP (TODO: handle upstream)
+            assume(
+                explicitExecutions.length > 0,
+                "no_explicit_executions_match_direct_in"
+            );
+
+            if (explicitExecutions.length == 0) {
+                revert("FuzzDerivers: no explicit executions (direct) - match");
+            }
+        }
+    }
+
+    function getExecutionsFromRegeneratedFulfillments(
+        FuzzTestContext memory context,
+        FulfillmentDetails memory details,
+        uint256 nativeTokensSupplied
+    )
+        internal
+        returns (
+            Execution[] memory explicitExecutions,
+            Execution[] memory implicitExecutionsPre,
+            Execution[] memory implicitExecutionsPost,
+            uint256 nativeTokensReturned
+        )
+    {
+        // Derive the required fulfillment arrays.
+        (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments,
+            Fulfillment[] memory fulfillments,
+        ) = getDerivedFulfillments(
+            context,
+            details.orders
+        );
+
+        return getDerivedExecutionsFromDirectInputs(
+            context,
+            nativeTokensSupplied,
+            details,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillments
+        );
+    }
+
     /**
      * @dev Derive the `expectedImplicitExecutions` and
      *      `expectedExplicitExecutions` arrays from the `orders` array.
