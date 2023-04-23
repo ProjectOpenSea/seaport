@@ -215,6 +215,31 @@ library ExecutionHelper {
         }
     }
 
+    function getStandardExecutions(
+        FulfillmentDetails memory details,
+        uint256 nativeTokensSupplied
+    )
+        public
+        pure
+        returns (
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
+        )
+    {
+        if (details.orders.length != 1) {
+            revert("ExecutionHelper: bad orderDetails length for standard");
+        }
+
+        return getStandardExecutions(
+            details.orders[0],
+            details.fulfiller,
+            details.fulfillerConduitKey,
+            details.recipient,
+            nativeTokensSupplied,
+            details.seaport
+        );
+    }
+
     /**
      * @dev Return executions for fulfilOrder and fulfillAdvancedOrder.
      */
@@ -349,6 +374,30 @@ library ExecutionHelper {
         assembly {
             mstore(implicitExecutions, executionIndex)
         }
+    }
+
+    function getBasicExecutions(
+        FulfillmentDetails memory details,
+        uint256 nativeTokensSupplied
+    )
+        public
+        pure
+        returns (
+            Execution[] memory implicitExecutions,
+            uint256 nativeTokensReturned
+        )
+    {
+        if (details.orders.length != 1) {
+            revert("ExecutionHelper: bad orderDetails length for basic");
+        }
+
+        return getBasicExecutions(
+            details.orders[0],
+            details.fulfiller,
+            details.fulfillerConduitKey,
+            nativeTokensSupplied,
+            details.seaport
+        );
     }
 
     /**

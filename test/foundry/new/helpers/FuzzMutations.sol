@@ -25,7 +25,10 @@ import {
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import {
+    FulfillmentDetails,
+    OrderDetails
+} from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     AdvancedOrderLib,
@@ -49,7 +52,7 @@ import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
-import { FuzzDerivers } from "./FuzzDerivers.sol";
+import { FuzzDerivers, FulfillmentDetailsHelper } from "./FuzzDerivers.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
@@ -87,6 +90,7 @@ library MutationFilters {
     using AdvancedOrderLib for AdvancedOrder;
     using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
+    using FulfillmentDetailsHelper for FuzzTestContext;
 
     function ineligibleWhenUnavailable(
         FuzzTestContext memory context,
@@ -745,16 +749,18 @@ library MutationFilters {
             return true;
         }
 
+        FulfillmentDetails memory details = context.toFulfillmentDetails();
+
         // Note: We're speculatively applying the mutation here and slightly
         // breaking the rules. Make sure to undo this mutation.
         bytes32 oldConduitKey = order.parameters.conduitKey;
-        context.executionState.orderDetails[orderIndex].conduitKey = keccak256("invalid conduit");
+        details.orders[orderIndex].conduitKey = keccak256("invalid conduit");
         (
             Execution[] memory explicitExecutions,
             ,
             Execution[] memory implicitExecutionsPost,
 
-        ) = context.getDerivedExecutions(context.executionState.value);
+        ) = context.getExecutionsFromRegeneratedFulfillments(details, context.executionState.value);
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
@@ -769,8 +775,22 @@ library MutationFilters {
             }
         }
 
+        // If we haven't found one yet, keep looking in implicit executions...
+        if (!locatedInvalidConduitExecution) {
+            for (uint256 i = 0; i < implicitExecutionsPost.length; ++i) {
+                if (
+                    implicitExecutionsPost[i].conduitKey ==
+                    keccak256("invalid conduit") &&
+                    implicitExecutionsPost[i].item.itemType != ItemType.NATIVE
+                ) {
+                    locatedInvalidConduitExecution = true;
+                    break;
+                }
+            }
+        }
+
         // Note: mutation is undone here as referenced above.
-        context.executionState.orderDetails[orderIndex].conduitKey = oldConduitKey;
+        details.orders[orderIndex].conduitKey = oldConduitKey;
 
         if (!locatedInvalidConduitExecution) {
             return true;
