@@ -335,7 +335,7 @@ abstract contract FuzzChecks is Test {
                 assertEq(
                     totalSize,
                     context.expectations.expectedFillFractions[i].finalFilledDenominator,
-                    "check_orderStatusFullyFilled: totalSize != 1"
+                    "check_orderStatusFullyFilled: totalSize != expected partial"
                 );
             } else if (context.expectations.expectedAvailableOrders[i]) {
                 if (order.parameters.orderType == OrderType.CONTRACT) {
