@@ -40,6 +40,12 @@ import {
 import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
 import { PRNGHelpers } from "./FuzzGenerators.sol";
 
+import {
+    FractionResults,
+    FractionStatus,
+    FractionUtil
+} from "./FractionUtil.sol";
+
 /**
  *  @dev Make amendments to state based on the fuzz test context.
  */
@@ -330,8 +336,8 @@ abstract contract FuzzAmendments is Test {
                 bool canScaleUp
             ) = order.parameters.getSmallestDenominator();
 
-            // if the denominator is 0 or 1, the order cannot have a partial
-            // fill fraction applied. (TODO: log these occurrences?)
+            // If the denominator is 0 or 1, the order cannot have a partial
+            // fill fraction applied.
             if (denominator > 1) {
                 // All partially-filled orders are de-facto valid.
                 order.inscribeOrderStatusValidated(true, context.seaport);
@@ -365,6 +371,33 @@ abstract contract FuzzAmendments is Test {
                     uint120(numerator),
                     uint120(denominator),
                     context.seaport
+                );
+
+                // Derive the realized and final fill fractions and status.
+                FractionResults memory fractionResults = (
+                    FractionUtil.getPartialFillResults(
+                        uint120(numerator),
+                        uint120(denominator),
+                        order.numerator,
+                        order.denominator
+                    )
+                );
+
+                // Register the realized and final fill fractions and status.
+                context.expectations.expectedFillFractions[i] = fractionResults;
+
+                // Update "previewed" orders with the realized numerator and
+                // denominator so orderDetails derivation is based on realized.
+                context.executionState.previewedOrders[i].numerator = (
+                    fractionResults.realizedNumerator
+                );
+                context.executionState.previewedOrders[i].denominator = (
+                    fractionResults.realizedDenominator
+                );
+            } else {
+                // TODO: log these occurrences?
+                context.executionState.preExecOrderStatuses[i] = (
+                    OrderStatusEnum.AVAILABLE
                 );
             }
         }
