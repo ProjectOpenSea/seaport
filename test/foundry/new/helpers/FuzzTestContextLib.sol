@@ -21,7 +21,7 @@ import {
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     BroadOrderType,
@@ -822,9 +822,40 @@ library FuzzTestContextLib {
                 OrderType orderType = (
                     context.executionState.orders[i].parameters.orderType
                 );
+
+                // TODO: figure out a way to do this for orders with 721 items
+                OrderParameters memory orderParams = (
+                    context.executionState.orders[i].parameters
+                );
+
+                bool has721 = false;
+                for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                    if (
+                        orderParams.offer[j].itemType == ItemType.ERC721 ||
+                        orderParams.offer[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                    ) {
+                        has721 = true;
+                        break;
+                    }
+                }
+
+                if (!has721) {
+                    for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
+                        if (
+                            orderParams.consideration[j].itemType == ItemType.ERC721 ||
+                            orderParams.consideration[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                        ) {
+                            has721 = true;
+                            break;
+                        }
+                    }
+                }
+
                 uint256 upperBound = (
-                    orderType == OrderType.PARTIAL_OPEN ||
-                    orderType == OrderType.PARTIAL_RESTRICTED
+                    !has721 && (
+                        orderType == OrderType.PARTIAL_OPEN ||
+                        orderType == OrderType.PARTIAL_RESTRICTED
+                    )
                 ) ? 2 : 1;
 
                 context.executionState.preExecOrderStatuses[
