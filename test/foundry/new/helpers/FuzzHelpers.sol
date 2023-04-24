@@ -134,6 +134,33 @@ library FuzzHelpers {
 
     event ExpectedGenerateOrderDataHash(bytes32 dataHash);
 
+    function _gcd(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (b == 0) {
+            return a;
+        } else {
+            return _gcd(b, a % b);
+        }
+    }
+
+    function _lcm(uint256 a, uint256 b, uint256 gcdValue) internal pure returns (uint256) {
+        return a * b / gcdValue;
+    }
+
+    function findSmallestDenominator(uint256[] memory numbers) internal pure returns (uint256 denominator) {
+        require(numbers.length > 0, "Input array must not be empty");
+
+        uint256 lcmValue = numbers[0];
+        uint256 gcdValue = numbers[0];
+
+        for (uint256 i = 1; i < numbers.length; i++) {
+            uint256 number = numbers[i];
+            gcdValue = _gcd(gcdValue, number);
+            lcmValue = _lcm(lcmValue, number, gcdValue);
+        }
+
+        denominator = lcmValue / gcdValue;
+    }
+
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of
      *      orders in the provided array.
