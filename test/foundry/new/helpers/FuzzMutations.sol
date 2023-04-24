@@ -1494,11 +1494,39 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForPanic_PartialFillOverflow(order, orderIndex, context)) {
+        if (
+            ineligibleForPanic_PartialFillOverflow(order, orderIndex, context)
+        ) {
             return true;
         }
 
-        return (order.parameters.offer.length + order.parameters.consideration.length == 0);
+        return (order.parameters.offer.length +
+            order.parameters.consideration.length ==
+            0);
+    }
+
+    function ineligibleForNoSpecifiedOrdersAvailable(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // Must be a fulfill available method
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
+            action != context.seaport.fulfillAvailableOrders.selector
+        ) {
+            return true;
+        }
+
+        // Exclude orders with criteria resolvers
+        // TODO: Overfilter? Without this check, this test reverts with
+        // ConsiderationCriteriaResolverOutOfRange()
+        if (context.executionState.criteriaResolvers.length > 0) {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -2875,6 +2903,41 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         order.numerator = 1;
         order.denominator = 10;
+
+        exec(context);
+    }
+
+    function mutation_noSpecifiedOrdersAvailable(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            AdvancedOrder memory order = context.executionState.orders[i];
+            order.parameters.consideration = new ConsiderationItem[](0);
+            order.parameters.totalOriginalConsiderationItems = 0;
+
+            // Re-sign order
+            if (
+                context.advancedOrdersSpace.orders[i].signatureMethod ==
+                SignatureMethod.VALIDATE
+            ) {
+                order.inscribeOrderStatusValidated(true, context.seaport);
+            } else if (
+                context.executionState.caller != order.parameters.offerer
+            ) {
+                AdvancedOrdersSpaceGenerator._signOrders(
+                    context.advancedOrdersSpace,
+                    context.executionState.orders,
+                    context.generatorContext
+                );
+            }
+        }
+        context.executionState.offerFulfillments = new FulfillmentComponent[][](
+            0
+        );
+        context
+            .executionState
+            .considerationFulfillments = new FulfillmentComponent[][](0);
 
         exec(context);
     }
