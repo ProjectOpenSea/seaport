@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 enum OffererZoneFailureReason {
     None,
     ContractOfferer_generateReverts, // Offerer generateOrder reverts
+    ContractOfferer_generateReturnsInvalidEncoding, // Bad encoding
     ContractOfferer_ratifyReverts, // Offerer ratifyOrder reverts
     ContractOfferer_InsufficientMinimumReceived, // too few minimum received items
     ContractOfferer_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
