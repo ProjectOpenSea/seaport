@@ -104,7 +104,7 @@ enum Failure {
     MissingItemAmount_OfferItem_FulfillAvailable, // Zero amount for offer item in fulfillAvailable
     MissingItemAmount_OfferItem, // Zero amount for offer item in all other methods
     MissingItemAmount_ConsiderationItem, // Zero amount for consideration item
-    //InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
+    InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
     InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
     InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
     InvalidContractOrder_IncorrectMinimumReceived, // incorrect (insufficient amount, wrong token, etc.) minimum received items
@@ -331,6 +331,12 @@ library FuzzMutationSelectorLib {
             );
 
         failuresAndFilters[i++] = Failure
+            .InvalidContractOrder_generateReverts
+            .withOrder(
+                MutationFilters.ineligibleWhenNotContractOrderOrFulfillAvailable
+            );
+
+        failuresAndFilters[i++] = Failure
             .InvalidContractOrder_ratifyReverts
             .and(Failure.InvalidContractOrder_InvalidMagicValue)
             .withOrder(
@@ -395,11 +401,9 @@ library FuzzMutationSelectorLib {
                 MutationFilters.ineligibleForPartialFillsNotEnabledForOrder
             );
 
-        failuresAndFilters[i++] = Failure
-            .InexactFraction
-            .withOrder(
-                MutationFilters.ineligibleForInexactFraction
-            );
+        failuresAndFilters[i++] = Failure.InexactFraction.withOrder(
+            MutationFilters.ineligibleForInexactFraction
+        );
 
         failuresAndFilters[i++] = Failure.Panic_PartialFillOverflow.withOrder(
             MutationFilters.ineligibleForPanic_PartialFillOverflow
@@ -817,6 +821,17 @@ library FailureDetailsLib {
                 FuzzMutations
                     .mutation_missingItemAmount_ConsiderationItem
                     .selector
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
+                "InvalidContractOrder_generateReverts",
+                FuzzMutations
+                    .mutation_invalidContractOrderGenerateReverts
+                    .selector,
+                details_withOrderHash
             );
 
         failureDetailsArray[i++] = HashCalldataContractOfferer
