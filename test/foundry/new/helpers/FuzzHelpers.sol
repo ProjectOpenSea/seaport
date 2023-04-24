@@ -208,41 +208,49 @@ library FuzzHelpers {
         return 0;
     }
 
-    function getSmallestDenominators(
-        AdvancedOrder[] memory orders
-    ) internal pure returns (uint256[] memory denominators) {
-        denominators = new uint256[](orders.length);
+    function getSmallestDenominator(
+        OrderParameters memory order
+    ) internal pure returns (uint256 smallestDenominator, bool canScaleUp) {
+        canScaleUp = true;
 
-        for (uint256 i = 0; i < orders.length; ++i) {
-            OrderParameters memory order = orders[i].parameters;
+        uint256 totalFractionalizableAmounts = (
+            getTotalFractionalizableAmounts(order)
+        );
 
-            uint256 totalFractionalizableAmounts = (
-                getTotalFractionalizableAmounts(order)
+        if (totalFractionalizableAmounts != 0) {
+            uint256[] memory numbers = new uint256[](
+                totalFractionalizableAmounts
             );
 
-            if (totalFractionalizableAmounts != 0) {
-                uint256[] memory numbers = new uint256[](
-                    totalFractionalizableAmounts
-                );
+            uint256 numberIndex = 0;
 
-                uint256 numberIndex = 0;
-
-                for (uint256 j = 0; j < order.offer.length; ++j) {
-                    OfferItem memory item = order.offer[j];
-                    numbers[numberIndex++] = item.startAmount;
-                    numbers[numberIndex++] = item.endAmount;
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                OfferItem memory item = order.offer[j];
+                numbers[numberIndex++] = item.startAmount;
+                numbers[numberIndex++] = item.endAmount;
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    canScaleUp = false;
                 }
-
-                for (uint256 j = 0; j < order.consideration.length; ++j) {
-                    ConsiderationItem memory item = order.consideration[j];
-                    numbers[numberIndex++] = item.startAmount;
-                    numbers[numberIndex++] = item.endAmount;
-                }
-
-                denominators[i] = findSmallestDenominator(numbers);
-            } else {
-                denominators[i] = 0;
             }
+
+            for (uint256 j = 0; j < order.consideration.length; ++j) {
+                ConsiderationItem memory item = order.consideration[j];
+                numbers[numberIndex++] = item.startAmount;
+                numbers[numberIndex++] = item.endAmount;
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    canScaleUp = false;
+                }
+            }
+
+            smallestDenominator = findSmallestDenominator(numbers);
+        } else {
+            smallestDenominator = 0;
         }
     }
 
