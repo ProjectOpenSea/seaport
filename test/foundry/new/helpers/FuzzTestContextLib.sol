@@ -792,6 +792,8 @@ library FuzzTestContextLib {
             } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
+                // TODO: support cases where order is both cancelled and has
+                // been partially fulfilled.
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                     .CANCELLED_EXPLICIT;
             } else if (
@@ -803,13 +805,14 @@ library FuzzTestContextLib {
             } else if (
                 space.orders[i].signatureMethod == SignatureMethod.VALIDATE
             ) {
+                // NOTE: this assumes that the order has not been partially
+                // filled (partially filled orders are de-facto validated).
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                     .VALIDATED;
             } else {
-                // TODO: support partial as well (0-2)
                 context.executionState.preExecOrderStatuses[
                     i
-                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, 1)));
+                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, 2)));
             }
         }
 

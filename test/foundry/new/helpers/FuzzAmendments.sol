@@ -37,6 +37,9 @@ import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
+import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
+import { PRNGHelpers } from "./FuzzGenerators.sol";
+
 /**
  *  @dev Make amendments to state based on the fuzz test context.
  */
@@ -47,7 +50,11 @@ abstract contract FuzzAmendments is Test {
     using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
     using FuzzInscribers for AdvancedOrder;
+    using FuzzInscribers for address;
     using FuzzHelpers for AdvancedOrder;
+    using FuzzHelpers for OrderParameters;
+
+    using PRNGHelpers for FuzzGeneratorContext;
 
     // TODO: make it so it adds / removes / modifies more than a single thing
     // and create arbitrary new items.
@@ -137,8 +144,7 @@ abstract contract FuzzAmendments is Test {
                 );
 
                 // Temporarily adjust the contract nonce and reset it after.
-                FuzzInscribers.inscribeContractOffererNonce(
-                    orderParams.offerer,
+                orderParams.offerer.inscribeContractOffererNonce(
                     contractNonce,
                     context.seaport
                 );
@@ -154,8 +160,7 @@ abstract contract FuzzAmendments is Test {
                         context.executionState.orders[i].extraData
                     );
 
-                FuzzInscribers.inscribeContractOffererNonce(
-                    orderParams.offerer,
+                orderParams.offerer.inscribeContractOffererNonce(
                     originalContractNonce,
                     context.seaport
                 );
@@ -300,6 +305,71 @@ abstract contract FuzzAmendments is Test {
         context.registerCheck(FuzzChecks.check_ordersValidated.selector);
     }
 
+    function setPartialFills(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (
+                context.executionState.preExecOrderStatuses[i] !=
+                OrderStatusEnum.PARTIAL
+            ) {
+                continue;
+            }
+
+            AdvancedOrder memory order = context.executionState.orders[i];
+
+            if (
+                order.parameters.orderType != OrderType.PARTIAL_OPEN &&
+                order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
+            ) {
+                revert(
+                    "FuzzAmendments: invalid order type for partial fill state"
+                );
+            }
+
+            (
+                uint256 denominator,
+                bool canScaleUp
+            ) = order.parameters.getSmallestDenominator();
+
+            // if the denominator is 0 or 1, the order cannot have a partial
+            // fill fraction applied. (TODO: log these occurrences?)
+            if (denominator > 1) {
+                // All partially-filled orders are de-facto valid.
+                order.inscribeOrderStatusValidated(true, context.seaport);
+
+                uint256 numerator = context.generatorContext.randRange(
+                    1,
+                    canScaleUp ? (denominator - 1) : 1
+                );
+
+                uint256 maxScaleFactor = type(uint120).max / denominator;
+
+                uint256 scaleFactor = context.generatorContext.randRange(
+                    1,
+                    maxScaleFactor
+                );
+
+                numerator *= scaleFactor;
+                denominator *= scaleFactor;
+
+                if (
+                    numerator == 0 ||
+                    denominator < 2 ||
+                    numerator >= denominator ||
+                    numerator > type(uint120).max ||
+                    denominator > type(uint120).max
+                ) {
+                    revert("FuzzAmendments: partial fill sanity check failed");
+                }
+
+                order.inscribeOrderStatusNumeratorAndDenominator(
+                    uint120(numerator),
+                    uint120(denominator),
+                    context.seaport
+                );
+            }
+        }
+    }
+
     function conformOnChainStatusToExpected(
         FuzzTestContext memory context
     ) public {
@@ -355,20 +425,20 @@ abstract contract FuzzAmendments is Test {
 
     function setCounter(FuzzTestContext memory context) public {
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            if (
-                context.executionState.orders[i].parameters.orderType ==
-                OrderType.CONTRACT
-            ) {
+            OrderParameters memory order = (
+                context.executionState.orders[i].parameters
+            );
+
+            if (order.orderType == OrderType.CONTRACT) {
                 continue;
             }
 
             uint256 offererSpecificCounter = context.executionState.counter +
                 uint256(
-                    uint160(context.executionState.orders[i].parameters.offerer)
+                    uint160(order.offerer)
                 );
 
-            FuzzInscribers.inscribeCounter(
-                context.executionState.orders[i].parameters.offerer,
+            order.offerer.inscribeCounter(
                 offererSpecificCounter,
                 context.seaport
             );
@@ -377,10 +447,11 @@ abstract contract FuzzAmendments is Test {
 
     function setContractOffererNonce(FuzzTestContext memory context) public {
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            if (
-                context.executionState.orders[i].parameters.orderType !=
-                OrderType.CONTRACT
-            ) {
+            OrderParameters memory order = (
+                context.executionState.orders[i].parameters
+            );
+
+            if (order.orderType != OrderType.CONTRACT) {
                 continue;
             }
 
@@ -388,11 +459,10 @@ abstract contract FuzzAmendments is Test {
                 .executionState
                 .contractOffererNonce +
                 uint256(
-                    uint160(context.executionState.orders[i].parameters.offerer)
+                    uint160(order.offerer)
                 );
 
-            FuzzInscribers.inscribeContractOffererNonce(
-                context.executionState.orders[i].parameters.offerer,
+            order.offerer.inscribeContractOffererNonce(
                 contractOffererSpecificContractNonce,
                 context.seaport
             );
