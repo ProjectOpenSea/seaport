@@ -471,6 +471,10 @@ library FuzzTestContextLib {
             }
         }
 
+        context.expectations.expectedFillFractions = (
+            new FractionResults[](orders.length)
+        );
+
         return context;
     }
 
