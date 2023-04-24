@@ -48,6 +48,8 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
+import { assume } from "./VmUtils.sol";
+
 /**
  * @dev The "structure" of the order.
  *      - BASIC: adheres to basic construction rules.
@@ -133,6 +135,172 @@ library FuzzHelpers {
     using FuzzInscribers for AdvancedOrder;
 
     event ExpectedGenerateOrderDataHash(bytes32 dataHash);
+
+    function _gcd(
+        uint256 a,
+        uint256 b
+    ) internal pure returns (uint256) {
+        if (b == 0) {
+            return a;
+        } else {
+            return _gcd(b, a % b);
+        }
+    }
+
+    function _lcm(
+        uint256 a,
+        uint256 b,
+        uint256 gcdValue
+    ) internal returns (uint256 result) {
+        bool success;
+        (success, result) = _tryMul(a, b);
+
+        if (success) {
+            return result / gcdValue;
+        } else {
+            uint256 candidate = a / gcdValue;
+            if (candidate * gcdValue == a) {
+                (success, result) = _tryMul(candidate, b);
+                if (success) {
+                    return result;
+                } else {
+                    candidate = b / gcdValue;
+                    if (candidate * gcdValue == b) {
+                        (success, result) = _tryMul(candidate, a);
+                        if (success) {
+                            return result;
+                        }
+                    }
+                }
+            }
+
+            assume(false, "cannot_derive_lcm_for_partial_fill");
+        }
+
+        return result / gcdValue;
+    }
+
+    function _tryMul(
+        uint256 a,
+        uint256 b
+    ) internal pure returns (bool, uint256) {
+        unchecked {
+            if (a == 0) {
+                return (true, 0);
+            }
+
+            uint256 c = a * b;
+
+            if (c / a != b) {
+                return (false, 0);
+            }
+
+            return (true, c);
+        }
+    }
+
+    function findSmallestDenominator(
+        uint256[] memory numbers
+    ) internal returns (uint256 denominator) {
+        require(
+            numbers.length > 0,
+            "FuzzHelpers: Input array must not be empty"
+        );
+
+        bool initialValueSet = false;
+
+        uint256 gcdValue;
+        uint256 lcmValue;
+
+        for (uint256 i = 0; i < numbers.length; i++) {
+            uint256 number = numbers[i];
+
+            if (number == 0) {
+                continue;
+            }
+
+            if (!initialValueSet) {
+                initialValueSet = true;
+                gcdValue = number;
+                lcmValue = number;
+                continue;
+            }
+
+            gcdValue = _gcd(gcdValue, number);
+            lcmValue = _lcm(lcmValue, number, gcdValue);
+        }
+
+        if (gcdValue == 0) {
+            return 0;
+        }
+
+        denominator = lcmValue / gcdValue;
+
+        // TODO: this should support up to uint120, work out
+        // how to fly closer to the sun on this
+        if (denominator > type(uint80).max) {
+            return 0;
+        }
+    }
+
+    function getTotalFractionalizableAmounts(
+        OrderParameters memory order
+    ) internal pure returns (uint256) {
+        if (
+            order.orderType == OrderType.PARTIAL_OPEN ||
+            order.orderType == OrderType.PARTIAL_RESTRICTED
+        ) {
+            return 2 * (order.offer.length + order.consideration.length);
+        }
+
+        return 0;
+    }
+
+    function getSmallestDenominator(
+        OrderParameters memory order
+    ) internal returns (uint256 smallestDenominator, bool canScaleUp) {
+        canScaleUp = true;
+
+        uint256 totalFractionalizableAmounts = (
+            getTotalFractionalizableAmounts(order)
+        );
+
+        if (totalFractionalizableAmounts != 0) {
+            uint256[] memory numbers = new uint256[](
+                totalFractionalizableAmounts
+            );
+
+            uint256 numberIndex = 0;
+
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                OfferItem memory item = order.offer[j];
+                numbers[numberIndex++] = item.startAmount;
+                numbers[numberIndex++] = item.endAmount;
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    canScaleUp = false;
+                }
+            }
+
+            for (uint256 j = 0; j < order.consideration.length; ++j) {
+                ConsiderationItem memory item = order.consideration[j];
+                numbers[numberIndex++] = item.startAmount;
+                numbers[numberIndex++] = item.endAmount;
+                if (
+                    item.itemType == ItemType.ERC721 ||
+                    item.itemType == ItemType.ERC721_WITH_CRITERIA
+                ) {
+                    canScaleUp = false;
+                }
+            }
+
+            smallestDenominator = findSmallestDenominator(numbers);
+        } else {
+            smallestDenominator = 0;
+        }
+    }
 
     /**
      * @dev Get the "quantity" of orders to process, equal to the number of

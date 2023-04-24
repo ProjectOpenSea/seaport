@@ -14,6 +14,10 @@ struct FractionResults {
     uint120 realizedDenominator;
     uint120 finalFilledNumerator;
     uint120 finalFilledDenominator;
+    uint120 originalStatusNumerator;
+    uint120 originalStatusDenominator;
+    uint120 requestedNumerator;
+    uint120 requestedDenominator;
     FractionStatus status;
 }
 
@@ -99,6 +103,10 @@ library FractionUtil {
                     realizedDenominator: 0,
                     finalFilledNumerator: 0,
                     finalFilledDenominator: 0,
+                    originalStatusNumerator: currentStatusNumerator,
+                    originalStatusDenominator: currentStatusDenominator,
+                    requestedNumerator: numeratorToFill,
+                    requestedDenominator: denominatorToFill,
                     status: FractionStatus.INVALID
                 });
         }
@@ -118,6 +126,10 @@ library FractionUtil {
                 realizedDenominator: uint120(realizedDenominator),
                 finalFilledNumerator: uint120(finalNumerator),
                 finalFilledDenominator: uint120(finalDenominator),
+                originalStatusNumerator: currentStatusNumerator,
+                originalStatusDenominator: currentStatusDenominator,
+                requestedNumerator: numeratorToFill,
+                requestedDenominator: denominatorToFill,
                 status: status
             });
     }

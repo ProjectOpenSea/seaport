@@ -323,6 +323,33 @@ abstract contract FuzzChecks is Test {
                     1,
                     "check_orderStatusFullyFilled: totalSize != 1"
                 );
+            } else if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.PARTIAL
+            ) {
+                if (context.expectations.expectedAvailableOrders[i]) {
+                    assertEq(
+                        totalFilled,
+                        context.expectations.expectedFillFractions[i].finalFilledNumerator,
+                        "check_orderStatusFullyFilled: totalFilled != expected partial"
+                    );
+                    assertEq(
+                        totalSize,
+                        context.expectations.expectedFillFractions[i].finalFilledDenominator,
+                        "check_orderStatusFullyFilled: totalSize != expected partial"
+                    );
+                } else {
+                    assertEq(
+                        totalFilled,
+                        context.expectations.expectedFillFractions[i].originalStatusNumerator,
+                        "check_orderStatusFullyFilled: totalFilled != expected partial (skipped)"
+                    );
+                    assertEq(
+                        totalSize,
+                        context.expectations.expectedFillFractions[i].originalStatusDenominator,
+                        "check_orderStatusFullyFilled: totalSize != expected partial (skipped)"
+                    );
+                }
             } else if (context.expectations.expectedAvailableOrders[i]) {
                 if (order.parameters.orderType == OrderType.CONTRACT) {
                     // TODO: This just checks the nonce has been incremented

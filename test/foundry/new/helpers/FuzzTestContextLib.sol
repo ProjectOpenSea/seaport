@@ -21,7 +21,7 @@ import {
     OrderParameters
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     BroadOrderType,
@@ -60,6 +60,8 @@ import {
 import { TestStateGenerator } from "./FuzzGenerators.sol";
 
 import { Failure } from "./FuzzMutationSelectorLib.sol";
+
+import { FractionResults } from "./FractionUtil.sol";
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
@@ -164,6 +166,8 @@ struct Expectations {
     uint256 expectedImpliedNativeExecutions;
     uint256 expectedNativeTokensReturned;
     uint256 minimumValue;
+
+    FractionResults[] expectedFillFractions;
 }
 
 struct ExecutionState {
@@ -369,7 +373,8 @@ library FuzzTestContextLib {
                     ineligibleFailures: new bool[](uint256(Failure.length)),
                     expectedImpliedNativeExecutions: 0,
                     expectedNativeTokensReturned: 0,
-                    minimumValue: 0
+                    minimumValue: 0,
+                    expectedFillFractions: new FractionResults[](orders.length)
                 }),
                 executionState: ExecutionState({
                     caller: address(0),
@@ -465,6 +470,10 @@ library FuzzTestContextLib {
                 context.expectations.expectedAvailableOrders[i] = true;
             }
         }
+
+        context.expectations.expectedFillFractions = (
+            new FractionResults[](orders.length)
+        );
 
         return context;
     }
@@ -792,6 +801,8 @@ library FuzzTestContextLib {
             } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
+                // TODO: support cases where order is both cancelled and has
+                // been partially fulfilled.
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                     .CANCELLED_EXPLICIT;
             } else if (
@@ -803,13 +814,53 @@ library FuzzTestContextLib {
             } else if (
                 space.orders[i].signatureMethod == SignatureMethod.VALIDATE
             ) {
+                // NOTE: this assumes that the order has not been partially
+                // filled (partially filled orders are de-facto validated).
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                     .VALIDATED;
             } else {
-                // TODO: support partial as well (0-2)
+                OrderType orderType = (
+                    context.executionState.orders[i].parameters.orderType
+                );
+
+                // TODO: figure out a way to do this for orders with 721 items
+                OrderParameters memory orderParams = (
+                    context.executionState.orders[i].parameters
+                );
+
+                bool has721 = false;
+                for (uint256 j = 0; j < orderParams.offer.length; ++j) {
+                    if (
+                        orderParams.offer[j].itemType == ItemType.ERC721 ||
+                        orderParams.offer[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                    ) {
+                        has721 = true;
+                        break;
+                    }
+                }
+
+                if (!has721) {
+                    for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
+                        if (
+                            orderParams.consideration[j].itemType == ItemType.ERC721 ||
+                            orderParams.consideration[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                        ) {
+                            has721 = true;
+                            break;
+                        }
+                    }
+                }
+
+                uint256 upperBound = (
+                    !has721 && (
+                        orderType == OrderType.PARTIAL_OPEN ||
+                        orderType == OrderType.PARTIAL_RESTRICTED
+                    )
+                ) ? 2 : 1;
+
                 context.executionState.preExecOrderStatuses[
                     i
-                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, 1)));
+                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, upperBound)));
             }
         }
 
