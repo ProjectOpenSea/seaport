@@ -815,9 +815,17 @@ library FuzzTestContextLib {
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                     .VALIDATED;
             } else {
+                OrderType orderType = (
+                    context.executionState.orders[i].parameters.orderType
+                );
+                uint256 upperBound = (
+                    orderType == OrderType.PARTIAL_OPEN ||
+                    orderType == OrderType.PARTIAL_RESTRICTED
+                ) ? 2 : 1;
+
                 context.executionState.preExecOrderStatuses[
                     i
-                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, 2)));
+                ] = OrderStatusEnum(uint8(bound(prng.next(), 0, upperBound)));
             }
         }
 
