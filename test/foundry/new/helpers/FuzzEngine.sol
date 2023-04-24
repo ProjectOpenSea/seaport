@@ -371,6 +371,7 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function amendOrderState(FuzzTestContext memory context) internal {
+        setPartialFills(context);
         conformOnChainStatusToExpected(context);
         // Redundant for now, because the counter and nonce are set in the
         // generation phase.
