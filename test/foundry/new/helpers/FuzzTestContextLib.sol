@@ -61,6 +61,8 @@ import { TestStateGenerator } from "./FuzzGenerators.sol";
 
 import { Failure } from "./FuzzMutationSelectorLib.sol";
 
+import { FractionResults } from "./FractionUtil.sol";
+
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -164,6 +166,8 @@ struct Expectations {
     uint256 expectedImpliedNativeExecutions;
     uint256 expectedNativeTokensReturned;
     uint256 minimumValue;
+
+    FractionResults[] expectedFillFractions;
 }
 
 struct ExecutionState {
@@ -369,7 +373,8 @@ library FuzzTestContextLib {
                     ineligibleFailures: new bool[](uint256(Failure.length)),
                     expectedImpliedNativeExecutions: 0,
                     expectedNativeTokensReturned: 0,
-                    minimumValue: 0
+                    minimumValue: 0,
+                    expectedFillFractions: new FractionResults[](orders.length)
                 }),
                 executionState: ExecutionState({
                     caller: address(0),
