@@ -796,8 +796,16 @@ library FuzzTestContextLib {
 
         for (uint256 i = 0; i < context.executionState.orders.length; i++) {
             if (space.orders[i].orderType == BroadOrderType.CONTRACT) {
-                context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
-                    .AVAILABLE;
+                if (
+                    space.orders[i].unavailableReason ==
+                    UnavailableReason.GENERATE_ORDER_FAILURE
+                ) {
+                    context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
+                        .REVERT
+                } else {
+                    context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
+                        .AVAILABLE;
+                }
             } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
             ) {
@@ -819,6 +827,15 @@ library FuzzTestContextLib {
                 context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                     .VALIDATED;
             } else {
+                if (
+                    space.orders[i].unavailableReason ==
+                    UnavailableReason.GENERATE_ORDER_FAILURE
+                ) {
+                    revert(
+                        "FuzzTestContextLib: bad location for generate order failure"
+                    );
+                }
+
                 OrderType orderType = (
                     context.executionState.orders[i].parameters.orderType
                 );
