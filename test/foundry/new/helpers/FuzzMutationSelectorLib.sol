@@ -123,8 +123,7 @@ enum Failure {
     PartialFillsNotEnabledForOrder, // Partial fill on non-partial order type
     InexactFraction, // numerator / denominator cannot be applied to item w/ no remainder
     Panic_PartialFillOverflow, // numerator / denominator overflow current fill fraction
-    // NoSpecifiedOrdersAvailable_match, // all match executions are filtered
-    // NoSpecifiedOrdersAvailable_available, // all fulfillAvailable executions are filtered
+    NoSpecifiedOrdersAvailable, // all fulfillAvailable executions are filtered
     length // NOT A FAILURE; used to get the number of failures in the enum
 }
 
@@ -403,6 +402,10 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure.Panic_PartialFillOverflow.withOrder(
             MutationFilters.ineligibleForPanic_PartialFillOverflow
+        );
+
+        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable.withOrder(
+            MutationFilters.ineligibleForNoSpecifiedOrdersAvailable
         );
         ////////////////////////////////////////////////////////////////////////
 
@@ -983,11 +986,18 @@ library FailureDetailsLib {
                 FuzzMutations.mutation_inexactFraction.selector
             );
 
-        failureDetailsArray[i++] = PANIC
+        failureDetailsArray[i++] = PANIC.withOrder(
+            "Panic_PartialFillOverflow",
+            FuzzMutations.mutation_partialFillOverflow.selector,
+            details_PanicOverflow
+        );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors
+            .NoSpecifiedOrdersAvailable
+            .selector
             .withOrder(
-                "Panic_PartialFillOverflow",
-                FuzzMutations.mutation_partialFillOverflow.selector,
-                details_PanicOverflow
+                "NoSpecifiedOrderAvailable",
+                FuzzMutations.mutation_noSpecifiedOrdersAvailable.selector
             );
         ////////////////////////////////////////////////////////////////////////
 
