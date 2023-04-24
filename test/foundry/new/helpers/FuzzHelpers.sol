@@ -48,6 +48,8 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
+import { assume } from "./VmUtils.sol";
+
 /**
  * @dev The "structure" of the order.
  *      - BASIC: adheres to basic construction rules.
@@ -149,13 +151,57 @@ library FuzzHelpers {
         uint256 a,
         uint256 b,
         uint256 gcdValue
-    ) internal pure returns (uint256) {
-        return a * b / gcdValue;
+    ) internal returns (uint256 result) {
+        bool success;
+        (success, result) = _tryMul(a, b);
+
+        if (success) {
+            return result / gcdValue;
+        } else {
+            uint256 candidate = a / gcdValue;
+            if (candidate * gcdValue == a) {
+                (success, result) = _tryMul(candidate, b);
+                if (success) {
+                    return result;
+                } else {
+                    candidate = b / gcdValue;
+                    if (candidate * gcdValue == b) {
+                        (success, result) = _tryMul(candidate, a);
+                        if (success) {
+                            return result;
+                        }
+                    }
+                }
+            }
+
+            assume(false, "cannot_derive_lcm_for_partial_fill");
+        }
+
+        return result / gcdValue;
+    }
+
+    function _tryMul(
+        uint256 a,
+        uint256 b
+    ) internal pure returns (bool, uint256) {
+        unchecked {
+            if (a == 0) {
+                return (true, 0);
+            }
+
+            uint256 c = a * b;
+
+            if (c / a != b) {
+                return (false, 0);
+            }
+
+            return (true, c);
+        }
     }
 
     function findSmallestDenominator(
         uint256[] memory numbers
-    ) internal pure returns (uint256 denominator) {
+    ) internal returns (uint256 denominator) {
         require(
             numbers.length > 0,
             "FuzzHelpers: Input array must not be empty"
@@ -190,7 +236,9 @@ library FuzzHelpers {
 
         denominator = lcmValue / gcdValue;
 
-        if (denominator > type(uint120).max) {
+        // TODO: this should support up to uint120, work out
+        // how to fly closer to the sun on this
+        if (denominator > type(uint80).max) {
             return 0;
         }
     }
@@ -210,7 +258,7 @@ library FuzzHelpers {
 
     function getSmallestDenominator(
         OrderParameters memory order
-    ) internal pure returns (uint256 smallestDenominator, bool canScaleUp) {
+    ) internal returns (uint256 smallestDenominator, bool canScaleUp) {
         canScaleUp = true;
 
         uint256 totalFractionalizableAmounts = (
