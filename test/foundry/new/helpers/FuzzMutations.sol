@@ -1559,6 +1559,23 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidContractOrderGenerateReturnsInvalidEncoding(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer(payable(order.parameters.offerer))
+            .setFailureReason(
+                orderHash,
+                OffererZoneFailureReason
+                    .ContractOfferer_generateReturnsInvalidEncoding
+            );
+
+        exec(context);
+    }
+
     function mutation_invalidContractOrderRatifyReverts(
         FuzzTestContext memory context,
         MutationState memory mutationState

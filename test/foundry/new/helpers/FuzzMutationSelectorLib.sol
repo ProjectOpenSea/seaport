@@ -104,6 +104,7 @@ enum Failure {
     MissingItemAmount_OfferItem_FulfillAvailable, // Zero amount for offer item in fulfillAvailable
     MissingItemAmount_OfferItem, // Zero amount for offer item in all other methods
     MissingItemAmount_ConsiderationItem, // Zero amount for consideration item
+    InvalidContractOrder_generateReturnsInvalidEncoding, // Offerer generateOrder returns invalid data
     InvalidContractOrder_generateReverts, // Offerer generateOrder reverts
     InvalidContractOrder_ratifyReverts, // Offerer ratifyOrder reverts
     InvalidContractOrder_InsufficientMinimumReceived, // too few minimum received items
@@ -331,7 +332,8 @@ library FuzzMutationSelectorLib {
             );
 
         failuresAndFilters[i++] = Failure
-            .InvalidContractOrder_generateReverts
+            .InvalidContractOrder_generateReturnsInvalidEncoding
+            .and(Failure.InvalidContractOrder_generateReverts)
             .withOrder(
                 MutationFilters.ineligibleWhenNotContractOrderOrFulfillAvailable
             );
@@ -827,9 +829,20 @@ library FailureDetailsLib {
             .InvalidContractOrder
             .selector
             .withOrder(
+                "InvalidContractOrder_generateReturnsInvalidEncoding",
+                FuzzMutations
+                    .mutation_invalidContractOrderGenerateReturnsInvalidEncoding
+                    .selector,
+                details_withOrderHash
+            );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidContractOrder
+            .selector
+            .withOrder(
                 "InvalidContractOrder_generateReverts",
                 FuzzMutations
-                    .mutation_invalidContractOrderGenerateReverts
+                    .mutation_invalidContractOrderGenerateReturnsInvalidEncoding
                     .selector,
                 details_withOrderHash
             );
