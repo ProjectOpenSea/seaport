@@ -134,7 +134,10 @@ library FuzzHelpers {
 
     event ExpectedGenerateOrderDataHash(bytes32 dataHash);
 
-    function _gcd(uint256 a, uint256 b) internal pure returns (uint256) {
+    function _gcd(
+        uint256 a,
+        uint256 b
+    ) internal pure returns (uint256) {
         if (b == 0) {
             return a;
         } else {
@@ -142,23 +145,105 @@ library FuzzHelpers {
         }
     }
 
-    function _lcm(uint256 a, uint256 b, uint256 gcdValue) internal pure returns (uint256) {
+    function _lcm(
+        uint256 a,
+        uint256 b,
+        uint256 gcdValue
+    ) internal pure returns (uint256) {
         return a * b / gcdValue;
     }
 
-    function findSmallestDenominator(uint256[] memory numbers) internal pure returns (uint256 denominator) {
-        require(numbers.length > 0, "Input array must not be empty");
+    function findSmallestDenominator(
+        uint256[] memory numbers
+    ) internal pure returns (uint256 denominator) {
+        require(
+            numbers.length > 0,
+            "FuzzHelpers: Input array must not be empty"
+        );
 
-        uint256 lcmValue = numbers[0];
-        uint256 gcdValue = numbers[0];
+        bool initialValueSet = false;
 
-        for (uint256 i = 1; i < numbers.length; i++) {
+        uint256 gcdValue;
+        uint256 lcmValue;
+
+        for (uint256 i = 0; i < numbers.length; i++) {
             uint256 number = numbers[i];
+
+            if (number == 0) {
+                continue;
+            }
+
+            if (!initialValueSet) {
+                initialValueSet = true;
+                gcdValue = number;
+                lcmValue = number;
+                continue;
+            }
+
             gcdValue = _gcd(gcdValue, number);
             lcmValue = _lcm(lcmValue, number, gcdValue);
         }
 
+        if (gcdValue == 0) {
+            return 0;
+        }
+
         denominator = lcmValue / gcdValue;
+
+        if (denominator > type(uint120).max) {
+            return 0;
+        }
+    }
+
+    function getTotalFractionalizableAmounts(
+        OrderParameters memory order
+    ) internal pure returns (uint256) {
+        if (
+            order.orderType == OrderType.PARTIAL_OPEN ||
+            order.orderType == OrderType.PARTIAL_RESTRICTED
+        ) {
+            return 2 * (order.offer.length + order.consideration.length);
+        }
+
+        return 0;
+    }
+
+    function getSmallestDenominators(
+        AdvancedOrder[] memory orders
+    ) internal pure returns (uint256[] memory denominators) {
+        denominators = new uint256[](orders.length);
+
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderParameters memory order = orders[i].parameters;
+
+            uint256 totalFractionalizableAmounts = (
+                getTotalFractionalizableAmounts(order)
+            );
+
+            if (totalFractionalizableAmounts != 0) {
+                uint256[] memory numbers = new uint256[](
+                    totalFractionalizableAmounts
+                );
+
+                uint256 numberIndex = 0;
+
+                for (uint256 j = 0; j < order.offer.length; ++j) {
+                    OfferItem memory item = order.offer[j];
+                    numbers[numberIndex++] = item.startAmount;
+                    numbers[numberIndex++] = item.endAmount;
+                }
+
+                for (uint256 j = 0; j < order.consideration.length; ++j) {
+                    ConsiderationItem memory item = order.consideration[j];
+                    numbers[numberIndex++] = item.startAmount;
+                    numbers[numberIndex++] = item.endAmount;
+                }
+
+                denominators[i] = findSmallestDenominator(numbers);
+            } else {
+                denominators[i] = 0;
+            }
+        }
     }
 
     /**
