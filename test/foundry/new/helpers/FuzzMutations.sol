@@ -429,6 +429,34 @@ library MutationFilters {
         return ineligibleWhenUnavailable(context, orderIndex);
     }
 
+    function ineligibleWhenFulfillAvailable(
+        AdvancedOrder memory /* order */,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotContractOrderOrFulfillAvailable(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+        return ineligibleWhenFulfillAvailable(order, orderIndex, context);
+    }
+
     function ineligibleWhenNotAvailableOrNotRestrictedOrder(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -1542,6 +1570,39 @@ contract FuzzMutations is Test, FuzzExecutor {
     using MutationHelpersLib for FuzzTestContext;
     using MutationFilters for FuzzTestContext;
     using ConsiderationItemLib for ConsiderationItem;
+
+    function mutation_invalidContractOrderGenerateReverts(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer(payable(order.parameters.offerer))
+            .setFailureReason(
+                orderHash,
+                OffererZoneFailureReason.ContractOfferer_generateReverts
+            );
+
+        exec(context);
+    }
+
+    function mutation_invalidContractOrderGenerateReturnsInvalidEncoding(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        HashCalldataContractOfferer(payable(order.parameters.offerer))
+            .setFailureReason(
+                orderHash,
+                OffererZoneFailureReason
+                    .ContractOfferer_generateReturnsInvalidEncoding
+            );
+
+        exec(context);
+    }
 
     function mutation_invalidContractOrderRatifyReverts(
         FuzzTestContext memory context,
