@@ -37,7 +37,7 @@ library FractionUtil {
         uint120 currentStatusDenominator,
         uint120 numeratorToFill,
         uint120 denominatorToFill
-    ) internal view returns (FractionResults memory) {
+    ) internal pure returns (FractionResults memory) {
         uint256 filledNumerator = uint256(currentStatusNumerator);
         uint256 filledDenominator = uint256(currentStatusDenominator);
         uint256 numerator = uint256(numeratorToFill);

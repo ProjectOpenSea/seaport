@@ -24,13 +24,13 @@ contract FractionUtilTest is Test {
 
         assertEq(
             results.realizedNumerator,
-            1,
-            "Realized numerator should be 1"
+            3,
+            "Realized numerator should be 3"
         );
         assertEq(
             results.realizedDenominator,
-            4,
-            "Realized denominator should be 4"
+            12,
+            "Realized denominator should be 12"
         );
         assertEq(
             results.finalFilledNumerator,
@@ -108,23 +108,23 @@ contract FractionUtilTest is Test {
 
         assertEq(
             results2.realizedNumerator,
-            2,
-            "Realized numerator should be 2"
+            1,
+            "Realized numerator should be 1"
         );
         assertEq(
             results2.realizedDenominator,
-            6,
-            "Realized denominator should be 6"
+            3,
+            "Realized denominator should be 3"
         );
         assertEq(
             results2.finalFilledNumerator,
-            1,
-            "Final filled numerator should be 1"
+            3,
+            "Final filled numerator should be 3"
         );
         assertEq(
             results2.finalFilledDenominator,
-            1,
-            "Final filled denominator should be 1"
+            3,
+            "Final filled denominator should be 3"
         );
         assertEq(
             uint256(results2.status),
