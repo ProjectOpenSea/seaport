@@ -2540,42 +2540,48 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .offer[fulfillmentComponent.itemIndex]
                     .itemType != ItemType.ERC721
             ) {
-                order
-                    .parameters
-                    .offer[fulfillmentComponent.itemIndex]
-                    .startAmount = 0;
-                order
-                    .parameters
-                    .offer[fulfillmentComponent.itemIndex]
-                    .endAmount = 0;
-
-                if (order.parameters.orderType == OrderType.CONTRACT) {
-                    HashCalldataContractOfferer(
-                        payable(order.parameters.offerer)
-                    ).addItemAmountMutation(
-                        Side.OFFER,
-                        fulfillmentComponent.itemIndex,
-                        0,
-                        context.executionState.orderHashes[fulfillmentComponent.orderIndex]
-                    );
-                }
-
                 if (
-                    context
-                        .advancedOrdersSpace
-                        .orders[fulfillmentComponent.orderIndex]
-                        .signatureMethod == SignatureMethod.VALIDATE
+                    context.expectations.expectedAvailableOrders[
+                        fulfillmentComponent.orderIndex
+                    ]
                 ) {
-                    order.inscribeOrderStatusValidated(true, context.seaport);
-                } else {
-                    AdvancedOrdersSpaceGenerator._signOrders(
-                        context.advancedOrdersSpace,
-                        context.executionState.orders,
-                        context.generatorContext
-                    );
-                }
+                    order
+                        .parameters
+                        .offer[fulfillmentComponent.itemIndex]
+                        .startAmount = 0;
+                    order
+                        .parameters
+                        .offer[fulfillmentComponent.itemIndex]
+                        .endAmount = 0;
 
-                break;
+                    if (order.parameters.orderType == OrderType.CONTRACT) {
+                        HashCalldataContractOfferer(
+                            payable(order.parameters.offerer)
+                        ).addItemAmountMutation(
+                            Side.OFFER,
+                            fulfillmentComponent.itemIndex,
+                            0,
+                            context.executionState.orderHashes[fulfillmentComponent.orderIndex]
+                        );
+                    }
+
+                    if (
+                        context
+                            .advancedOrdersSpace
+                            .orders[fulfillmentComponent.orderIndex]
+                            .signatureMethod == SignatureMethod.VALIDATE
+                    ) {
+                        order.inscribeOrderStatusValidated(true, context.seaport);
+                    } else {
+                        AdvancedOrdersSpaceGenerator._signOrders(
+                            context.advancedOrdersSpace,
+                            context.executionState.orders,
+                            context.generatorContext
+                        );
+                    }
+
+                    break;
+                }
             }
         }
 
