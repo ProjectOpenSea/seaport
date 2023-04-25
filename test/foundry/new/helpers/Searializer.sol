@@ -42,6 +42,7 @@ import {
 } from "./ExpectedBalances.sol";
 
 import { withLabel } from "./Labeler.sol";
+import { ScuffDescription } from "./scuff-utils/Index.sol";
 
 library Searializer {
     function tojsonBytes32(
@@ -528,6 +529,40 @@ library Searializer {
             out = tojsonArray2Bytes32(obj, vm.toString(i), value[i]);
         }
         return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonScuffDescription(
+        string memory objectKey,
+        string memory valueKey,
+        ScuffDescription memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        
+        string memory jsonOut = tojsonBytes32(
+            obj,
+            "pointer",
+            bytes32(value.pointer)
+        );
+        jsonOut = tojsonBytes32(
+            obj,
+            "originalValue",
+            value.originalValue
+        );
+        jsonOut = tojsonBytes32(obj, "scuffedValue", value.scuffedValue);
+        jsonOut = tojsonDynArrayUint256(
+            obj,
+            "positions",
+            value.positions
+        );
+        jsonOut = vm.serializeString(obj, "side", value.side);
+        jsonOut = tojsonUint256(obj, "bitOffset", value.bitOffset);
+        jsonOut = vm.serializeString(obj, "kind", value.kind);
+        string memory finalJson = vm.serializeString(
+            obj,
+            "action",
+            value.functionName
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
     function tojsonResult(

@@ -10,14 +10,14 @@ import { ExpectedBalances } from "./ExpectedBalances.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { console2 } from "forge-std/console2.sol";
-
-import { ArrayHelpers, MemoryPointer } from "seaport-sol/../ArrayHelpers.sol";
+import { ArrayHelpers, MemoryPointer } from "seaport-sol/Pointers.sol";
 
 import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
 import { ForgeEventsLib } from "./event-utils/ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./event-utils/TransferEventsLib.sol";
+import { ScuffDescription } from "./scuff-utils/Index.sol";
 
 struct ContextOutputSelection {
     bool seaport;
@@ -370,6 +370,41 @@ function dumpTransfers(FuzzTestContext memory context) view {
     selection.actualEvents = true;
     pureDumpContext()(context, selection);
     console2.log("Dumped transfer data to ./fuzz_debug.json");
+}
+
+function viewDumpScuff(
+    FuzzTestContext memory context,
+    ScuffDescription memory scuff
+) {
+    string memory jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
+        "root",
+        "orders",
+        context.executionState.orders
+    );
+    jsonOut = Searializer.tojsonScuffDescription("root", "scuff", scuff);
+
+    vm.writeJson(jsonOut, "./fuzz_debug_scuff.json");
+    console2.log("Dumped executions and balances to ./fuzz_debug_scuff.json");
+}
+
+function pureDumpScuff()
+    pure
+    returns (
+        function(FuzzTestContext memory, ScuffDescription memory) internal pure pureFn
+    )
+{
+    function(FuzzTestContext memory, ScuffDescription memory)
+        internal dumpFn = viewDumpScuff;
+    assembly {
+        pureFn := dumpFn
+    }
+}
+
+function dumpScuff(
+    FuzzTestContext memory context,
+    ScuffDescription memory scuff
+) view {
+    pureDumpScuff()(context, scuff);
 }
 
 function dumpExecutions(FuzzTestContext memory context) view {
