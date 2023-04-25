@@ -41,3 +41,4 @@ metrics.txt
 *-metrics.txt
 
 fuzz_debug.json
+fuzz_debug_scuff.json
