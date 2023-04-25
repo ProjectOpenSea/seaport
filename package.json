@@ -102,10 +102,19 @@
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
-    "test:fuzz:collect": "SEAPORT_COLLECT_FUZZ_METRICS=true yarn test:fuzz",
+    "posttest:fuzz": "yarn sort-output; echo \"sorted output\"",
+    "test:fuzz:collect": "SEAPORT_COLLECT_FUZZ_METRICS=true yarn test:fuzz --allow-failure",
     "test:fuzz:concrete": "forge test --mt test_concrete",
+    "posttest:fuzz:concrete": "yarn sort-output",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
-    "prepare": "husky install"
+    "clean:metrics": "find . -type f -name \\*-metrics.txt -exec rm {} \\;",
+    "clean:debug": "find ./.debug -type f -name \\*.json -exec rm {} \\;",
+    "clean:fuzz": "yarn clean:metrics; yarn clean:debug; echo 0 ./.debug/.count",
+    "sort-output": "ts-node scripts/sort_debug_output.ts",
+    "prepare": "husky install",
+    "somecmd:a": "echo \"running A\"",
+    "postsomecmd:a": "echo \"running after A\"",
+    "somecmd:b": "yarn somecmd:a"
   },
   "lint-staged": {
     "*.sol": "prettier --write",
