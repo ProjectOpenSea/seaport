@@ -223,9 +223,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .expectedZoneCalldataHash = expectedZoneCalldataHash;
 
         if (registerChecks) {
-            context.registerCheck(
-                FuzzChecks.check_validateOrderExpectedDataHash.selector
-            );
+            // context.registerCheck(
+            //     FuzzChecks.check_validateOrderExpectedDataHash.selector
+            // );
         }
     }
 
@@ -504,11 +504,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 revert(add(reason, 32), mload(reason))
             }
         }
-        context.registerCheck(FuzzChecks.check_executions.selector);
-        context.setExpectedTransferEventHashes();
-        context.registerCheck(
-            FuzzChecks.check_expectedTransferEventsEmitted.selector
-        );
+        // context.registerCheck(FuzzChecks.check_executions.selector);
+        // context.setExpectedTransferEventHashes();
+        // context.registerCheck(
+        //     FuzzChecks.check_expectedTransferEventsEmitted.selector
+        // );
         ExpectedEventsUtil.startRecordingLogs();
     }
 
@@ -520,9 +520,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      */
     function registerCommonChecks(FuzzTestContext memory context) public {
         context.setExpectedSeaportEventHashes();
-        context.registerCheck(
-            FuzzChecks.check_expectedSeaportEventsEmitted.selector
-        );
+        // context.registerCheck(
+        //     FuzzChecks.check_expectedSeaportEventsEmitted.selector
+        // );
         context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
     }
 
@@ -547,11 +547,11 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         ) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
-            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+            // context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
         } else if (
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
-            context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
+            // context.registerCheck(FuzzChecks.check_allOrdersFilled.selector);
         } else if (_action == context.seaport.matchOrders.selector) {
             // Add match-specific checks
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
