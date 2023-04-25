@@ -188,6 +188,13 @@ library ExpectedEventsUtil {
     }
 
     /**
+     * @dev Clear out all recorded logs.
+     */
+    function clearRecordedLogs() internal {
+      vm.getRecordedLogs();
+    }
+
+    /**
      * @dev Checks that the events emitted by the test match the expected
      *      events.
      *
