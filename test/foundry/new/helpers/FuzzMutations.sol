@@ -522,7 +522,20 @@ library MutationFilters {
             return true;
         }
 
-        return ineligibleWhenNotContractOrder(order);
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+
+        OffererZoneFailureReason failureReason = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        ).failureReasons(
+            context.executionState.orderHashes[orderIndex]
+        );
+
+        return (
+            failureReason == OffererZoneFailureReason
+                .ContractOfferer_generateReverts
+        );
     }
 
     function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer(
@@ -1534,8 +1547,6 @@ library MutationFilters {
     }
 
     function ineligibleForNoSpecifiedOrdersAvailable(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // Must be a fulfill available method
@@ -2970,7 +2981,7 @@ contract FuzzMutations is Test, FuzzExecutor {
 
     function mutation_noSpecifiedOrdersAvailable(
         FuzzTestContext memory context,
-        MutationState memory mutationState
+        MutationState memory /* mutationState */
     ) external {
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
