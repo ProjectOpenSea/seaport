@@ -109,7 +109,7 @@ library ExpectedEventsUtil {
         require(
             executions.length ==
                 context.expectations.expectedImplicitPreExecutions.length +
-                context.expectations.expectedExplicitExecutions.length +
+                    context.expectations.expectedExplicitExecutions.length +
                     context.expectations.expectedImplicitPostExecutions.length,
             "ExpectedEventsUtil: executions length mismatch"
         );
@@ -191,7 +191,7 @@ library ExpectedEventsUtil {
      * @dev Clear out all recorded logs.
      */
     function clearRecordedLogs() internal {
-      vm.getRecordedLogs();
+        vm.getRecordedLogs();
     }
 
     /**
@@ -203,12 +203,13 @@ library ExpectedEventsUtil {
     function checkExpectedTransferEvents(
         FuzzTestContext memory context
     ) internal {
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        bytes memory callData = abi.encodeCall(FuzzEngine.setLogs, (logs));
-        (bool ok, ) = address(this).call(callData);
-        if (!ok) {
-            revert("ExpectedEventsUtil: log registration failed");
-        }
+        Vm.Log[] memory logs = context.actualEvents;
+        context.actualEvents = logs;
+        // bytes memory callData = abi.encodeCall(FuzzEngine.setLogs, (logs));
+        // (bool ok, ) = address(this).call(callData);
+        // if (!ok) {
+        //     revert("ExpectedEventsUtil: log registration failed");
+        // }
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedTransferEventHashes = context
@@ -241,20 +242,21 @@ library ExpectedEventsUtil {
         FuzzTestContext memory context
     ) internal {
         // TODO: set these upstream (this expects checkExpectedTransferEvents to run first)
-        bytes memory callData = abi.encodeCall(FuzzEngine.getLogs, ());
-        (, bytes memory returnData) = address(this).call(callData);
-        Log[] memory rawLogs = abi.decode(returnData, (Log[]));
+        // bytes memory callData = abi.encodeCall(FuzzEngine.getLogs, ());
+        // (, bytes memory returnData) = address(this).call(callData);
+        // Log[] memory rawLogs = abi.decode(returnData, (Log[]));
 
-        Vm.Log[] memory logs = new Vm.Log[](rawLogs.length);
+        // Vm.Log[] memory logs = new Vm.Log[](rawLogs.length);
+        Vm.Log[] memory logs = context.actualEvents;
 
-        for (uint256 i = 0; i < logs.length; ++i) {
-            Vm.Log memory log = logs[i];
-            Log memory rawLog = rawLogs[i];
+        // for (uint256 i = 0; i < logs.length; ++i) {
+        //     Vm.Log memory log = logs[i];
+        //     Log memory rawLog = rawLogs[i];
 
-            log.topics = rawLog.topics;
-            log.data = rawLog.data;
-            log.emitter = rawLog.emitter;
-        }
+        //     log.topics = rawLog.topics;
+        //     log.data = rawLog.data;
+        //     log.emitter = rawLog.emitter;
+        // }
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedSeaportEventHashes = context
@@ -387,7 +389,7 @@ library ExpectedEventsUtil {
 
         // Dump the events data and revert if there are no remaining transfer events
         if (nextWatchedEventIndex == -1) {
-            vm.serializeUint("root", "failingIndex", lastLogIndex - 1);
+            vm.serializeInt("root", "failingIndex", int256(lastLogIndex) - 1);
             vm.serializeBytes32(
                 "root",
                 "expectedEventHash",

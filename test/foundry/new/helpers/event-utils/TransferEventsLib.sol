@@ -121,7 +121,7 @@ library TransferEventsLib {
             return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
         }
 
-        revert("Invalid event log");
+        // revert("Invalid execution for transfer log");
     }
 
     /**

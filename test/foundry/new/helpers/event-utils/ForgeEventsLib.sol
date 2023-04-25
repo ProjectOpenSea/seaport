@@ -171,9 +171,11 @@ library ForgeEventsLib {
             // eventData.eventHash = getForgeEventHash(log);
 
             return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
+        } else {
+            return vm.serializeString(objectKey, valueKey, "Invalid event log");
         }
 
-        revert("Invalid event log");
+        // revert("Invalid event log");
     }
 
     /**
@@ -187,11 +189,12 @@ library ForgeEventsLib {
         string memory obj = string.concat(objectKey, valueKey);
         uint256 length = value.length;
         string memory out;
+        uint256 index;
         for (uint256 i; i < length; i++) {
             string memory _log = serializeTransferLog(
                 value[i],
                 obj,
-                string.concat("event", vm.toString(i))
+                vm.toString(index)
             );
             uint256 len;
             assembly {
@@ -199,6 +202,7 @@ library ForgeEventsLib {
             }
             if (length > 0) {
                 out = _log;
+                index++;
             }
         }
         return vm.serializeString(objectKey, valueKey, out);
