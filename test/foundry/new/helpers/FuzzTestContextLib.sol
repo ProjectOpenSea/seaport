@@ -801,7 +801,7 @@ library FuzzTestContextLib {
                     UnavailableReason.GENERATE_ORDER_FAILURE
                 ) {
                     context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
-                        .REVERT
+                        .REVERT;
                 } else {
                     context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
                         .AVAILABLE;
