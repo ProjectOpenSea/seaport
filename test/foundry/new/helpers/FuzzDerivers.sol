@@ -141,6 +141,7 @@ library FuzzDerivers {
                 block.timestamp >= order.startTime && // started
                 status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
                 status != OrderStatusEnum.FULFILLED && // not fully filled
+                status != OrderStatusEnum.REVERT && // bad contract order
                 totalAvailable < context.executionState.maximumFulfilled);
 
             if (isAvailable) {
