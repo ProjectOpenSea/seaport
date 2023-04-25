@@ -11,9 +11,9 @@ using DynArrayCriteriaResolverPointerLibrary for DynArrayCriteriaResolverPointer
 
 /// @dev Library for resolving pointers of encoded CriteriaResolver[]
 library DynArrayCriteriaResolverPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_HeadOverflow, element_side_DirtyBits, element_side_MaxValue, element_criteriaProof_HeadOverflow, element_criteriaProof_length_DirtyBits, element_criteriaProof_length_MaxValue }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_side_DirtyBits, element_side_MaxValue, element_criteriaProof_head_DirtyBits, element_criteriaProof_head_MaxValue, element_criteriaProof_length_DirtyBits, element_criteriaProof_length_MaxValue }
 
-  enum ScuffableField { length, element }
+  enum ScuffableField { length, element_head, element }
 
   uint256 internal constant CalldataStride = 0x20;
   uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_side_DirtyBits);
@@ -86,8 +86,10 @@ library DynArrayCriteriaResolverPointerLibrary {
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
-      /// @dev Overflow offset for `element`
-      directives.push(Scuff.lower(uint256(ScuffKind.element_HeadOverflow) + kindOffset, 224, ptr.elementHead(i), pos));
+      /// @dev Add dirty upper bits to element head
+      directives.push(Scuff.upper(uint256(ScuffKind.element_head_DirtyBits) + kindOffset, 224, ptr.elementHead(i), pos));
+      /// @dev Set every bit in length to 1
+      directives.push(Scuff.lower(uint256(ScuffKind.element_head_MaxValue) + kindOffset, 224, ptr.elementHead(i), pos));
       /// @dev Add all nested directives in element
       ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
     }
@@ -103,10 +105,12 @@ library DynArrayCriteriaResolverPointerLibrary {
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
     if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
-    if (k == ScuffKind.element_HeadOverflow) return "element_HeadOverflow";
+    if (k == ScuffKind.element_head_DirtyBits) return "element_head_DirtyBits";
+    if (k == ScuffKind.element_head_MaxValue) return "element_head_MaxValue";
     if (k == ScuffKind.element_side_DirtyBits) return "element_side_DirtyBits";
     if (k == ScuffKind.element_side_MaxValue) return "element_side_MaxValue";
-    if (k == ScuffKind.element_criteriaProof_HeadOverflow) return "element_criteriaProof_HeadOverflow";
+    if (k == ScuffKind.element_criteriaProof_head_DirtyBits) return "element_criteriaProof_head_DirtyBits";
+    if (k == ScuffKind.element_criteriaProof_head_MaxValue) return "element_criteriaProof_head_MaxValue";
     if (k == ScuffKind.element_criteriaProof_length_DirtyBits) return "element_criteriaProof_length_DirtyBits";
     return "element_criteriaProof_length_MaxValue";
   }

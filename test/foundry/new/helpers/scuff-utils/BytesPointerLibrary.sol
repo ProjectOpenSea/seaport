@@ -10,6 +10,10 @@ using BytesPointerLibrary for BytesPointer global;
 
 /// @dev Library for resolving pointers of encoded bytes
 library BytesPointerLibrary {
+  enum ScuffKind { length_DirtyBits, length_MaxValue, DirtyLowerBits }
+
+  enum ScuffableField { length }
+
   /// @dev Convert a `MemoryPointer` to a `BytesPointer`.
   /// This adds `BytesPointerLibrary` functions as members of the pointer
   function wrap(MemoryPointer ptr) internal pure returns (BytesPointer) {
@@ -49,5 +53,39 @@ library BytesPointerLibrary {
       MemoryPointer lastWord = ptr.unwrap().next().offset(_length - remainder);
       lastWord.addDirtyBitsAfter(8 * remainder);
     }
+  }
+
+  function addScuffDirectives(BytesPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
+    /// @dev Add dirty upper bits to length
+    directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 224, ptr.length(), positions));
+    uint256 len = ptr.length().readUint256();
+    uint256 bitOffset = (len % 32) * 8;
+    if ((len > 0) && (bitOffset != 0)) {
+      MemoryPointer end = ptr.unwrap().offset(32 + len);
+      directives.push(Scuff.lower(uint256(ScuffKind.DirtyLowerBits) + kindOffset, bitOffset, end, positions));
+    }
+  }
+
+  function getScuffDirectives(BytesPointer ptr) internal pure returns (ScuffDirective[] memory) {
+    ScuffDirectivesArray directives = Scuff.makeUnallocatedArray();
+    ScuffPositions positions = EmptyPositions;
+    addScuffDirectives(ptr, directives, 0, positions);
+    return directives.finalize();
+  }
+
+  function toString(ScuffKind k) internal pure returns (string memory) {
+    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
+    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
+    return "DirtyLowerBits";
+  }
+
+  function toKind(uint256 k) internal pure returns (ScuffKind) {
+    return ScuffKind(k);
+  }
+
+  function toKindString(uint256 k) internal pure returns (string memory) {
+    return toString(toKind(k));
   }
 }

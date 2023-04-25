@@ -11,9 +11,9 @@ using DynArrayOrderComponentsPointerLibrary for DynArrayOrderComponentsPointer g
 
 /// @dev Library for resolving pointers of encoded OrderComponents[]
 library DynArrayOrderComponentsPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_HeadOverflow, element_offerer_DirtyBits, element_offerer_MaxValue, element_zone_DirtyBits, element_zone_MaxValue, element_offer_HeadOverflow, element_offer_length_DirtyBits, element_offer_length_MaxValue, element_offer_element_itemType_DirtyBits, element_offer_element_itemType_MaxValue, element_offer_element_token_DirtyBits, element_offer_element_token_MaxValue, element_consideration_HeadOverflow, element_consideration_length_DirtyBits, element_consideration_length_MaxValue, element_consideration_element_itemType_DirtyBits, element_consideration_element_itemType_MaxValue, element_consideration_element_token_DirtyBits, element_consideration_element_token_MaxValue, element_consideration_element_recipient_DirtyBits, element_consideration_element_recipient_MaxValue, element_orderType_DirtyBits, element_orderType_MaxValue }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_offerer_DirtyBits, element_offerer_MaxValue, element_zone_DirtyBits, element_zone_MaxValue, element_offer_head_DirtyBits, element_offer_head_MaxValue, element_offer_length_DirtyBits, element_offer_length_MaxValue, element_offer_element_itemType_DirtyBits, element_offer_element_itemType_MaxValue, element_offer_element_token_DirtyBits, element_offer_element_token_MaxValue, element_consideration_head_DirtyBits, element_consideration_head_MaxValue, element_consideration_length_DirtyBits, element_consideration_length_MaxValue, element_consideration_element_itemType_DirtyBits, element_consideration_element_itemType_MaxValue, element_consideration_element_token_DirtyBits, element_consideration_element_token_MaxValue, element_consideration_element_recipient_DirtyBits, element_consideration_element_recipient_MaxValue, element_orderType_DirtyBits, element_orderType_MaxValue }
 
-  enum ScuffableField { length, element }
+  enum ScuffableField { length, element_head, element }
 
   uint256 internal constant CalldataStride = 0x20;
   uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_offerer_DirtyBits);
@@ -86,8 +86,10 @@ library DynArrayOrderComponentsPointerLibrary {
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
-      /// @dev Overflow offset for `element`
-      directives.push(Scuff.lower(uint256(ScuffKind.element_HeadOverflow) + kindOffset, 224, ptr.elementHead(i), pos));
+      /// @dev Add dirty upper bits to element head
+      directives.push(Scuff.upper(uint256(ScuffKind.element_head_DirtyBits) + kindOffset, 224, ptr.elementHead(i), pos));
+      /// @dev Set every bit in length to 1
+      directives.push(Scuff.lower(uint256(ScuffKind.element_head_MaxValue) + kindOffset, 224, ptr.elementHead(i), pos));
       /// @dev Add all nested directives in element
       ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
     }
@@ -103,19 +105,22 @@ library DynArrayOrderComponentsPointerLibrary {
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
     if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
-    if (k == ScuffKind.element_HeadOverflow) return "element_HeadOverflow";
+    if (k == ScuffKind.element_head_DirtyBits) return "element_head_DirtyBits";
+    if (k == ScuffKind.element_head_MaxValue) return "element_head_MaxValue";
     if (k == ScuffKind.element_offerer_DirtyBits) return "element_offerer_DirtyBits";
     if (k == ScuffKind.element_offerer_MaxValue) return "element_offerer_MaxValue";
     if (k == ScuffKind.element_zone_DirtyBits) return "element_zone_DirtyBits";
     if (k == ScuffKind.element_zone_MaxValue) return "element_zone_MaxValue";
-    if (k == ScuffKind.element_offer_HeadOverflow) return "element_offer_HeadOverflow";
+    if (k == ScuffKind.element_offer_head_DirtyBits) return "element_offer_head_DirtyBits";
+    if (k == ScuffKind.element_offer_head_MaxValue) return "element_offer_head_MaxValue";
     if (k == ScuffKind.element_offer_length_DirtyBits) return "element_offer_length_DirtyBits";
     if (k == ScuffKind.element_offer_length_MaxValue) return "element_offer_length_MaxValue";
     if (k == ScuffKind.element_offer_element_itemType_DirtyBits) return "element_offer_element_itemType_DirtyBits";
     if (k == ScuffKind.element_offer_element_itemType_MaxValue) return "element_offer_element_itemType_MaxValue";
     if (k == ScuffKind.element_offer_element_token_DirtyBits) return "element_offer_element_token_DirtyBits";
     if (k == ScuffKind.element_offer_element_token_MaxValue) return "element_offer_element_token_MaxValue";
-    if (k == ScuffKind.element_consideration_HeadOverflow) return "element_consideration_HeadOverflow";
+    if (k == ScuffKind.element_consideration_head_DirtyBits) return "element_consideration_head_DirtyBits";
+    if (k == ScuffKind.element_consideration_head_MaxValue) return "element_consideration_head_MaxValue";
     if (k == ScuffKind.element_consideration_length_DirtyBits) return "element_consideration_length_DirtyBits";
     if (k == ScuffKind.element_consideration_length_MaxValue) return "element_consideration_length_MaxValue";
     if (k == ScuffKind.element_consideration_element_itemType_DirtyBits) return "element_consideration_element_itemType_DirtyBits";

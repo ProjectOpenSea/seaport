@@ -15,9 +15,9 @@ using FulfillmentPointerLibrary for FulfillmentPointer global;
 ///   FulfillmentComponent[] considerationComponents;
 /// }
 library FulfillmentPointerLibrary {
-  enum ScuffKind { offerComponents_HeadOverflow, offerComponents_length_DirtyBits, offerComponents_length_MaxValue, considerationComponents_HeadOverflow, considerationComponents_length_DirtyBits, considerationComponents_length_MaxValue }
+  enum ScuffKind { offerComponents_head_DirtyBits, offerComponents_head_MaxValue, offerComponents_length_DirtyBits, offerComponents_length_MaxValue, considerationComponents_head_DirtyBits, considerationComponents_head_MaxValue, considerationComponents_length_DirtyBits, considerationComponents_length_MaxValue }
 
-  enum ScuffableField { offerComponents, considerationComponents }
+  enum ScuffableField { offerComponents_head, offerComponents, considerationComponents_head, considerationComponents }
 
   uint256 internal constant considerationComponentsOffset = 0x20;
   uint256 internal constant HeadSize = 0x40;
@@ -66,12 +66,16 @@ library FulfillmentPointerLibrary {
   }
 
   function addScuffDirectives(FulfillmentPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Overflow offset for `offerComponents`
-    directives.push(Scuff.lower(uint256(ScuffKind.offerComponents_HeadOverflow) + kindOffset, 224, ptr.offerComponentsHead(), positions));
+    /// @dev Add dirty upper bits to offerComponents head
+    directives.push(Scuff.upper(uint256(ScuffKind.offerComponents_head_DirtyBits) + kindOffset, 224, ptr.offerComponentsHead(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.offerComponents_head_MaxValue) + kindOffset, 224, ptr.offerComponentsHead(), positions));
     /// @dev Add all nested directives in offerComponents
     ptr.offerComponentsData().addScuffDirectives(directives, kindOffset + MinimumOfferComponentsScuffKind, positions);
-    /// @dev Overflow offset for `considerationComponents`
-    directives.push(Scuff.lower(uint256(ScuffKind.considerationComponents_HeadOverflow) + kindOffset, 224, ptr.considerationComponentsHead(), positions));
+    /// @dev Add dirty upper bits to considerationComponents head
+    directives.push(Scuff.upper(uint256(ScuffKind.considerationComponents_head_DirtyBits) + kindOffset, 224, ptr.considerationComponentsHead(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.considerationComponents_head_MaxValue) + kindOffset, 224, ptr.considerationComponentsHead(), positions));
     /// @dev Add all nested directives in considerationComponents
     ptr.considerationComponentsData().addScuffDirectives(directives, kindOffset + MinimumConsiderationComponentsScuffKind, positions);
   }
@@ -84,10 +88,12 @@ library FulfillmentPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.offerComponents_HeadOverflow) return "offerComponents_HeadOverflow";
+    if (k == ScuffKind.offerComponents_head_DirtyBits) return "offerComponents_head_DirtyBits";
+    if (k == ScuffKind.offerComponents_head_MaxValue) return "offerComponents_head_MaxValue";
     if (k == ScuffKind.offerComponents_length_DirtyBits) return "offerComponents_length_DirtyBits";
     if (k == ScuffKind.offerComponents_length_MaxValue) return "offerComponents_length_MaxValue";
-    if (k == ScuffKind.considerationComponents_HeadOverflow) return "considerationComponents_HeadOverflow";
+    if (k == ScuffKind.considerationComponents_head_DirtyBits) return "considerationComponents_head_DirtyBits";
+    if (k == ScuffKind.considerationComponents_head_MaxValue) return "considerationComponents_head_MaxValue";
     if (k == ScuffKind.considerationComponents_length_DirtyBits) return "considerationComponents_length_DirtyBits";
     return "considerationComponents_length_MaxValue";
   }

@@ -19,9 +19,9 @@ using AdvancedOrderPointerLibrary for AdvancedOrderPointer global;
 ///   bytes extraData;
 /// }
 library AdvancedOrderPointerLibrary {
-  enum ScuffKind { parameters_HeadOverflow, parameters_offerer_DirtyBits, parameters_offerer_MaxValue, parameters_zone_DirtyBits, parameters_zone_MaxValue, parameters_offer_HeadOverflow, parameters_offer_length_DirtyBits, parameters_offer_length_MaxValue, parameters_offer_element_itemType_DirtyBits, parameters_offer_element_itemType_MaxValue, parameters_offer_element_token_DirtyBits, parameters_offer_element_token_MaxValue, parameters_consideration_HeadOverflow, parameters_consideration_length_DirtyBits, parameters_consideration_length_MaxValue, parameters_consideration_element_itemType_DirtyBits, parameters_consideration_element_itemType_MaxValue, parameters_consideration_element_token_DirtyBits, parameters_consideration_element_token_MaxValue, parameters_consideration_element_recipient_DirtyBits, parameters_consideration_element_recipient_MaxValue, parameters_orderType_DirtyBits, parameters_orderType_MaxValue, numerator_DirtyBits, numerator_MaxValue, denominator_DirtyBits, denominator_MaxValue, signature_HeadOverflow, extraData_HeadOverflow }
+  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_offerer_DirtyBits, parameters_offerer_MaxValue, parameters_zone_DirtyBits, parameters_zone_MaxValue, parameters_offer_head_DirtyBits, parameters_offer_head_MaxValue, parameters_offer_length_DirtyBits, parameters_offer_length_MaxValue, parameters_offer_element_itemType_DirtyBits, parameters_offer_element_itemType_MaxValue, parameters_offer_element_token_DirtyBits, parameters_offer_element_token_MaxValue, parameters_consideration_head_DirtyBits, parameters_consideration_head_MaxValue, parameters_consideration_length_DirtyBits, parameters_consideration_length_MaxValue, parameters_consideration_element_itemType_DirtyBits, parameters_consideration_element_itemType_MaxValue, parameters_consideration_element_token_DirtyBits, parameters_consideration_element_token_MaxValue, parameters_consideration_element_recipient_DirtyBits, parameters_consideration_element_recipient_MaxValue, parameters_orderType_DirtyBits, parameters_orderType_MaxValue, numerator_DirtyBits, numerator_MaxValue, denominator_DirtyBits, denominator_MaxValue, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_length_MaxValue, signature_DirtyLowerBits, extraData_head_DirtyBits, extraData_head_MaxValue, extraData_length_DirtyBits, extraData_length_MaxValue, extraData_DirtyLowerBits }
 
-  enum ScuffableField { parameters, numerator, denominator, signature, extraData }
+  enum ScuffableField { parameters_head, parameters, numerator, denominator, signature_head, signature, extraData_head, extraData }
 
   uint256 internal constant numeratorOffset = 0x20;
   uint256 internal constant denominatorOffset = 0x40;
@@ -30,6 +30,10 @@ library AdvancedOrderPointerLibrary {
   uint256 internal constant HeadSize = 0xa0;
   uint256 internal constant MinimumParametersScuffKind = uint256(ScuffKind.parameters_offerer_DirtyBits);
   uint256 internal constant MaximumParametersScuffKind = uint256(ScuffKind.parameters_orderType_MaxValue);
+  uint256 internal constant MinimumSignatureScuffKind = uint256(ScuffKind.signature_length_DirtyBits);
+  uint256 internal constant MaximumSignatureScuffKind = uint256(ScuffKind.signature_DirtyLowerBits);
+  uint256 internal constant MinimumExtraDataScuffKind = uint256(ScuffKind.extraData_length_DirtyBits);
+  uint256 internal constant MaximumExtraDataScuffKind = uint256(ScuffKind.extraData_DirtyLowerBits);
 
   /// @dev Convert a `MemoryPointer` to a `AdvancedOrderPointer`.
   /// This adds `AdvancedOrderPointerLibrary` functions as members of the pointer
@@ -94,8 +98,10 @@ library AdvancedOrderPointerLibrary {
   }
 
   function addScuffDirectives(AdvancedOrderPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Overflow offset for `parameters`
-    directives.push(Scuff.lower(uint256(ScuffKind.parameters_HeadOverflow) + kindOffset, 224, ptr.parametersHead(), positions));
+    /// @dev Add dirty upper bits to parameters head
+    directives.push(Scuff.upper(uint256(ScuffKind.parameters_head_DirtyBits) + kindOffset, 224, ptr.parametersHead(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.parameters_head_MaxValue) + kindOffset, 224, ptr.parametersHead(), positions));
     /// @dev Add all nested directives in parameters
     ptr.parametersData().addScuffDirectives(directives, kindOffset + MinimumParametersScuffKind, positions);
     /// @dev Add dirty upper bits to `numerator`
@@ -106,10 +112,18 @@ library AdvancedOrderPointerLibrary {
     directives.push(Scuff.upper(uint256(ScuffKind.denominator_DirtyBits) + kindOffset, 136, ptr.denominator(), positions));
     /// @dev Set every bit in `denominator` to 1
     directives.push(Scuff.lower(uint256(ScuffKind.denominator_MaxValue) + kindOffset, 136, ptr.denominator(), positions));
-    /// @dev Overflow offset for `signature`
-    directives.push(Scuff.lower(uint256(ScuffKind.signature_HeadOverflow) + kindOffset, 224, ptr.signatureHead(), positions));
-    /// @dev Overflow offset for `extraData`
-    directives.push(Scuff.lower(uint256(ScuffKind.extraData_HeadOverflow) + kindOffset, 224, ptr.extraDataHead(), positions));
+    /// @dev Add dirty upper bits to signature head
+    directives.push(Scuff.upper(uint256(ScuffKind.signature_head_DirtyBits) + kindOffset, 224, ptr.signatureHead(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.signature_head_MaxValue) + kindOffset, 224, ptr.signatureHead(), positions));
+    /// @dev Add all nested directives in signature
+    ptr.signatureData().addScuffDirectives(directives, kindOffset + MinimumSignatureScuffKind, positions);
+    /// @dev Add dirty upper bits to extraData head
+    directives.push(Scuff.upper(uint256(ScuffKind.extraData_head_DirtyBits) + kindOffset, 224, ptr.extraDataHead(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.extraData_head_MaxValue) + kindOffset, 224, ptr.extraDataHead(), positions));
+    /// @dev Add all nested directives in extraData
+    ptr.extraDataData().addScuffDirectives(directives, kindOffset + MinimumExtraDataScuffKind, positions);
   }
 
   function getScuffDirectives(AdvancedOrderPointer ptr) internal pure returns (ScuffDirective[] memory) {
@@ -120,19 +134,22 @@ library AdvancedOrderPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.parameters_HeadOverflow) return "parameters_HeadOverflow";
+    if (k == ScuffKind.parameters_head_DirtyBits) return "parameters_head_DirtyBits";
+    if (k == ScuffKind.parameters_head_MaxValue) return "parameters_head_MaxValue";
     if (k == ScuffKind.parameters_offerer_DirtyBits) return "parameters_offerer_DirtyBits";
     if (k == ScuffKind.parameters_offerer_MaxValue) return "parameters_offerer_MaxValue";
     if (k == ScuffKind.parameters_zone_DirtyBits) return "parameters_zone_DirtyBits";
     if (k == ScuffKind.parameters_zone_MaxValue) return "parameters_zone_MaxValue";
-    if (k == ScuffKind.parameters_offer_HeadOverflow) return "parameters_offer_HeadOverflow";
+    if (k == ScuffKind.parameters_offer_head_DirtyBits) return "parameters_offer_head_DirtyBits";
+    if (k == ScuffKind.parameters_offer_head_MaxValue) return "parameters_offer_head_MaxValue";
     if (k == ScuffKind.parameters_offer_length_DirtyBits) return "parameters_offer_length_DirtyBits";
     if (k == ScuffKind.parameters_offer_length_MaxValue) return "parameters_offer_length_MaxValue";
     if (k == ScuffKind.parameters_offer_element_itemType_DirtyBits) return "parameters_offer_element_itemType_DirtyBits";
     if (k == ScuffKind.parameters_offer_element_itemType_MaxValue) return "parameters_offer_element_itemType_MaxValue";
     if (k == ScuffKind.parameters_offer_element_token_DirtyBits) return "parameters_offer_element_token_DirtyBits";
     if (k == ScuffKind.parameters_offer_element_token_MaxValue) return "parameters_offer_element_token_MaxValue";
-    if (k == ScuffKind.parameters_consideration_HeadOverflow) return "parameters_consideration_HeadOverflow";
+    if (k == ScuffKind.parameters_consideration_head_DirtyBits) return "parameters_consideration_head_DirtyBits";
+    if (k == ScuffKind.parameters_consideration_head_MaxValue) return "parameters_consideration_head_MaxValue";
     if (k == ScuffKind.parameters_consideration_length_DirtyBits) return "parameters_consideration_length_DirtyBits";
     if (k == ScuffKind.parameters_consideration_length_MaxValue) return "parameters_consideration_length_MaxValue";
     if (k == ScuffKind.parameters_consideration_element_itemType_DirtyBits) return "parameters_consideration_element_itemType_DirtyBits";
@@ -147,8 +164,16 @@ library AdvancedOrderPointerLibrary {
     if (k == ScuffKind.numerator_MaxValue) return "numerator_MaxValue";
     if (k == ScuffKind.denominator_DirtyBits) return "denominator_DirtyBits";
     if (k == ScuffKind.denominator_MaxValue) return "denominator_MaxValue";
-    if (k == ScuffKind.signature_HeadOverflow) return "signature_HeadOverflow";
-    return "extraData_HeadOverflow";
+    if (k == ScuffKind.signature_head_DirtyBits) return "signature_head_DirtyBits";
+    if (k == ScuffKind.signature_head_MaxValue) return "signature_head_MaxValue";
+    if (k == ScuffKind.signature_length_DirtyBits) return "signature_length_DirtyBits";
+    if (k == ScuffKind.signature_length_MaxValue) return "signature_length_MaxValue";
+    if (k == ScuffKind.signature_DirtyLowerBits) return "signature_DirtyLowerBits";
+    if (k == ScuffKind.extraData_head_DirtyBits) return "extraData_head_DirtyBits";
+    if (k == ScuffKind.extraData_head_MaxValue) return "extraData_head_MaxValue";
+    if (k == ScuffKind.extraData_length_DirtyBits) return "extraData_length_DirtyBits";
+    if (k == ScuffKind.extraData_length_MaxValue) return "extraData_length_MaxValue";
+    return "extraData_DirtyLowerBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

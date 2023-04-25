@@ -13,15 +13,15 @@ using FulfillBasicOrderPointerLibrary for FulfillBasicOrderPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// fulfillBasicOrder(BasicOrderParameters)
 library FulfillBasicOrderPointerLibrary {
-  enum ScuffKind { parameters_HeadOverflow, parameters_considerationToken_DirtyBits, parameters_considerationToken_MaxValue, parameters_offerer_DirtyBits, parameters_offerer_MaxValue, parameters_zone_DirtyBits, parameters_zone_MaxValue, parameters_offerToken_DirtyBits, parameters_offerToken_MaxValue, parameters_basicOrderType_DirtyBits, parameters_basicOrderType_MaxValue, parameters_additionalRecipients_HeadOverflow, parameters_additionalRecipients_length_DirtyBits, parameters_additionalRecipients_length_MaxValue, parameters_additionalRecipients_element_recipient_DirtyBits, parameters_additionalRecipients_element_recipient_MaxValue, parameters_signature_HeadOverflow }
+  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_considerationToken_DirtyBits, parameters_considerationToken_MaxValue, parameters_offerer_DirtyBits, parameters_offerer_MaxValue, parameters_zone_DirtyBits, parameters_zone_MaxValue, parameters_offerToken_DirtyBits, parameters_offerToken_MaxValue, parameters_basicOrderType_DirtyBits, parameters_basicOrderType_MaxValue, parameters_additionalRecipients_head_DirtyBits, parameters_additionalRecipients_head_MaxValue, parameters_additionalRecipients_length_DirtyBits, parameters_additionalRecipients_length_MaxValue, parameters_additionalRecipients_element_recipient_DirtyBits, parameters_additionalRecipients_element_recipient_MaxValue, parameters_signature_head_DirtyBits, parameters_signature_head_MaxValue, parameters_signature_length_DirtyBits, parameters_signature_length_MaxValue, parameters_signature_DirtyLowerBits }
 
-  enum ScuffableField { parameters }
+  enum ScuffableField { parameters_head, parameters }
 
   bytes4 internal constant FunctionSelector = 0xfb0f3ee1;
   string internal constant FunctionName = "fulfillBasicOrder";
   uint256 internal constant HeadSize = 0x20;
   uint256 internal constant MinimumParametersScuffKind = uint256(ScuffKind.parameters_considerationToken_DirtyBits);
-  uint256 internal constant MaximumParametersScuffKind = uint256(ScuffKind.parameters_signature_HeadOverflow);
+  uint256 internal constant MaximumParametersScuffKind = uint256(ScuffKind.parameters_signature_DirtyLowerBits);
 
   /// @dev Convert a `MemoryPointer` to a `FulfillBasicOrderPointer`.
   /// This adds `FulfillBasicOrderPointerLibrary` functions as members of the pointer
@@ -70,8 +70,10 @@ library FulfillBasicOrderPointerLibrary {
   }
 
   function addScuffDirectives(FulfillBasicOrderPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Overflow offset for `parameters`
-    directives.push(Scuff.lower(uint256(ScuffKind.parameters_HeadOverflow) + kindOffset, 224, ptr.parametersHead(), positions));
+    /// @dev Add dirty upper bits to parameters head
+    directives.push(Scuff.upper(uint256(ScuffKind.parameters_head_DirtyBits) + kindOffset, 224, ptr.parametersHead(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.parameters_head_MaxValue) + kindOffset, 224, ptr.parametersHead(), positions));
     /// @dev Add all nested directives in parameters
     ptr.parametersData().addScuffDirectives(directives, kindOffset + MinimumParametersScuffKind, positions);
   }
@@ -88,7 +90,8 @@ library FulfillBasicOrderPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.parameters_HeadOverflow) return "parameters_HeadOverflow";
+    if (k == ScuffKind.parameters_head_DirtyBits) return "parameters_head_DirtyBits";
+    if (k == ScuffKind.parameters_head_MaxValue) return "parameters_head_MaxValue";
     if (k == ScuffKind.parameters_considerationToken_DirtyBits) return "parameters_considerationToken_DirtyBits";
     if (k == ScuffKind.parameters_considerationToken_MaxValue) return "parameters_considerationToken_MaxValue";
     if (k == ScuffKind.parameters_offerer_DirtyBits) return "parameters_offerer_DirtyBits";
@@ -99,12 +102,17 @@ library FulfillBasicOrderPointerLibrary {
     if (k == ScuffKind.parameters_offerToken_MaxValue) return "parameters_offerToken_MaxValue";
     if (k == ScuffKind.parameters_basicOrderType_DirtyBits) return "parameters_basicOrderType_DirtyBits";
     if (k == ScuffKind.parameters_basicOrderType_MaxValue) return "parameters_basicOrderType_MaxValue";
-    if (k == ScuffKind.parameters_additionalRecipients_HeadOverflow) return "parameters_additionalRecipients_HeadOverflow";
+    if (k == ScuffKind.parameters_additionalRecipients_head_DirtyBits) return "parameters_additionalRecipients_head_DirtyBits";
+    if (k == ScuffKind.parameters_additionalRecipients_head_MaxValue) return "parameters_additionalRecipients_head_MaxValue";
     if (k == ScuffKind.parameters_additionalRecipients_length_DirtyBits) return "parameters_additionalRecipients_length_DirtyBits";
     if (k == ScuffKind.parameters_additionalRecipients_length_MaxValue) return "parameters_additionalRecipients_length_MaxValue";
     if (k == ScuffKind.parameters_additionalRecipients_element_recipient_DirtyBits) return "parameters_additionalRecipients_element_recipient_DirtyBits";
     if (k == ScuffKind.parameters_additionalRecipients_element_recipient_MaxValue) return "parameters_additionalRecipients_element_recipient_MaxValue";
-    return "parameters_signature_HeadOverflow";
+    if (k == ScuffKind.parameters_signature_head_DirtyBits) return "parameters_signature_head_DirtyBits";
+    if (k == ScuffKind.parameters_signature_head_MaxValue) return "parameters_signature_head_MaxValue";
+    if (k == ScuffKind.parameters_signature_length_DirtyBits) return "parameters_signature_length_DirtyBits";
+    if (k == ScuffKind.parameters_signature_length_MaxValue) return "parameters_signature_length_MaxValue";
+    return "parameters_signature_DirtyLowerBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {
