@@ -151,33 +151,17 @@ library FuzzHelpers {
         uint256 a,
         uint256 b,
         uint256 gcdValue
-    ) internal returns (uint256 result) {
-        bool success;
-        (success, result) = _tryMul(a, b);
-
-        if (success) {
-            return result / gcdValue;
-        } else {
-            uint256 candidate = a / gcdValue;
-            if (candidate * gcdValue == a) {
-                (success, result) = _tryMul(candidate, b);
-                if (success) {
-                    return result;
-                } else {
-                    candidate = b / gcdValue;
-                    if (candidate * gcdValue == b) {
-                        (success, result) = _tryMul(candidate, a);
-                        if (success) {
-                            return result;
-                        }
-                    }
-                }
-            }
-
-            assume(false, "cannot_derive_lcm_for_partial_fill");
+    ) internal returns (uint256) {
+        if (gcdValue == a || gcdValue == b) {
+            return (a > b) ? a : b;
         }
+        // (a * b) / gcd == (a / gcd) * (b / gcd)
+        a = a / gcdValue;
+        b = b / gcdValue;
+        (bool success, uint256 result) = _tryMul(a, b);
+        assume(success, "cannot_derive_lcm_for_partial_fill");
 
-        return result / gcdValue;
+        return result;
     }
 
     function _tryMul(
