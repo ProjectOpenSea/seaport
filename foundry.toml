@@ -21,6 +21,7 @@ fs_permissions = [
     { access = "read", path = "./reference-out" },
     { access = "write", path = "./call-metrics.txt" },
     { access = "write", path = "./scuff-result-metrics.txt" },
+    { access = "write", path = "./scuff-field-metrics.txt" },
     { access = "write", path = "./scuff-method-metrics.txt" },
     { access = "write", path = "./scuff-kind-metrics.txt" },
     { access = "write", path = "./scuff-error-metrics.txt" },

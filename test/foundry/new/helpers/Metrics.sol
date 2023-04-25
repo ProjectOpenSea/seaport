@@ -5,6 +5,7 @@ import { vm } from "./VmUtils.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
 
 using LibString for uint256;
+using LibString for string;
 
 function logCall(string memory name) {
     logCall(name, true);
@@ -24,6 +25,9 @@ function logScuff(
     logCounter("scuff-result", pass ? "pass" : "revert", enabled);
     logCounter("scuff-method", functionName, enabled);
     logCounter("scuff-kind", kind, enabled);
+    string[] memory segments = kind.split("_");
+    string memory field = segments[segments.length - 2];
+    logCounter("scuff-field", field, enabled);
     if (!pass) {
         uint256 errorSelector;
         if (returnData.length >= 4) {
