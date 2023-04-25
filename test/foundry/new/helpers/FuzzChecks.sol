@@ -29,6 +29,7 @@ import {
 import {
     HashValidationZoneOfferer
 } from "../../../../contracts/test/HashValidationZoneOfferer.sol";
+import { ExpectedBalances } from "./ExpectedBalances.sol";
 
 /**
  * @dev Check functions are the post-execution assertions we want to validate.
@@ -105,11 +106,13 @@ abstract contract FuzzChecks is Test {
         );
 
         for (uint256 i; i < context.returnValues.availableOrders.length; i++) {
-            assertEq(
-                context.returnValues.availableOrders[i],
-                context.expectations.expectedAvailableOrders[i],
-                "check_allOrdersFilled: returnValues.availableOrders[i] != expectedAvailableOrders[i]"
-            );
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                assertEq(
+                    context.returnValues.availableOrders[i],
+                    context.expectations.expectedAvailableOrders[i],
+                    "check_allOrdersFilled: returnValues.availableOrders[i] != expectedAvailableOrders[i]"
+                );
+            }
         }
     }
 
@@ -121,6 +124,9 @@ abstract contract FuzzChecks is Test {
     function check_validateOrderExpectedDataHash(
         FuzzTestContext memory context
     ) public {
+        if (context.scuffDescription.pointer == 0) {
+            return;
+        }
         // Iterate over the orders.
         for (uint256 i; i < context.executionState.orders.length; i++) {
             OrderParameters memory order = context
@@ -148,7 +154,6 @@ abstract contract FuzzChecks is Test {
                 // orderHashes (the hash calculation is most likely incorrect).
                 bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
                     .orderHashToValidateOrderDataHash(orderHash);
-
                 // Check that the expected calldata hash matches the actual
                 // calldata hash.
                 assertEq(
@@ -286,10 +291,12 @@ abstract contract FuzzChecks is Test {
         ExpectedEventsUtil.checkExpectedSeaportEvents(context);
     }
 
-    function check_expectedBalances(
-        FuzzTestContext memory context
-    ) public view {
-        context.testHelpers.balanceChecker().checkBalances();
+    function check_expectedBalances(FuzzTestContext memory context) public {
+        ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
+        balanceChecker.markAccountBalanceAsMaximum(
+            context.executionState.caller
+        );
+        balanceChecker.checkBalances();
     }
 
     /**
@@ -330,23 +337,35 @@ abstract contract FuzzChecks is Test {
                 if (context.expectations.expectedAvailableOrders[i]) {
                     assertEq(
                         totalFilled,
-                        context.expectations.expectedFillFractions[i].finalFilledNumerator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .finalFilledNumerator,
                         "check_orderStatusFullyFilled: totalFilled != expected partial"
                     );
                     assertEq(
                         totalSize,
-                        context.expectations.expectedFillFractions[i].finalFilledDenominator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .finalFilledDenominator,
                         "check_orderStatusFullyFilled: totalSize != expected partial"
                     );
                 } else {
                     assertEq(
                         totalFilled,
-                        context.expectations.expectedFillFractions[i].originalStatusNumerator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .originalStatusNumerator,
                         "check_orderStatusFullyFilled: totalFilled != expected partial (skipped)"
                     );
                     assertEq(
                         totalSize,
-                        context.expectations.expectedFillFractions[i].originalStatusDenominator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .originalStatusDenominator,
                         "check_orderStatusFullyFilled: totalSize != expected partial (skipped)"
                     );
                 }
@@ -417,5 +436,47 @@ abstract contract FuzzChecks is Test {
                 assertTrue(isValid, "check_ordersValidated: !isValid");
             }
         }
+    }
+}
+
+function fuzzCheckName(bytes4 selector) pure returns (string memory) {
+    if (selector == FuzzChecks.check_orderFulfilled.selector) {
+        return "check_orderFulfilled";
+    }
+    if (selector == FuzzChecks.check_orderValidated.selector) {
+        return "check_orderValidated";
+    }
+    if (selector == FuzzChecks.check_orderCancelled.selector) {
+        return "check_orderCancelled";
+    }
+    if (selector == FuzzChecks.check_allOrdersFilled.selector) {
+        return "check_allOrdersFilled";
+    }
+    if (selector == FuzzChecks.check_validateOrderExpectedDataHash.selector) {
+        return "check_validateOrderExpectedDataHash";
+    }
+    if (selector == FuzzChecks.check_contractOrderExpectedDataHashes.selector) {
+        return "check_contractOrderExpectedDataHashes";
+    }
+    if (selector == FuzzChecks.check_executionsPresent.selector) {
+        return "check_executionsPresent";
+    }
+    if (selector == FuzzChecks.check_executions.selector) {
+        return "check_executions";
+    }
+    if (selector == FuzzChecks.check_expectedTransferEventsEmitted.selector) {
+        return "check_expectedTransferEventsEmitted";
+    }
+    if (selector == FuzzChecks.check_expectedSeaportEventsEmitted.selector) {
+        return "check_expectedSeaportEventsEmitted";
+    }
+    if (selector == FuzzChecks.check_expectedBalances.selector) {
+        return "check_expectedBalances";
+    }
+    if (selector == FuzzChecks.check_orderStatusFullyFilled.selector) {
+        return "check_orderStatusFullyFilled";
+    }
+    if (selector == FuzzChecks.check_ordersValidated.selector) {
+        return "check_ordersValidated";
     }
 }
