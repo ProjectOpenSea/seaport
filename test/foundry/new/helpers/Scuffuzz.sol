@@ -197,7 +197,7 @@ contract Scuffuzz {
         if (_caller != address(0)) {
             vm.prank(_caller);
         }
-        uint256 gasLimit = 9_000_000;
+        uint256 gasLimit = 16_000_000;
         assembly {
             success := call(
                 gasLimit,
