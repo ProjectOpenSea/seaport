@@ -11,7 +11,7 @@ using DynArrayFulfillmentComponentPointerLibrary for DynArrayFulfillmentComponen
 
 /// @dev Library for resolving pointers of encoded FulfillmentComponent[]
 library DynArrayFulfillmentComponentPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue }
+  enum ScuffKind { length_DirtyBits }
 
   enum ScuffableField { length }
 
@@ -63,8 +63,6 @@ library DynArrayFulfillmentComponentPointerLibrary {
   function addScuffDirectives(DynArrayFulfillmentComponentPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
     /// @dev Add dirty upper bits to length
     directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 224, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
@@ -79,8 +77,7 @@ library DynArrayFulfillmentComponentPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
-    return "length_MaxValue";
+    return "length_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

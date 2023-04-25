@@ -37,9 +37,14 @@ library GetOrderStatusPointerLibrary {
     }
   }
 
+  /// @dev Encode function calldata
+  function encodeFunctionCall(bytes32 _orderHash) internal pure returns (bytes memory) {
+    return abi.encodeWithSignature("getOrderStatus(bytes32)", _orderHash);
+  }
+
   /// @dev Encode function call from arguments
-  function fromArgs(bytes32 orderHash) internal pure returns (GetOrderStatusPointer ptrOut) {
-    bytes memory data = abi.encodeWithSignature("getOrderStatus(bytes32)", orderHash);
+  function fromArgs(bytes32 _orderHash) internal pure returns (GetOrderStatusPointer ptrOut) {
+    bytes memory data = encodeFunctionCall(_orderHash);
     ptrOut = fromBytes(data);
   }
 

@@ -104,6 +104,12 @@ library Scuff {
     }
   }
 
+  function getPositions(ScuffDirective directive) internal pure returns (ScuffPositions positions) {
+    assembly {
+      positions := and(directive, Positions_InclusionMask)
+    }
+  }
+
   function decode(ScuffDirective directive) internal pure returns (uint256 kind, ScuffSide side, uint256 bitOffset, ScuffPositions positions, MemoryPointer pointer) {
     assembly {
       kind := byte(Kind_Byte, directive)

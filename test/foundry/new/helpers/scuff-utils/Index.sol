@@ -58,12 +58,6 @@ function getScuffDirectivesForCalldata(bytes memory data) pure returns (ScuffDir
   if (GetOrderHashPointerLibrary.isFunction(selector)) {
     return GetOrderHashPointerLibrary.getScuffDirectivesForCalldata(data);
   }
-  if (GetCounterPointerLibrary.isFunction(selector)) {
-    return GetCounterPointerLibrary.getScuffDirectivesForCalldata(data);
-  }
-  if (GetContractOffererNoncePointerLibrary.isFunction(selector)) {
-    return GetContractOffererNoncePointerLibrary.getScuffDirectivesForCalldata(data);
-  }
   revert("No matching function found");
 }
 
@@ -101,12 +95,6 @@ function toKindString(bytes4 selector, uint256 k) pure returns (string memory) {
   if (GetOrderHashPointerLibrary.isFunction(selector)) {
     return GetOrderHashPointerLibrary.toKindString(k);
   }
-  if (GetCounterPointerLibrary.isFunction(selector)) {
-    return GetCounterPointerLibrary.toKindString(k);
-  }
-  if (GetContractOffererNoncePointerLibrary.isFunction(selector)) {
-    return GetContractOffererNoncePointerLibrary.toKindString(k);
-  }
   revert("No matching function found");
 }
 
@@ -143,12 +131,6 @@ function getFunctionName(bytes4 selector) pure returns (string memory) {
   }
   if (GetOrderHashPointerLibrary.isFunction(selector)) {
     return GetOrderHashPointerLibrary.FunctionName;
-  }
-  if (GetCounterPointerLibrary.isFunction(selector)) {
-    return GetCounterPointerLibrary.FunctionName;
-  }
-  if (GetContractOffererNoncePointerLibrary.isFunction(selector)) {
-    return GetContractOffererNoncePointerLibrary.FunctionName;
   }
   revert("No matching function found");
 }

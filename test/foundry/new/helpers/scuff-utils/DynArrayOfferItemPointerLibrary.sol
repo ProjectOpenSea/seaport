@@ -11,13 +11,11 @@ using DynArrayOfferItemPointerLibrary for DynArrayOfferItemPointer global;
 
 /// @dev Library for resolving pointers of encoded OfferItem[]
 library DynArrayOfferItemPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_itemType_DirtyBits, element_itemType_MaxValue, element_token_DirtyBits, element_token_MaxValue }
+  enum ScuffKind { length_DirtyBits }
 
-  enum ScuffableField { length, element }
+  enum ScuffableField { length }
 
   uint256 internal constant CalldataStride = 0xa0;
-  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_itemType_DirtyBits);
-  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_token_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayOfferItemPointer`.
   /// This adds `DynArrayOfferItemPointerLibrary` functions as members of the pointer
@@ -65,13 +63,9 @@ library DynArrayOfferItemPointerLibrary {
   function addScuffDirectives(DynArrayOfferItemPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
     /// @dev Add dirty upper bits to length
     directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 224, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
-      /// @dev Add all nested directives in element
-      ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
     }
   }
 
@@ -83,12 +77,7 @@ library DynArrayOfferItemPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
-    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
-    if (k == ScuffKind.element_itemType_DirtyBits) return "element_itemType_DirtyBits";
-    if (k == ScuffKind.element_itemType_MaxValue) return "element_itemType_MaxValue";
-    if (k == ScuffKind.element_token_DirtyBits) return "element_token_DirtyBits";
-    return "element_token_MaxValue";
+    return "length_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

@@ -18,9 +18,9 @@ using CriteriaResolverPointerLibrary for CriteriaResolverPointer global;
 ///   bytes32[] criteriaProof;
 /// }
 library CriteriaResolverPointerLibrary {
-  enum ScuffKind { side_DirtyBits, side_MaxValue, criteriaProof_head_DirtyBits, criteriaProof_head_MaxValue, criteriaProof_length_DirtyBits, criteriaProof_length_MaxValue }
+  enum ScuffKind { criteriaProof_head_DirtyBits, criteriaProof_head_MaxValue, criteriaProof_length_DirtyBits }
 
-  enum ScuffableField { side, criteriaProof_head, criteriaProof }
+  enum ScuffableField { criteriaProof_head, criteriaProof }
 
   uint256 internal constant sideOffset = 0x20;
   uint256 internal constant indexOffset = 0x40;
@@ -28,7 +28,7 @@ library CriteriaResolverPointerLibrary {
   uint256 internal constant criteriaProofOffset = 0x80;
   uint256 internal constant HeadSize = 0xa0;
   uint256 internal constant MinimumCriteriaProofScuffKind = uint256(ScuffKind.criteriaProof_length_DirtyBits);
-  uint256 internal constant MaximumCriteriaProofScuffKind = uint256(ScuffKind.criteriaProof_length_MaxValue);
+  uint256 internal constant MaximumCriteriaProofScuffKind = uint256(ScuffKind.criteriaProof_length_DirtyBits);
 
   /// @dev Convert a `MemoryPointer` to a `CriteriaResolverPointer`.
   /// This adds `CriteriaResolverPointerLibrary` functions as members of the pointer
@@ -83,14 +83,10 @@ library CriteriaResolverPointerLibrary {
   }
 
   function addScuffDirectives(CriteriaResolverPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to `side`
-    directives.push(Scuff.upper(uint256(ScuffKind.side_DirtyBits) + kindOffset, 255, ptr.side(), positions));
-    /// @dev Set every bit in `side` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.side_MaxValue) + kindOffset, 255, ptr.side(), positions));
     /// @dev Add dirty upper bits to criteriaProof head
     directives.push(Scuff.upper(uint256(ScuffKind.criteriaProof_head_DirtyBits) + kindOffset, 224, ptr.criteriaProofHead(), positions));
     /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.criteriaProof_head_MaxValue) + kindOffset, 224, ptr.criteriaProofHead(), positions));
+    directives.push(Scuff.lower(uint256(ScuffKind.criteriaProof_head_MaxValue) + kindOffset, 229, ptr.criteriaProofHead(), positions));
     /// @dev Add all nested directives in criteriaProof
     ptr.criteriaProofData().addScuffDirectives(directives, kindOffset + MinimumCriteriaProofScuffKind, positions);
   }
@@ -103,12 +99,9 @@ library CriteriaResolverPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.side_DirtyBits) return "side_DirtyBits";
-    if (k == ScuffKind.side_MaxValue) return "side_MaxValue";
     if (k == ScuffKind.criteriaProof_head_DirtyBits) return "criteriaProof_head_DirtyBits";
     if (k == ScuffKind.criteriaProof_head_MaxValue) return "criteriaProof_head_MaxValue";
-    if (k == ScuffKind.criteriaProof_length_DirtyBits) return "criteriaProof_length_DirtyBits";
-    return "criteriaProof_length_MaxValue";
+    return "criteriaProof_length_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

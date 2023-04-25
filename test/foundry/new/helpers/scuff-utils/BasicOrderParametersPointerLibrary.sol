@@ -32,9 +32,9 @@ using BasicOrderParametersPointerLibrary for BasicOrderParametersPointer global;
 ///   bytes signature;
 /// }
 library BasicOrderParametersPointerLibrary {
-  enum ScuffKind { considerationToken_DirtyBits, considerationToken_MaxValue, offerer_DirtyBits, offerer_MaxValue, zone_DirtyBits, zone_MaxValue, offerToken_DirtyBits, offerToken_MaxValue, basicOrderType_DirtyBits, basicOrderType_MaxValue, additionalRecipients_head_DirtyBits, additionalRecipients_head_MaxValue, additionalRecipients_length_DirtyBits, additionalRecipients_length_MaxValue, additionalRecipients_element_recipient_DirtyBits, additionalRecipients_element_recipient_MaxValue, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_length_MaxValue, signature_DirtyLowerBits }
+  enum ScuffKind { additionalRecipients_head_DirtyBits, additionalRecipients_head_MaxValue, additionalRecipients_length_DirtyBits, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_DirtyLowerBits }
 
-  enum ScuffableField { considerationToken, offerer, zone, offerToken, basicOrderType, additionalRecipients_head, additionalRecipients, signature_head, signature }
+  enum ScuffableField { additionalRecipients_head, additionalRecipients, signature_head, signature }
 
   uint256 internal constant considerationIdentifierOffset = 0x20;
   uint256 internal constant considerationAmountOffset = 0x40;
@@ -55,7 +55,7 @@ library BasicOrderParametersPointerLibrary {
   uint256 internal constant signatureOffset = 0x0220;
   uint256 internal constant HeadSize = 0x0240;
   uint256 internal constant MinimumAdditionalRecipientsScuffKind = uint256(ScuffKind.additionalRecipients_length_DirtyBits);
-  uint256 internal constant MaximumAdditionalRecipientsScuffKind = uint256(ScuffKind.additionalRecipients_element_recipient_MaxValue);
+  uint256 internal constant MaximumAdditionalRecipientsScuffKind = uint256(ScuffKind.additionalRecipients_length_DirtyBits);
   uint256 internal constant MinimumSignatureScuffKind = uint256(ScuffKind.signature_length_DirtyBits);
   uint256 internal constant MaximumSignatureScuffKind = uint256(ScuffKind.signature_DirtyLowerBits);
 
@@ -195,36 +195,16 @@ library BasicOrderParametersPointerLibrary {
   }
 
   function addScuffDirectives(BasicOrderParametersPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to `considerationToken`
-    directives.push(Scuff.upper(uint256(ScuffKind.considerationToken_DirtyBits) + kindOffset, 96, ptr.considerationToken(), positions));
-    /// @dev Set every bit in `considerationToken` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.considerationToken_MaxValue) + kindOffset, 96, ptr.considerationToken(), positions));
-    /// @dev Add dirty upper bits to `offerer`
-    directives.push(Scuff.upper(uint256(ScuffKind.offerer_DirtyBits) + kindOffset, 96, ptr.offerer(), positions));
-    /// @dev Set every bit in `offerer` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.offerer_MaxValue) + kindOffset, 96, ptr.offerer(), positions));
-    /// @dev Add dirty upper bits to `zone`
-    directives.push(Scuff.upper(uint256(ScuffKind.zone_DirtyBits) + kindOffset, 96, ptr.zone(), positions));
-    /// @dev Set every bit in `zone` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.zone_MaxValue) + kindOffset, 96, ptr.zone(), positions));
-    /// @dev Add dirty upper bits to `offerToken`
-    directives.push(Scuff.upper(uint256(ScuffKind.offerToken_DirtyBits) + kindOffset, 96, ptr.offerToken(), positions));
-    /// @dev Set every bit in `offerToken` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.offerToken_MaxValue) + kindOffset, 96, ptr.offerToken(), positions));
-    /// @dev Add dirty upper bits to `basicOrderType`
-    directives.push(Scuff.upper(uint256(ScuffKind.basicOrderType_DirtyBits) + kindOffset, 251, ptr.basicOrderType(), positions));
-    /// @dev Set every bit in `basicOrderType` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.basicOrderType_MaxValue) + kindOffset, 251, ptr.basicOrderType(), positions));
     /// @dev Add dirty upper bits to additionalRecipients head
     directives.push(Scuff.upper(uint256(ScuffKind.additionalRecipients_head_DirtyBits) + kindOffset, 224, ptr.additionalRecipientsHead(), positions));
     /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.additionalRecipients_head_MaxValue) + kindOffset, 224, ptr.additionalRecipientsHead(), positions));
+    directives.push(Scuff.lower(uint256(ScuffKind.additionalRecipients_head_MaxValue) + kindOffset, 229, ptr.additionalRecipientsHead(), positions));
     /// @dev Add all nested directives in additionalRecipients
     ptr.additionalRecipientsData().addScuffDirectives(directives, kindOffset + MinimumAdditionalRecipientsScuffKind, positions);
     /// @dev Add dirty upper bits to signature head
     directives.push(Scuff.upper(uint256(ScuffKind.signature_head_DirtyBits) + kindOffset, 224, ptr.signatureHead(), positions));
     /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.signature_head_MaxValue) + kindOffset, 224, ptr.signatureHead(), positions));
+    directives.push(Scuff.lower(uint256(ScuffKind.signature_head_MaxValue) + kindOffset, 229, ptr.signatureHead(), positions));
     /// @dev Add all nested directives in signature
     ptr.signatureData().addScuffDirectives(directives, kindOffset + MinimumSignatureScuffKind, positions);
   }
@@ -237,26 +217,12 @@ library BasicOrderParametersPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.considerationToken_DirtyBits) return "considerationToken_DirtyBits";
-    if (k == ScuffKind.considerationToken_MaxValue) return "considerationToken_MaxValue";
-    if (k == ScuffKind.offerer_DirtyBits) return "offerer_DirtyBits";
-    if (k == ScuffKind.offerer_MaxValue) return "offerer_MaxValue";
-    if (k == ScuffKind.zone_DirtyBits) return "zone_DirtyBits";
-    if (k == ScuffKind.zone_MaxValue) return "zone_MaxValue";
-    if (k == ScuffKind.offerToken_DirtyBits) return "offerToken_DirtyBits";
-    if (k == ScuffKind.offerToken_MaxValue) return "offerToken_MaxValue";
-    if (k == ScuffKind.basicOrderType_DirtyBits) return "basicOrderType_DirtyBits";
-    if (k == ScuffKind.basicOrderType_MaxValue) return "basicOrderType_MaxValue";
     if (k == ScuffKind.additionalRecipients_head_DirtyBits) return "additionalRecipients_head_DirtyBits";
     if (k == ScuffKind.additionalRecipients_head_MaxValue) return "additionalRecipients_head_MaxValue";
     if (k == ScuffKind.additionalRecipients_length_DirtyBits) return "additionalRecipients_length_DirtyBits";
-    if (k == ScuffKind.additionalRecipients_length_MaxValue) return "additionalRecipients_length_MaxValue";
-    if (k == ScuffKind.additionalRecipients_element_recipient_DirtyBits) return "additionalRecipients_element_recipient_DirtyBits";
-    if (k == ScuffKind.additionalRecipients_element_recipient_MaxValue) return "additionalRecipients_element_recipient_MaxValue";
     if (k == ScuffKind.signature_head_DirtyBits) return "signature_head_DirtyBits";
     if (k == ScuffKind.signature_head_MaxValue) return "signature_head_MaxValue";
     if (k == ScuffKind.signature_length_DirtyBits) return "signature_length_DirtyBits";
-    if (k == ScuffKind.signature_length_MaxValue) return "signature_length_MaxValue";
     return "signature_DirtyLowerBits";
   }
 
