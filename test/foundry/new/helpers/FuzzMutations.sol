@@ -76,6 +76,11 @@ import {
     OffererZoneFailureReason
 } from "../../../../contracts/test/OffererZoneFailureReason.sol";
 
+import {
+    FractionStatus,
+    FractionUtil
+} from "./FractionUtil.sol";
+
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -1541,9 +1546,41 @@ library MutationFilters {
             return true;
         }
 
-        return (order.parameters.offer.length +
-            order.parameters.consideration.length ==
-            0);
+        if (order.parameters.offer.length +
+            order.parameters.consideration.length == 0
+        ) {
+            return true;
+        }
+
+        uint256 itemAmount = order.parameters.offer.length == 0
+            ? order.parameters.consideration[0].startAmount
+            : order.parameters.offer[0].startAmount;
+
+        if (itemAmount == 0) {
+            itemAmount = order.parameters.offer.length == 0
+                ? order.parameters.consideration[0].endAmount
+                : order.parameters.offer[0].endAmount;
+        }
+
+        // This isn't perfect, but odds of hitting it are slim to none
+        if (itemAmount > type(uint120).max - 1) {
+            itemAmount = 664613997892457936451903530140172392;
+        }
+
+        (, , uint256 totalFilled, uint256 totalSize) = (
+            context.seaport.getOrderStatus(
+                context.executionState.orderHashes[orderIndex]
+            )
+        );
+
+        return (
+            FractionUtil.getPartialFillResults(
+                uint120(totalFilled),
+                uint120(totalSize),
+                1,
+                uint120(itemAmount + 1)
+            ).status == FractionStatus.INVALID
+        );
     }
 
     function ineligibleForNoSpecifiedOrdersAvailable(
@@ -2944,7 +2981,7 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         // This isn't perfect, but odds of hitting it are slim to none
         if (itemAmount > type(uint120).max - 1) {
-            itemAmount = 664613997892457936451903530140172393;
+            itemAmount = 664613997892457936451903530140172392;
         }
 
         order.numerator = 1;
