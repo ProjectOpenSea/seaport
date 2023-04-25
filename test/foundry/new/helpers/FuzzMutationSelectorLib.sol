@@ -410,7 +410,7 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForPanic_PartialFillOverflow
         );
 
-        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable.withOrder(
+        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable.withGeneric(
             MutationFilters.ineligibleForNoSpecifiedOrdersAvailable
         );
         ////////////////////////////////////////////////////////////////////////
@@ -1023,7 +1023,7 @@ library FailureDetailsLib {
         failureDetailsArray[i++] = ConsiderationEventsAndErrors
             .NoSpecifiedOrdersAvailable
             .selector
-            .withOrder(
+            .withGeneric(
                 "NoSpecifiedOrderAvailable",
                 FuzzMutations.mutation_noSpecifiedOrdersAvailable.selector
             );
