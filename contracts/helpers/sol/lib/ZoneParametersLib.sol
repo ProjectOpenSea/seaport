@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
+import { ItemType, Side, OrderType } from "../../../lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -35,6 +35,10 @@ import { StructCopier } from "./StructCopier.sol";
 
 import { AmountDeriverHelper } from "./fulfillment/AmountDeriverHelper.sol";
 import { OrderDetails } from "../fulfillments/lib/Structs.sol";
+
+interface FailingContractOfferer {
+    function failureReasons(bytes32) external view returns (uint256);
+}
 
 library ZoneParametersLib {
     using AdvancedOrderLib for AdvancedOrder;
@@ -223,9 +227,17 @@ library ZoneParametersLib {
         (, bool isCancelled, uint256 totalFilled, uint256 totalSize) = seaport
             .getOrderStatus(orderHash);
 
+        bool isRevertingContractOrder = false;
+        if (order.orderType == OrderType.CONTRACT) {
+            isRevertingContractOrder = FailingContractOfferer(
+                order.offerer
+            ).failureReasons(orderHash) != 0;
+        }
+
         return (block.timestamp >= order.endTime ||
             block.timestamp < order.startTime ||
             isCancelled ||
+            isRevertingContractOrder ||
             (totalFilled >= totalSize && totalSize > 0));
     }
 

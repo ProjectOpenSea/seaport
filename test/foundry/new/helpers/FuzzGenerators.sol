@@ -150,7 +150,7 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 4))
+                    : UnavailableReason(context.randEnum(1, 5))
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -196,9 +196,8 @@ library TestStateGenerator {
                     components[i].unavailableReason ==
                     UnavailableReason.CANCELLED
                 ) {
-                    // TODO: also support 5 (GENERATE_ORDER_FAILURE)
                     components[i].unavailableReason = UnavailableReason(
-                        context.randEnum(1, 2)
+                        context.choice(Solarray.uint256s(1, 2, 5))
                     );
                 }
 
@@ -289,7 +288,11 @@ library TestStateGenerator {
                         components[i].rebate = ContractOrderRebate(context.randEnum(0, 1));
                     }
                 }
-            } else if (components[i].offerer == Offerer.EIP1271) {
+            } else if (components[i].unavailableReason == UnavailableReason.GENERATE_ORDER_FAILURE) {
+                components[i].unavailableReason = UnavailableReason(context.randEnum(1, 4));
+            }
+
+            if (components[i].offerer == Offerer.EIP1271) {
                 components[i].signatureMethod = SignatureMethod.EIP1271;
             }
         }
@@ -701,10 +704,7 @@ library AdvancedOrdersSpaceGenerator {
                 context
             );
         } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
-            // TODO: update offerer + order type (point to bad contract offerer)
-            revert(
-                "FuzzGenerators: no support for failing contract order fuzzing"
-            );
+            // NOTE: this is handled downstream
         }
     }
 

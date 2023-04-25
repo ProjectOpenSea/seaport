@@ -38,65 +38,60 @@ library FractionUtil {
         uint120 numeratorToFill,
         uint120 denominatorToFill
     ) internal pure returns (FractionResults memory) {
-        uint256 finalNumerator;
-        uint256 finalDenominator;
-
-        // if the denominators are different, we need to convert the numerator to the same denominator
-        if (currentStatusDenominator != denominatorToFill) {
-            finalNumerator =
-                uint256(currentStatusNumerator) *
-                denominatorToFill +
-                uint256(numeratorToFill) *
-                currentStatusDenominator;
-
-            finalDenominator =
-                uint256(currentStatusDenominator) *
-                denominatorToFill;
-        } else {
-            // if the denominators are the same, we can just add the numerators
-            finalNumerator = uint256(currentStatusNumerator) + numeratorToFill;
-            finalDenominator = currentStatusDenominator;
-        }
-
-        uint256 realizedNumerator;
-        uint256 realizedDenominator;
+        uint256 filledNumerator = uint256(currentStatusNumerator);
+        uint256 filledDenominator = uint256(currentStatusDenominator);
+        uint256 numerator = uint256(numeratorToFill);
+        uint256 denominator = uint256(denominatorToFill);
         bool partialFill;
-        if (finalNumerator > finalDenominator) {
-            partialFill = true;
-            // the numerator is larger than the denominator, so entire order is filled
-            finalNumerator = finalDenominator;
-            // the realized numerator is the remaining portion that was actually filled
-            realizedNumerator =
-                finalDenominator -
-                (uint256(currentStatusNumerator) * denominatorToFill);
-            realizedDenominator = finalDenominator;
-        } else {
-            partialFill = false;
-            realizedNumerator = numeratorToFill;
-            realizedDenominator = denominatorToFill;
-        }
-
         bool applyGcd;
-        // reduce by gcd if necessary
-        if (finalDenominator > type(uint120).max) {
-            applyGcd = true;
-            // the denominator is too large to fit in a uint120, so we need to reduce it
 
-            if (partialFill) {
-                uint256 gcd = _gcd(realizedNumerator, finalDenominator);
-                finalNumerator /= gcd;
-                finalDenominator /= gcd;
-                // if the order was partially filled, we need to reduce the realized numerator and denominator as well
-                realizedNumerator /= gcd;
-                realizedDenominator /= gcd;
-            } else {
-                uint256 gcd = _gcd(finalNumerator, finalDenominator);
-                finalNumerator /= gcd;
-                finalDenominator /= gcd;
-            }
+        // If denominator of 1 supplied, fill all remaining amount on order.
+        if (denominator == 1) {
+            // Scale numerator & denominator to match current denominator.
+            numerator = filledDenominator;
+            denominator = filledDenominator;
+        }
+        // Otherwise, if supplied denominator differs from current one...
+        else if (filledDenominator != denominator) {
+            // scale current numerator by the supplied denominator, then...
+            filledNumerator *= denominator;
+
+            // the supplied numerator & denominator by current denominator.
+            numerator *= filledDenominator;
+            denominator *= filledDenominator;
         }
 
-        if (finalDenominator > type(uint120).max) {
+        // Once adjusted, if current+supplied numerator exceeds denominator:
+        if (filledNumerator + numerator > denominator) {
+            // Reduce current numerator so it + supplied = denominator.
+            numerator = denominator - filledNumerator;
+
+            partialFill = true;
+        }
+
+        // Increment the filled numerator by the new numerator.
+        filledNumerator += numerator;
+
+        // Ensure fractional amounts are below max uint120.
+        if (
+            filledNumerator > type(uint120).max ||
+            denominator > type(uint120).max
+        ) {
+            applyGcd = true;
+
+            // Derive greatest common divisor using euclidean algorithm.
+            uint256 scaleDown = _gcd(
+                numerator,
+                _gcd(filledNumerator, denominator)
+            );
+
+            // Scale all fractional values down by gcd.
+            numerator = numerator / scaleDown;
+            filledNumerator = filledNumerator / scaleDown;
+            denominator = denominator / scaleDown;
+        }
+
+        if (denominator > type(uint120).max) {
             return
                 FractionResults({
                     realizedNumerator: 0,
@@ -120,12 +115,13 @@ library FractionUtil {
         } else {
             status = FractionStatus.WHOLE_FILL;
         }
+
         return
             FractionResults({
-                realizedNumerator: uint120(realizedNumerator),
-                realizedDenominator: uint120(realizedDenominator),
-                finalFilledNumerator: uint120(finalNumerator),
-                finalFilledDenominator: uint120(finalDenominator),
+                realizedNumerator: uint120(numerator),
+                realizedDenominator: uint120(denominator),
+                finalFilledNumerator: uint120(filledNumerator),
+                finalFilledDenominator: uint120(denominator),
                 originalStatusNumerator: currentStatusNumerator,
                 originalStatusDenominator: currentStatusDenominator,
                 requestedNumerator: numeratorToFill,

@@ -37,6 +37,10 @@ import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
+import {
+    OffererZoneFailureReason
+} from "../../../../contracts/test/OffererZoneFailureReason.sol";
+
 import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
 import { PRNGHelpers } from "./FuzzGenerators.sol";
 
@@ -452,6 +456,21 @@ abstract contract FuzzAmendments is Test {
                     false,
                     context.seaport
                 );
+            } else if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.REVERT
+            ) {
+                OrderParameters memory orderParams = context.executionState.orders[i].parameters;
+                bytes32 orderHash = context.executionState.orderHashes[i];
+                if (orderParams.orderType != OrderType.CONTRACT) {
+                    revert("FuzzAmendments: bad pre-exec order status");
+                }
+
+                HashCalldataContractOfferer(payable(orderParams.offerer))
+                    .setFailureReason(
+                        orderHash,
+                        OffererZoneFailureReason.ContractOfferer_generateReverts
+                    );
             }
         }
     }
