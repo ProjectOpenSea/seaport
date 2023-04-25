@@ -236,4 +236,40 @@ abstract contract FuzzExecutor is Test {
     function exec(FuzzTestContext memory context) public {
         exec(context, false);
     }
+
+    function setReturnValues(
+        FuzzTestContext memory context,
+        bytes memory returnData
+    ) internal pure {
+        bytes4 _action = context._action;
+        if (
+            _action == context.seaport.fulfillOrder.selector ||
+            _action == context.seaport.fulfillAdvancedOrder.selector ||
+            _action == context.seaport.fulfillBasicOrder.selector ||
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            context.returnValues.fulfilled = abi.decode(returnData, (bool));
+        } else if (
+            _action == context.seaport.fulfillAvailableOrders.selector ||
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            (
+                context.returnValues.availableOrders,
+                context.returnValues.executions
+            ) = abi.decode(returnData, (bool[], Execution[]));
+        } else if (
+            _action == context.seaport.matchOrders.selector ||
+            _action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            context.returnValues.executions = abi.decode(
+                returnData,
+                (Execution[])
+            );
+        } else if (_action == context.seaport.cancel.selector) {
+            context.returnValues.cancelled = abi.decode(returnData, (bool));
+        } else if (_action == context.seaport.validate.selector) {
+            context.returnValues.validated = abi.decode(returnData, (bool));
+        }
+    }
 }
