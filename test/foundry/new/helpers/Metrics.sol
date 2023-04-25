@@ -26,16 +26,15 @@ function logScuff(
     logCounter("scuff-method", functionName, enabled);
     logCounter("scuff-kind", kind, enabled);
     string[] memory segments = kind.split("_");
-    string memory field = segments[segments.length - 2];
-    logCounter("scuff-field", field, enabled);
+    if (segments.length >= 2) {
+        string memory field = segments[segments.length - 2];
+        logCounter("scuff-field", field, enabled);
+    }
     if (!pass) {
         uint256 errorSelector;
         if (returnData.length >= 4) {
             assembly {
-                errorSelector := and(
-                  mload(add(returnData, 0x04)),
-                  0xffffffff
-                )
+                errorSelector := and(mload(add(returnData, 0x04)), 0xffffffff)
             }
         }
         logCounter("scuff-error", errorSelector.toHexString(), enabled);
