@@ -29,6 +29,10 @@ import {
 } from "seaport-sol/SeaportSol.sol";
 import { vm } from "./VmUtils.sol";
 import { bound } from "./FuzzGenerators.sol";
+import "solady/src/utils/LibString.sol";
+
+using LibString for uint256;
+using LibString for string;
 
 contract Scuffuzz {
     using LibPRNG for LibPRNG.PRNG;
@@ -39,23 +43,56 @@ contract Scuffuzz {
     using OrderParametersLib for OrderParameters;
     using ConsiderationItemLib for ConsiderationItem;
 
+    function shouldReRoll(
+        FuzzTestContext memory context,
+        bytes4 action,
+        ScuffDirective directive
+    ) internal returns (bool) {
+        bool isConsiderationHead = toKindString(action, directive.getKind())
+            .endsWith("consideration_head_MaxValue");
+        if (!isConsiderationHead) return false;
+        if (
+            context.seaport.fulfillOrder.selector == action ||
+            context.seaport.fulfillAdvancedOrder.selector == action ||
+            context.seaport.fulfillBasicOrder.selector == action ||
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector ==
+            action
+        ) {
+            return context
+                .executionState
+                .orders[0]
+                .parameters
+                .totalOriginalConsiderationItems == 0;
+        } else if (
+            context.seaport.cancel.selector == action ||
+            context.seaport.validate.selector == action
+        ) {
+            return false;
+        } else {
+            uint256 orderIndex = directive.getPositions().get(0);
+            return context
+                .executionState
+                .orders[orderIndex]
+                .parameters
+                .totalOriginalConsiderationItems == 0;
+        }
+    }
+
     function getActionCalldata(
         FuzzTestContext memory context
     ) internal view returns (bytes memory data) {
-        bytes4 _action = context.action();
+        bytes4 _action = context._action;
         if (_action == context.seaport.fulfillOrder.selector) {
             AdvancedOrder memory order = context.executionState.orders[0];
 
-            data = abi.encodeWithSelector(
-                context.seaport.fulfillOrder.selector,
+            data = FulfillOrderPointerLibrary.encodeFunctionCall(
                 order.toOrder(),
                 context.executionState.fulfillerConduitKey
             );
         } else if (_action == context.seaport.fulfillAdvancedOrder.selector) {
             AdvancedOrder memory order = context.executionState.orders[0];
 
-            data = abi.encodeWithSelector(
-                context.seaport.fulfillAdvancedOrder.selector,
+            data = FulfillAdvancedOrderPointerLibrary.encodeFunctionCall(
                 order,
                 context.executionState.criteriaResolvers,
                 context.executionState.fulfillerConduitKey,
@@ -73,8 +110,7 @@ contract Scuffuzz {
                 .executionState
                 .fulfillerConduitKey;
 
-            data = abi.encodeWithSelector(
-                context.seaport.fulfillBasicOrder.selector,
+            data = FulfillBasicOrderPointerLibrary.encodeFunctionCall(
                 basicOrderParameters
             );
         } else if (
@@ -92,13 +128,10 @@ contract Scuffuzz {
                 .executionState
                 .fulfillerConduitKey;
 
-            data = abi.encodeWithSelector(
-                context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector,
-                basicOrderParameters
-            );
+            data = FulfillBasicOrderEfficient6GL6ycPointerLibrary
+                .encodeFunctionCall(basicOrderParameters);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {
-            data = abi.encodeWithSelector(
-                context.seaport.fulfillAvailableOrders.selector,
+            data = FulfillAvailableOrdersPointerLibrary.encodeFunctionCall(
                 context.executionState.orders.toOrders(),
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
@@ -108,25 +141,23 @@ contract Scuffuzz {
         } else if (
             _action == context.seaport.fulfillAvailableAdvancedOrders.selector
         ) {
-            data = abi.encodeWithSelector(
-                context.seaport.fulfillAvailableAdvancedOrders.selector,
-                context.executionState.orders,
-                context.executionState.criteriaResolvers,
-                context.executionState.offerFulfillments,
-                context.executionState.considerationFulfillments,
-                context.executionState.fulfillerConduitKey,
-                context.executionState.recipient,
-                context.executionState.maximumFulfilled
-            );
+            data = FulfillAvailableAdvancedOrdersPointerLibrary
+                .encodeFunctionCall(
+                    context.executionState.orders,
+                    context.executionState.criteriaResolvers,
+                    context.executionState.offerFulfillments,
+                    context.executionState.considerationFulfillments,
+                    context.executionState.fulfillerConduitKey,
+                    context.executionState.recipient,
+                    context.executionState.maximumFulfilled
+                );
         } else if (_action == context.seaport.matchOrders.selector) {
-            data = abi.encodeWithSelector(
-                context.seaport.matchOrders.selector,
+            data = MatchOrdersPointerLibrary.encodeFunctionCall(
                 context.executionState.orders.toOrders(),
                 context.executionState.fulfillments
             );
         } else if (_action == context.seaport.matchAdvancedOrders.selector) {
-            data = abi.encodeWithSelector(
-                context.seaport.matchAdvancedOrders.selector,
+            data = MatchAdvancedOrdersPointerLibrary.encodeFunctionCall(
                 context.executionState.orders,
                 context.executionState.criteriaResolvers,
                 context.executionState.fulfillments,
@@ -145,13 +176,9 @@ contract Scuffuzz {
                     .parameters
                     .toOrderComponents(context.executionState.counter);
             }
-            data = abi.encodeWithSelector(
-                context.seaport.cancel.selector,
-                orderComponents
-            );
+            data = CancelPointerLibrary.encodeFunctionCall(orderComponents);
         } else if (_action == context.seaport.validate.selector) {
-            data = abi.encodeWithSelector(
-                context.seaport.validate.selector,
+            data = ValidatePointerLibrary.encodeFunctionCall(
                 context.executionState.orders.toOrders()
             );
         } else {
@@ -168,21 +195,25 @@ contract Scuffuzz {
         FuzzTestContext memory context
     )
         external
-        view
         returns (bytes memory callData, ScuffDescription memory description)
     {
-        bytes memory callData = getActionCalldata(context);
+        callData = getActionCalldata(context);
 
         ScuffDirective[] memory directives = getScuffDirectivesForCalldata(
             callData
         );
-
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed);
         ScuffDirective directive = directives[
             bound(prng.next(), 0, directives.length - 1)
         ];
+        while (shouldReRoll(context, context._action, directive)) {
+            directive = directives[
+                bound(prng.next(), 0, directives.length - 1)
+            ];
+        }
         description = getScuffDescription(context._action, directive);
         directive.applyScuff();
+
         description.scuffedValue = MemoryPointer
             .wrap(description.pointer)
             .readBytes32();
@@ -198,7 +229,11 @@ contract Scuffuzz {
             vm.prank(_caller);
         }
         uint256 gasLimit = 16_000_000;
-        assembly {
+        (success, returnData) = payable(_seaport).call{
+            value: callValue,
+            gas: gasLimit
+        }(data);
+        /*  assembly {
             success := call(
                 gasLimit,
                 _seaport,
@@ -214,6 +249,6 @@ contract Scuffuzz {
             if returndatasize() {
                 returndatacopy(add(returnData, 0x20), 0, returndatasize())
             }
-        }
+        } */
     }
 }

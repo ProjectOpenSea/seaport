@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
+import { console2 } from "forge-std/console2.sol";
 
 import { dumpExecutions, dumpScuff } from "./DebugUtil.sol";
 
@@ -20,8 +21,12 @@ import {
     Execution,
     Order,
     OrderComponents,
-    OrderParameters
+    OrderParameters,
+    OrderType
 } from "seaport-sol/SeaportStructs.sol";
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
@@ -43,6 +48,7 @@ import {
 import {
     FuzzTestContext,
     FuzzTestContextLib,
+    FailureKind,
     FuzzParams,
     MutationState
 } from "./FuzzTestContextLib.sol";
@@ -55,7 +61,7 @@ import {
 
 import { FuzzAmendments } from "./FuzzAmendments.sol";
 
-import { FuzzChecks } from "./FuzzChecks.sol";
+import { FuzzChecks, fuzzCheckName } from "./FuzzChecks.sol";
 
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 
@@ -80,6 +86,11 @@ import { logMutation, logScuff } from "./Metrics.sol";
 import "./scuff-utils/Index.sol";
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 import "./Scuffuzz.sol";
+import { appendLabel } from "./Labeler.sol";
+import { FailureCaptor } from "./FailureCaptor.sol";
+import { LibString } from "solady/src/utils/LibString.sol";
+
+using LibString for uint256;
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -218,11 +229,22 @@ contract FuzzEngine is
         amendOrderState(context);
         runDerivers(context);
         runSetup(context);
-        runCheckRegistration(context);
+        // runCheckRegistration(context);
+        addLabels(context);
         execScuff(context);
+        if (context.failedChecks.length > 0) {
+            dumpExecutions(context);
+            string memory reason = context.getCombinedFailureReasons();
+            revert(reason);
+        }
         // execFailure(context);
         // execSuccess(context);
         // checkAll(context);
+    }
+
+    function addLabels(FuzzTestContext memory context) internal {
+        appendLabel(context.executionState.caller, "[caller]");
+        appendLabel(context.executionState.recipient, "[recipient]");
     }
 
     function execSuccess(FuzzTestContext memory context) internal {
@@ -451,29 +473,113 @@ contract FuzzEngine is
         }
     }
 
-    function execScuff(FuzzTestContext memory context) internal {
-        uint256 snapshotId = vm.snapshot();
-        ExpectedEventsUtil.startRecordingLogs();
+    function rederiveExpectedExecutions(
+        FuzzTestContext memory context,
+        bytes memory callData
+    ) internal returns (bool success) {
+        bytes4 _action = context._action;
+        if (
+            _action == context.seaport.fulfillAvailableOrders.selector ||
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            uint256 snapshotId = vm.snapshot();
 
+            if (context.executionState.caller != address(0)) {
+                vm.prank(context.executionState.caller);
+            }
+            bytes memory returnData;
+            (success, returnData) = payable(address(context.seaport)).call{
+                value: context.executionState.value,
+                gas: 20_000_000
+            }(callData);
+
+            if (success) {
+                setReturnValues(context, returnData);
+                check_allOrdersFilled(context);
+                // uint256 ordersLength = context
+                //     .expectations
+                //     .expectedAvailableOrders
+                //     .length;
+                // uint256 numRemoved;
+                // bytes32[] memory tempOrderHashes = new bytes32[](ordersLength);
+                // for (uint256 i; i < ordersLength; i++) {
+                //     tempOrderHashes[i] = context.executionState.orderHashes[i];
+                //     bool wasAvailable = context
+                //         .expectations
+                //         .expectedAvailableOrders[i];
+                //     bool willBeAvailable = context.returnValues.availableOrders[
+                //         i
+                //     ];
+                //     AdvancedOrder memory order = context.executionState.orders[
+                //         i
+                //     ];
+                //     if (order.parameters.orderType == OrderType.CONTRACT) {
+                //         bytes32 originalOrderHash = context
+                //             .executionState
+                //             .orderHashes[i];
+                //         if (wasAvailable && !willBeAvailable) {
+                //             numRemoved++;
+                //             HashCalldataContractOfferer(
+                //                 payable(order.parameters.offerer)
+                //             ).removeMutation(originalOrderHash);
+                //         }
+
+                //         tempOrderHashes[i] = bytes32(
+                //             uint256(originalOrderHash) - numRemoved
+                //         );
+                //     }
+                // }
+                // context.executionState.orderHashes = tempOrderHashes;
+                context.expectations.expectedAvailableOrders = context
+                    .returnValues
+                    .availableOrders;
+
+                context.withDerivedExecutions();
+                ExpectedEventsUtil.clearRecordedLogs();
+                vm.revertTo(snapshotId);
+            }
+        } else {
+            return true;
+        }
+    }
+
+    function execScuff(FuzzTestContext memory context) internal {
+        // uint256 snapshotId = vm.snapshot();
         (bytes memory callData, ScuffDescription memory description) = scuffuzz
             .getScuffedCalldata(context);
+        context.scuffDescription = description;
 
-        (bool success, bytes memory returnData) = scuffuzz.innerScuffExecute{
-            gas: 20_000_000
-        }(
-            context.executionState.caller,
-            address(context.seaport),
-            context.executionState.value,
+        // Re-calculate expected executions if we're fuzzing fulfillAvailableOrders/fulfillAvailableAdvancedOrders
+        if (!rederiveExpectedExecutions(context, callData)) {
+            return;
+        }
+        runCheckRegistration(context);
+
+        if (context.executionState.caller != address(0)) {
+            vm.prank(context.executionState.caller);
+        }
+
+        (bool success, bytes memory returnData) = payable(
+            address(context.seaport)
+        ).call{ value: context.executionState.value, gas: 20_000_000 }(
             callData
         );
-        logScuff(success, description.functionName, description.kind, returnData, true);
+        context.actualEvents = vm.getRecordedLogs();
+
+        logScuff(
+            success,
+            description.functionName,
+            description.kind,
+            returnData,
+            true
+        );
         if (success) {
             dumpScuff(context, description);
             setReturnValues(context, returnData);
             checkAll(context);
         } else {
             ExpectedEventsUtil.clearRecordedLogs();
-            vm.revertTo(snapshotId);
+            // vm.revertTo(snapshotId);
         }
     }
 
@@ -498,12 +604,22 @@ contract FuzzEngine is
         (bool success, bytes memory result) = address(this).delegatecall(
             abi.encodeWithSelector(selector, context)
         );
-
+        string memory checkName = fuzzCheckName(selector);
         if (!success) {
-            dumpExecutions(context);
-            if (result.length == 0) revert();
-            assembly {
-                revert(add(0x20, result), mload(result))
+            string memory reason = FailureCaptor.tryDecodeError(result);
+            context.addFailure(checkName, reason, FailureKind.CheckFailure);
+        }
+
+        {
+            (bool globalFailure, string memory reason) = FailureCaptor
+                .captureFailure();
+
+            if (globalFailure) {
+                context.addFailure(
+                    checkName,
+                    reason,
+                    FailureKind.GlobalFailure
+                );
             }
         }
     }

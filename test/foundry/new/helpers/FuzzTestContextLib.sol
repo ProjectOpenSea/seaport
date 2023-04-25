@@ -62,6 +62,10 @@ import { TestStateGenerator } from "./FuzzGenerators.sol";
 import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import { FractionResults } from "./FractionUtil.sol";
+import { ScuffDescription } from "./scuff-utils/Index.sol";
+import { LibString } from "solady/src/utils/LibString.sol";
+
+using LibString for uint256;
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
@@ -166,7 +170,6 @@ struct Expectations {
     uint256 expectedImpliedNativeExecutions;
     uint256 expectedNativeTokensReturned;
     uint256 minimumValue;
-
     FractionResults[] expectedFillFractions;
 }
 
@@ -305,6 +308,30 @@ struct FuzzTestContext {
      */
     FuzzGeneratorContext generatorContext;
     AdvancedOrdersSpace advancedOrdersSpace;
+    ScuffDescription scuffDescription;
+    FailedCheck[] failedChecks;
+}
+
+enum FailureKind {
+    PreCheckGlobal,
+    CheckFailure,
+    GlobalFailure
+}
+
+function failureKindString(FailureKind kind) pure returns (string memory) {
+    if (kind == FailureKind.PreCheckGlobal) {
+        return "PreCheckGlobal";
+    } else if (kind == FailureKind.CheckFailure) {
+        return "CheckFailure";
+    } else if (kind == FailureKind.GlobalFailure) {
+        return "GlobalFailure";
+    }
+}
+
+struct FailedCheck {
+    FailureKind kind;
+    string check;
+    string message;
 }
 
 /**
@@ -318,26 +345,124 @@ library FuzzTestContextLib {
     using LibPRNG for LibPRNG.PRNG;
     using FuzzGeneratorContextLib for FuzzGeneratorContext;
 
+    address internal constant ScuffCaller = address(0x5cff);
+
+    function addFailure(
+        FuzzTestContext memory context,
+        string memory check,
+        string memory message,
+        FailureKind kind
+    ) internal {
+        FailedCheck memory failedCheck = FailedCheck({
+            check: check,
+            message: message,
+            kind: kind
+        });
+        FailedCheck[] memory oldChecks = context.failedChecks;
+        context.failedChecks = new FailedCheck[](oldChecks.length + 1);
+        for (uint256 i = 0; i < oldChecks.length; i++) {
+            context.failedChecks[i] = oldChecks[i];
+        }
+        context.failedChecks[oldChecks.length] = failedCheck;
+    }
+
+    function getCombinedFailureReasons(
+        FuzzTestContext memory context
+    ) internal pure returns (string memory reason) {
+        reason = "\n";
+        for (uint256 i; i < context.failedChecks.length; i++) {
+            FailedCheck memory failedCheck = context.failedChecks[i];
+            string memory kind = failedCheck.kind == FailureKind.PreCheckGlobal
+                ? "PreCheckGlobal"
+                : failedCheck.kind == FailureKind.CheckFailure
+                ? "CheckFailure"
+                : "GlobalFailure";
+            string memory checkMsg = bytes(failedCheck.check).length > 0
+                ? string.concat("\ncheck:", failedCheck.check, "\nreason: ")
+                : "\nreason: ";
+            reason = string.concat(
+                reason,
+                "\n",
+                kind,
+                " :: ",
+                checkMsg,
+                failedCheck.message,
+                "\n"
+            );
+        }
+        reason = string.concat(
+            reason,
+            "\n total failures: ",
+            context.failedChecks.length.toString(),
+            "\n"
+        );
+    }
+
     /**
      * @dev Create an empty FuzzTestContext.
      *
      * @custom:return emptyContext the empty FuzzTestContext
      */
-    function empty() internal returns (FuzzTestContext memory) {
+    function empty() internal returns (FuzzTestContext memory context) {
         AdvancedOrder[] memory orders;
-        CriteriaResolver[] memory resolvers;
-        Fulfillment[] memory fulfillments;
-        FulfillmentComponent[] memory components;
-        FulfillmentComponent[][] memory componentsArray;
-        Result[] memory results;
+        // CriteriaResolver[] memory resolvers;
+        // Fulfillment[] memory fulfillments;
+        // FulfillmentComponent[] memory components;
+        // FulfillmentComponent[][] memory componentsArray;
+        // Result[] memory results;
         bool[] memory available;
         Execution[] memory executions;
-        bytes32[] memory hashes;
-        bytes32[] memory expectedTransferEventHashes;
-        bytes32[] memory expectedSeaportEventHashes;
-        Vm.Log[] memory actualEvents;
-
-        return
+        // bytes32[] memory hashes;
+        // Vm.Log[] memory actualEvents;
+        // ScuffDescription memory scuffDescription;
+        context.fuzzParams = FuzzParams({
+            seed: 0,
+            totalOrders: 0,
+            maxOfferItems: 0,
+            maxConsiderationItems: 0,
+            seedInput: ""
+        });
+        {
+            context.returnValues = ReturnValues({
+                fulfilled: false,
+                cancelled: false,
+                validated: false,
+                availableOrders: available,
+                executions: executions
+            });
+        }
+        // {
+        //     bytes32[] memory expectedTransferEventHashes;
+        //     bytes32[] memory expectedSeaportEventHashes;
+        //     context.expectations = Expectations({
+        //         expectedZoneCalldataHash: hashes,
+        //         expectedContractOrderCalldataHashes: new bytes32[2][](0),
+        //         expectedImplicitPreExecutions: new Execution[](0),
+        //         expectedImplicitPostExecutions: new Execution[](0),
+        //         expectedExplicitExecutions: new Execution[](0),
+        //         allExpectedExecutions: new Execution[](0),
+        //         expectedResults: results,
+        //         expectedAvailableOrders: new bool[](0),
+        //         expectedTransferEventHashes: expectedTransferEventHashes,
+        //         expectedSeaportEventHashes: expectedSeaportEventHashes,
+        //         ineligibleOrders: new bool[](orders.length),
+        //         ineligibleFailures: new bool[](uint256(Failure.length)),
+        //         expectedImpliedNativeExecutions: 0,
+        //         expectedNativeTokensReturned: 0,
+        //         minimumValue: 0,
+        //         expectedFillFractions: new FractionResults[](orders.length)
+        //     });
+        // }
+        context.expectations.ineligibleFailures = new bool[](
+            uint256(Failure.length)
+        );
+        // context.actualEvents = actualEvents;
+        context.executionState.basicOrderParameters = BasicOrderParametersLib
+            .empty();
+        context.testHelpers = TestHelpers(address(this));
+        context.generatorContext = FuzzGeneratorContextLib.empty();
+        context.advancedOrdersSpace = TestStateGenerator.empty();
+        /* return
             FuzzTestContext({
                 _action: bytes4(0),
                 actionSelected: false,
@@ -400,8 +525,10 @@ library FuzzTestContextLib {
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this)),
                 generatorContext: FuzzGeneratorContextLib.empty(),
-                advancedOrdersSpace: TestStateGenerator.empty()
+                advancedOrdersSpace: TestStateGenerator.empty(),
+                scuffDescription: scuffDescription
             });
+     */
     }
 
     /**
@@ -422,7 +549,7 @@ library FuzzTestContextLib {
                 .withOrders(orders)
                 .withSeaport(seaport)
                 .withOrderHashes()
-                .withCaller(caller)
+                .withCaller(ScuffCaller)
                 .withPreviewedOrders(orders.copy())
                 .withProvisionedIneligbleOrdersArray();
     }
@@ -552,7 +679,7 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         address caller
     ) internal pure returns (FuzzTestContext memory) {
-        context.executionState.caller = caller;
+        context.executionState.caller = ScuffCaller;
         return context;
     }
 
@@ -682,7 +809,7 @@ library FuzzTestContextLib {
         FuzzTestContext memory context,
         address recipient
     ) internal pure returns (FuzzTestContext memory) {
-        context.executionState.recipient = recipient;
+        context.executionState.recipient = ScuffCaller;
         return context;
     }
 
@@ -800,11 +927,13 @@ library FuzzTestContextLib {
                     space.orders[i].unavailableReason ==
                     UnavailableReason.GENERATE_ORDER_FAILURE
                 ) {
-                    context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
-                        .REVERT;
+                    context.executionState.preExecOrderStatuses[
+                        i
+                    ] = OrderStatusEnum.REVERT;
                 } else {
-                    context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
-                        .AVAILABLE;
+                    context.executionState.preExecOrderStatuses[
+                        i
+                    ] = OrderStatusEnum.AVAILABLE;
                 }
             } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
@@ -849,7 +978,8 @@ library FuzzTestContextLib {
                 for (uint256 j = 0; j < orderParams.offer.length; ++j) {
                     if (
                         orderParams.offer[j].itemType == ItemType.ERC721 ||
-                        orderParams.offer[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                        orderParams.offer[j].itemType ==
+                        ItemType.ERC721_WITH_CRITERIA
                     ) {
                         has721 = true;
                         break;
@@ -857,10 +987,16 @@ library FuzzTestContextLib {
                 }
 
                 if (!has721) {
-                    for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
+                    for (
+                        uint256 j = 0;
+                        j < orderParams.consideration.length;
+                        ++j
+                    ) {
                         if (
-                            orderParams.consideration[j].itemType == ItemType.ERC721 ||
-                            orderParams.consideration[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                            orderParams.consideration[j].itemType ==
+                            ItemType.ERC721 ||
+                            orderParams.consideration[j].itemType ==
+                            ItemType.ERC721_WITH_CRITERIA
                         ) {
                             has721 = true;
                             break;
@@ -868,12 +1004,11 @@ library FuzzTestContextLib {
                     }
                 }
 
-                uint256 upperBound = (
-                    !has721 && (
-                        orderType == OrderType.PARTIAL_OPEN ||
-                        orderType == OrderType.PARTIAL_RESTRICTED
-                    )
-                ) ? 2 : 1;
+                uint256 upperBound = (!has721 &&
+                    (orderType == OrderType.PARTIAL_OPEN ||
+                        orderType == OrderType.PARTIAL_RESTRICTED))
+                    ? 2
+                    : 1;
 
                 context.executionState.preExecOrderStatuses[
                     i
