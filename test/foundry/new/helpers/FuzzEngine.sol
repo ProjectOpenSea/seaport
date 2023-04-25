@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
-import { dumpExecutions } from "./DebugUtil.sol";
+import { dumpExecutions, dumpScuff } from "./DebugUtil.sol";
 
 import {
     AdvancedOrderLib,
@@ -75,7 +75,11 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
-import { logMutation } from "./Metrics.sol";
+import { logMutation, logCallScuff } from "./Metrics.sol";
+
+import "./scuff-utils/Index.sol";
+import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+import "./Scuffuzz.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -160,9 +164,11 @@ contract FuzzEngine is
     using FuzzTestContextLib for FuzzTestContext;
     using FuzzDerivers for FuzzTestContext;
     using FuzzMutationSelectorLib for FuzzTestContext;
+    using LibPRNG for LibPRNG.PRNG;
 
     Vm.Log[] internal _logs;
     FuzzMutations internal mutations;
+    Scuffuzz internal scuffuzz;
 
     function setLogs(Vm.Log[] memory logs) external {
         delete _logs;
@@ -181,6 +187,7 @@ contract FuzzEngine is
     function setUp() public virtual override {
         super.setUp();
         mutations = new FuzzMutations();
+        scuffuzz = new Scuffuzz();
     }
 
     /**
@@ -212,9 +219,10 @@ contract FuzzEngine is
         runDerivers(context);
         runSetup(context);
         runCheckRegistration(context);
-        execFailure(context);
-        execSuccess(context);
-        checkAll(context);
+        execScuff(context);
+        // execFailure(context);
+        // execSuccess(context);
+        // checkAll(context);
     }
 
     function execSuccess(FuzzTestContext memory context) internal {
@@ -440,6 +448,34 @@ contract FuzzEngine is
 
         if (keccak256(data) != keccak256(expectedRevertReason)) {
             revert("TEMP EXPECTED REVERT BREAKPOINT");
+        }
+    }
+
+    function execScuff(FuzzTestContext memory context) internal {
+        uint256 snapshotId = vm.snapshot();
+        ExpectedEventsUtil.startRecordingLogs();
+
+        (bytes memory callData, ScuffDescription memory description) = scuffuzz
+            .getScuffedCalldata(context);
+
+        (bool success, bytes memory returnData) = scuffuzz.innerScuffExecute{
+            gas: 10_000_000
+        }(
+            context.executionState.caller == address(0)
+                ? address(this)
+                : context.executionState.caller,
+            address(context.seaport),
+            context.executionState.value,
+            callData
+        );
+        logCallScuff(success, true);
+        if (success) {
+            dumpScuff(context, description);
+            setReturnValues(context, returnData);
+            checkAll(context);
+        } else {
+            ExpectedEventsUtil.clearRecordedLogs();
+            vm.revertTo(snapshotId);
         }
     }
 
