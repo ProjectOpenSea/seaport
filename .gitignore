@@ -36,9 +36,9 @@ lcov.info
 test/utils/eip712/gen.sol
 .gas_reports/*.md
 
-# fuzz metrics
-metrics.txt
-*-metrics.txt
+# fuzz metrics (do not commit to main)
+# metrics.txt
+# *-metrics.txt
 
 fuzz_debug.json
 fuzz_debug_scuff.json
