@@ -13,7 +13,7 @@ using CancelPointerLibrary for CancelPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// cancel(OrderComponents[])
 library CancelPointerLibrary {
-  enum ScuffKind { orders_head_DirtyBits, orders_head_MaxValue, orders_length_DirtyBits, orders_element_head_DirtyBits, orders_element_head_MaxValue, orders_element_offer_head_DirtyBits, orders_element_offer_head_MaxValue, orders_element_offer_length_DirtyBits, orders_element_consideration_head_DirtyBits, orders_element_consideration_head_MaxValue, orders_element_consideration_length_DirtyBits }
+  enum ScuffKind { orders_head_DirtyBits, orders_head_MaxValue, orders_length_DirtyBits, orders_length_MaxValue, orders_element_head_DirtyBits, orders_element_head_MaxValue, orders_element_offer_head_DirtyBits, orders_element_offer_head_MaxValue, orders_element_offer_length_DirtyBits, orders_element_offer_length_MaxValue, orders_element_offer_element_itemType_MaxValue, orders_element_consideration_head_DirtyBits, orders_element_consideration_head_MaxValue, orders_element_consideration_length_DirtyBits, orders_element_consideration_length_MaxValue, orders_element_consideration_element_itemType_MaxValue, orders_element_orderType_MaxValue }
 
   enum ScuffableField { orders_head, orders }
 
@@ -21,7 +21,7 @@ library CancelPointerLibrary {
   string internal constant FunctionName = "cancel";
   uint256 internal constant HeadSize = 0x20;
   uint256 internal constant MinimumOrdersScuffKind = uint256(ScuffKind.orders_length_DirtyBits);
-  uint256 internal constant MaximumOrdersScuffKind = uint256(ScuffKind.orders_element_consideration_length_DirtyBits);
+  uint256 internal constant MaximumOrdersScuffKind = uint256(ScuffKind.orders_element_orderType_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `CancelPointer`.
   /// This adds `CancelPointerLibrary` functions as members of the pointer
@@ -98,14 +98,20 @@ library CancelPointerLibrary {
     if (k == ScuffKind.orders_head_DirtyBits) return "orders_head_DirtyBits";
     if (k == ScuffKind.orders_head_MaxValue) return "orders_head_MaxValue";
     if (k == ScuffKind.orders_length_DirtyBits) return "orders_length_DirtyBits";
+    if (k == ScuffKind.orders_length_MaxValue) return "orders_length_MaxValue";
     if (k == ScuffKind.orders_element_head_DirtyBits) return "orders_element_head_DirtyBits";
     if (k == ScuffKind.orders_element_head_MaxValue) return "orders_element_head_MaxValue";
     if (k == ScuffKind.orders_element_offer_head_DirtyBits) return "orders_element_offer_head_DirtyBits";
     if (k == ScuffKind.orders_element_offer_head_MaxValue) return "orders_element_offer_head_MaxValue";
     if (k == ScuffKind.orders_element_offer_length_DirtyBits) return "orders_element_offer_length_DirtyBits";
+    if (k == ScuffKind.orders_element_offer_length_MaxValue) return "orders_element_offer_length_MaxValue";
+    if (k == ScuffKind.orders_element_offer_element_itemType_MaxValue) return "orders_element_offer_element_itemType_MaxValue";
     if (k == ScuffKind.orders_element_consideration_head_DirtyBits) return "orders_element_consideration_head_DirtyBits";
     if (k == ScuffKind.orders_element_consideration_head_MaxValue) return "orders_element_consideration_head_MaxValue";
-    return "orders_element_consideration_length_DirtyBits";
+    if (k == ScuffKind.orders_element_consideration_length_DirtyBits) return "orders_element_consideration_length_DirtyBits";
+    if (k == ScuffKind.orders_element_consideration_length_MaxValue) return "orders_element_consideration_length_MaxValue";
+    if (k == ScuffKind.orders_element_consideration_element_itemType_MaxValue) return "orders_element_consideration_element_itemType_MaxValue";
+    return "orders_element_orderType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

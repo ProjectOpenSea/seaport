@@ -11,7 +11,7 @@ using DynArrayAdditionalRecipientPointerLibrary for DynArrayAdditionalRecipientP
 
 /// @dev Library for resolving pointers of encoded AdditionalRecipient[]
 library DynArrayAdditionalRecipientPointerLibrary {
-  enum ScuffKind { length_DirtyBits }
+  enum ScuffKind { length_DirtyBits, length_MaxValue }
 
   enum ScuffableField { length }
 
@@ -63,6 +63,8 @@ library DynArrayAdditionalRecipientPointerLibrary {
   function addScuffDirectives(DynArrayAdditionalRecipientPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
     /// @dev Add dirty upper bits to length
     directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
@@ -77,7 +79,8 @@ library DynArrayAdditionalRecipientPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    return "length_DirtyBits";
+    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
+    return "length_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

@@ -13,7 +13,7 @@ using GetOrderHashPointerLibrary for GetOrderHashPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// getOrderHash(OrderComponents)
 library GetOrderHashPointerLibrary {
-  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_offer_head_DirtyBits, order_offer_head_MaxValue, order_offer_length_DirtyBits, order_consideration_head_DirtyBits, order_consideration_head_MaxValue, order_consideration_length_DirtyBits }
+  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_offer_head_DirtyBits, order_offer_head_MaxValue, order_offer_length_DirtyBits, order_offer_length_MaxValue, order_offer_element_itemType_MaxValue, order_consideration_head_DirtyBits, order_consideration_head_MaxValue, order_consideration_length_DirtyBits, order_consideration_length_MaxValue, order_consideration_element_itemType_MaxValue, order_orderType_MaxValue }
 
   enum ScuffableField { order_head, order }
 
@@ -21,7 +21,7 @@ library GetOrderHashPointerLibrary {
   string internal constant FunctionName = "getOrderHash";
   uint256 internal constant HeadSize = 0x20;
   uint256 internal constant MinimumOrderScuffKind = uint256(ScuffKind.order_offer_head_DirtyBits);
-  uint256 internal constant MaximumOrderScuffKind = uint256(ScuffKind.order_consideration_length_DirtyBits);
+  uint256 internal constant MaximumOrderScuffKind = uint256(ScuffKind.order_orderType_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `GetOrderHashPointer`.
   /// This adds `GetOrderHashPointerLibrary` functions as members of the pointer
@@ -100,9 +100,14 @@ library GetOrderHashPointerLibrary {
     if (k == ScuffKind.order_offer_head_DirtyBits) return "order_offer_head_DirtyBits";
     if (k == ScuffKind.order_offer_head_MaxValue) return "order_offer_head_MaxValue";
     if (k == ScuffKind.order_offer_length_DirtyBits) return "order_offer_length_DirtyBits";
+    if (k == ScuffKind.order_offer_length_MaxValue) return "order_offer_length_MaxValue";
+    if (k == ScuffKind.order_offer_element_itemType_MaxValue) return "order_offer_element_itemType_MaxValue";
     if (k == ScuffKind.order_consideration_head_DirtyBits) return "order_consideration_head_DirtyBits";
     if (k == ScuffKind.order_consideration_head_MaxValue) return "order_consideration_head_MaxValue";
-    return "order_consideration_length_DirtyBits";
+    if (k == ScuffKind.order_consideration_length_DirtyBits) return "order_consideration_length_DirtyBits";
+    if (k == ScuffKind.order_consideration_length_MaxValue) return "order_consideration_length_MaxValue";
+    if (k == ScuffKind.order_consideration_element_itemType_MaxValue) return "order_consideration_element_itemType_MaxValue";
+    return "order_orderType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

@@ -18,6 +18,10 @@ using ConsiderationItemPointerLibrary for ConsiderationItemPointer global;
 ///   address recipient;
 /// }
 library ConsiderationItemPointerLibrary {
+  enum ScuffKind { itemType_MaxValue }
+
+  enum ScuffableField { itemType }
+
   uint256 internal constant tokenOffset = 0x20;
   uint256 internal constant identifierOrCriteriaOffset = 0x40;
   uint256 internal constant startAmountOffset = 0x60;
@@ -69,5 +73,29 @@ library ConsiderationItemPointerLibrary {
   /// This points to the beginning of the encoded `address`
   function recipient(ConsiderationItemPointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap().offset(recipientOffset);
+  }
+
+  function addScuffDirectives(ConsiderationItemPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
+    /// @dev Set every bit in `itemType` to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.itemType_MaxValue) + kindOffset, 253, ptr.itemType(), positions));
+  }
+
+  function getScuffDirectives(ConsiderationItemPointer ptr) internal pure returns (ScuffDirective[] memory) {
+    ScuffDirectivesArray directives = Scuff.makeUnallocatedArray();
+    ScuffPositions positions = EmptyPositions;
+    addScuffDirectives(ptr, directives, 0, positions);
+    return directives.finalize();
+  }
+
+  function toString(ScuffKind k) internal pure returns (string memory) {
+    return "itemType_MaxValue";
+  }
+
+  function toKind(uint256 k) internal pure returns (ScuffKind) {
+    return ScuffKind(k);
+  }
+
+  function toKindString(uint256 k) internal pure returns (string memory) {
+    return toString(toKind(k));
   }
 }

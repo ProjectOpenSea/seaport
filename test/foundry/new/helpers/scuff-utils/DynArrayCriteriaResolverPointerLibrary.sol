@@ -11,13 +11,13 @@ using DynArrayCriteriaResolverPointerLibrary for DynArrayCriteriaResolverPointer
 
 /// @dev Library for resolving pointers of encoded CriteriaResolver[]
 library DynArrayCriteriaResolverPointerLibrary {
-  enum ScuffKind { length_DirtyBits, element_head_DirtyBits, element_head_MaxValue, element_criteriaProof_head_DirtyBits, element_criteriaProof_head_MaxValue, element_criteriaProof_length_DirtyBits }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_criteriaProof_head_DirtyBits, element_criteriaProof_head_MaxValue, element_criteriaProof_length_DirtyBits, element_criteriaProof_length_MaxValue }
 
   enum ScuffableField { length, element_head, element }
 
   uint256 internal constant CalldataStride = 0x20;
   uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_criteriaProof_head_DirtyBits);
-  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_criteriaProof_length_DirtyBits);
+  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_criteriaProof_length_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayCriteriaResolverPointer`.
   /// This adds `DynArrayCriteriaResolverPointerLibrary` functions as members of the pointer
@@ -81,6 +81,8 @@ library DynArrayCriteriaResolverPointerLibrary {
   function addScuffDirectives(DynArrayCriteriaResolverPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
     /// @dev Add dirty upper bits to length
     directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
@@ -102,11 +104,13 @@ library DynArrayCriteriaResolverPointerLibrary {
 
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
+    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
     if (k == ScuffKind.element_head_DirtyBits) return "element_head_DirtyBits";
     if (k == ScuffKind.element_head_MaxValue) return "element_head_MaxValue";
     if (k == ScuffKind.element_criteriaProof_head_DirtyBits) return "element_criteriaProof_head_DirtyBits";
     if (k == ScuffKind.element_criteriaProof_head_MaxValue) return "element_criteriaProof_head_MaxValue";
-    return "element_criteriaProof_length_DirtyBits";
+    if (k == ScuffKind.element_criteriaProof_length_DirtyBits) return "element_criteriaProof_length_DirtyBits";
+    return "element_criteriaProof_length_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

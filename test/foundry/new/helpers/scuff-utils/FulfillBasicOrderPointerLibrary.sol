@@ -13,7 +13,7 @@ using FulfillBasicOrderPointerLibrary for FulfillBasicOrderPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// fulfillBasicOrder(BasicOrderParameters)
 library FulfillBasicOrderPointerLibrary {
-  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_additionalRecipients_head_DirtyBits, parameters_additionalRecipients_head_MaxValue, parameters_additionalRecipients_length_DirtyBits, parameters_signature_head_DirtyBits, parameters_signature_head_MaxValue, parameters_signature_length_DirtyBits, parameters_signature_DirtyLowerBits }
+  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_additionalRecipients_head_DirtyBits, parameters_additionalRecipients_head_MaxValue, parameters_additionalRecipients_length_DirtyBits, parameters_additionalRecipients_length_MaxValue, parameters_signature_head_DirtyBits, parameters_signature_head_MaxValue, parameters_signature_length_DirtyBits, parameters_signature_length_MaxValue, parameters_signature_DirtyLowerBits }
 
   enum ScuffableField { parameters_head, parameters }
 
@@ -100,9 +100,11 @@ library FulfillBasicOrderPointerLibrary {
     if (k == ScuffKind.parameters_additionalRecipients_head_DirtyBits) return "parameters_additionalRecipients_head_DirtyBits";
     if (k == ScuffKind.parameters_additionalRecipients_head_MaxValue) return "parameters_additionalRecipients_head_MaxValue";
     if (k == ScuffKind.parameters_additionalRecipients_length_DirtyBits) return "parameters_additionalRecipients_length_DirtyBits";
+    if (k == ScuffKind.parameters_additionalRecipients_length_MaxValue) return "parameters_additionalRecipients_length_MaxValue";
     if (k == ScuffKind.parameters_signature_head_DirtyBits) return "parameters_signature_head_DirtyBits";
     if (k == ScuffKind.parameters_signature_head_MaxValue) return "parameters_signature_head_MaxValue";
     if (k == ScuffKind.parameters_signature_length_DirtyBits) return "parameters_signature_length_DirtyBits";
+    if (k == ScuffKind.parameters_signature_length_MaxValue) return "parameters_signature_length_MaxValue";
     return "parameters_signature_DirtyLowerBits";
   }
 

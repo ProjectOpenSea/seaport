@@ -11,11 +11,13 @@ using DynArrayConsiderationItemPointerLibrary for DynArrayConsiderationItemPoint
 
 /// @dev Library for resolving pointers of encoded ConsiderationItem[]
 library DynArrayConsiderationItemPointerLibrary {
-  enum ScuffKind { length_DirtyBits }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_itemType_MaxValue }
 
-  enum ScuffableField { length }
+  enum ScuffableField { length, element }
 
   uint256 internal constant CalldataStride = 0xc0;
+  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_itemType_MaxValue);
+  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_itemType_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayConsiderationItemPointer`.
   /// This adds `DynArrayConsiderationItemPointerLibrary` functions as members of the pointer
@@ -63,9 +65,13 @@ library DynArrayConsiderationItemPointerLibrary {
   function addScuffDirectives(DynArrayConsiderationItemPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
     /// @dev Add dirty upper bits to length
     directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
+      /// @dev Add all nested directives in element
+      ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
     }
   }
 
@@ -77,7 +83,9 @@ library DynArrayConsiderationItemPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    return "length_DirtyBits";
+    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
+    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
+    return "element_itemType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

@@ -15,16 +15,16 @@ using FulfillmentPointerLibrary for FulfillmentPointer global;
 ///   FulfillmentComponent[] considerationComponents;
 /// }
 library FulfillmentPointerLibrary {
-  enum ScuffKind { offerComponents_head_DirtyBits, offerComponents_head_MaxValue, offerComponents_length_DirtyBits, considerationComponents_head_DirtyBits, considerationComponents_head_MaxValue, considerationComponents_length_DirtyBits }
+  enum ScuffKind { offerComponents_head_DirtyBits, offerComponents_head_MaxValue, offerComponents_length_DirtyBits, offerComponents_length_MaxValue, considerationComponents_head_DirtyBits, considerationComponents_head_MaxValue, considerationComponents_length_DirtyBits, considerationComponents_length_MaxValue }
 
   enum ScuffableField { offerComponents_head, offerComponents, considerationComponents_head, considerationComponents }
 
   uint256 internal constant considerationComponentsOffset = 0x20;
   uint256 internal constant HeadSize = 0x40;
   uint256 internal constant MinimumOfferComponentsScuffKind = uint256(ScuffKind.offerComponents_length_DirtyBits);
-  uint256 internal constant MaximumOfferComponentsScuffKind = uint256(ScuffKind.offerComponents_length_DirtyBits);
+  uint256 internal constant MaximumOfferComponentsScuffKind = uint256(ScuffKind.offerComponents_length_MaxValue);
   uint256 internal constant MinimumConsiderationComponentsScuffKind = uint256(ScuffKind.considerationComponents_length_DirtyBits);
-  uint256 internal constant MaximumConsiderationComponentsScuffKind = uint256(ScuffKind.considerationComponents_length_DirtyBits);
+  uint256 internal constant MaximumConsiderationComponentsScuffKind = uint256(ScuffKind.considerationComponents_length_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `FulfillmentPointer`.
   /// This adds `FulfillmentPointerLibrary` functions as members of the pointer
@@ -91,9 +91,11 @@ library FulfillmentPointerLibrary {
     if (k == ScuffKind.offerComponents_head_DirtyBits) return "offerComponents_head_DirtyBits";
     if (k == ScuffKind.offerComponents_head_MaxValue) return "offerComponents_head_MaxValue";
     if (k == ScuffKind.offerComponents_length_DirtyBits) return "offerComponents_length_DirtyBits";
+    if (k == ScuffKind.offerComponents_length_MaxValue) return "offerComponents_length_MaxValue";
     if (k == ScuffKind.considerationComponents_head_DirtyBits) return "considerationComponents_head_DirtyBits";
     if (k == ScuffKind.considerationComponents_head_MaxValue) return "considerationComponents_head_MaxValue";
-    return "considerationComponents_length_DirtyBits";
+    if (k == ScuffKind.considerationComponents_length_DirtyBits) return "considerationComponents_length_DirtyBits";
+    return "considerationComponents_length_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

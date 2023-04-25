@@ -25,9 +25,9 @@ using OrderComponentsPointerLibrary for OrderComponentsPointer global;
 ///   uint256 counter;
 /// }
 library OrderComponentsPointerLibrary {
-  enum ScuffKind { offer_head_DirtyBits, offer_head_MaxValue, offer_length_DirtyBits, consideration_head_DirtyBits, consideration_head_MaxValue, consideration_length_DirtyBits }
+  enum ScuffKind { offer_head_DirtyBits, offer_head_MaxValue, offer_length_DirtyBits, offer_length_MaxValue, offer_element_itemType_MaxValue, consideration_head_DirtyBits, consideration_head_MaxValue, consideration_length_DirtyBits, consideration_length_MaxValue, consideration_element_itemType_MaxValue, orderType_MaxValue }
 
-  enum ScuffableField { offer_head, offer, consideration_head, consideration }
+  enum ScuffableField { offer_head, offer, consideration_head, consideration, orderType }
 
   uint256 internal constant zoneOffset = 0x20;
   uint256 internal constant offerOffset = 0x40;
@@ -41,9 +41,9 @@ library OrderComponentsPointerLibrary {
   uint256 internal constant counterOffset = 0x0140;
   uint256 internal constant HeadSize = 0x0160;
   uint256 internal constant MinimumOfferScuffKind = uint256(ScuffKind.offer_length_DirtyBits);
-  uint256 internal constant MaximumOfferScuffKind = uint256(ScuffKind.offer_length_DirtyBits);
+  uint256 internal constant MaximumOfferScuffKind = uint256(ScuffKind.offer_element_itemType_MaxValue);
   uint256 internal constant MinimumConsiderationScuffKind = uint256(ScuffKind.consideration_length_DirtyBits);
-  uint256 internal constant MaximumConsiderationScuffKind = uint256(ScuffKind.consideration_length_DirtyBits);
+  uint256 internal constant MaximumConsiderationScuffKind = uint256(ScuffKind.consideration_element_itemType_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `OrderComponentsPointer`.
   /// This adds `OrderComponentsPointerLibrary` functions as members of the pointer
@@ -151,6 +151,8 @@ library OrderComponentsPointerLibrary {
     directives.push(Scuff.lower(uint256(ScuffKind.consideration_head_MaxValue) + kindOffset, 229, ptr.considerationHead(), positions));
     /// @dev Add all nested directives in consideration
     ptr.considerationData().addScuffDirectives(directives, kindOffset + MinimumConsiderationScuffKind, positions);
+    /// @dev Set every bit in `orderType` to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.orderType_MaxValue) + kindOffset, 253, ptr.orderType(), positions));
   }
 
   function getScuffDirectives(OrderComponentsPointer ptr) internal pure returns (ScuffDirective[] memory) {
@@ -164,9 +166,14 @@ library OrderComponentsPointerLibrary {
     if (k == ScuffKind.offer_head_DirtyBits) return "offer_head_DirtyBits";
     if (k == ScuffKind.offer_head_MaxValue) return "offer_head_MaxValue";
     if (k == ScuffKind.offer_length_DirtyBits) return "offer_length_DirtyBits";
+    if (k == ScuffKind.offer_length_MaxValue) return "offer_length_MaxValue";
+    if (k == ScuffKind.offer_element_itemType_MaxValue) return "offer_element_itemType_MaxValue";
     if (k == ScuffKind.consideration_head_DirtyBits) return "consideration_head_DirtyBits";
     if (k == ScuffKind.consideration_head_MaxValue) return "consideration_head_MaxValue";
-    return "consideration_length_DirtyBits";
+    if (k == ScuffKind.consideration_length_DirtyBits) return "consideration_length_DirtyBits";
+    if (k == ScuffKind.consideration_length_MaxValue) return "consideration_length_MaxValue";
+    if (k == ScuffKind.consideration_element_itemType_MaxValue) return "consideration_element_itemType_MaxValue";
+    return "orderType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

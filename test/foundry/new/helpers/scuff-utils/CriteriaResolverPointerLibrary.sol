@@ -18,7 +18,7 @@ using CriteriaResolverPointerLibrary for CriteriaResolverPointer global;
 ///   bytes32[] criteriaProof;
 /// }
 library CriteriaResolverPointerLibrary {
-  enum ScuffKind { criteriaProof_head_DirtyBits, criteriaProof_head_MaxValue, criteriaProof_length_DirtyBits }
+  enum ScuffKind { criteriaProof_head_DirtyBits, criteriaProof_head_MaxValue, criteriaProof_length_DirtyBits, criteriaProof_length_MaxValue }
 
   enum ScuffableField { criteriaProof_head, criteriaProof }
 
@@ -28,7 +28,7 @@ library CriteriaResolverPointerLibrary {
   uint256 internal constant criteriaProofOffset = 0x80;
   uint256 internal constant HeadSize = 0xa0;
   uint256 internal constant MinimumCriteriaProofScuffKind = uint256(ScuffKind.criteriaProof_length_DirtyBits);
-  uint256 internal constant MaximumCriteriaProofScuffKind = uint256(ScuffKind.criteriaProof_length_DirtyBits);
+  uint256 internal constant MaximumCriteriaProofScuffKind = uint256(ScuffKind.criteriaProof_length_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `CriteriaResolverPointer`.
   /// This adds `CriteriaResolverPointerLibrary` functions as members of the pointer
@@ -101,7 +101,8 @@ library CriteriaResolverPointerLibrary {
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.criteriaProof_head_DirtyBits) return "criteriaProof_head_DirtyBits";
     if (k == ScuffKind.criteriaProof_head_MaxValue) return "criteriaProof_head_MaxValue";
-    return "criteriaProof_length_DirtyBits";
+    if (k == ScuffKind.criteriaProof_length_DirtyBits) return "criteriaProof_length_DirtyBits";
+    return "criteriaProof_length_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

@@ -104,12 +104,6 @@ library Scuff {
     }
   }
 
-  function getPositions(ScuffDirective directive) internal pure returns (ScuffPositions positions) {
-    assembly {
-      positions := and(directive, Positions_InclusionMask)
-    }
-  }
-
   function decode(ScuffDirective directive) internal pure returns (uint256 kind, ScuffSide side, uint256 bitOffset, ScuffPositions positions, MemoryPointer pointer) {
     assembly {
       kind := byte(Kind_Byte, directive)
@@ -179,6 +173,12 @@ library Scuff {
   /// @dev Add dirty bits to the value stored at `mPtr` between bits `offset` and 255
   function addDirtyBitsAfter(MemoryPointer mPtr, uint256 offset) internal pure {
     mPtr.write(mPtr.readUint256() | getMask(ScuffSide.DirtyLowerBits, offset));
+  }
+
+  function getPositions(ScuffDirective directive) internal pure returns (ScuffPositions positions) {
+    assembly {
+      positions := and(directive, Positions_InclusionMask)
+    }
   }
 }
 

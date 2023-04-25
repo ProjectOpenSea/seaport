@@ -32,7 +32,7 @@ using BasicOrderParametersPointerLibrary for BasicOrderParametersPointer global;
 ///   bytes signature;
 /// }
 library BasicOrderParametersPointerLibrary {
-  enum ScuffKind { additionalRecipients_head_DirtyBits, additionalRecipients_head_MaxValue, additionalRecipients_length_DirtyBits, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_DirtyLowerBits }
+  enum ScuffKind { additionalRecipients_head_DirtyBits, additionalRecipients_head_MaxValue, additionalRecipients_length_DirtyBits, additionalRecipients_length_MaxValue, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_length_MaxValue, signature_DirtyLowerBits }
 
   enum ScuffableField { additionalRecipients_head, additionalRecipients, signature_head, signature }
 
@@ -55,7 +55,7 @@ library BasicOrderParametersPointerLibrary {
   uint256 internal constant signatureOffset = 0x0220;
   uint256 internal constant HeadSize = 0x0240;
   uint256 internal constant MinimumAdditionalRecipientsScuffKind = uint256(ScuffKind.additionalRecipients_length_DirtyBits);
-  uint256 internal constant MaximumAdditionalRecipientsScuffKind = uint256(ScuffKind.additionalRecipients_length_DirtyBits);
+  uint256 internal constant MaximumAdditionalRecipientsScuffKind = uint256(ScuffKind.additionalRecipients_length_MaxValue);
   uint256 internal constant MinimumSignatureScuffKind = uint256(ScuffKind.signature_length_DirtyBits);
   uint256 internal constant MaximumSignatureScuffKind = uint256(ScuffKind.signature_DirtyLowerBits);
 
@@ -220,9 +220,11 @@ library BasicOrderParametersPointerLibrary {
     if (k == ScuffKind.additionalRecipients_head_DirtyBits) return "additionalRecipients_head_DirtyBits";
     if (k == ScuffKind.additionalRecipients_head_MaxValue) return "additionalRecipients_head_MaxValue";
     if (k == ScuffKind.additionalRecipients_length_DirtyBits) return "additionalRecipients_length_DirtyBits";
+    if (k == ScuffKind.additionalRecipients_length_MaxValue) return "additionalRecipients_length_MaxValue";
     if (k == ScuffKind.signature_head_DirtyBits) return "signature_head_DirtyBits";
     if (k == ScuffKind.signature_head_MaxValue) return "signature_head_MaxValue";
     if (k == ScuffKind.signature_length_DirtyBits) return "signature_length_DirtyBits";
+    if (k == ScuffKind.signature_length_MaxValue) return "signature_length_MaxValue";
     return "signature_DirtyLowerBits";
   }
 

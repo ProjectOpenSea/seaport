@@ -10,7 +10,7 @@ using DynArrayBytes32PointerLibrary for DynArrayBytes32Pointer global;
 
 /// @dev Library for resolving pointers of encoded bytes32[]
 library DynArrayBytes32PointerLibrary {
-  enum ScuffKind { length_DirtyBits }
+  enum ScuffKind { length_DirtyBits, length_MaxValue }
 
   enum ScuffableField { length }
 
@@ -57,6 +57,8 @@ library DynArrayBytes32PointerLibrary {
   function addScuffDirectives(DynArrayBytes32Pointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
     /// @dev Add dirty upper bits to length
     directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
+    /// @dev Set every bit in length to 1
+    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
   }
 
   function getScuffDirectives(DynArrayBytes32Pointer ptr) internal pure returns (ScuffDirective[] memory) {
@@ -67,7 +69,8 @@ library DynArrayBytes32PointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    return "length_DirtyBits";
+    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
+    return "length_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

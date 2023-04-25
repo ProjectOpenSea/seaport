@@ -102,7 +102,7 @@
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
-    "posttest:fuzz": "yarn sort-output; echo \"sorted output\"",
+    "posttest:fuzz": "yarn sort-output; echo \"sorted output\"; cp ./scuff-method-metrics.txt ./call-metrics.txt; touch ./mutation-metrics.txt;",
     "test:fuzz:collect": "SEAPORT_COLLECT_FUZZ_METRICS=true yarn test:fuzz --allow-failure",
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "posttest:fuzz:concrete": "yarn sort-output",
