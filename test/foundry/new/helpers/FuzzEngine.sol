@@ -75,7 +75,7 @@ import { CheckHelpers, FuzzSetup } from "./FuzzSetup.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
-import { logMutation, logCallScuff } from "./Metrics.sol";
+import { logMutation, logScuff } from "./Metrics.sol";
 
 import "./scuff-utils/Index.sol";
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
@@ -459,16 +459,14 @@ contract FuzzEngine is
             .getScuffedCalldata(context);
 
         (bool success, bytes memory returnData) = scuffuzz.innerScuffExecute{
-            gas: 10_000_000
+            gas: 20_000_000
         }(
-            context.executionState.caller == address(0)
-                ? address(this)
-                : context.executionState.caller,
+            context.executionState.caller,
             address(context.seaport),
             context.executionState.value,
             callData
         );
-        logCallScuff(success, true);
+        logScuff(success, description.functionName, description.kind, returnData, true);
         if (success) {
             dumpScuff(context, description);
             setReturnValues(context, returnData);

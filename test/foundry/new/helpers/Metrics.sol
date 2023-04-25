@@ -2,6 +2,9 @@
 pragma solidity ^0.8.17;
 
 import { vm } from "./VmUtils.sol";
+import { LibString } from "solady/src/utils/LibString.sol";
+
+using LibString for uint256;
 
 function logCall(string memory name) {
     logCall(name, true);
@@ -10,8 +13,29 @@ function logCall(string memory name) {
 function logCall(string memory name, bool enabled) {
     logCounter("call", name, enabled);
 }
-function logCallScuff(bool pass, bool enabled) {
-  logCounter("scuff", pass ? "pass" : "revert", enabled);
+
+function logScuff(
+    bool pass,
+    string memory functionName,
+    string memory kind,
+    bytes memory returnData,
+    bool enabled
+) {
+    logCounter("scuff-result", pass ? "pass" : "revert", enabled);
+    logCounter("scuff-method", functionName, enabled);
+    logCounter("scuff-kind", kind, enabled);
+    if (!pass) {
+        uint256 errorSelector;
+        if (returnData.length >= 4) {
+            assembly {
+                errorSelector := and(
+                  mload(add(returnData, 0x04)),
+                  0xffffffff
+                )
+            }
+        }
+        logCounter("scuff-error", errorSelector.toHexString(), enabled);
+    }
 }
 
 function logMutation(string memory name) {
