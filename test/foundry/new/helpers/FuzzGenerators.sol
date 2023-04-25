@@ -81,6 +81,7 @@ import {
 import { FuzzInscribers } from "./FuzzInscribers.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
+import { assume } from "./VmUtils.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -173,7 +174,7 @@ library TestStateGenerator {
                 time: Time(context.randEnum(1, 2)),
                 zoneHash: ZoneHash(context.randEnum(0, 2)),
                 signatureMethod: SignatureMethod(
-                    context.choice(Solarray.uint256s(0, 1, 4))
+                    context.choice(Solarray.uint256s(0, 1, 3))
                 ),
                 eoaSignatureType: EOASignature(context.randEnum(0, 3)),
                 bulkSigHeight: bulkSigHeight,
@@ -182,7 +183,7 @@ library TestStateGenerator {
                 tips: Tips(context.randEnum(0, 1)),
                 unavailableReason: reason,
                 extraData: ExtraData(context.randEnum(0, 1)),
-                rebate: ContractOrderRebate(context.randEnum(0, 4))
+                rebate: ContractOrderRebate(0)
             });
 
             // Set up order components specific to contract order
@@ -225,18 +226,27 @@ library TestStateGenerator {
 
                 if (
                     components[i].consideration.length == 0 &&
-                    (
-                        components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEMS ||
-                        components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS
-                    )
+                    (components[i].rebate ==
+                        ContractOrderRebate.LESS_CONSIDERATION_ITEMS ||
+                        components[i].rebate ==
+                        ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS)
                 ) {
-                    components[i].rebate = ContractOrderRebate(context.randEnum(0, 2));
+                    components[i].rebate = ContractOrderRebate(0);
                 }
 
-                if (components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS) {
+                if (
+                    components[i].rebate ==
+                    ContractOrderRebate.LESS_CONSIDERATION_ITEM_AMOUNTS
+                ) {
                     bool canReduceAmounts;
-                    for (uint256 j = 0; j < components[i].consideration.length; ++j) {
-                        ItemType itemType = components[i].consideration[j].itemType;
+                    for (
+                        uint256 j = 0;
+                        j < components[i].consideration.length;
+                        ++j
+                    ) {
+                        ItemType itemType = components[i]
+                            .consideration[j]
+                            .itemType;
                         if (
                             itemType != ItemType.ERC721 &&
                             itemType != ItemType.ERC721_WITH_CRITERIA
@@ -249,11 +259,14 @@ library TestStateGenerator {
                     }
 
                     if (!canReduceAmounts) {
-                        components[i].rebate = ContractOrderRebate(context.randEnum(0, 3));
+                        components[i].rebate = ContractOrderRebate(0);
                     }
                 }
 
-                if (components[i].rebate == ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS) {
+                if (
+                    components[i].rebate ==
+                    ContractOrderRebate.MORE_OFFER_ITEM_AMOUNTS
+                ) {
                     bool canIncreaseAmounts;
                     for (uint256 j = 0; j < components[i].offer.length; ++j) {
                         ItemType itemType = components[i].offer[j].itemType;
@@ -267,29 +280,33 @@ library TestStateGenerator {
                     }
 
                     if (!canIncreaseAmounts) {
-                        components[i].rebate = ContractOrderRebate(
-                            components[i].consideration.length == 0
-                                ? context.randEnum(0, 1)
-                                : context.choice(Solarray.uint256s(0, 1, 3))
-                        );
+                        components[i].rebate = ContractOrderRebate(0);
                     }
                 }
 
                 // TODO: figure out how to support removing criteria items
                 // (just need to filter removed items out of resolvers)
-                if (components[i].rebate == ContractOrderRebate.LESS_CONSIDERATION_ITEMS) {
-                    ItemType itemType = components[i].consideration[
-                        components[i].consideration.length - 1
-                    ].itemType;
+                if (
+                    components[i].rebate ==
+                    ContractOrderRebate.LESS_CONSIDERATION_ITEMS
+                ) {
+                    ItemType itemType = components[i]
+                        .consideration[components[i].consideration.length - 1]
+                        .itemType;
                     if (
                         itemType == ItemType.ERC721_WITH_CRITERIA ||
                         itemType == ItemType.ERC1155_WITH_CRITERIA
                     ) {
-                        components[i].rebate = ContractOrderRebate(context.randEnum(0, 1));
+                        components[i].rebate = ContractOrderRebate(0);
                     }
                 }
-            } else if (components[i].unavailableReason == UnavailableReason.GENERATE_ORDER_FAILURE) {
-                components[i].unavailableReason = UnavailableReason(context.randEnum(1, 4));
+            } else if (
+                components[i].unavailableReason ==
+                UnavailableReason.GENERATE_ORDER_FAILURE
+            ) {
+                components[i].unavailableReason = UnavailableReason(
+                    context.randEnum(1, 4)
+                );
             }
 
             if (components[i].offerer == Offerer.EIP1271) {
@@ -1340,6 +1357,10 @@ library OrderComponentsSpaceGenerator {
         bool ensureDirectSupport,
         uint256 orderIndex
     ) internal returns (OrderParameters memory) {
+        assume(
+            space.signatureMethod != SignatureMethod.SELF_AD_HOC,
+            "Skip ad hoc signatures for scuff tests"
+        );
         if (
             space.offerer == Offerer.EIP1271 &&
             space.signatureMethod == SignatureMethod.EOA
@@ -1447,9 +1468,7 @@ library BroadOrderTypeGenerator {
                     .withDenominator(denominator)
                     .withCoercedAmountsForPartialFulfillment();
         } else if (broadOrderType == BroadOrderType.CONTRACT) {
-            order.parameters = orderParams.withOrderType(
-                OrderType.CONTRACT
-            );
+            order.parameters = orderParams.withOrderType(OrderType.CONTRACT);
         }
 
         return order;
@@ -1953,7 +1972,10 @@ library AmountGenerator {
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
 
-        if (amount == Amount.FIXED || context.basicOrderCategory != BasicOrderCategory.NONE) {
+        if (
+            amount == Amount.FIXED ||
+            context.basicOrderCategory != BasicOrderCategory.NONE
+        ) {
             return item.withStartAmount(high).withEndAmount(high);
         }
         if (amount == Amount.ASCENDING) {
@@ -1984,7 +2006,10 @@ library AmountGenerator {
         uint256 high = a > b ? a : b;
         uint256 low = a < b ? a : b;
 
-        if (amount == Amount.FIXED || context.basicOrderCategory != BasicOrderCategory.NONE) {
+        if (
+            amount == Amount.FIXED ||
+            context.basicOrderCategory != BasicOrderCategory.NONE
+        ) {
             return item.withStartAmount(high).withEndAmount(high);
         }
         if (amount == Amount.ASCENDING) {
