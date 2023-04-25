@@ -29,7 +29,10 @@ import { Result } from "./FuzzHelpers.sol";
 import {
     FuzzParams,
     FuzzTestContext,
-    ReturnValues
+    ReturnValues,
+    FailureKind,
+    FailedCheck,
+    failureKindString
 } from "./FuzzTestContextLib.sol";
 
 import {
@@ -38,11 +41,22 @@ import {
     ERC20TokenDump,
     ERC721TokenDump,
     ExpectedBalancesDump,
-    NativeAccountDump
+    AccountBalanceDump
 } from "./ExpectedBalances.sol";
 
 import { withLabel } from "./Labeler.sol";
 import { ScuffDescription } from "./scuff-utils/Index.sol";
+import { LibString } from "solady/src/utils/LibString.sol";
+
+using LibString for uint256;
+using LibString for int256;
+
+struct FuzzSeedInput {
+    bytes32 seed;
+    bytes32 orders;
+    bytes32 maxOfferItemsPerOrder;
+    bytes32 maxConsiderationItemsPerOrder;
+}
 
 library Searializer {
     function tojsonBytes32(
@@ -86,6 +100,24 @@ library Searializer {
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
+    function tojsonFuzzSeedInput(
+        string memory objectKey,
+        string memory valueKey,
+        bytes memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        FuzzSeedInput memory seed = abi.decode(value, (FuzzSeedInput));
+        tojsonBytes32(obj, "seed", seed.seed);
+        tojsonBytes32(obj, "orders", seed.orders);
+        tojsonBytes32(obj, "maxOfferItemsPerOrder", seed.maxOfferItemsPerOrder);
+        string memory finalJson = tojsonBytes32(
+            obj,
+            "maxConsiderationItemsPerOrder",
+            seed.maxConsiderationItemsPerOrder
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
     function tojsonItemType(
         string memory objectKey,
         string memory valueKey,
@@ -119,6 +151,40 @@ library Searializer {
             value.endAmount
         );
         return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonFailedCheck(
+        string memory objectKey,
+        string memory valueKey,
+        FailedCheck memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        string memory jsonOut = vm.serializeString(
+            obj,
+            "kind",
+            failureKindString(value.kind)
+        );
+        jsonOut = vm.serializeString(obj, "check", value.check);
+        string memory finalJson = vm.serializeString(
+            obj,
+            "reason",
+            value.message
+        );
+        return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayFailedCheck(
+        string memory objectKey,
+        string memory valueKey,
+        FailedCheck[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            out = tojsonFailedCheck(obj, vm.toString(i), value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
     }
 
     function tojsonDynArrayOfferItem(
@@ -537,23 +603,15 @@ library Searializer {
         ScuffDescription memory value
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
-        
+
         string memory jsonOut = tojsonBytes32(
             obj,
             "pointer",
             bytes32(value.pointer)
         );
-        jsonOut = tojsonBytes32(
-            obj,
-            "originalValue",
-            value.originalValue
-        );
+        jsonOut = tojsonBytes32(obj, "originalValue", value.originalValue);
         jsonOut = tojsonBytes32(obj, "scuffedValue", value.scuffedValue);
-        jsonOut = tojsonDynArrayUint256(
-            obj,
-            "positions",
-            value.positions
-        );
+        jsonOut = tojsonDynArrayUint256(obj, "positions", value.positions);
         jsonOut = vm.serializeString(obj, "side", value.side);
         jsonOut = tojsonUint256(obj, "bitOffset", value.bitOffset);
         jsonOut = vm.serializeString(obj, "kind", value.kind);
@@ -821,27 +879,34 @@ library Searializer {
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
-    function tojsonNativeAccountDump(
+    function tojsonAccountBalanceDump(
         string memory objectKey,
         string memory valueKey,
-        NativeAccountDump memory value
+        AccountBalanceDump memory value
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonAddress(obj, "account", value.account);
-        string memory finalJson = tojsonUint256(obj, "balance", value.balance);
+        vm.serializeString(obj, "expected", value.expected.toString());
+        vm.serializeString(obj, "original", value.original.toString());
+        vm.serializeString(obj, "expectedDiff", value.expectedDiff.toString());
+        string memory finalJson = vm.serializeString(
+            obj,
+            "realDiff",
+            value.realDiff.toString()
+        );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
-    function tojsonDynArrayNativeAccountDump(
+    function tojsonDynArrayAccountBalanceDump(
         string memory objectKey,
         string memory valueKey,
-        NativeAccountDump[] memory value
+        AccountBalanceDump[] memory value
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         uint256 length = value.length;
         string memory out;
         for (uint256 i; i < length; i++) {
-            out = tojsonNativeAccountDump(obj, vm.toString(i), value[i]);
+            out = tojsonAccountBalanceDump(obj, vm.toString(i), value[i]);
         }
         return vm.serializeString(objectKey, valueKey, out);
     }
@@ -869,11 +934,10 @@ library Searializer {
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonAddress(obj, "token", value.token);
-        tojsonDynArrayAddress(obj, "accounts", value.accounts);
-        string memory finalJson = tojsonDynArrayUint256(
+        string memory finalJson = tojsonDynArrayAccountBalanceDump(
             obj,
-            "balances",
-            value.balances
+            "accounts",
+            value.accounts
         );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }

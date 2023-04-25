@@ -18,6 +18,9 @@ import { ForgeEventsLib } from "./event-utils/ForgeEventsLib.sol";
 
 import { TransferEventsLib } from "./event-utils/TransferEventsLib.sol";
 import { ScuffDescription } from "./scuff-utils/Index.sol";
+import { LibString } from "solady/src/utils/LibString.sol";
+
+using LibString for uint256;
 
 struct ContextOutputSelection {
     bool seaport;
@@ -64,6 +67,52 @@ using ForgeEventsLib for Vm.Log[];
 using TransferEventsLib for Execution[];
 using FuzzEngineLib for FuzzTestContext;
 using ExecutionFilterCast for Execution[];
+
+function getFailureCount() returns (uint256) {
+    string memory metaFile = vm.readFile("./.debug/.count");
+    if (bytes(metaFile).length == 0) {
+        return 0;
+    }
+    return vm.parseUint(metaFile);
+}
+
+function nextFailureOutput() returns (string memory) {
+    uint256 count = getFailureCount();
+    vm.writeFile("./.debug/.count", (count + 1).toString());
+    return string.concat("./.debug/failure-", count.toString(), ".json");
+}
+
+// contract Adder {
+//     function addNativeExpectedBalances(
+//         FuzzTestContext memory context
+//     ) external returns (string memory jsonOut) {
+//         jsonOut = Searializer.tojsonDynArrayAccountBalanceDump(
+//             "root",
+//             "nativeExpectedBalances",
+//             context.testHelpers.balanceChecker().dumpNativeBalances()
+//         );
+//     }
+
+//     function addERC20ExpectedBalances(
+//         FuzzTestContext memory context
+//     ) external returns (string memory jsonOut) {
+//         jsonOut = Searializer.tojsonDynArrayERC20TokenDump(
+//             "root",
+//             "erc20ExpectedBalances",
+//             context.testHelpers.balanceChecker().dumpERC20Balances()
+//         );
+//     }
+
+//     function addERC721ExpectedBalances(
+//         FuzzTestContext memory context
+//     ) external returns (string memory jsonOut) {
+//         jsonOut = Searializer.tojsonDynArrayERC721TokenDump(
+//             "root",
+//             "erc721ExpectedBalances",
+//             context.testHelpers.balanceChecker().dumpERC721Balances()
+//         );
+//     }
+// }
 
 function dumpContext(
     FuzzTestContext memory context,
@@ -310,22 +359,58 @@ function dumpContext(
         );
     } */
 
-    ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
     if (outputSelection.nativeExpectedBalances) {
-        jsonOut = Searializer.tojsonDynArrayNativeAccountDump(
+        jsonOut = Searializer.tojsonDynArrayAccountBalanceDump(
             "root",
             "nativeExpectedBalances",
-            balanceChecker.dumpNativeBalances()
+            context.testHelpers.balanceChecker().dumpNativeBalances()
         );
     }
     if (outputSelection.erc20ExpectedBalances) {
         jsonOut = Searializer.tojsonDynArrayERC20TokenDump(
             "root",
             "erc20ExpectedBalances",
-            balanceChecker.dumpERC20Balances()
+            context.testHelpers.balanceChecker().dumpERC20Balances()
         );
     }
     // if (outputSelection.erc721ExpectedBalances) {
+            // jsonOut = Searializer.tojsonDynArrayERC721TokenDump(
+            //     "root",
+            //     "erc721ExpectedBalances",
+            //     context.testHelpers.balanceChecker().dumpERC721Balances()
+            // );
+    // }
+
+    // jsonOut = Searializer.tojsonDynArrayERC1155TokenDump(
+    //     "root",
+    //     "erc1155ExpectedBalances",
+    //     balanceChecker.dumpERC1155Balances()
+    // );
+    // }
+    if (context.scuffDescription.pointer != 0) {
+        jsonOut = Searializer.tojsonScuffDescription(
+            "root",
+            "scuff",
+            context.scuffDescription
+        );
+    }
+    {
+        jsonOut = Searializer.tojsonFuzzSeedInput(
+            "root",
+            "seed",
+            context.fuzzParams.seedInput
+        );
+    }
+    if (context.failedChecks.length > 0) {
+        jsonOut = Searializer.tojsonDynArrayFailedCheck(
+            "root",
+            "failures",
+            context.failedChecks
+        );
+    }
+    // if (outputSelection.erc721ExpectedBalances) {
+    //   jsonOut = new Adder().addExpectedBalances(context);
+    // }
     //     jsonOut = Searializer.tojsonDynArrayERC721TokenDump(
     //         "root",
     //         "erc721ExpectedBalances",
@@ -339,7 +424,9 @@ function dumpContext(
     //         balanceChecker.dumpERC1155Balances()
     //     );
     // }
-    vm.writeJson(jsonOut, "./fuzz_debug.json");
+    string memory path = nextFailureOutput();
+    vm.writeJson(jsonOut, path);
+    console2.log("Dumped debug output to ", path);
 }
 
 function pureDumpContext()
@@ -384,13 +471,14 @@ function viewDumpScuff(
     jsonOut = Searializer.tojsonScuffDescription("root", "scuff", scuff);
 
     vm.writeJson(jsonOut, "./fuzz_debug_scuff.json");
-    console2.log("Dumped executions and balances to ./fuzz_debug_scuff.json");
 }
 
 function pureDumpScuff()
     pure
     returns (
-        function(FuzzTestContext memory, ScuffDescription memory) internal pure pureFn
+        function(FuzzTestContext memory, ScuffDescription memory)
+            internal
+            pure pureFn
     )
 {
     function(FuzzTestContext memory, ScuffDescription memory)
@@ -413,6 +501,8 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.orderHashes = true;
     selection.allExpectedExecutions = true;
     selection.nativeExpectedBalances = true;
+    selection.erc20ExpectedBalances = true;
+    selection.erc721ExpectedBalances = true;
     selection.expectedAvailableOrders = true;
     selection.seaport = true;
     selection.caller = true;
@@ -425,6 +515,8 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.executionsFilter = ItemType.ERC1155_WITH_CRITERIA; // no filter
     selection.orders = true;
     selection.preExecOrderStatuses = true;
+    selection.expectedEvents = true;
+    selection.actualEvents = true;
     pureDumpContext()(context, selection);
     console2.log("Dumped executions and balances to ./fuzz_debug.json");
 }
