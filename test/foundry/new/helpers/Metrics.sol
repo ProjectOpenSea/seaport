@@ -10,6 +10,9 @@ function logCall(string memory name) {
 function logCall(string memory name, bool enabled) {
     logCounter("call", name, enabled);
 }
+function logCallScuff(bool pass, bool enabled) {
+  logCounter("scuff", pass ? "pass" : "revert", enabled);
+}
 
 function logMutation(string memory name) {
     logCounter("mutation", name, true);
