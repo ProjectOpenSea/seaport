@@ -704,10 +704,7 @@ library AdvancedOrdersSpaceGenerator {
                 context
             );
         } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
-            // TODO: update offerer + order type (point to bad contract offerer)
-            revert(
-                "FuzzGenerators: no support for failing contract order fuzzing"
-            );
+            // NOTE: this is handled downstream
         }
     }
 
