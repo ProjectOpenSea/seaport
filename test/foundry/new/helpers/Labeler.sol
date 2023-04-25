@@ -16,6 +16,16 @@ function setLabel(address account, string memory _label) {
     );
 }
 
+function appendLabel(address account, string memory _label) {
+    string memory label = getLabel(account);
+    if (bytes(label).length > 0) {
+        label = string.concat(label, " ", _label);
+    } else {
+        label = _label;
+    }
+    setLabel(account, label);
+}
+
 function withLabel(address account) pure returns (string memory out) {
     out = LibString.toHexString(account);
     string memory label = pureGetLabel()(account);
