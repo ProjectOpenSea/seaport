@@ -18,3 +18,4 @@ import { ReceivedItemLib } from "./ReceivedItemLib.sol";
 import { SeaportArrays } from "./SeaportArrays.sol";
 import { SpentItemLib } from "./SpentItemLib.sol";
 import { StructCopier } from "./StructCopier.sol";
+import { ZoneParametersLib } from "./ZoneParametersLib.sol";

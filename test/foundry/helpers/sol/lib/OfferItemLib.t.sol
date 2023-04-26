@@ -33,6 +33,14 @@ contract OfferItemLibTest is BaseTest {
         assertEq(offerItem, defaultOfferItem);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty OfferItem selected.");
+        OfferItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty OfferItem array selected.");
+        OfferItemLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint8 itemType,
         address token,

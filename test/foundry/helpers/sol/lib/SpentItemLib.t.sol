@@ -31,6 +31,14 @@ contract SpentItemLibTest is BaseTest {
         assertEq(spentItem, defaultSpentItem);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty SpentItem selected.");
+        SpentItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty SpentItem array selected.");
+        SpentItemLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint8 itemType,
         address token,

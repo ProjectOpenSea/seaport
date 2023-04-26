@@ -21,6 +21,18 @@ library CriteriaResolverLib {
         keccak256("seaport.CriteriaResolverDefaults");
     bytes32 private constant CRITERIA_RESOLVERS_MAP_POSITION =
         keccak256("seaport.CriteriaResolversDefaults");
+    bytes32 private constant EMPTY_CRITERIA_RESOLVER =
+        keccak256(
+            abi.encode(
+                CriteriaResolver({
+                    orderIndex: 0,
+                    side: Side(0),
+                    index: 0,
+                    identifier: 0,
+                    criteriaProof: new bytes32[](0)
+                })
+            )
+        );
 
     using ArrayLib for bytes32[];
 
@@ -66,14 +78,18 @@ library CriteriaResolverLib {
     /**
      * @dev Gets a default CriteriaResolver from storage.
      *
-     * @param defaultName the name of the default for retrieval
+     * @param item the name of the default for retrieval
      */
     function fromDefault(
         string memory defaultName
-    ) internal view returns (CriteriaResolver memory resolver) {
+    ) internal view returns (CriteriaResolver memory item) {
         mapping(string => CriteriaResolver)
             storage criteriaResolverMap = _criteriaResolverMap();
-        resolver = criteriaResolverMap[defaultName];
+        item = criteriaResolverMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_CRITERIA_RESOLVER) {
+            revert("Empty CriteriaResolver selected.");
+        }
     }
 
     /**
@@ -81,14 +97,18 @@ library CriteriaResolverLib {
      *
      * @param defaultsName the name of the default array for retrieval
      *
-     * @return resolvers the CriteriaResolvers retrieved from storage
+     * @return items the CriteriaResolvers retrieved from storage
      */
     function fromDefaultMany(
         string memory defaultsName
-    ) internal view returns (CriteriaResolver[] memory resolvers) {
+    ) internal view returns (CriteriaResolver[] memory items) {
         mapping(string => CriteriaResolver[])
             storage criteriaResolversMap = _criteriaResolversMap();
-        resolvers = criteriaResolversMap[defaultsName];
+        items = criteriaResolversMap[defaultsName];
+
+        if (items.length == 0) {
+            revert("Empty CriteriaResolver array selected.");
+        }
     }
 
     /**

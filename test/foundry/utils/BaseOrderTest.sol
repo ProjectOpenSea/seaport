@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { stdStorage, StdStorage } from "forge-std/Test.sol";
+import {
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdditionalRecipient,
+    Fulfillment,
+    FulfillmentComponent,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     ConsiderationInterface
@@ -14,15 +26,6 @@ import {
     TwoWords
 } from "../../../contracts/lib/ConsiderationConstants.sol";
 
-import {
-    AdditionalRecipient,
-    Fulfillment,
-    FulfillmentComponent,
-    Order,
-    OrderComponents,
-    OrderParameters
-} from "../../../contracts/lib/ConsiderationStructs.sol";
-
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 
 import { OrderBuilder } from "./OrderBuilder.sol";
@@ -31,7 +34,6 @@ import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is OrderBuilder, AmountDeriver {
-    using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
@@ -61,6 +63,9 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
 
     Account offerer1;
     Account offerer2;
+
+    FulfillAvailableHelper fulfill;
+    MatchFulfillmentHelper matcher;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -128,6 +133,9 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
 
         offerer1 = makeAndAllocateAccount("offerer1");
         offerer2 = makeAndAllocateAccount("offerer2");
+
+        fulfill = new FulfillAvailableHelper();
+        matcher = new MatchFulfillmentHelper();
     }
 
     function resetOfferComponents() internal {

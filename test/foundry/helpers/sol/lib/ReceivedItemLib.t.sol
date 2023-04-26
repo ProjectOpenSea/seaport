@@ -35,6 +35,14 @@ contract ReceivedItemLibTest is BaseTest {
         assertEq(receivedItem, defaultReceivedItem);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty ReceivedItem selected.");
+        ReceivedItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty ReceivedItem array selected.");
+        ReceivedItemLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint8 itemType,
         address token,

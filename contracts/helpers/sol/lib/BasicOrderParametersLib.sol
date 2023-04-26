@@ -28,6 +28,31 @@ library BasicOrderParametersLib {
         keccak256("seaport.BasicOrderParametersDefaults");
     bytes32 private constant BASIC_ORDER_PARAMETERS_ARRAY_MAP_POSITION =
         keccak256("seaport.BasicOrderParametersArrayDefaults");
+    bytes32 private constant EMPTY_BASIC_ORDER_PARAMETERS =
+        keccak256(
+            abi.encode(
+                BasicOrderParameters({
+                    considerationToken: address(0),
+                    considerationIdentifier: 0,
+                    considerationAmount: 0,
+                    offerer: payable(address(0)),
+                    zone: address(0),
+                    offerToken: address(0),
+                    offerIdentifier: 0,
+                    offerAmount: 0,
+                    basicOrderType: BasicOrderType(0),
+                    startTime: 0,
+                    endTime: 0,
+                    zoneHash: bytes32(0),
+                    salt: 0,
+                    offererConduitKey: bytes32(0),
+                    fulfillerConduitKey: bytes32(0),
+                    totalOriginalAdditionalRecipients: 0,
+                    additionalRecipients: new AdditionalRecipient[](0),
+                    signature: ""
+                })
+            )
+        );
 
     /**
      * @dev Clears a default BasicOrderParameters from storage.
@@ -131,6 +156,10 @@ library BasicOrderParametersLib {
         mapping(string => BasicOrderParameters)
             storage orderParametersMap = _orderParametersMap();
         item = orderParametersMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_BASIC_ORDER_PARAMETERS) {
+            revert("Empty BasicOrderParameters selected.");
+        }
     }
 
     /**
@@ -146,6 +175,10 @@ library BasicOrderParametersLib {
         mapping(string => BasicOrderParameters[])
             storage orderParametersArrayMap = _orderParametersArrayMap();
         items = orderParametersArrayMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty BasicOrderParameters array selected.");
+        }
     }
 
     /**

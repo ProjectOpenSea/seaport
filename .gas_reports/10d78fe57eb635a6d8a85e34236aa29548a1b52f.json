@@ -1,5 +1,5 @@
 {
-  "commitHash": "bb5d39539354e96cf6e69ad107906a0b6a46ea91",
+  "commitHash": "10d78fe57eb635a6d8a85e34236aa29548a1b52f",
   "contractReports": {
     "Conduit": {
       "name": "Conduit",
@@ -7,8 +7,8 @@
         {
           "method": "execute",
           "min": 77435,
-          "max": 2179914,
-          "avg": 451436,
+          "max": 2232387,
+          "avg": 460181,
           "calls": 6
         },
         {
@@ -21,8 +21,8 @@
         {
           "method": "executeWithBatch1155",
           "min": 97669,
-          "max": 361418,
-          "avg": 228749,
+          "max": 361430,
+          "avg": 228746,
           "calls": 4
         },
         {
@@ -71,7 +71,7 @@
           "method": "updateChannel",
           "min": 34454,
           "max": 121098,
-          "avg": 117293,
+          "avg": 117294,
           "calls": 71
         }
       ],
@@ -106,7 +106,7 @@
           "method": "registerDigest",
           "min": 22239,
           "max": 44151,
-          "avg": 36843,
+          "avg": 36847,
           "calls": 3
         },
         {
@@ -148,7 +148,7 @@
           "method": "cancelOrders",
           "min": null,
           "max": null,
-          "avg": 65327,
+          "avg": 65339,
           "calls": 1
         }
       ],
@@ -176,14 +176,14 @@
           "method": "assignPauser",
           "min": null,
           "max": null,
-          "avg": 47183,
+          "avg": 47171,
           "calls": 1
         },
         {
           "method": "cancelOrders",
           "min": null,
           "max": null,
-          "avg": 73870,
+          "avg": 73894,
           "calls": 1
         },
         {
@@ -195,23 +195,23 @@
         },
         {
           "method": "createZone",
-          "min": 1154302,
-          "max": 1154314,
-          "avg": 1154312,
+          "min": null,
+          "max": null,
+          "avg": 1154314,
           "calls": 31
         },
         {
           "method": "executeMatchAdvancedOrders",
           "min": null,
           "max": null,
-          "avg": 289151,
+          "avg": 289127,
           "calls": 2
         },
         {
           "method": "executeMatchOrders",
           "min": null,
           "max": null,
-          "avg": 282751,
+          "avg": 282727,
           "calls": 2
         },
         {
@@ -225,7 +225,7 @@
           "method": "transferOwnership",
           "min": null,
           "max": null,
-          "avg": 47199,
+          "avg": 47187,
           "calls": 2
         }
       ],
@@ -238,8 +238,8 @@
         {
           "method": "prepare",
           "min": 49267,
-          "max": 2351690,
-          "avg": 1061771,
+          "max": 2351702,
+          "avg": 1061791,
           "calls": 26
         }
       ],
@@ -251,37 +251,37 @@
       "methods": [
         {
           "method": "cancel",
-          "min": 41226,
-          "max": 58374,
-          "avg": 54030,
+          "min": 41250,
+          "max": 58422,
+          "avg": 54038,
           "calls": 16
         },
         {
           "method": "fulfillAdvancedOrder",
           "min": 96288,
           "max": 225181,
-          "avg": 159350,
+          "avg": 160736,
           "calls": 194
         },
         {
           "method": "fulfillAvailableAdvancedOrders",
           "min": 149626,
-          "max": 260680,
-          "avg": 203090,
+          "max": 305236,
+          "avg": 209036,
           "calls": 30
         },
         {
           "method": "fulfillAvailableOrders",
           "min": 164986,
           "max": 215752,
-          "avg": 201359,
+          "avg": 201368,
           "calls": 21
         },
         {
           "method": "fulfillBasicOrder",
           "min": 90639,
           "max": 1621627,
-          "avg": 598705,
+          "avg": 598707,
           "calls": 187
         },
         {
@@ -295,7 +295,7 @@
           "method": "fulfillOrder",
           "min": 119409,
           "max": 225080,
-          "avg": 176770,
+          "avg": 178008,
           "calls": 108
         },
         {
@@ -308,41 +308,41 @@
         {
           "method": "matchAdvancedOrders",
           "min": 179574,
-          "max": 300473,
-          "avg": 248933,
-          "calls": 77
+          "max": 300485,
+          "avg": 249389,
+          "calls": 75
         },
         {
           "method": "matchOrders",
           "min": 157522,
           "max": 348207,
-          "avg": 264552,
-          "calls": 151
+          "avg": 264801,
+          "calls": 149
         },
         {
           "method": "validate",
           "min": 53201,
-          "max": 83910,
-          "avg": 73546,
+          "max": 83922,
+          "avg": 73545,
           "calls": 29
         }
       ],
-      "bytecodeSize": 26114,
-      "deployedBytecodeSize": 24389
+      "bytecodeSize": 26128,
+      "deployedBytecodeSize": 24403
     },
     "SeaportRouter": {
       "name": "SeaportRouter",
       "methods": [
         {
           "method": "fulfillAvailableAdvancedOrders",
-          "min": 183954,
-          "max": 311883,
-          "avg": 233586,
+          "min": 183796,
+          "max": 311939,
+          "avg": 233615,
           "calls": 6
         }
       ],
-      "bytecodeSize": 6345,
-      "deployedBytecodeSize": 6158
+      "bytecodeSize": 6417,
+      "deployedBytecodeSize": 6230
     },
     "TestContractOfferer": {
       "name": "TestContractOfferer",
@@ -400,15 +400,15 @@
           "method": "mint",
           "min": 47235,
           "max": 49879,
-          "avg": 49421,
-          "calls": 236
+          "avg": 49474,
+          "calls": 273
         },
         {
           "method": "setApprovalForAll",
           "min": 26102,
           "max": 46002,
-          "avg": 45380,
-          "calls": 448
+          "avg": 45468,
+          "calls": 522
         }
       ],
       "bytecodeSize": 4173,
@@ -421,8 +421,8 @@
           "method": "approve",
           "min": 28881,
           "max": 46245,
-          "avg": 45780,
-          "calls": 338
+          "avg": 45749,
+          "calls": 292
         },
         {
           "method": "blockTransfer",
@@ -433,10 +433,10 @@
         },
         {
           "method": "mint",
-          "min": 33982,
+          "min": 33994,
           "max": 68458,
-          "avg": 67466,
-          "calls": 164
+          "avg": 67348,
+          "calls": 141
         },
         {
           "method": "setNoReturnData",
@@ -456,15 +456,15 @@
           "method": "mint",
           "min": 51492,
           "max": 68796,
-          "avg": 66042,
-          "calls": 315
+          "avg": 65926,
+          "calls": 301
         },
         {
           "method": "setApprovalForAll",
           "min": 26195,
           "max": 46095,
-          "avg": 45578,
-          "calls": 540
+          "avg": 45550,
+          "calls": 512
         }
       ],
       "bytecodeSize": 5238,
@@ -504,8 +504,8 @@
         {
           "method": "bulkTransfer",
           "min": 77935,
-          "max": 1492854,
-          "avg": 664509,
+          "max": 1438866,
+          "avg": 632608,
           "calls": 3
         }
       ],

@@ -741,7 +741,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
 
         vm.prank(alice);
 
-        vm.expectEmit(true, true, true, false, address(context.consideration));
+        vm.expectEmit(false, true, true, false, address(context.consideration));
         emit OrderCancelled(orderHash, alice, context.args.zone);
         context.consideration.cancel(myBaseOrderComponents);
 

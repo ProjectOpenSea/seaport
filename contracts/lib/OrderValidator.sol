@@ -251,6 +251,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             );
         }
 
+        // Utilize assembly to determine the fraction to fill and update status.
         assembly {
             let orderStatusSlot := orderStatus.slot
             // Read filled amount as numerator and denominator and put on stack.
@@ -260,14 +261,14 @@ contract OrderValidator is Executor, ZoneInteraction {
                 filledNumerator
             )
 
-            for {
-
-            } 1 {
-
-            } {
+            // "Loop" until the appropriate fill fraction has been determined.
+            for { } 1 { } {
+                // If no portion of the order has been filled yet...
                 if iszero(filledDenominator) {
+                    // fill the full supplied fraction.
                     filledNumerator := numerator
 
+                    // Exit the "loop" early.
                     break
                 }
 
@@ -279,14 +280,20 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                 // If denominator of 1 supplied, fill entire remaining amount.
                 if eq(denominator, 1) {
+                    // Set the amount to fill to the remaining amount.
                     numerator := sub(filledDenominator, filledNumerator)
+
+                    // Set the fill size to the current size.
                     denominator := filledDenominator
+
+                    // Set the filled amount to the current size.
                     filledNumerator := filledDenominator
 
+                    // Exit the "loop" early.
                     break
                 }
 
-                // If supplied denominator equals to the current one:
+                // If supplied denominator is equal to the current one:
                 if eq(denominator, filledDenominator) {
                     // Increment the filled numerator by the new numerator.
                     filledNumerator := add(numerator, filledNumerator)
@@ -298,15 +305,21 @@ contract OrderValidator is Executor, ZoneInteraction {
                         gt(filledNumerator, denominator)
                     )
 
+                    // reduce the amount to fill by the excess.
                     numerator := sub(numerator, carry)
 
+                    // Reduce the filled amount by the excess as well.
                     filledNumerator := sub(filledNumerator, carry)
 
+                    // Exit the "loop" early.
                     break
                 }
 
                 // Otherwise, if supplied denominator differs from current one:
+                // Scale the filled amount up by the supplied size.
                 filledNumerator := mul(filledNumerator, denominator)
+
+                // Scale the supplied amount and size up by the current size.
                 numerator := mul(numerator, filledDenominator)
                 denominator := mul(denominator, filledDenominator)
 
@@ -320,8 +333,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                     gt(filledNumerator, denominator)
                 )
 
+                // reduce the amount to fill by the excess.
                 numerator := sub(numerator, carry)
 
+                // Reduce the filled amount by the excess as well.
                 filledNumerator := sub(filledNumerator, carry)
 
                 // Check filledNumerator and denominator for uint120 overflow.
@@ -331,17 +346,23 @@ contract OrderValidator is Executor, ZoneInteraction {
                 ) {
                     // Derive greatest common divisor using euclidean algorithm.
                     function gcd(_a, _b) -> out {
-                        for {
-
-                        } _b {
-
-                        } {
+                        // "Loop" until only one non-zero value remains.
+                        for { } _b { } {
+                            // Assign the second value to a temporary variable.
                             let _c := _b
+
+                            // Derive the modulus of the two values.
                             _b := mod(_a, _c)
+
+                            // Set the first value to the temporary value.
                             _a := _c
                         }
+
+                        // Return the remaining non-zero value.
                         out := _a
                     }
+
+                    // Determine the amount to scale down the fill fractions.
                     let scaleDown := gcd(
                         numerator,
                         gcd(filledNumerator, denominator)
@@ -372,6 +393,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     }
                 }
 
+                // Exit the "loop" now that all evaluation is complete.
                 break
             }
 
