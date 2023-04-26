@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ItemType,
-    Side
-} from "../../../lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "../../../lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationItem,
@@ -793,7 +790,10 @@ library OrderParametersLib {
                     // roundUp is true to get the proper rounding direction.
                     // Division is performed with no zero check as duration
                     // cannot be zero as long as startTime < endTime.
-                    add(div(sub(totalBeforeDivision, roundUp), duration), roundUp)
+                    add(
+                        div(sub(totalBeforeDivision, roundUp), duration),
+                        roundUp
+                    )
                 )
             }
 

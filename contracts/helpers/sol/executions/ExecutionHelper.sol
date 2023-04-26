@@ -230,14 +230,15 @@ library ExecutionHelper {
             revert("ExecutionHelper: bad orderDetails length for standard");
         }
 
-        return getStandardExecutions(
-            details.orders[0],
-            details.fulfiller,
-            details.fulfillerConduitKey,
-            details.recipient,
-            nativeTokensSupplied,
-            details.seaport
-        );
+        return
+            getStandardExecutions(
+                details.orders[0],
+                details.fulfiller,
+                details.fulfillerConduitKey,
+                details.recipient,
+                nativeTokensSupplied,
+                details.seaport
+            );
     }
 
     /**
@@ -391,13 +392,14 @@ library ExecutionHelper {
             revert("ExecutionHelper: bad orderDetails length for basic");
         }
 
-        return getBasicExecutions(
-            details.orders[0],
-            details.fulfiller,
-            details.fulfillerConduitKey,
-            nativeTokensSupplied,
-            details.seaport
-        );
+        return
+            getBasicExecutions(
+                details.orders[0],
+                details.fulfiller,
+                details.fulfillerConduitKey,
+                nativeTokensSupplied,
+                details.seaport
+            );
     }
 
     /**

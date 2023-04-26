@@ -76,10 +76,7 @@ import {
     OffererZoneFailureReason
 } from "../../../../contracts/test/OffererZoneFailureReason.sol";
 
-import {
-    FractionStatus,
-    FractionUtil
-} from "./FractionUtil.sol";
+import { FractionStatus, FractionUtil } from "./FractionUtil.sol";
 
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
@@ -251,7 +248,9 @@ library MutationFilters {
                 continue;
             }
 
-            AdvancedOrder memory order = context.executionState.previewedOrders[i];
+            AdvancedOrder memory order = context.executionState.previewedOrders[
+                i
+            ];
             uint256 items = order.parameters.offer.length +
                 order.parameters.consideration.length;
             if (items != 0) {
@@ -514,10 +513,12 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // TODO: get more precise about when this is allowed or not
-        if (context.advancedOrdersSpace.orders[orderIndex].rebate != ContractOrderRebate.NONE) {
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].rebate !=
+            ContractOrderRebate.NONE
+        ) {
             return true;
         }
-
 
         if (ineligibleWhenNotActiveTime(order)) {
             return true;
@@ -533,14 +534,10 @@ library MutationFilters {
 
         OffererZoneFailureReason failureReason = HashCalldataContractOfferer(
             payable(order.parameters.offerer)
-        ).failureReasons(
-            context.executionState.orderHashes[orderIndex]
-        );
+        ).failureReasons(context.executionState.orderHashes[orderIndex]);
 
-        return (
-            failureReason == OffererZoneFailureReason
-                .ContractOfferer_generateReverts
-        );
+        return (failureReason ==
+            OffererZoneFailureReason.ContractOfferer_generateReverts);
     }
 
     function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer(
@@ -806,7 +803,10 @@ library MutationFilters {
             ,
             Execution[] memory implicitExecutionsPost,
 
-        ) = context.getExecutionsFromRegeneratedFulfillments(details, context.executionState.value);
+        ) = context.getExecutionsFromRegeneratedFulfillments(
+                details,
+                context.executionState.value
+            );
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
@@ -1043,7 +1043,8 @@ library MutationFilters {
                     .executionState
                     .orders[component.orderIndex]
                     .parameters
-                    .offer.length <= component.itemIndex
+                    .offer
+                    .length <= component.itemIndex
             ) {
                 return true;
             }
@@ -1128,7 +1129,8 @@ library MutationFilters {
                     .executionState
                     .orders[fulfillmentComponent.orderIndex]
                     .parameters
-                    .offer.length <= fulfillmentComponent.itemIndex
+                    .offer
+                    .length <= fulfillmentComponent.itemIndex
             ) {
                 return true;
             }
@@ -1248,14 +1250,35 @@ library MutationFilters {
         }
 
         // Order must have at least one offer item
-        if (context.executionState.previewedOrders[orderIndex].parameters.offer.length < 1) {
+        if (
+            context
+                .executionState
+                .previewedOrders[orderIndex]
+                .parameters
+                .offer
+                .length < 1
+        ) {
             return true;
         }
 
         // At least one consideration item must be native, ERC20, or ERC1155
         bool hasValidItem;
-        for (uint256 i; i < context.executionState.previewedOrders[orderIndex].parameters.consideration.length; i++) {
-            ConsiderationItem memory item = context.executionState.previewedOrders[orderIndex].parameters.consideration[i];
+        for (
+            uint256 i;
+            i <
+            context
+                .executionState
+                .previewedOrders[orderIndex]
+                .parameters
+                .consideration
+                .length;
+            i++
+        ) {
+            ConsiderationItem memory item = context
+                .executionState
+                .previewedOrders[orderIndex]
+                .parameters
+                .consideration[i];
             if (
                 item.itemType != ItemType.ERC721 &&
                 item.itemType != ItemType.ERC721_WITH_CRITERIA
@@ -1344,8 +1367,14 @@ library MutationFilters {
     ) internal pure returns (bool) {
         if (order.parameters.orderType == OrderType.CONTRACT) {
             if (
-                context.executionState.orderDetails[orderIndex].offer.length != order.parameters.offer.length ||
-                context.executionState.orderDetails[orderIndex].consideration.length != order.parameters.consideration.length
+                context.executionState.orderDetails[orderIndex].offer.length !=
+                order.parameters.offer.length ||
+                context
+                    .executionState
+                    .orderDetails[orderIndex]
+                    .consideration
+                    .length !=
+                order.parameters.consideration.length
             ) {
                 return true;
             }
@@ -1529,10 +1558,8 @@ library MutationFilters {
             return true;
         }
 
-        return (
-            order.parameters.orderType != OrderType.PARTIAL_OPEN &&
-            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
-        );
+        return (order.parameters.orderType != OrderType.PARTIAL_OPEN &&
+            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED);
     }
 
     function ineligibleForInexactFraction(
@@ -1546,8 +1573,10 @@ library MutationFilters {
             return true;
         }
 
-        if (order.parameters.offer.length +
-            order.parameters.consideration.length == 0
+        if (
+            order.parameters.offer.length +
+                order.parameters.consideration.length ==
+            0
         ) {
             return true;
         }
@@ -1573,14 +1602,14 @@ library MutationFilters {
             )
         );
 
-        return (
-            FractionUtil.getPartialFillResults(
+        return (FractionUtil
+            .getPartialFillResults(
                 uint120(totalFilled),
                 uint120(totalSize),
                 1,
                 uint120(itemAmount + 1)
-            ).status == FractionStatus.INVALID
-        );
+            )
+            .status == FractionStatus.INVALID);
     }
 
     function ineligibleForNoSpecifiedOrdersAvailable(
@@ -2169,7 +2198,11 @@ contract FuzzMutations is Test, FuzzExecutor {
             );
         }
 
-        context.executionState.previewedOrders[orderIndex].parameters.conduitKey = keccak256("invalid conduit");
+        context
+            .executionState
+            .previewedOrders[orderIndex]
+            .parameters
+            .conduitKey = keccak256("invalid conduit");
 
         context = context.withDerivedOrderDetails().withDerivedFulfillments();
         if (
@@ -2595,11 +2628,13 @@ contract FuzzMutations is Test, FuzzExecutor {
                         HashCalldataContractOfferer(
                             payable(order.parameters.offerer)
                         ).addItemAmountMutation(
-                            Side.OFFER,
-                            fulfillmentComponent.itemIndex,
-                            0,
-                            context.executionState.orderHashes[fulfillmentComponent.orderIndex]
-                        );
+                                Side.OFFER,
+                                fulfillmentComponent.itemIndex,
+                                0,
+                                context.executionState.orderHashes[
+                                    fulfillmentComponent.orderIndex
+                                ]
+                            );
                     }
 
                     if (
@@ -2608,7 +2643,10 @@ contract FuzzMutations is Test, FuzzExecutor {
                             .orders[fulfillmentComponent.orderIndex]
                             .signatureMethod == SignatureMethod.VALIDATE
                     ) {
-                        order.inscribeOrderStatusValidated(true, context.seaport);
+                        order.inscribeOrderStatusValidated(
+                            true,
+                            context.seaport
+                        );
                     } else {
                         AdvancedOrdersSpaceGenerator._signOrders(
                             context.advancedOrdersSpace,
@@ -2692,14 +2730,13 @@ contract FuzzMutations is Test, FuzzExecutor {
             .endAmount = 0;
 
         if (order.parameters.orderType == OrderType.CONTRACT) {
-            HashCalldataContractOfferer(
-                payable(order.parameters.offerer)
-            ).addItemAmountMutation(
-                Side.CONSIDERATION,
-                firstNon721ConsiderationItem,
-                0,
-                mutationState.selectedOrderHash
-            );
+            HashCalldataContractOfferer(payable(order.parameters.offerer))
+                .addItemAmountMutation(
+                    Side.CONSIDERATION,
+                    firstNon721ConsiderationItem,
+                    0,
+                    mutationState.selectedOrderHash
+                );
         }
 
         if (
@@ -2943,7 +2980,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         MutationState memory mutationState
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
-        AdvancedOrder memory order = context.executionState.orders[orderIndex];    
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         ConsiderationItem[] memory newConsideration = new ConsiderationItem[](
             order.parameters.consideration.length + 1

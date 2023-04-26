@@ -335,10 +335,9 @@ abstract contract FuzzAmendments is Test {
                 );
             }
 
-            (
-                uint256 denominator,
-                bool canScaleUp
-            ) = order.parameters.getSmallestDenominator();
+            (uint256 denominator, bool canScaleUp) = order
+                .parameters
+                .getSmallestDenominator();
 
             // If the denominator is 0 or 1, the order cannot have a partial
             // fill fraction applied.
@@ -460,7 +459,10 @@ abstract contract FuzzAmendments is Test {
                 context.executionState.preExecOrderStatuses[i] ==
                 OrderStatusEnum.REVERT
             ) {
-                OrderParameters memory orderParams = context.executionState.orders[i].parameters;
+                OrderParameters memory orderParams = context
+                    .executionState
+                    .orders[i]
+                    .parameters;
                 bytes32 orderHash = context.executionState.orderHashes[i];
                 if (orderParams.orderType != OrderType.CONTRACT) {
                     revert("FuzzAmendments: bad pre-exec order status");
@@ -486,9 +488,7 @@ abstract contract FuzzAmendments is Test {
             }
 
             uint256 offererSpecificCounter = context.executionState.counter +
-                uint256(
-                    uint160(order.offerer)
-                );
+                uint256(uint160(order.offerer));
 
             order.offerer.inscribeCounter(
                 offererSpecificCounter,
@@ -509,10 +509,7 @@ abstract contract FuzzAmendments is Test {
 
             uint256 contractOffererSpecificContractNonce = context
                 .executionState
-                .contractOffererNonce +
-                uint256(
-                    uint160(order.offerer)
-                );
+                .contractOffererNonce + uint256(uint160(order.offerer));
 
             order.offerer.inscribeContractOffererNonce(
                 contractOffererSpecificContractNonce,

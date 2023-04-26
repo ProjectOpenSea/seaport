@@ -91,9 +91,7 @@ library FuzzEngineLib {
     ) internal returns (FuzzTestContext memory) {
         (, , MatchComponent[] memory remainders) = context
             .testHelpers
-            .getMatchedFulfillments(
-                context.executionState.orderDetails
-            );
+            .getMatchedFulfillments(context.executionState.orderDetails);
 
         context.executionState.hasRemainders = remainders.length != 0;
 

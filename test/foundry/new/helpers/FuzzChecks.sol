@@ -330,23 +330,35 @@ abstract contract FuzzChecks is Test {
                 if (context.expectations.expectedAvailableOrders[i]) {
                     assertEq(
                         totalFilled,
-                        context.expectations.expectedFillFractions[i].finalFilledNumerator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .finalFilledNumerator,
                         "check_orderStatusFullyFilled: totalFilled != expected partial"
                     );
                     assertEq(
                         totalSize,
-                        context.expectations.expectedFillFractions[i].finalFilledDenominator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .finalFilledDenominator,
                         "check_orderStatusFullyFilled: totalSize != expected partial"
                     );
                 } else {
                     assertEq(
                         totalFilled,
-                        context.expectations.expectedFillFractions[i].originalStatusNumerator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .originalStatusNumerator,
                         "check_orderStatusFullyFilled: totalFilled != expected partial (skipped)"
                     );
                     assertEq(
                         totalSize,
-                        context.expectations.expectedFillFractions[i].originalStatusDenominator,
+                        context
+                            .expectations
+                            .expectedFillFractions[i]
+                            .originalStatusDenominator,
                         "check_orderStatusFullyFilled: totalSize != expected partial (skipped)"
                     );
                 }

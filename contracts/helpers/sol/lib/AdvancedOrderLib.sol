@@ -670,7 +670,10 @@ library AdvancedOrderLib {
         return orderHashes;
     }
 
-    function _hasValidTime(uint256 startTime, uint256 endTime) internal view returns (bool) {
+    function _hasValidTime(
+        uint256 startTime,
+        uint256 endTime
+    ) internal view returns (bool) {
         return block.timestamp >= startTime && block.timestamp < endTime;
     }
 
@@ -761,10 +764,9 @@ library AdvancedOrderLib {
         uint256 orderIndex,
         CriteriaResolver[] memory resolvers
     ) internal view returns (OrderDetails memory) {
-        (
-            SpentItem[] memory offer,
-            ReceivedItem[] memory consideration
-        ) = order.parameters.getSpentAndReceivedItems(
+        (SpentItem[] memory offer, ReceivedItem[] memory consideration) = order
+            .parameters
+            .getSpentAndReceivedItems(
                 order.numerator,
                 order.denominator,
                 orderIndex,

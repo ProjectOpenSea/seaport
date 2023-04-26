@@ -236,7 +236,9 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         // Get the orderHash from zoneParameters
         bytes32 orderHash = zoneParameters.orderHash;
 
-        if (failureReasons[orderHash] == OffererZoneFailureReason.Zone_reverts) {
+        if (
+            failureReasons[orderHash] == OffererZoneFailureReason.Zone_reverts
+        ) {
             revert HashValidationZoneOffererValidateOrderReverts();
         }
         // Validate the order.
@@ -280,7 +282,10 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         called = true;
         callCount++;
 
-        if (failureReasons[orderHash] == OffererZoneFailureReason.Zone_InvalidMagicValue) {
+        if (
+            failureReasons[orderHash] ==
+            OffererZoneFailureReason.Zone_InvalidMagicValue
+        ) {
             validOrderMagicValue = bytes4(0x12345678);
         } else {
             // Return the selector of validateOrder as the magic value.

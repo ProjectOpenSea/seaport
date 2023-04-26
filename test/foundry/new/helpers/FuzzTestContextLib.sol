@@ -166,7 +166,6 @@ struct Expectations {
     uint256 expectedImpliedNativeExecutions;
     uint256 expectedNativeTokensReturned;
     uint256 minimumValue;
-
     FractionResults[] expectedFillFractions;
 }
 
@@ -800,11 +799,13 @@ library FuzzTestContextLib {
                     space.orders[i].unavailableReason ==
                     UnavailableReason.GENERATE_ORDER_FAILURE
                 ) {
-                    context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
-                        .REVERT;
+                    context.executionState.preExecOrderStatuses[
+                        i
+                    ] = OrderStatusEnum.REVERT;
                 } else {
-                    context.executionState.preExecOrderStatuses[i] = OrderStatusEnum
-                        .AVAILABLE;
+                    context.executionState.preExecOrderStatuses[
+                        i
+                    ] = OrderStatusEnum.AVAILABLE;
                 }
             } else if (
                 space.orders[i].unavailableReason == UnavailableReason.CANCELLED
@@ -849,7 +850,8 @@ library FuzzTestContextLib {
                 for (uint256 j = 0; j < orderParams.offer.length; ++j) {
                     if (
                         orderParams.offer[j].itemType == ItemType.ERC721 ||
-                        orderParams.offer[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                        orderParams.offer[j].itemType ==
+                        ItemType.ERC721_WITH_CRITERIA
                     ) {
                         has721 = true;
                         break;
@@ -857,10 +859,16 @@ library FuzzTestContextLib {
                 }
 
                 if (!has721) {
-                    for (uint256 j = 0; j < orderParams.consideration.length; ++j) {
+                    for (
+                        uint256 j = 0;
+                        j < orderParams.consideration.length;
+                        ++j
+                    ) {
                         if (
-                            orderParams.consideration[j].itemType == ItemType.ERC721 ||
-                            orderParams.consideration[j].itemType == ItemType.ERC721_WITH_CRITERIA
+                            orderParams.consideration[j].itemType ==
+                            ItemType.ERC721 ||
+                            orderParams.consideration[j].itemType ==
+                            ItemType.ERC721_WITH_CRITERIA
                         ) {
                             has721 = true;
                             break;
@@ -868,12 +876,11 @@ library FuzzTestContextLib {
                     }
                 }
 
-                uint256 upperBound = (
-                    !has721 && (
-                        orderType == OrderType.PARTIAL_OPEN ||
-                        orderType == OrderType.PARTIAL_RESTRICTED
-                    )
-                ) ? 2 : 1;
+                uint256 upperBound = (!has721 &&
+                    (orderType == OrderType.PARTIAL_OPEN ||
+                        orderType == OrderType.PARTIAL_RESTRICTED))
+                    ? 2
+                    : 1;
 
                 context.executionState.preExecOrderStatuses[
                     i

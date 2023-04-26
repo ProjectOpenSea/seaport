@@ -229,9 +229,11 @@ library ZoneParametersLib {
 
         bool isRevertingContractOrder = false;
         if (order.orderType == OrderType.CONTRACT) {
-            isRevertingContractOrder = FailingContractOfferer(
-                order.offerer
-            ).failureReasons(orderHash) != 0;
+            isRevertingContractOrder =
+                FailingContractOfferer(order.offerer).failureReasons(
+                    orderHash
+                ) !=
+                0;
         }
 
         return (block.timestamp >= order.endTime ||

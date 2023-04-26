@@ -410,9 +410,11 @@ library FuzzMutationSelectorLib {
             MutationFilters.ineligibleForPanic_PartialFillOverflow
         );
 
-        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable.withGeneric(
-            MutationFilters.ineligibleForNoSpecifiedOrdersAvailable
-        );
+        failuresAndFilters[i++] = Failure
+            .NoSpecifiedOrdersAvailable
+            .withGeneric(
+                MutationFilters.ineligibleForNoSpecifiedOrdersAvailable
+            );
         ////////////////////////////////////////////////////////////////////////
 
         // Set the actual length of the array.
