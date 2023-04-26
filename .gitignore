@@ -42,3 +42,4 @@ test/utils/eip712/gen.sol
 
 fuzz_debug.json
 fuzz_debug_scuff.json
+.debug
