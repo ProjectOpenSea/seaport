@@ -136,10 +136,7 @@ library FuzzHelpers {
 
     event ExpectedGenerateOrderDataHash(bytes32 dataHash);
 
-    function _gcd(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (uint256) {
+    function _gcd(uint256 a, uint256 b) internal pure returns (uint256) {
         if (b == 0) {
             return a;
         } else {

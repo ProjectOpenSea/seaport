@@ -111,7 +111,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(1);
@@ -139,7 +144,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(1);
@@ -157,7 +167,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(1);
@@ -194,7 +209,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -222,7 +242,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(1);
@@ -248,7 +273,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(2), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(2),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(1);
@@ -266,7 +296,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(3), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(3),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(1);
@@ -304,7 +339,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -348,7 +388,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -381,7 +426,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(2);
@@ -402,7 +452,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(1), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(1),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(2);
@@ -423,7 +478,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(2), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(2),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(2);
@@ -441,7 +501,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(3), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(3),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(2);
@@ -504,7 +569,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length);
@@ -549,7 +619,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -635,7 +710,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(2), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(2),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -666,7 +746,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(3), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(3),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -783,7 +868,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(advancedOrders.length)
@@ -993,7 +1083,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(1), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(1),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(advancedOrders.length);
@@ -1119,7 +1214,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(2), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(2),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1240,7 +1340,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(3), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(3),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(advancedOrders.length)
@@ -1296,7 +1401,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(5), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(5),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1351,7 +1461,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(4), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(4),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1400,7 +1515,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1451,7 +1571,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(0),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)
@@ -1762,7 +1887,12 @@ contract FuzzEngineTest is FuzzEngine {
                         totalOrders: 0,
                         maxOfferItems: 0,
                         maxConsiderationItems: 0,
-                        seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+                        seedInput: abi.encodePacked(
+                            uint256(0),
+                            uint256(0),
+                            uint256(0),
+                            uint256(0)
+                        )
                     })
                 );
 
@@ -1829,7 +1959,12 @@ contract FuzzEngineTest is FuzzEngine {
                     totalOrders: 0,
                     maxOfferItems: 0,
                     maxConsiderationItems: 0,
-                    seedInput: abi.encodePacked(uint256(4), uint256(0), uint256(0), uint256(0))
+                    seedInput: abi.encodePacked(
+                        uint256(4),
+                        uint256(0),
+                        uint256(0),
+                        uint256(0)
+                    )
                 })
             )
             .withMaximumFulfilled(orders.length)

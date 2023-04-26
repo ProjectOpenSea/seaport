@@ -247,7 +247,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             revert HashCalldataContractOffererGenerateOrderReverts();
         } else if (
             failureReasons[orderHash] ==
-            OffererZoneFailureReason.ContractOfferer_generateReturnsInvalidEncoding
+            OffererZoneFailureReason
+                .ContractOfferer_generateReturnsInvalidEncoding
         ) {
             assembly {
                 mstore(0, 0x12345678)
