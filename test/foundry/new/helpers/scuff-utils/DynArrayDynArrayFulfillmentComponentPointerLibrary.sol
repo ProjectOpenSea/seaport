@@ -11,13 +11,7 @@ using DynArrayDynArrayFulfillmentComponentPointerLibrary for DynArrayDynArrayFul
 
 /// @dev Library for resolving pointers of encoded FulfillmentComponent[][]
 library DynArrayDynArrayFulfillmentComponentPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_length_DirtyBits, element_length_MaxValue }
-
-  enum ScuffableField { length, element_head, element }
-
   uint256 internal constant CalldataStride = 0x20;
-  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_length_DirtyBits);
-  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_length_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayDynArrayFulfillmentComponentPointer`.
   /// This adds `DynArrayDynArrayFulfillmentComponentPointerLibrary` functions as members of the pointer
@@ -76,46 +70,5 @@ library DynArrayDynArrayFulfillmentComponentPointerLibrary {
   /// This is the beginning of the dynamically encoded data.
   function tail(DynArrayDynArrayFulfillmentComponentPointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap().offset(32 + (length(ptr).readUint256() * CalldataStride));
-  }
-
-  function addScuffDirectives(DynArrayDynArrayFulfillmentComponentPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to length
-    directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
-    uint256 len = ptr.length().readUint256();
-    for (uint256 i; i < len; i++) {
-      ScuffPositions pos = positions.push(i);
-      /// @dev Add dirty upper bits to element head
-      directives.push(Scuff.upper(uint256(ScuffKind.element_head_DirtyBits) + kindOffset, 224, ptr.elementHead(i), pos));
-      /// @dev Set every bit in length to 1
-      directives.push(Scuff.lower(uint256(ScuffKind.element_head_MaxValue) + kindOffset, 229, ptr.elementHead(i), pos));
-      /// @dev Add all nested directives in element
-      ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
-    }
-  }
-
-  function getScuffDirectives(DynArrayDynArrayFulfillmentComponentPointer ptr) internal pure returns (ScuffDirective[] memory) {
-    ScuffDirectivesArray directives = Scuff.makeUnallocatedArray();
-    ScuffPositions positions = EmptyPositions;
-    addScuffDirectives(ptr, directives, 0, positions);
-    return directives.finalize();
-  }
-
-  function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
-    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
-    if (k == ScuffKind.element_head_DirtyBits) return "element_head_DirtyBits";
-    if (k == ScuffKind.element_head_MaxValue) return "element_head_MaxValue";
-    if (k == ScuffKind.element_length_DirtyBits) return "element_length_DirtyBits";
-    return "element_length_MaxValue";
-  }
-
-  function toKind(uint256 k) internal pure returns (ScuffKind) {
-    return ScuffKind(k);
-  }
-
-  function toKindString(uint256 k) internal pure returns (string memory) {
-    return toString(toKind(k));
   }
 }

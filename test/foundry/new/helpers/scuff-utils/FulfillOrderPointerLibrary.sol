@@ -13,16 +13,16 @@ using FulfillOrderPointerLibrary for FulfillOrderPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// fulfillOrder(Order,bytes32)
 library FulfillOrderPointerLibrary {
-  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_parameters_head_DirtyBits, order_parameters_head_MaxValue, order_parameters_offer_head_DirtyBits, order_parameters_offer_head_MaxValue, order_parameters_offer_length_DirtyBits, order_parameters_offer_length_MaxValue, order_parameters_offer_element_itemType_MaxValue, order_parameters_consideration_head_DirtyBits, order_parameters_consideration_head_MaxValue, order_parameters_consideration_length_DirtyBits, order_parameters_consideration_length_MaxValue, order_parameters_consideration_element_itemType_MaxValue, order_parameters_consideration_element_recipient_DirtyBits, order_parameters_orderType_MaxValue, order_signature_head_DirtyBits, order_signature_head_MaxValue, order_signature_length_DirtyBits, order_signature_length_MaxValue, order_signature_DirtyLowerBits }
+  enum ScuffKind { order_parameters_offerer_DirtyBits, order_parameters_zone_DirtyBits, order_parameters_offer_element_itemType_DirtyBits, order_parameters_offer_element_itemType_MaxValue, order_parameters_offer_element_token_DirtyBits, order_parameters_consideration_element_itemType_DirtyBits, order_parameters_consideration_element_itemType_MaxValue, order_parameters_consideration_element_token_DirtyBits, order_parameters_consideration_element_recipient_DirtyBits, order_parameters_orderType_DirtyBits, order_parameters_orderType_MaxValue }
 
-  enum ScuffableField { order_head, order }
+  enum ScuffableField { order }
 
   bytes4 internal constant FunctionSelector = 0xb3a34c4c;
   string internal constant FunctionName = "fulfillOrder";
   uint256 internal constant fulfillerConduitKeyOffset = 0x20;
   uint256 internal constant HeadSize = 0x40;
-  uint256 internal constant MinimumOrderScuffKind = uint256(ScuffKind.order_parameters_head_DirtyBits);
-  uint256 internal constant MaximumOrderScuffKind = uint256(ScuffKind.order_signature_DirtyLowerBits);
+  uint256 internal constant MinimumOrderScuffKind = uint256(ScuffKind.order_parameters_offerer_DirtyBits);
+  uint256 internal constant MaximumOrderScuffKind = uint256(ScuffKind.order_parameters_orderType_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `FulfillOrderPointer`.
   /// This adds `FulfillOrderPointerLibrary` functions as members of the pointer
@@ -82,10 +82,6 @@ library FulfillOrderPointerLibrary {
   }
 
   function addScuffDirectives(FulfillOrderPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to order head
-    directives.push(Scuff.upper(uint256(ScuffKind.order_head_DirtyBits) + kindOffset, 224, ptr.orderHead(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.order_head_MaxValue) + kindOffset, 229, ptr.orderHead(), positions));
     /// @dev Add all nested directives in order
     ptr.orderData().addScuffDirectives(directives, kindOffset + MinimumOrderScuffKind, positions);
   }
@@ -102,27 +98,17 @@ library FulfillOrderPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.order_head_DirtyBits) return "order_head_DirtyBits";
-    if (k == ScuffKind.order_head_MaxValue) return "order_head_MaxValue";
-    if (k == ScuffKind.order_parameters_head_DirtyBits) return "order_parameters_head_DirtyBits";
-    if (k == ScuffKind.order_parameters_head_MaxValue) return "order_parameters_head_MaxValue";
-    if (k == ScuffKind.order_parameters_offer_head_DirtyBits) return "order_parameters_offer_head_DirtyBits";
-    if (k == ScuffKind.order_parameters_offer_head_MaxValue) return "order_parameters_offer_head_MaxValue";
-    if (k == ScuffKind.order_parameters_offer_length_DirtyBits) return "order_parameters_offer_length_DirtyBits";
-    if (k == ScuffKind.order_parameters_offer_length_MaxValue) return "order_parameters_offer_length_MaxValue";
+    if (k == ScuffKind.order_parameters_offerer_DirtyBits) return "order_parameters_offerer_DirtyBits";
+    if (k == ScuffKind.order_parameters_zone_DirtyBits) return "order_parameters_zone_DirtyBits";
+    if (k == ScuffKind.order_parameters_offer_element_itemType_DirtyBits) return "order_parameters_offer_element_itemType_DirtyBits";
     if (k == ScuffKind.order_parameters_offer_element_itemType_MaxValue) return "order_parameters_offer_element_itemType_MaxValue";
-    if (k == ScuffKind.order_parameters_consideration_head_DirtyBits) return "order_parameters_consideration_head_DirtyBits";
-    if (k == ScuffKind.order_parameters_consideration_head_MaxValue) return "order_parameters_consideration_head_MaxValue";
-    if (k == ScuffKind.order_parameters_consideration_length_DirtyBits) return "order_parameters_consideration_length_DirtyBits";
-    if (k == ScuffKind.order_parameters_consideration_length_MaxValue) return "order_parameters_consideration_length_MaxValue";
+    if (k == ScuffKind.order_parameters_offer_element_token_DirtyBits) return "order_parameters_offer_element_token_DirtyBits";
+    if (k == ScuffKind.order_parameters_consideration_element_itemType_DirtyBits) return "order_parameters_consideration_element_itemType_DirtyBits";
     if (k == ScuffKind.order_parameters_consideration_element_itemType_MaxValue) return "order_parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.order_parameters_consideration_element_token_DirtyBits) return "order_parameters_consideration_element_token_DirtyBits";
     if (k == ScuffKind.order_parameters_consideration_element_recipient_DirtyBits) return "order_parameters_consideration_element_recipient_DirtyBits";
-    if (k == ScuffKind.order_parameters_orderType_MaxValue) return "order_parameters_orderType_MaxValue";
-    if (k == ScuffKind.order_signature_head_DirtyBits) return "order_signature_head_DirtyBits";
-    if (k == ScuffKind.order_signature_head_MaxValue) return "order_signature_head_MaxValue";
-    if (k == ScuffKind.order_signature_length_DirtyBits) return "order_signature_length_DirtyBits";
-    if (k == ScuffKind.order_signature_length_MaxValue) return "order_signature_length_MaxValue";
-    return "order_signature_DirtyLowerBits";
+    if (k == ScuffKind.order_parameters_orderType_DirtyBits) return "order_parameters_orderType_DirtyBits";
+    return "order_parameters_orderType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

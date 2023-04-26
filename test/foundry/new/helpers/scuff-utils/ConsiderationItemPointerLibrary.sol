@@ -18,9 +18,9 @@ using ConsiderationItemPointerLibrary for ConsiderationItemPointer global;
 ///   address recipient;
 /// }
 library ConsiderationItemPointerLibrary {
-  enum ScuffKind { itemType_MaxValue, recipient_DirtyBits }
+  enum ScuffKind { itemType_DirtyBits, itemType_MaxValue, token_DirtyBits, recipient_DirtyBits }
 
-  enum ScuffableField { itemType, recipient }
+  enum ScuffableField { itemType, token, recipient }
 
   uint256 internal constant tokenOffset = 0x20;
   uint256 internal constant identifierOrCriteriaOffset = 0x40;
@@ -76,8 +76,12 @@ library ConsiderationItemPointerLibrary {
   }
 
   function addScuffDirectives(ConsiderationItemPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
+    /// @dev Add dirty upper bits to `itemType`
+    directives.push(Scuff.upper(uint256(ScuffKind.itemType_DirtyBits) + kindOffset, 253, ptr.itemType(), positions));
     /// @dev Set every bit in `itemType` to 1
     directives.push(Scuff.lower(uint256(ScuffKind.itemType_MaxValue) + kindOffset, 253, ptr.itemType(), positions));
+    /// @dev Add dirty upper bits to `token`
+    directives.push(Scuff.upper(uint256(ScuffKind.token_DirtyBits) + kindOffset, 96, ptr.token(), positions));
     /// @dev Add dirty upper bits to `recipient`
     directives.push(Scuff.upper(uint256(ScuffKind.recipient_DirtyBits) + kindOffset, 96, ptr.recipient(), positions));
   }
@@ -90,7 +94,9 @@ library ConsiderationItemPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
+    if (k == ScuffKind.itemType_DirtyBits) return "itemType_DirtyBits";
     if (k == ScuffKind.itemType_MaxValue) return "itemType_MaxValue";
+    if (k == ScuffKind.token_DirtyBits) return "token_DirtyBits";
     return "recipient_DirtyBits";
   }
 

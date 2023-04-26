@@ -11,6 +11,10 @@ using GetContractOffererNoncePointerLibrary for GetContractOffererNoncePointer g
 /// @dev Library for resolving pointers of encoded calldata for
 /// getContractOffererNonce(address)
 library GetContractOffererNoncePointerLibrary {
+  enum ScuffKind { contractOfferer_DirtyBits }
+
+  enum ScuffableField { contractOfferer }
+
   bytes4 internal constant FunctionSelector = 0xa900866b;
   string internal constant FunctionName = "getContractOffererNonce";
 
@@ -52,5 +56,33 @@ library GetContractOffererNoncePointerLibrary {
   /// This points to the beginning of the encoded `address`
   function contractOfferer(GetContractOffererNoncePointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap();
+  }
+
+  function addScuffDirectives(GetContractOffererNoncePointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
+    /// @dev Add dirty upper bits to `contractOfferer`
+    directives.push(Scuff.upper(uint256(ScuffKind.contractOfferer_DirtyBits) + kindOffset, 96, ptr.contractOfferer(), positions));
+  }
+
+  function getScuffDirectives(GetContractOffererNoncePointer ptr) internal pure returns (ScuffDirective[] memory) {
+    ScuffDirectivesArray directives = Scuff.makeUnallocatedArray();
+    ScuffPositions positions = EmptyPositions;
+    addScuffDirectives(ptr, directives, 0, positions);
+    return directives.finalize();
+  }
+
+  function getScuffDirectivesForCalldata(bytes memory data) internal pure returns (ScuffDirective[] memory) {
+    return getScuffDirectives(fromBytes(data));
+  }
+
+  function toString(ScuffKind k) internal pure returns (string memory) {
+    return "contractOfferer_DirtyBits";
+  }
+
+  function toKind(uint256 k) internal pure returns (ScuffKind) {
+    return ScuffKind(k);
+  }
+
+  function toKindString(uint256 k) internal pure returns (string memory) {
+    return toString(toKind(k));
   }
 }

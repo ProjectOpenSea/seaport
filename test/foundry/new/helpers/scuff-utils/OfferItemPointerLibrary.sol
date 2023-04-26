@@ -17,9 +17,9 @@ using OfferItemPointerLibrary for OfferItemPointer global;
 ///   uint256 endAmount;
 /// }
 library OfferItemPointerLibrary {
-  enum ScuffKind { itemType_MaxValue }
+  enum ScuffKind { itemType_DirtyBits, itemType_MaxValue, token_DirtyBits }
 
-  enum ScuffableField { itemType }
+  enum ScuffableField { itemType, token }
 
   uint256 internal constant tokenOffset = 0x20;
   uint256 internal constant identifierOrCriteriaOffset = 0x40;
@@ -68,8 +68,12 @@ library OfferItemPointerLibrary {
   }
 
   function addScuffDirectives(OfferItemPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
+    /// @dev Add dirty upper bits to `itemType`
+    directives.push(Scuff.upper(uint256(ScuffKind.itemType_DirtyBits) + kindOffset, 253, ptr.itemType(), positions));
     /// @dev Set every bit in `itemType` to 1
     directives.push(Scuff.lower(uint256(ScuffKind.itemType_MaxValue) + kindOffset, 253, ptr.itemType(), positions));
+    /// @dev Add dirty upper bits to `token`
+    directives.push(Scuff.upper(uint256(ScuffKind.token_DirtyBits) + kindOffset, 96, ptr.token(), positions));
   }
 
   function getScuffDirectives(OfferItemPointer ptr) internal pure returns (ScuffDirective[] memory) {
@@ -80,7 +84,9 @@ library OfferItemPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    return "itemType_MaxValue";
+    if (k == ScuffKind.itemType_DirtyBits) return "itemType_DirtyBits";
+    if (k == ScuffKind.itemType_MaxValue) return "itemType_MaxValue";
+    return "token_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

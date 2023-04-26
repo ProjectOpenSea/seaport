@@ -16,16 +16,14 @@ using OrderPointerLibrary for OrderPointer global;
 ///   bytes signature;
 /// }
 library OrderPointerLibrary {
-  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_offer_head_DirtyBits, parameters_offer_head_MaxValue, parameters_offer_length_DirtyBits, parameters_offer_length_MaxValue, parameters_offer_element_itemType_MaxValue, parameters_consideration_head_DirtyBits, parameters_consideration_head_MaxValue, parameters_consideration_length_DirtyBits, parameters_consideration_length_MaxValue, parameters_consideration_element_itemType_MaxValue, parameters_consideration_element_recipient_DirtyBits, parameters_orderType_MaxValue, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_length_MaxValue, signature_DirtyLowerBits }
+  enum ScuffKind { parameters_offerer_DirtyBits, parameters_zone_DirtyBits, parameters_offer_element_itemType_DirtyBits, parameters_offer_element_itemType_MaxValue, parameters_offer_element_token_DirtyBits, parameters_consideration_element_itemType_DirtyBits, parameters_consideration_element_itemType_MaxValue, parameters_consideration_element_token_DirtyBits, parameters_consideration_element_recipient_DirtyBits, parameters_orderType_DirtyBits, parameters_orderType_MaxValue }
 
-  enum ScuffableField { parameters_head, parameters, signature_head, signature }
+  enum ScuffableField { parameters }
 
   uint256 internal constant signatureOffset = 0x20;
   uint256 internal constant HeadSize = 0x40;
-  uint256 internal constant MinimumParametersScuffKind = uint256(ScuffKind.parameters_offer_head_DirtyBits);
+  uint256 internal constant MinimumParametersScuffKind = uint256(ScuffKind.parameters_offerer_DirtyBits);
   uint256 internal constant MaximumParametersScuffKind = uint256(ScuffKind.parameters_orderType_MaxValue);
-  uint256 internal constant MinimumSignatureScuffKind = uint256(ScuffKind.signature_length_DirtyBits);
-  uint256 internal constant MaximumSignatureScuffKind = uint256(ScuffKind.signature_DirtyLowerBits);
 
   /// @dev Convert a `MemoryPointer` to a `OrderPointer`.
   /// This adds `OrderPointerLibrary` functions as members of the pointer
@@ -67,18 +65,8 @@ library OrderPointerLibrary {
   }
 
   function addScuffDirectives(OrderPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to parameters head
-    directives.push(Scuff.upper(uint256(ScuffKind.parameters_head_DirtyBits) + kindOffset, 224, ptr.parametersHead(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.parameters_head_MaxValue) + kindOffset, 229, ptr.parametersHead(), positions));
     /// @dev Add all nested directives in parameters
     ptr.parametersData().addScuffDirectives(directives, kindOffset + MinimumParametersScuffKind, positions);
-    /// @dev Add dirty upper bits to signature head
-    directives.push(Scuff.upper(uint256(ScuffKind.signature_head_DirtyBits) + kindOffset, 224, ptr.signatureHead(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.signature_head_MaxValue) + kindOffset, 229, ptr.signatureHead(), positions));
-    /// @dev Add all nested directives in signature
-    ptr.signatureData().addScuffDirectives(directives, kindOffset + MinimumSignatureScuffKind, positions);
   }
 
   function getScuffDirectives(OrderPointer ptr) internal pure returns (ScuffDirective[] memory) {
@@ -89,25 +77,17 @@ library OrderPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.parameters_head_DirtyBits) return "parameters_head_DirtyBits";
-    if (k == ScuffKind.parameters_head_MaxValue) return "parameters_head_MaxValue";
-    if (k == ScuffKind.parameters_offer_head_DirtyBits) return "parameters_offer_head_DirtyBits";
-    if (k == ScuffKind.parameters_offer_head_MaxValue) return "parameters_offer_head_MaxValue";
-    if (k == ScuffKind.parameters_offer_length_DirtyBits) return "parameters_offer_length_DirtyBits";
-    if (k == ScuffKind.parameters_offer_length_MaxValue) return "parameters_offer_length_MaxValue";
+    if (k == ScuffKind.parameters_offerer_DirtyBits) return "parameters_offerer_DirtyBits";
+    if (k == ScuffKind.parameters_zone_DirtyBits) return "parameters_zone_DirtyBits";
+    if (k == ScuffKind.parameters_offer_element_itemType_DirtyBits) return "parameters_offer_element_itemType_DirtyBits";
     if (k == ScuffKind.parameters_offer_element_itemType_MaxValue) return "parameters_offer_element_itemType_MaxValue";
-    if (k == ScuffKind.parameters_consideration_head_DirtyBits) return "parameters_consideration_head_DirtyBits";
-    if (k == ScuffKind.parameters_consideration_head_MaxValue) return "parameters_consideration_head_MaxValue";
-    if (k == ScuffKind.parameters_consideration_length_DirtyBits) return "parameters_consideration_length_DirtyBits";
-    if (k == ScuffKind.parameters_consideration_length_MaxValue) return "parameters_consideration_length_MaxValue";
+    if (k == ScuffKind.parameters_offer_element_token_DirtyBits) return "parameters_offer_element_token_DirtyBits";
+    if (k == ScuffKind.parameters_consideration_element_itemType_DirtyBits) return "parameters_consideration_element_itemType_DirtyBits";
     if (k == ScuffKind.parameters_consideration_element_itemType_MaxValue) return "parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.parameters_consideration_element_token_DirtyBits) return "parameters_consideration_element_token_DirtyBits";
     if (k == ScuffKind.parameters_consideration_element_recipient_DirtyBits) return "parameters_consideration_element_recipient_DirtyBits";
-    if (k == ScuffKind.parameters_orderType_MaxValue) return "parameters_orderType_MaxValue";
-    if (k == ScuffKind.signature_head_DirtyBits) return "signature_head_DirtyBits";
-    if (k == ScuffKind.signature_head_MaxValue) return "signature_head_MaxValue";
-    if (k == ScuffKind.signature_length_DirtyBits) return "signature_length_DirtyBits";
-    if (k == ScuffKind.signature_length_MaxValue) return "signature_length_MaxValue";
-    return "signature_DirtyLowerBits";
+    if (k == ScuffKind.parameters_orderType_DirtyBits) return "parameters_orderType_DirtyBits";
+    return "parameters_orderType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

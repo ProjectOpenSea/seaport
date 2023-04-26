@@ -11,13 +11,13 @@ using DynArrayOrderPointerLibrary for DynArrayOrderPointer global;
 
 /// @dev Library for resolving pointers of encoded Order[]
 library DynArrayOrderPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_parameters_head_DirtyBits, element_parameters_head_MaxValue, element_parameters_offer_head_DirtyBits, element_parameters_offer_head_MaxValue, element_parameters_offer_length_DirtyBits, element_parameters_offer_length_MaxValue, element_parameters_offer_element_itemType_MaxValue, element_parameters_consideration_head_DirtyBits, element_parameters_consideration_head_MaxValue, element_parameters_consideration_length_DirtyBits, element_parameters_consideration_length_MaxValue, element_parameters_consideration_element_itemType_MaxValue, element_parameters_consideration_element_recipient_DirtyBits, element_parameters_orderType_MaxValue, element_signature_head_DirtyBits, element_signature_head_MaxValue, element_signature_length_DirtyBits, element_signature_length_MaxValue, element_signature_DirtyLowerBits }
+  enum ScuffKind { element_parameters_offerer_DirtyBits, element_parameters_zone_DirtyBits, element_parameters_offer_element_itemType_DirtyBits, element_parameters_offer_element_itemType_MaxValue, element_parameters_offer_element_token_DirtyBits, element_parameters_consideration_element_itemType_DirtyBits, element_parameters_consideration_element_itemType_MaxValue, element_parameters_consideration_element_token_DirtyBits, element_parameters_consideration_element_recipient_DirtyBits, element_parameters_orderType_DirtyBits, element_parameters_orderType_MaxValue }
 
-  enum ScuffableField { length, element_head, element }
+  enum ScuffableField { element }
 
   uint256 internal constant CalldataStride = 0x20;
-  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_parameters_head_DirtyBits);
-  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_signature_DirtyLowerBits);
+  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_parameters_offerer_DirtyBits);
+  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_parameters_orderType_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayOrderPointer`.
   /// This adds `DynArrayOrderPointerLibrary` functions as members of the pointer
@@ -79,17 +79,9 @@ library DynArrayOrderPointerLibrary {
   }
 
   function addScuffDirectives(DynArrayOrderPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to length
-    directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
-      /// @dev Add dirty upper bits to element head
-      directives.push(Scuff.upper(uint256(ScuffKind.element_head_DirtyBits) + kindOffset, 224, ptr.elementHead(i), pos));
-      /// @dev Set every bit in length to 1
-      directives.push(Scuff.lower(uint256(ScuffKind.element_head_MaxValue) + kindOffset, 229, ptr.elementHead(i), pos));
       /// @dev Add all nested directives in element
       ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
     }
@@ -103,29 +95,17 @@ library DynArrayOrderPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
-    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
-    if (k == ScuffKind.element_head_DirtyBits) return "element_head_DirtyBits";
-    if (k == ScuffKind.element_head_MaxValue) return "element_head_MaxValue";
-    if (k == ScuffKind.element_parameters_head_DirtyBits) return "element_parameters_head_DirtyBits";
-    if (k == ScuffKind.element_parameters_head_MaxValue) return "element_parameters_head_MaxValue";
-    if (k == ScuffKind.element_parameters_offer_head_DirtyBits) return "element_parameters_offer_head_DirtyBits";
-    if (k == ScuffKind.element_parameters_offer_head_MaxValue) return "element_parameters_offer_head_MaxValue";
-    if (k == ScuffKind.element_parameters_offer_length_DirtyBits) return "element_parameters_offer_length_DirtyBits";
-    if (k == ScuffKind.element_parameters_offer_length_MaxValue) return "element_parameters_offer_length_MaxValue";
+    if (k == ScuffKind.element_parameters_offerer_DirtyBits) return "element_parameters_offerer_DirtyBits";
+    if (k == ScuffKind.element_parameters_zone_DirtyBits) return "element_parameters_zone_DirtyBits";
+    if (k == ScuffKind.element_parameters_offer_element_itemType_DirtyBits) return "element_parameters_offer_element_itemType_DirtyBits";
     if (k == ScuffKind.element_parameters_offer_element_itemType_MaxValue) return "element_parameters_offer_element_itemType_MaxValue";
-    if (k == ScuffKind.element_parameters_consideration_head_DirtyBits) return "element_parameters_consideration_head_DirtyBits";
-    if (k == ScuffKind.element_parameters_consideration_head_MaxValue) return "element_parameters_consideration_head_MaxValue";
-    if (k == ScuffKind.element_parameters_consideration_length_DirtyBits) return "element_parameters_consideration_length_DirtyBits";
-    if (k == ScuffKind.element_parameters_consideration_length_MaxValue) return "element_parameters_consideration_length_MaxValue";
+    if (k == ScuffKind.element_parameters_offer_element_token_DirtyBits) return "element_parameters_offer_element_token_DirtyBits";
+    if (k == ScuffKind.element_parameters_consideration_element_itemType_DirtyBits) return "element_parameters_consideration_element_itemType_DirtyBits";
     if (k == ScuffKind.element_parameters_consideration_element_itemType_MaxValue) return "element_parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.element_parameters_consideration_element_token_DirtyBits) return "element_parameters_consideration_element_token_DirtyBits";
     if (k == ScuffKind.element_parameters_consideration_element_recipient_DirtyBits) return "element_parameters_consideration_element_recipient_DirtyBits";
-    if (k == ScuffKind.element_parameters_orderType_MaxValue) return "element_parameters_orderType_MaxValue";
-    if (k == ScuffKind.element_signature_head_DirtyBits) return "element_signature_head_DirtyBits";
-    if (k == ScuffKind.element_signature_head_MaxValue) return "element_signature_head_MaxValue";
-    if (k == ScuffKind.element_signature_length_DirtyBits) return "element_signature_length_DirtyBits";
-    if (k == ScuffKind.element_signature_length_MaxValue) return "element_signature_length_MaxValue";
-    return "element_signature_DirtyLowerBits";
+    if (k == ScuffKind.element_parameters_orderType_DirtyBits) return "element_parameters_orderType_DirtyBits";
+    return "element_parameters_orderType_MaxValue";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

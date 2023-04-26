@@ -25,9 +25,9 @@ using OrderParametersPointerLibrary for OrderParametersPointer global;
 ///   uint256 totalOriginalConsiderationItems;
 /// }
 library OrderParametersPointerLibrary {
-  enum ScuffKind { offer_head_DirtyBits, offer_head_MaxValue, offer_length_DirtyBits, offer_length_MaxValue, offer_element_itemType_MaxValue, consideration_head_DirtyBits, consideration_head_MaxValue, consideration_length_DirtyBits, consideration_length_MaxValue, consideration_element_itemType_MaxValue, consideration_element_recipient_DirtyBits, orderType_MaxValue }
+  enum ScuffKind { offerer_DirtyBits, zone_DirtyBits, offer_element_itemType_DirtyBits, offer_element_itemType_MaxValue, offer_element_token_DirtyBits, consideration_element_itemType_DirtyBits, consideration_element_itemType_MaxValue, consideration_element_token_DirtyBits, consideration_element_recipient_DirtyBits, orderType_DirtyBits, orderType_MaxValue }
 
-  enum ScuffableField { offer_head, offer, consideration_head, consideration, orderType }
+  enum ScuffableField { offerer, zone, offer, consideration, orderType }
 
   uint256 internal constant zoneOffset = 0x20;
   uint256 internal constant offerOffset = 0x40;
@@ -40,9 +40,9 @@ library OrderParametersPointerLibrary {
   uint256 internal constant conduitKeyOffset = 0x0120;
   uint256 internal constant totalOriginalConsiderationItemsOffset = 0x0140;
   uint256 internal constant HeadSize = 0x0160;
-  uint256 internal constant MinimumOfferScuffKind = uint256(ScuffKind.offer_length_DirtyBits);
-  uint256 internal constant MaximumOfferScuffKind = uint256(ScuffKind.offer_element_itemType_MaxValue);
-  uint256 internal constant MinimumConsiderationScuffKind = uint256(ScuffKind.consideration_length_DirtyBits);
+  uint256 internal constant MinimumOfferScuffKind = uint256(ScuffKind.offer_element_itemType_DirtyBits);
+  uint256 internal constant MaximumOfferScuffKind = uint256(ScuffKind.offer_element_token_DirtyBits);
+  uint256 internal constant MinimumConsiderationScuffKind = uint256(ScuffKind.consideration_element_itemType_DirtyBits);
   uint256 internal constant MaximumConsiderationScuffKind = uint256(ScuffKind.consideration_element_recipient_DirtyBits);
 
   /// @dev Convert a `MemoryPointer` to a `OrderParametersPointer`.
@@ -139,18 +139,16 @@ library OrderParametersPointerLibrary {
   }
 
   function addScuffDirectives(OrderParametersPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to offer head
-    directives.push(Scuff.upper(uint256(ScuffKind.offer_head_DirtyBits) + kindOffset, 224, ptr.offerHead(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.offer_head_MaxValue) + kindOffset, 229, ptr.offerHead(), positions));
+    /// @dev Add dirty upper bits to `offerer`
+    directives.push(Scuff.upper(uint256(ScuffKind.offerer_DirtyBits) + kindOffset, 96, ptr.offerer(), positions));
+    /// @dev Add dirty upper bits to `zone`
+    directives.push(Scuff.upper(uint256(ScuffKind.zone_DirtyBits) + kindOffset, 96, ptr.zone(), positions));
     /// @dev Add all nested directives in offer
     ptr.offerData().addScuffDirectives(directives, kindOffset + MinimumOfferScuffKind, positions);
-    /// @dev Add dirty upper bits to consideration head
-    directives.push(Scuff.upper(uint256(ScuffKind.consideration_head_DirtyBits) + kindOffset, 224, ptr.considerationHead(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.consideration_head_MaxValue) + kindOffset, 229, ptr.considerationHead(), positions));
     /// @dev Add all nested directives in consideration
     ptr.considerationData().addScuffDirectives(directives, kindOffset + MinimumConsiderationScuffKind, positions);
+    /// @dev Add dirty upper bits to `orderType`
+    directives.push(Scuff.upper(uint256(ScuffKind.orderType_DirtyBits) + kindOffset, 253, ptr.orderType(), positions));
     /// @dev Set every bit in `orderType` to 1
     directives.push(Scuff.lower(uint256(ScuffKind.orderType_MaxValue) + kindOffset, 253, ptr.orderType(), positions));
   }
@@ -163,17 +161,16 @@ library OrderParametersPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.offer_head_DirtyBits) return "offer_head_DirtyBits";
-    if (k == ScuffKind.offer_head_MaxValue) return "offer_head_MaxValue";
-    if (k == ScuffKind.offer_length_DirtyBits) return "offer_length_DirtyBits";
-    if (k == ScuffKind.offer_length_MaxValue) return "offer_length_MaxValue";
+    if (k == ScuffKind.offerer_DirtyBits) return "offerer_DirtyBits";
+    if (k == ScuffKind.zone_DirtyBits) return "zone_DirtyBits";
+    if (k == ScuffKind.offer_element_itemType_DirtyBits) return "offer_element_itemType_DirtyBits";
     if (k == ScuffKind.offer_element_itemType_MaxValue) return "offer_element_itemType_MaxValue";
-    if (k == ScuffKind.consideration_head_DirtyBits) return "consideration_head_DirtyBits";
-    if (k == ScuffKind.consideration_head_MaxValue) return "consideration_head_MaxValue";
-    if (k == ScuffKind.consideration_length_DirtyBits) return "consideration_length_DirtyBits";
-    if (k == ScuffKind.consideration_length_MaxValue) return "consideration_length_MaxValue";
+    if (k == ScuffKind.offer_element_token_DirtyBits) return "offer_element_token_DirtyBits";
+    if (k == ScuffKind.consideration_element_itemType_DirtyBits) return "consideration_element_itemType_DirtyBits";
     if (k == ScuffKind.consideration_element_itemType_MaxValue) return "consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.consideration_element_token_DirtyBits) return "consideration_element_token_DirtyBits";
     if (k == ScuffKind.consideration_element_recipient_DirtyBits) return "consideration_element_recipient_DirtyBits";
+    if (k == ScuffKind.orderType_DirtyBits) return "orderType_DirtyBits";
     return "orderType_MaxValue";
   }
 

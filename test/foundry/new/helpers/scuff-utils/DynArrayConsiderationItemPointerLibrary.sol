@@ -11,12 +11,12 @@ using DynArrayConsiderationItemPointerLibrary for DynArrayConsiderationItemPoint
 
 /// @dev Library for resolving pointers of encoded ConsiderationItem[]
 library DynArrayConsiderationItemPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_itemType_MaxValue, element_recipient_DirtyBits }
+  enum ScuffKind { element_itemType_DirtyBits, element_itemType_MaxValue, element_token_DirtyBits, element_recipient_DirtyBits }
 
-  enum ScuffableField { length, element }
+  enum ScuffableField { element }
 
   uint256 internal constant CalldataStride = 0xc0;
-  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_itemType_MaxValue);
+  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_itemType_DirtyBits);
   uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_recipient_DirtyBits);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayConsiderationItemPointer`.
@@ -63,10 +63,6 @@ library DynArrayConsiderationItemPointerLibrary {
   }
 
   function addScuffDirectives(DynArrayConsiderationItemPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
-    /// @dev Add dirty upper bits to length
-    directives.push(Scuff.upper(uint256(ScuffKind.length_DirtyBits) + kindOffset, 224, ptr.length(), positions));
-    /// @dev Set every bit in length to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.length_MaxValue) + kindOffset, 229, ptr.length(), positions));
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
@@ -83,9 +79,9 @@ library DynArrayConsiderationItemPointerLibrary {
   }
 
   function toString(ScuffKind k) internal pure returns (string memory) {
-    if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
-    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
+    if (k == ScuffKind.element_itemType_DirtyBits) return "element_itemType_DirtyBits";
     if (k == ScuffKind.element_itemType_MaxValue) return "element_itemType_MaxValue";
+    if (k == ScuffKind.element_token_DirtyBits) return "element_token_DirtyBits";
     return "element_recipient_DirtyBits";
   }
 
