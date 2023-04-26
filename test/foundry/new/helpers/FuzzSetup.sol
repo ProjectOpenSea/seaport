@@ -471,9 +471,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         context.registerCheck(
             FuzzChecks.check_contractOrderExpectedDataHashes.selector
         );
-        // context.registerCheck(
-        //     FuzzChecks.check_expectedSeaportEventsEmitted.selector
-        // );
+        context.registerCheck(
+            FuzzChecks.check_expectedSeaportEventsEmitted.selector
+        );
         context.registerCheck(FuzzChecks.check_orderStatusFullyFilled.selector);
     }
 
