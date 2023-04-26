@@ -41,6 +41,7 @@ test = 'reference'
 via_ir = true
 out = 'optimized-out'
 script = 'contracts'
+bytecode_hash = 'none'
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
 test ='contracts'
 
