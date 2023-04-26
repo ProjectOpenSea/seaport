@@ -11,7 +11,7 @@
 
 # Seaport
 
-Seaport is a new marketplace protocol for safely and efficiently buying and selling NFTs.
+Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs.
 
 ## Table of Contents
 
@@ -60,6 +60,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <td><code>0x00000000000001ad428e4906aE43D8F9852d0dD6</code></td>
 </tr>
 <tr>
+<td>Seaport 1.5</td>
+<td><code>0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC</code></td>
+</tr>
+<tr>
 <td>ConduitController</td>
 <td><code>0x00000000F9490004C11Cef243f5400493c00Ad63</code></td>
 </tr>
@@ -74,6 +78,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 <th>Network</th>
 <th>Seaport 1.1</th>
 <th>Seaport 1.4</th>
+<th>Seaport 1.5</th>
 <th>ConduitController</th>
 </tr>
 
@@ -84,6 +89,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://etherscan.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
 
 </td><td>
 
@@ -100,6 +109,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -110,6 +123,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://sepolia.etherscan.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -126,6 +143,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -136,6 +157,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://mumbai.polygonscan.com/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -152,6 +177,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -162,6 +191,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://baobab.scope.klaytn.com/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -178,6 +211,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://optimistic.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -188,6 +225,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://goerli-optimism.etherscan.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -204,6 +245,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -214,6 +259,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://goerli.arbiscan.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -230,6 +279,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://nova.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -240,6 +293,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://snowtrace.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -256,6 +313,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -266,6 +327,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://gnosisscan.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
@@ -282,6 +347,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 
 </td><td>
 
+-
+
+</td><td>
+
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
@@ -292,6 +361,10 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 </td><td>
 
 [0x00000000000001ad428e4906aE43D8F9852d0dD6](https://testnet.bscscan.com/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
+
+</td><td>
+
+-
 
 </td><td>
 
