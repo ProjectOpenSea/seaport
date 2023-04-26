@@ -26,10 +26,6 @@ import {
     AmountDeriverHelper
 } from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
-import {
-    HashCalldataContractOfferer
-} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
-
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
 import { ExecutionsFlattener } from "./event-utils/ExecutionsFlattener.sol";
@@ -168,6 +164,7 @@ library CheckHelpers {
 abstract contract FuzzSetup is Test, AmountDeriverHelper {
     using CheckHelpers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for FuzzTestContext;
 
     using FuzzHelpers for AdvancedOrder[];
     using ZoneParametersLib for AdvancedOrder[];
@@ -229,14 +226,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
     }
 
-    function setUpContractOfferers(FuzzTestContext memory context) public {
+    function setUpContractOfferers(FuzzTestContext memory context) public pure {
         bytes32[2][] memory contractOrderCalldataHashes = context
-            .executionState
-            .orders
-            .getExpectedContractOffererCalldataHashes(
-                context.executionState.caller,
-                context.executionState.orderHashes
-            );
+            .getExpectedContractOffererCalldataHashes();
 
         bytes32[2][]
             memory expectedContractOrderCalldataHashes = new bytes32[2][](
@@ -244,10 +236,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             );
 
         bool registerChecks;
-
-        HashCalldataContractOfferer contractOfferer = new HashCalldataContractOfferer(
-                address(context.seaport)
-            );
 
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             OrderParameters memory order = context
@@ -265,8 +253,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 expectedContractOrderCalldataHashes[i][
                     1
                 ] = contractOrderCalldataHashes[i][1];
-
-                order.offerer = address(contractOfferer);
             }
         }
 

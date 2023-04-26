@@ -763,10 +763,20 @@ library FuzzHelpers {
      *      the expected calldata hashes for calls to validateOrder.
      */
     function getExpectedContractOffererCalldataHashes(
-        AdvancedOrder[] memory orders,
-        address fulfiller,
-        bytes32[] memory orderHashes
+        FuzzTestContext memory context
     ) internal pure returns (bytes32[2][] memory) {
+        AdvancedOrder[] memory orders = context.executionState.orders;
+        address fulfiller = context.executionState.caller;
+
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+        for (uint256 i = 0; i < orderHashes.length; ++i) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                orderHashes[i] = bytes32(0);
+            } else {
+                orderHashes[i] = context.executionState.orderHashes[i];
+            }
+        }
+
         bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
 
         // Iterate over contract orders to derive calldataHashes
@@ -788,16 +798,11 @@ library FuzzHelpers {
                 .consideration
                 .toSpentItemArray();
 
-            ReceivedItem[] memory receivedItems = order
-                .parameters
-                .consideration
-                .toReceivedItemArray();
-
             // Derive the expected calldata hash for the call to generateOrder
             calldataHashes[i][0] = keccak256(
                 abi.encodeCall(
                     ContractOffererInterface.generateOrder,
-                    (fulfiller, minimumReceived, maximumSpent, "")
+                    (fulfiller, minimumReceived, maximumSpent, order.extraData)
                 )
             );
 
@@ -812,7 +817,13 @@ library FuzzHelpers {
             calldataHashes[i][1] = keccak256(
                 abi.encodeCall(
                     ContractOffererInterface.ratifyOrder,
-                    (minimumReceived, receivedItems, "", orderHashes, counter)
+                    (
+                        context.executionState.orderDetails[i].offer,
+                        context.executionState.orderDetails[i].consideration,
+                        order.extraData,
+                        orderHashes,
+                        counter
+                    )
                 )
             );
         }
