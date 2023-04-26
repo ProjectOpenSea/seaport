@@ -109,12 +109,9 @@
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
     "clean:metrics": "find . -type f -name \\*-metrics.txt -exec rm {} \\;",
     "clean:debug": "find ./.debug -type f -name \\*.json -exec rm {} \\;",
-    "clean:fuzz": "yarn clean:metrics; yarn clean:debug; echo 0 ./.debug/.count",
+    "clean:fuzz": "yarn clean:metrics; yarn clean:debug;",
     "sort-output": "ts-node scripts/sort_debug_output.ts",
-    "prepare": "husky install",
-    "somecmd:a": "echo \"running A\"",
-    "postsomecmd:a": "echo \"running after A\"",
-    "somecmd:b": "yarn somecmd:a"
+    "prepare": "husky install"
   },
   "lint-staged": {
     "*.sol": "prettier --write",
