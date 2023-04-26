@@ -13,7 +13,7 @@ using CancelPointerLibrary for CancelPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// cancel(OrderComponents[])
 library CancelPointerLibrary {
-  enum ScuffKind { orders_head_DirtyBits, orders_head_MaxValue, orders_length_DirtyBits, orders_length_MaxValue, orders_element_head_DirtyBits, orders_element_head_MaxValue, orders_element_offer_head_DirtyBits, orders_element_offer_head_MaxValue, orders_element_offer_length_DirtyBits, orders_element_offer_length_MaxValue, orders_element_offer_element_itemType_MaxValue, orders_element_consideration_head_DirtyBits, orders_element_consideration_head_MaxValue, orders_element_consideration_length_DirtyBits, orders_element_consideration_length_MaxValue, orders_element_consideration_element_itemType_MaxValue, orders_element_orderType_MaxValue }
+  enum ScuffKind { orders_head_DirtyBits, orders_head_MaxValue, orders_length_DirtyBits, orders_length_MaxValue, orders_element_head_DirtyBits, orders_element_head_MaxValue, orders_element_offer_head_DirtyBits, orders_element_offer_head_MaxValue, orders_element_offer_length_DirtyBits, orders_element_offer_length_MaxValue, orders_element_offer_element_itemType_MaxValue, orders_element_consideration_head_DirtyBits, orders_element_consideration_head_MaxValue, orders_element_consideration_length_DirtyBits, orders_element_consideration_length_MaxValue, orders_element_consideration_element_itemType_MaxValue, orders_element_consideration_element_recipient_DirtyBits, orders_element_orderType_MaxValue }
 
   enum ScuffableField { orders_head, orders }
 
@@ -111,6 +111,7 @@ library CancelPointerLibrary {
     if (k == ScuffKind.orders_element_consideration_length_DirtyBits) return "orders_element_consideration_length_DirtyBits";
     if (k == ScuffKind.orders_element_consideration_length_MaxValue) return "orders_element_consideration_length_MaxValue";
     if (k == ScuffKind.orders_element_consideration_element_itemType_MaxValue) return "orders_element_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.orders_element_consideration_element_recipient_DirtyBits) return "orders_element_consideration_element_recipient_DirtyBits";
     return "orders_element_orderType_MaxValue";
   }
 

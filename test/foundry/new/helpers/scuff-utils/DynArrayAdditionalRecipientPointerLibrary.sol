@@ -11,11 +11,13 @@ using DynArrayAdditionalRecipientPointerLibrary for DynArrayAdditionalRecipientP
 
 /// @dev Library for resolving pointers of encoded AdditionalRecipient[]
 library DynArrayAdditionalRecipientPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_recipient_DirtyBits }
 
-  enum ScuffableField { length }
+  enum ScuffableField { length, element }
 
   uint256 internal constant CalldataStride = 0x40;
+  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_recipient_DirtyBits);
+  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_recipient_DirtyBits);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayAdditionalRecipientPointer`.
   /// This adds `DynArrayAdditionalRecipientPointerLibrary` functions as members of the pointer
@@ -68,6 +70,8 @@ library DynArrayAdditionalRecipientPointerLibrary {
     uint256 len = ptr.length().readUint256();
     for (uint256 i; i < len; i++) {
       ScuffPositions pos = positions.push(i);
+      /// @dev Add all nested directives in element
+      ptr.elementData(i).addScuffDirectives(directives, kindOffset + MinimumElementScuffKind, pos);
     }
   }
 
@@ -80,7 +84,8 @@ library DynArrayAdditionalRecipientPointerLibrary {
 
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
-    return "length_MaxValue";
+    if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
+    return "element_recipient_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

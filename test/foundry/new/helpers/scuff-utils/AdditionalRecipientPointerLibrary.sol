@@ -14,6 +14,10 @@ using AdditionalRecipientPointerLibrary for AdditionalRecipientPointer global;
 ///   address recipient;
 /// }
 library AdditionalRecipientPointerLibrary {
+  enum ScuffKind { recipient_DirtyBits }
+
+  enum ScuffableField { recipient }
+
   uint256 internal constant recipientOffset = 0x20;
 
   /// @dev Convert a `MemoryPointer` to a `AdditionalRecipientPointer`.
@@ -37,5 +41,29 @@ library AdditionalRecipientPointerLibrary {
   /// This points to the beginning of the encoded `address`
   function recipient(AdditionalRecipientPointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap().offset(recipientOffset);
+  }
+
+  function addScuffDirectives(AdditionalRecipientPointer ptr, ScuffDirectivesArray directives, uint256 kindOffset, ScuffPositions positions) internal pure {
+    /// @dev Add dirty upper bits to `recipient`
+    directives.push(Scuff.upper(uint256(ScuffKind.recipient_DirtyBits) + kindOffset, 96, ptr.recipient(), positions));
+  }
+
+  function getScuffDirectives(AdditionalRecipientPointer ptr) internal pure returns (ScuffDirective[] memory) {
+    ScuffDirectivesArray directives = Scuff.makeUnallocatedArray();
+    ScuffPositions positions = EmptyPositions;
+    addScuffDirectives(ptr, directives, 0, positions);
+    return directives.finalize();
+  }
+
+  function toString(ScuffKind k) internal pure returns (string memory) {
+    return "recipient_DirtyBits";
+  }
+
+  function toKind(uint256 k) internal pure returns (ScuffKind) {
+    return ScuffKind(k);
+  }
+
+  function toKindString(uint256 k) internal pure returns (string memory) {
+    return toString(toKind(k));
   }
 }

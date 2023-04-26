@@ -13,7 +13,7 @@ using GetOrderHashPointerLibrary for GetOrderHashPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// getOrderHash(OrderComponents)
 library GetOrderHashPointerLibrary {
-  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_offer_head_DirtyBits, order_offer_head_MaxValue, order_offer_length_DirtyBits, order_offer_length_MaxValue, order_offer_element_itemType_MaxValue, order_consideration_head_DirtyBits, order_consideration_head_MaxValue, order_consideration_length_DirtyBits, order_consideration_length_MaxValue, order_consideration_element_itemType_MaxValue, order_orderType_MaxValue }
+  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_offer_head_DirtyBits, order_offer_head_MaxValue, order_offer_length_DirtyBits, order_offer_length_MaxValue, order_offer_element_itemType_MaxValue, order_consideration_head_DirtyBits, order_consideration_head_MaxValue, order_consideration_length_DirtyBits, order_consideration_length_MaxValue, order_consideration_element_itemType_MaxValue, order_consideration_element_recipient_DirtyBits, order_orderType_MaxValue }
 
   enum ScuffableField { order_head, order }
 
@@ -107,6 +107,7 @@ library GetOrderHashPointerLibrary {
     if (k == ScuffKind.order_consideration_length_DirtyBits) return "order_consideration_length_DirtyBits";
     if (k == ScuffKind.order_consideration_length_MaxValue) return "order_consideration_length_MaxValue";
     if (k == ScuffKind.order_consideration_element_itemType_MaxValue) return "order_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.order_consideration_element_recipient_DirtyBits) return "order_consideration_element_recipient_DirtyBits";
     return "order_orderType_MaxValue";
   }
 

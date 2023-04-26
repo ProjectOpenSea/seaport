@@ -15,7 +15,7 @@ using MatchAdvancedOrdersPointerLibrary for MatchAdvancedOrdersPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// matchAdvancedOrders(AdvancedOrder[],CriteriaResolver[],Fulfillment[],address)
 library MatchAdvancedOrdersPointerLibrary {
-  enum ScuffKind { orders_head_DirtyBits, orders_head_MaxValue, orders_length_DirtyBits, orders_length_MaxValue, orders_element_head_DirtyBits, orders_element_head_MaxValue, orders_element_parameters_head_DirtyBits, orders_element_parameters_head_MaxValue, orders_element_parameters_offer_head_DirtyBits, orders_element_parameters_offer_head_MaxValue, orders_element_parameters_offer_length_DirtyBits, orders_element_parameters_offer_length_MaxValue, orders_element_parameters_offer_element_itemType_MaxValue, orders_element_parameters_consideration_head_DirtyBits, orders_element_parameters_consideration_head_MaxValue, orders_element_parameters_consideration_length_DirtyBits, orders_element_parameters_consideration_length_MaxValue, orders_element_parameters_consideration_element_itemType_MaxValue, orders_element_parameters_orderType_MaxValue, orders_element_signature_head_DirtyBits, orders_element_signature_head_MaxValue, orders_element_signature_length_DirtyBits, orders_element_signature_length_MaxValue, orders_element_signature_DirtyLowerBits, orders_element_extraData_head_DirtyBits, orders_element_extraData_head_MaxValue, orders_element_extraData_length_DirtyBits, orders_element_extraData_length_MaxValue, orders_element_extraData_DirtyLowerBits, criteriaResolvers_head_DirtyBits, criteriaResolvers_head_MaxValue, criteriaResolvers_length_DirtyBits, criteriaResolvers_length_MaxValue, criteriaResolvers_element_head_DirtyBits, criteriaResolvers_element_head_MaxValue, criteriaResolvers_element_criteriaProof_head_DirtyBits, criteriaResolvers_element_criteriaProof_head_MaxValue, criteriaResolvers_element_criteriaProof_length_DirtyBits, criteriaResolvers_element_criteriaProof_length_MaxValue, fulfillments_head_DirtyBits, fulfillments_head_MaxValue, fulfillments_length_DirtyBits, fulfillments_length_MaxValue, fulfillments_element_head_DirtyBits, fulfillments_element_head_MaxValue, fulfillments_element_offerComponents_head_DirtyBits, fulfillments_element_offerComponents_head_MaxValue, fulfillments_element_offerComponents_length_DirtyBits, fulfillments_element_offerComponents_length_MaxValue, fulfillments_element_considerationComponents_head_DirtyBits, fulfillments_element_considerationComponents_head_MaxValue, fulfillments_element_considerationComponents_length_DirtyBits, fulfillments_element_considerationComponents_length_MaxValue, recipient_MaxValue }
+  enum ScuffKind { orders_head_DirtyBits, orders_head_MaxValue, orders_length_DirtyBits, orders_length_MaxValue, orders_element_head_DirtyBits, orders_element_head_MaxValue, orders_element_parameters_head_DirtyBits, orders_element_parameters_head_MaxValue, orders_element_parameters_offer_head_DirtyBits, orders_element_parameters_offer_head_MaxValue, orders_element_parameters_offer_length_DirtyBits, orders_element_parameters_offer_length_MaxValue, orders_element_parameters_offer_element_itemType_MaxValue, orders_element_parameters_consideration_head_DirtyBits, orders_element_parameters_consideration_head_MaxValue, orders_element_parameters_consideration_length_DirtyBits, orders_element_parameters_consideration_length_MaxValue, orders_element_parameters_consideration_element_itemType_MaxValue, orders_element_parameters_consideration_element_recipient_DirtyBits, orders_element_parameters_orderType_MaxValue, orders_element_signature_head_DirtyBits, orders_element_signature_head_MaxValue, orders_element_signature_length_DirtyBits, orders_element_signature_length_MaxValue, orders_element_signature_DirtyLowerBits, orders_element_extraData_head_DirtyBits, orders_element_extraData_head_MaxValue, orders_element_extraData_length_DirtyBits, orders_element_extraData_length_MaxValue, orders_element_extraData_DirtyLowerBits, criteriaResolvers_head_DirtyBits, criteriaResolvers_head_MaxValue, criteriaResolvers_length_DirtyBits, criteriaResolvers_length_MaxValue, criteriaResolvers_element_head_DirtyBits, criteriaResolvers_element_head_MaxValue, criteriaResolvers_element_side_MaxValue, criteriaResolvers_element_criteriaProof_head_DirtyBits, criteriaResolvers_element_criteriaProof_head_MaxValue, criteriaResolvers_element_criteriaProof_length_DirtyBits, criteriaResolvers_element_criteriaProof_length_MaxValue, fulfillments_head_DirtyBits, fulfillments_head_MaxValue, fulfillments_length_DirtyBits, fulfillments_length_MaxValue, fulfillments_element_head_DirtyBits, fulfillments_element_head_MaxValue, fulfillments_element_offerComponents_head_DirtyBits, fulfillments_element_offerComponents_head_MaxValue, fulfillments_element_offerComponents_length_DirtyBits, fulfillments_element_offerComponents_length_MaxValue, fulfillments_element_considerationComponents_head_DirtyBits, fulfillments_element_considerationComponents_head_MaxValue, fulfillments_element_considerationComponents_length_DirtyBits, fulfillments_element_considerationComponents_length_MaxValue, recipient_DirtyBits }
 
   enum ScuffableField { orders_head, orders, criteriaResolvers_head, criteriaResolvers, fulfillments_head, fulfillments, recipient }
 
@@ -130,8 +130,8 @@ library MatchAdvancedOrdersPointerLibrary {
     directives.push(Scuff.lower(uint256(ScuffKind.fulfillments_head_MaxValue) + kindOffset, 229, ptr.fulfillmentsHead(), positions));
     /// @dev Add all nested directives in fulfillments
     ptr.fulfillmentsData().addScuffDirectives(directives, kindOffset + MinimumFulfillmentsScuffKind, positions);
-    /// @dev Set every bit in `recipient` to 1
-    directives.push(Scuff.lower(uint256(ScuffKind.recipient_MaxValue) + kindOffset, 96, ptr.recipient(), positions));
+    /// @dev Add dirty upper bits to `recipient`
+    directives.push(Scuff.upper(uint256(ScuffKind.recipient_DirtyBits) + kindOffset, 96, ptr.recipient(), positions));
   }
 
   function getScuffDirectives(MatchAdvancedOrdersPointer ptr) internal pure returns (ScuffDirective[] memory) {
@@ -164,6 +164,7 @@ library MatchAdvancedOrdersPointerLibrary {
     if (k == ScuffKind.orders_element_parameters_consideration_length_DirtyBits) return "orders_element_parameters_consideration_length_DirtyBits";
     if (k == ScuffKind.orders_element_parameters_consideration_length_MaxValue) return "orders_element_parameters_consideration_length_MaxValue";
     if (k == ScuffKind.orders_element_parameters_consideration_element_itemType_MaxValue) return "orders_element_parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.orders_element_parameters_consideration_element_recipient_DirtyBits) return "orders_element_parameters_consideration_element_recipient_DirtyBits";
     if (k == ScuffKind.orders_element_parameters_orderType_MaxValue) return "orders_element_parameters_orderType_MaxValue";
     if (k == ScuffKind.orders_element_signature_head_DirtyBits) return "orders_element_signature_head_DirtyBits";
     if (k == ScuffKind.orders_element_signature_head_MaxValue) return "orders_element_signature_head_MaxValue";
@@ -181,6 +182,7 @@ library MatchAdvancedOrdersPointerLibrary {
     if (k == ScuffKind.criteriaResolvers_length_MaxValue) return "criteriaResolvers_length_MaxValue";
     if (k == ScuffKind.criteriaResolvers_element_head_DirtyBits) return "criteriaResolvers_element_head_DirtyBits";
     if (k == ScuffKind.criteriaResolvers_element_head_MaxValue) return "criteriaResolvers_element_head_MaxValue";
+    if (k == ScuffKind.criteriaResolvers_element_side_MaxValue) return "criteriaResolvers_element_side_MaxValue";
     if (k == ScuffKind.criteriaResolvers_element_criteriaProof_head_DirtyBits) return "criteriaResolvers_element_criteriaProof_head_DirtyBits";
     if (k == ScuffKind.criteriaResolvers_element_criteriaProof_head_MaxValue) return "criteriaResolvers_element_criteriaProof_head_MaxValue";
     if (k == ScuffKind.criteriaResolvers_element_criteriaProof_length_DirtyBits) return "criteriaResolvers_element_criteriaProof_length_DirtyBits";
@@ -199,7 +201,7 @@ library MatchAdvancedOrdersPointerLibrary {
     if (k == ScuffKind.fulfillments_element_considerationComponents_head_MaxValue) return "fulfillments_element_considerationComponents_head_MaxValue";
     if (k == ScuffKind.fulfillments_element_considerationComponents_length_DirtyBits) return "fulfillments_element_considerationComponents_length_DirtyBits";
     if (k == ScuffKind.fulfillments_element_considerationComponents_length_MaxValue) return "fulfillments_element_considerationComponents_length_MaxValue";
-    return "recipient_MaxValue";
+    return "recipient_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

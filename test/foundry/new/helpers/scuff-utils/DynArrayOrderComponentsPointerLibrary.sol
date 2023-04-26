@@ -11,7 +11,7 @@ using DynArrayOrderComponentsPointerLibrary for DynArrayOrderComponentsPointer g
 
 /// @dev Library for resolving pointers of encoded OrderComponents[]
 library DynArrayOrderComponentsPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_offer_head_DirtyBits, element_offer_head_MaxValue, element_offer_length_DirtyBits, element_offer_length_MaxValue, element_offer_element_itemType_MaxValue, element_consideration_head_DirtyBits, element_consideration_head_MaxValue, element_consideration_length_DirtyBits, element_consideration_length_MaxValue, element_consideration_element_itemType_MaxValue, element_orderType_MaxValue }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_offer_head_DirtyBits, element_offer_head_MaxValue, element_offer_length_DirtyBits, element_offer_length_MaxValue, element_offer_element_itemType_MaxValue, element_consideration_head_DirtyBits, element_consideration_head_MaxValue, element_consideration_length_DirtyBits, element_consideration_length_MaxValue, element_consideration_element_itemType_MaxValue, element_consideration_element_recipient_DirtyBits, element_orderType_MaxValue }
 
   enum ScuffableField { length, element_head, element }
 
@@ -117,6 +117,7 @@ library DynArrayOrderComponentsPointerLibrary {
     if (k == ScuffKind.element_consideration_length_DirtyBits) return "element_consideration_length_DirtyBits";
     if (k == ScuffKind.element_consideration_length_MaxValue) return "element_consideration_length_MaxValue";
     if (k == ScuffKind.element_consideration_element_itemType_MaxValue) return "element_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.element_consideration_element_recipient_DirtyBits) return "element_consideration_element_recipient_DirtyBits";
     return "element_orderType_MaxValue";
   }
 

@@ -25,7 +25,7 @@ using OrderParametersPointerLibrary for OrderParametersPointer global;
 ///   uint256 totalOriginalConsiderationItems;
 /// }
 library OrderParametersPointerLibrary {
-  enum ScuffKind { offer_head_DirtyBits, offer_head_MaxValue, offer_length_DirtyBits, offer_length_MaxValue, offer_element_itemType_MaxValue, consideration_head_DirtyBits, consideration_head_MaxValue, consideration_length_DirtyBits, consideration_length_MaxValue, consideration_element_itemType_MaxValue, orderType_MaxValue }
+  enum ScuffKind { offer_head_DirtyBits, offer_head_MaxValue, offer_length_DirtyBits, offer_length_MaxValue, offer_element_itemType_MaxValue, consideration_head_DirtyBits, consideration_head_MaxValue, consideration_length_DirtyBits, consideration_length_MaxValue, consideration_element_itemType_MaxValue, consideration_element_recipient_DirtyBits, orderType_MaxValue }
 
   enum ScuffableField { offer_head, offer, consideration_head, consideration, orderType }
 
@@ -43,7 +43,7 @@ library OrderParametersPointerLibrary {
   uint256 internal constant MinimumOfferScuffKind = uint256(ScuffKind.offer_length_DirtyBits);
   uint256 internal constant MaximumOfferScuffKind = uint256(ScuffKind.offer_element_itemType_MaxValue);
   uint256 internal constant MinimumConsiderationScuffKind = uint256(ScuffKind.consideration_length_DirtyBits);
-  uint256 internal constant MaximumConsiderationScuffKind = uint256(ScuffKind.consideration_element_itemType_MaxValue);
+  uint256 internal constant MaximumConsiderationScuffKind = uint256(ScuffKind.consideration_element_recipient_DirtyBits);
 
   /// @dev Convert a `MemoryPointer` to a `OrderParametersPointer`.
   /// This adds `OrderParametersPointerLibrary` functions as members of the pointer
@@ -173,6 +173,7 @@ library OrderParametersPointerLibrary {
     if (k == ScuffKind.consideration_length_DirtyBits) return "consideration_length_DirtyBits";
     if (k == ScuffKind.consideration_length_MaxValue) return "consideration_length_MaxValue";
     if (k == ScuffKind.consideration_element_itemType_MaxValue) return "consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.consideration_element_recipient_DirtyBits) return "consideration_element_recipient_DirtyBits";
     return "orderType_MaxValue";
   }
 

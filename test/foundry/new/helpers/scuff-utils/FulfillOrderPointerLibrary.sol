@@ -13,7 +13,7 @@ using FulfillOrderPointerLibrary for FulfillOrderPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// fulfillOrder(Order,bytes32)
 library FulfillOrderPointerLibrary {
-  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_parameters_head_DirtyBits, order_parameters_head_MaxValue, order_parameters_offer_head_DirtyBits, order_parameters_offer_head_MaxValue, order_parameters_offer_length_DirtyBits, order_parameters_offer_length_MaxValue, order_parameters_offer_element_itemType_MaxValue, order_parameters_consideration_head_DirtyBits, order_parameters_consideration_head_MaxValue, order_parameters_consideration_length_DirtyBits, order_parameters_consideration_length_MaxValue, order_parameters_consideration_element_itemType_MaxValue, order_parameters_orderType_MaxValue, order_signature_head_DirtyBits, order_signature_head_MaxValue, order_signature_length_DirtyBits, order_signature_length_MaxValue, order_signature_DirtyLowerBits }
+  enum ScuffKind { order_head_DirtyBits, order_head_MaxValue, order_parameters_head_DirtyBits, order_parameters_head_MaxValue, order_parameters_offer_head_DirtyBits, order_parameters_offer_head_MaxValue, order_parameters_offer_length_DirtyBits, order_parameters_offer_length_MaxValue, order_parameters_offer_element_itemType_MaxValue, order_parameters_consideration_head_DirtyBits, order_parameters_consideration_head_MaxValue, order_parameters_consideration_length_DirtyBits, order_parameters_consideration_length_MaxValue, order_parameters_consideration_element_itemType_MaxValue, order_parameters_consideration_element_recipient_DirtyBits, order_parameters_orderType_MaxValue, order_signature_head_DirtyBits, order_signature_head_MaxValue, order_signature_length_DirtyBits, order_signature_length_MaxValue, order_signature_DirtyLowerBits }
 
   enum ScuffableField { order_head, order }
 
@@ -116,6 +116,7 @@ library FulfillOrderPointerLibrary {
     if (k == ScuffKind.order_parameters_consideration_length_DirtyBits) return "order_parameters_consideration_length_DirtyBits";
     if (k == ScuffKind.order_parameters_consideration_length_MaxValue) return "order_parameters_consideration_length_MaxValue";
     if (k == ScuffKind.order_parameters_consideration_element_itemType_MaxValue) return "order_parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.order_parameters_consideration_element_recipient_DirtyBits) return "order_parameters_consideration_element_recipient_DirtyBits";
     if (k == ScuffKind.order_parameters_orderType_MaxValue) return "order_parameters_orderType_MaxValue";
     if (k == ScuffKind.order_signature_head_DirtyBits) return "order_signature_head_DirtyBits";
     if (k == ScuffKind.order_signature_head_MaxValue) return "order_signature_head_MaxValue";

@@ -11,12 +11,12 @@ using DynArrayCriteriaResolverPointerLibrary for DynArrayCriteriaResolverPointer
 
 /// @dev Library for resolving pointers of encoded CriteriaResolver[]
 library DynArrayCriteriaResolverPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_criteriaProof_head_DirtyBits, element_criteriaProof_head_MaxValue, element_criteriaProof_length_DirtyBits, element_criteriaProof_length_MaxValue }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_side_MaxValue, element_criteriaProof_head_DirtyBits, element_criteriaProof_head_MaxValue, element_criteriaProof_length_DirtyBits, element_criteriaProof_length_MaxValue }
 
   enum ScuffableField { length, element_head, element }
 
   uint256 internal constant CalldataStride = 0x20;
-  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_criteriaProof_head_DirtyBits);
+  uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_side_MaxValue);
   uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_criteriaProof_length_MaxValue);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayCriteriaResolverPointer`.
@@ -107,6 +107,7 @@ library DynArrayCriteriaResolverPointerLibrary {
     if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
     if (k == ScuffKind.element_head_DirtyBits) return "element_head_DirtyBits";
     if (k == ScuffKind.element_head_MaxValue) return "element_head_MaxValue";
+    if (k == ScuffKind.element_side_MaxValue) return "element_side_MaxValue";
     if (k == ScuffKind.element_criteriaProof_head_DirtyBits) return "element_criteriaProof_head_DirtyBits";
     if (k == ScuffKind.element_criteriaProof_head_MaxValue) return "element_criteriaProof_head_MaxValue";
     if (k == ScuffKind.element_criteriaProof_length_DirtyBits) return "element_criteriaProof_length_DirtyBits";

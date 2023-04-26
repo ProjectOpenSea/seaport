@@ -11,7 +11,7 @@ using DynArrayOrderPointerLibrary for DynArrayOrderPointer global;
 
 /// @dev Library for resolving pointers of encoded Order[]
 library DynArrayOrderPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_parameters_head_DirtyBits, element_parameters_head_MaxValue, element_parameters_offer_head_DirtyBits, element_parameters_offer_head_MaxValue, element_parameters_offer_length_DirtyBits, element_parameters_offer_length_MaxValue, element_parameters_offer_element_itemType_MaxValue, element_parameters_consideration_head_DirtyBits, element_parameters_consideration_head_MaxValue, element_parameters_consideration_length_DirtyBits, element_parameters_consideration_length_MaxValue, element_parameters_consideration_element_itemType_MaxValue, element_parameters_orderType_MaxValue, element_signature_head_DirtyBits, element_signature_head_MaxValue, element_signature_length_DirtyBits, element_signature_length_MaxValue, element_signature_DirtyLowerBits }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_head_DirtyBits, element_head_MaxValue, element_parameters_head_DirtyBits, element_parameters_head_MaxValue, element_parameters_offer_head_DirtyBits, element_parameters_offer_head_MaxValue, element_parameters_offer_length_DirtyBits, element_parameters_offer_length_MaxValue, element_parameters_offer_element_itemType_MaxValue, element_parameters_consideration_head_DirtyBits, element_parameters_consideration_head_MaxValue, element_parameters_consideration_length_DirtyBits, element_parameters_consideration_length_MaxValue, element_parameters_consideration_element_itemType_MaxValue, element_parameters_consideration_element_recipient_DirtyBits, element_parameters_orderType_MaxValue, element_signature_head_DirtyBits, element_signature_head_MaxValue, element_signature_length_DirtyBits, element_signature_length_MaxValue, element_signature_DirtyLowerBits }
 
   enum ScuffableField { length, element_head, element }
 
@@ -119,6 +119,7 @@ library DynArrayOrderPointerLibrary {
     if (k == ScuffKind.element_parameters_consideration_length_DirtyBits) return "element_parameters_consideration_length_DirtyBits";
     if (k == ScuffKind.element_parameters_consideration_length_MaxValue) return "element_parameters_consideration_length_MaxValue";
     if (k == ScuffKind.element_parameters_consideration_element_itemType_MaxValue) return "element_parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.element_parameters_consideration_element_recipient_DirtyBits) return "element_parameters_consideration_element_recipient_DirtyBits";
     if (k == ScuffKind.element_parameters_orderType_MaxValue) return "element_parameters_orderType_MaxValue";
     if (k == ScuffKind.element_signature_head_DirtyBits) return "element_signature_head_DirtyBits";
     if (k == ScuffKind.element_signature_head_MaxValue) return "element_signature_head_MaxValue";

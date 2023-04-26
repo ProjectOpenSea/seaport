@@ -13,14 +13,14 @@ using FulfillBasicOrderPointerLibrary for FulfillBasicOrderPointer global;
 /// @dev Library for resolving pointers of encoded calldata for
 /// fulfillBasicOrder(BasicOrderParameters)
 library FulfillBasicOrderPointerLibrary {
-  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_additionalRecipients_head_DirtyBits, parameters_additionalRecipients_head_MaxValue, parameters_additionalRecipients_length_DirtyBits, parameters_additionalRecipients_length_MaxValue, parameters_signature_head_DirtyBits, parameters_signature_head_MaxValue, parameters_signature_length_DirtyBits, parameters_signature_length_MaxValue, parameters_signature_DirtyLowerBits }
+  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_basicOrderType_MaxValue, parameters_additionalRecipients_head_DirtyBits, parameters_additionalRecipients_head_MaxValue, parameters_additionalRecipients_length_DirtyBits, parameters_additionalRecipients_length_MaxValue, parameters_additionalRecipients_element_recipient_DirtyBits, parameters_signature_head_DirtyBits, parameters_signature_head_MaxValue, parameters_signature_length_DirtyBits, parameters_signature_length_MaxValue, parameters_signature_DirtyLowerBits }
 
   enum ScuffableField { parameters_head, parameters }
 
   bytes4 internal constant FunctionSelector = 0xfb0f3ee1;
   string internal constant FunctionName = "fulfillBasicOrder";
   uint256 internal constant HeadSize = 0x20;
-  uint256 internal constant MinimumParametersScuffKind = uint256(ScuffKind.parameters_additionalRecipients_head_DirtyBits);
+  uint256 internal constant MinimumParametersScuffKind = uint256(ScuffKind.parameters_basicOrderType_MaxValue);
   uint256 internal constant MaximumParametersScuffKind = uint256(ScuffKind.parameters_signature_DirtyLowerBits);
 
   /// @dev Convert a `MemoryPointer` to a `FulfillBasicOrderPointer`.
@@ -97,10 +97,12 @@ library FulfillBasicOrderPointerLibrary {
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.parameters_head_DirtyBits) return "parameters_head_DirtyBits";
     if (k == ScuffKind.parameters_head_MaxValue) return "parameters_head_MaxValue";
+    if (k == ScuffKind.parameters_basicOrderType_MaxValue) return "parameters_basicOrderType_MaxValue";
     if (k == ScuffKind.parameters_additionalRecipients_head_DirtyBits) return "parameters_additionalRecipients_head_DirtyBits";
     if (k == ScuffKind.parameters_additionalRecipients_head_MaxValue) return "parameters_additionalRecipients_head_MaxValue";
     if (k == ScuffKind.parameters_additionalRecipients_length_DirtyBits) return "parameters_additionalRecipients_length_DirtyBits";
     if (k == ScuffKind.parameters_additionalRecipients_length_MaxValue) return "parameters_additionalRecipients_length_MaxValue";
+    if (k == ScuffKind.parameters_additionalRecipients_element_recipient_DirtyBits) return "parameters_additionalRecipients_element_recipient_DirtyBits";
     if (k == ScuffKind.parameters_signature_head_DirtyBits) return "parameters_signature_head_DirtyBits";
     if (k == ScuffKind.parameters_signature_head_MaxValue) return "parameters_signature_head_MaxValue";
     if (k == ScuffKind.parameters_signature_length_DirtyBits) return "parameters_signature_length_DirtyBits";

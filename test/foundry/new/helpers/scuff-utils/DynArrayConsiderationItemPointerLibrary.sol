@@ -11,13 +11,13 @@ using DynArrayConsiderationItemPointerLibrary for DynArrayConsiderationItemPoint
 
 /// @dev Library for resolving pointers of encoded ConsiderationItem[]
 library DynArrayConsiderationItemPointerLibrary {
-  enum ScuffKind { length_DirtyBits, length_MaxValue, element_itemType_MaxValue }
+  enum ScuffKind { length_DirtyBits, length_MaxValue, element_itemType_MaxValue, element_recipient_DirtyBits }
 
   enum ScuffableField { length, element }
 
   uint256 internal constant CalldataStride = 0xc0;
   uint256 internal constant MinimumElementScuffKind = uint256(ScuffKind.element_itemType_MaxValue);
-  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_itemType_MaxValue);
+  uint256 internal constant MaximumElementScuffKind = uint256(ScuffKind.element_recipient_DirtyBits);
 
   /// @dev Convert a `MemoryPointer` to a `DynArrayConsiderationItemPointer`.
   /// This adds `DynArrayConsiderationItemPointerLibrary` functions as members of the pointer
@@ -85,7 +85,8 @@ library DynArrayConsiderationItemPointerLibrary {
   function toString(ScuffKind k) internal pure returns (string memory) {
     if (k == ScuffKind.length_DirtyBits) return "length_DirtyBits";
     if (k == ScuffKind.length_MaxValue) return "length_MaxValue";
-    return "element_itemType_MaxValue";
+    if (k == ScuffKind.element_itemType_MaxValue) return "element_itemType_MaxValue";
+    return "element_recipient_DirtyBits";
   }
 
   function toKind(uint256 k) internal pure returns (ScuffKind) {

@@ -16,7 +16,7 @@ using OrderPointerLibrary for OrderPointer global;
 ///   bytes signature;
 /// }
 library OrderPointerLibrary {
-  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_offer_head_DirtyBits, parameters_offer_head_MaxValue, parameters_offer_length_DirtyBits, parameters_offer_length_MaxValue, parameters_offer_element_itemType_MaxValue, parameters_consideration_head_DirtyBits, parameters_consideration_head_MaxValue, parameters_consideration_length_DirtyBits, parameters_consideration_length_MaxValue, parameters_consideration_element_itemType_MaxValue, parameters_orderType_MaxValue, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_length_MaxValue, signature_DirtyLowerBits }
+  enum ScuffKind { parameters_head_DirtyBits, parameters_head_MaxValue, parameters_offer_head_DirtyBits, parameters_offer_head_MaxValue, parameters_offer_length_DirtyBits, parameters_offer_length_MaxValue, parameters_offer_element_itemType_MaxValue, parameters_consideration_head_DirtyBits, parameters_consideration_head_MaxValue, parameters_consideration_length_DirtyBits, parameters_consideration_length_MaxValue, parameters_consideration_element_itemType_MaxValue, parameters_consideration_element_recipient_DirtyBits, parameters_orderType_MaxValue, signature_head_DirtyBits, signature_head_MaxValue, signature_length_DirtyBits, signature_length_MaxValue, signature_DirtyLowerBits }
 
   enum ScuffableField { parameters_head, parameters, signature_head, signature }
 
@@ -101,6 +101,7 @@ library OrderPointerLibrary {
     if (k == ScuffKind.parameters_consideration_length_DirtyBits) return "parameters_consideration_length_DirtyBits";
     if (k == ScuffKind.parameters_consideration_length_MaxValue) return "parameters_consideration_length_MaxValue";
     if (k == ScuffKind.parameters_consideration_element_itemType_MaxValue) return "parameters_consideration_element_itemType_MaxValue";
+    if (k == ScuffKind.parameters_consideration_element_recipient_DirtyBits) return "parameters_consideration_element_recipient_DirtyBits";
     if (k == ScuffKind.parameters_orderType_MaxValue) return "parameters_orderType_MaxValue";
     if (k == ScuffKind.signature_head_DirtyBits) return "signature_head_DirtyBits";
     if (k == ScuffKind.signature_head_MaxValue) return "signature_head_MaxValue";
