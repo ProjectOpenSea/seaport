@@ -52,8 +52,8 @@ library FuzzEngineLib {
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
-     *      based on the orders in a given FuzzTestContext. Selects a random action
-     *      using the context's fuzzParams.seed when multiple actions are
+     *      based on the orders in a given FuzzTestContext. Selects a random
+     *      action using the context's fuzzParams.seed when multiple actions are
      *      available for the given order config.
      *
      * @param context A Fuzz test context.
@@ -70,6 +70,12 @@ library FuzzEngineLib {
         ]);
     }
 
+    /**
+     * @dev Get the human-readable name of the selected action.
+     *
+     * @param context A Fuzz test context.
+     * @return string name of the selected action.
+     */
     function actionName(
         FuzzTestContext memory context
     ) internal view returns (string memory) {
@@ -84,18 +90,6 @@ library FuzzEngineLib {
         if (selector == 0xa8174404) return "matchOrders";
 
         revert("Unknown selector");
-    }
-
-    function withDetectedRemainders(
-        FuzzTestContext memory context
-    ) internal returns (FuzzTestContext memory) {
-        (, , MatchComponent[] memory remainders) = context
-            .testHelpers
-            .getMatchedFulfillments(context.executionState.orderDetails);
-
-        context.executionState.hasRemainders = remainders.length != 0;
-
-        return context;
     }
 
     /**
@@ -487,5 +481,17 @@ library FuzzEngineLib {
         }
 
         return hugeCallValue - nativeTokensReturned;
+    }
+
+    function withDetectedRemainders(
+        FuzzTestContext memory context
+    ) internal returns (FuzzTestContext memory) {
+        (, , MatchComponent[] memory remainders) = context
+            .testHelpers
+            .getMatchedFulfillments(context.executionState.orderDetails);
+
+        context.executionState.hasRemainders = remainders.length != 0;
+
+        return context;
     }
 }
