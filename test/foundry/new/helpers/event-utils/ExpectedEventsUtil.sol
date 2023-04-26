@@ -249,15 +249,6 @@ library ExpectedEventsUtil {
         // Vm.Log[] memory logs = new Vm.Log[](rawLogs.length);
         Vm.Log[] memory logs = context.actualEvents;
 
-        // for (uint256 i = 0; i < logs.length; ++i) {
-        //     Vm.Log memory log = logs[i];
-        //     Log memory rawLog = rawLogs[i];
-
-        //     log.topics = rawLog.topics;
-        //     log.data = rawLog.data;
-        //     log.emitter = rawLog.emitter;
-        // }
-
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
         bytes32[] memory expectedSeaportEventHashes = context
             .expectations
