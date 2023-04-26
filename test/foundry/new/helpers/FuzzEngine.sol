@@ -361,6 +361,7 @@ contract FuzzEngine is
         // 6. maximumFullfilled is less than total orders provided and
         //    enough other orders are available
         setUpZoneParameters(context);
+        setUpContractOfferers(context);
         setUpOfferItems(context);
         setUpConsiderationItems(context);
     }

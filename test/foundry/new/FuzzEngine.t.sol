@@ -64,6 +64,7 @@ contract FuzzEngineTest is FuzzEngine {
     using ZoneParametersLib for AdvancedOrder[];
 
     using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
     using FuzzTestContextLib for FuzzTestContext;
@@ -1773,11 +1774,8 @@ contract FuzzEngineTest is FuzzEngine {
                 .withMaximumFulfilled(2);
 
             bytes32[2][] memory expectedContractOrderCalldataHashes;
-            expectedContractOrderCalldataHashes = advancedOrders
-                .getExpectedContractOffererCalldataHashes(
-                    address(this),
-                    context.executionState.orderHashes
-                );
+            expectedContractOrderCalldataHashes = context
+                .getExpectedContractOffererCalldataHashes();
             context
                 .expectations
                 .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
