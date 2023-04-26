@@ -136,10 +136,7 @@ library FuzzHelpers {
 
     event ExpectedGenerateOrderDataHash(bytes32 dataHash);
 
-    function _gcd(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (uint256) {
+    function _gcd(uint256 a, uint256 b) internal pure returns (uint256) {
         if (b == 0) {
             return a;
         } else {
@@ -763,12 +760,20 @@ library FuzzHelpers {
      *      the expected calldata hashes for calls to validateOrder.
      */
     function getExpectedContractOffererCalldataHashes(
-        AdvancedOrder[] memory orders,
-        address fulfiller,
-        bytes32[] memory orderHashes
-    ) internal pure returns (bytes32[2][] memory) {
-        bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
+        FuzzTestContext memory context
+    ) internal pure returns (bytes32[2][] memory calldataHashes) {
+        AdvancedOrder[] memory orders = context.executionState.orders;
+        address fulfiller = context.executionState.caller;
 
+        bytes32[] memory orderHashes = new bytes32[](orders.length);
+        for (uint256 i = 0; i < orderHashes.length; ++i) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
+                orderHashes[i] = bytes32(0);
+            } else {
+                orderHashes[i] = context.executionState.orderHashes[i];
+            }
+        }
+        calldataHashes = new bytes32[2][](orders.length);
         // Iterate over contract orders to derive calldataHashes
         for (uint256 i; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
@@ -788,16 +793,11 @@ library FuzzHelpers {
                 .consideration
                 .toSpentItemArray();
 
-            ReceivedItem[] memory receivedItems = order
-                .parameters
-                .consideration
-                .toReceivedItemArray();
-
             // Derive the expected calldata hash for the call to generateOrder
             calldataHashes[i][0] = keccak256(
                 abi.encodeCall(
                     ContractOffererInterface.generateOrder,
-                    (fulfiller, minimumReceived, maximumSpent, "")
+                    (fulfiller, minimumReceived, maximumSpent, order.extraData)
                 )
             );
 
@@ -812,12 +812,16 @@ library FuzzHelpers {
             calldataHashes[i][1] = keccak256(
                 abi.encodeCall(
                     ContractOffererInterface.ratifyOrder,
-                    (minimumReceived, receivedItems, "", orderHashes, counter)
+                    (
+                        context.executionState.orderDetails[i].offer,
+                        context.executionState.orderDetails[i].consideration,
+                        order.extraData,
+                        orderHashes,
+                        counter
+                    )
                 )
             );
         }
-
-        return calldataHashes;
     }
 
     /**

@@ -368,7 +368,8 @@ contract FuzzEngine is
             .withDerivedFulfillments()
             .withDerivedCallValue()
             .withDerivedExecutions()
-            .withDerivedOrderDetails();
+            .withDerivedOrderDetails()
+            .withDeriveContractOfferersCalldataHashes();
     }
 
     /**
@@ -534,7 +535,9 @@ contract FuzzEngine is
                     .returnValues
                     .availableOrders;
 
-                context.withDerivedExecutions();
+                context
+                    .withDerivedExecutions()
+                    .withDeriveContractOfferersCalldataHashes();
                 ExpectedEventsUtil.clearRecordedLogs();
                 vm.revertTo(snapshotId);
             }
@@ -544,7 +547,6 @@ contract FuzzEngine is
     }
 
     function execScuff(FuzzTestContext memory context) internal {
-        // uint256 snapshotId = vm.snapshot();
         (bytes memory callData, ScuffDescription memory description) = scuffuzz
             .getScuffedCalldata(context);
         context.scuffDescription = description;

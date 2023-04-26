@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
+import { console2 } from "forge-std/console2.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
@@ -175,7 +176,10 @@ abstract contract FuzzChecks is Test {
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
 
-            if (order.parameters.orderType == OrderType.CONTRACT) {
+            if (
+                order.parameters.orderType == OrderType.CONTRACT &&
+                context.expectations.expectedAvailableOrders[i]
+            ) {
                 bytes32 orderHash = context.executionState.orderHashes[i];
 
                 bytes32 expectedGenerateOrderCalldataHash = expectedCalldataHashes[
@@ -395,6 +399,24 @@ abstract contract FuzzChecks is Test {
                         order.numerator,
                         "FuzzChecks: totalFilled != numerator"
                     );
+
+                    if (
+                        totalFilled != order.numerator ||
+                        totalSize != order.denominator
+                    ) {
+                        console2.log(
+                            "numerator ",
+                            order.numerator,
+                            " totalFilled ",
+                            totalFilled
+                        );
+                        console2.log(
+                            "denominator ",
+                            order.denominator,
+                            " totalSize ",
+                            totalSize
+                        );
+                    }
                     assertEq(
                         totalSize,
                         order.denominator,

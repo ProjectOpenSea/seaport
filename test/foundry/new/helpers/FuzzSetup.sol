@@ -229,58 +229,6 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
     }
 
-    function setUpContractOfferers(FuzzTestContext memory context) public {
-        bytes32[2][] memory contractOrderCalldataHashes = context
-            .executionState
-            .orders
-            .getExpectedContractOffererCalldataHashes(
-                context.executionState.caller,
-                context.executionState.orderHashes
-            );
-
-        bytes32[2][]
-            memory expectedContractOrderCalldataHashes = new bytes32[2][](
-                context.executionState.orders.length
-            );
-
-        bool registerChecks;
-
-        HashCalldataContractOfferer contractOfferer = new HashCalldataContractOfferer(
-                address(context.seaport)
-            );
-
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory order = context
-                .executionState
-                .orders[i]
-                .parameters;
-            if (
-                context.expectations.expectedAvailableOrders[i] &&
-                order.orderType == OrderType.CONTRACT
-            ) {
-                registerChecks = true;
-                expectedContractOrderCalldataHashes[i][
-                    0
-                ] = contractOrderCalldataHashes[i][0];
-                expectedContractOrderCalldataHashes[i][
-                    1
-                ] = contractOrderCalldataHashes[i][1];
-
-                order.offerer = address(contractOfferer);
-            }
-        }
-
-        context
-            .expectations
-            .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
-
-        if (registerChecks) {
-            context.registerCheck(
-                FuzzChecks.check_contractOrderExpectedDataHashes.selector
-            );
-        }
-    }
-
     /**
      *  @dev Set up the offer items on a test context.
      *
@@ -520,6 +468,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      */
     function registerCommonChecks(FuzzTestContext memory context) public {
         context.setExpectedSeaportEventHashes();
+        context.registerCheck(
+            FuzzChecks.check_contractOrderExpectedDataHashes.selector
+        );
         // context.registerCheck(
         //     FuzzChecks.check_expectedSeaportEventsEmitted.selector
         // );

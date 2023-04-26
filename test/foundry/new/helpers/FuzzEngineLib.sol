@@ -146,53 +146,53 @@ library FuzzEngineLib {
                     .selector;
                 return selectors;
             } else {
-                bytes4[] memory selectors = new bytes4[](2);
+                bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] = context
+                /* selectors[1] = context
                     .seaport
                     .fulfillAvailableAdvancedOrders
-                    .selector;
+                    .selector; */
                 return selectors;
             }
         }
 
         if (family == Family.SINGLE && !invalidOfferItemsLocated) {
             if (structure == Structure.BASIC) {
-                bytes4[] memory selectors = new bytes4[](6);
-                selectors[0] = context.seaport.fulfillOrder.selector;
-                selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
-                selectors[2] = context.seaport.fulfillBasicOrder.selector;
-                selectors[3] = context
+                bytes4[] memory selectors = new bytes4[](2);
+                // selectors[0] = context.seaport.fulfillOrder.selector;
+                // selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
+                selectors[0] = context.seaport.fulfillBasicOrder.selector;
+                selectors[1] = context
                     .seaport
                     .fulfillBasicOrder_efficient_6GL6yc
                     .selector;
-                selectors[4] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[5] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
+                // selectors[4] = context.seaport.fulfillAvailableOrders.selector;
+                // selectors[4] = context
+                //     .seaport
+                //     .fulfillAvailableAdvancedOrders
+                //     .selector;
                 return selectors;
             }
 
             if (structure == Structure.STANDARD) {
-                bytes4[] memory selectors = new bytes4[](4);
+                bytes4[] memory selectors = new bytes4[](3);
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
                 selectors[2] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[3] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
+                // selectors[3] = context
+                //     .seaport
+                //     .fulfillAvailableAdvancedOrders
+                //     .selector;
                 return selectors;
             }
 
             if (structure == Structure.ADVANCED) {
-                bytes4[] memory selectors = new bytes4[](2);
+                bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.fulfillAdvancedOrder.selector;
-                selectors[1] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
+                // selectors[1] = context
+                //     .seaport
+                //     .fulfillAvailableAdvancedOrders
+                //     .selector;
                 return selectors;
             }
         }
@@ -229,9 +229,9 @@ library FuzzEngineLib {
                 selectors[0] = context.seaport.matchAdvancedOrders.selector;
                 return selectors;
             } else {
-                bytes4[] memory selectors = new bytes4[](2);
+                bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.matchOrders.selector;
-                selectors[1] = context.seaport.matchAdvancedOrders.selector;
+                // selectors[1] = context.seaport.matchAdvancedOrders.selector;
                 return selectors;
             }
         } else {
@@ -244,14 +244,14 @@ library FuzzEngineLib {
                 selectors[1] = context.seaport.matchAdvancedOrders.selector;
                 return selectors;
             } else {
-                bytes4[] memory selectors = new bytes4[](4);
+                bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] = context
-                    .seaport
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                selectors[2] = context.seaport.matchOrders.selector;
-                selectors[3] = context.seaport.matchAdvancedOrders.selector;
+                // selectors[1] = context
+                //     .seaport
+                //     .fulfillAvailableAdvancedOrders
+                //     .selector;
+                selectors[1] = context.seaport.matchOrders.selector;
+                // selectors[3] = context.seaport.matchAdvancedOrders.selector;
                 //selectors[4] = context.seaport.cancel.selector;
                 //selectors[5] = context.seaport.validate.selector;
                 return selectors;
