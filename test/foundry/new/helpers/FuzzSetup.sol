@@ -60,6 +60,9 @@ interface TestERC1155 {
     function setApprovalForAll(address operator, bool approved) external;
 }
 
+/**
+ *  @dev Stateless helpers related to fuzz checks.
+ */
 library CheckHelpers {
     /**
      *  @dev Register a check to be run after the test is executed.
@@ -158,8 +161,8 @@ library CheckHelpers {
  *  @dev Setup functions perform the stateful setup steps necessary to run a
  *       FuzzEngine test, like minting test tokens and setting approvals.
  *       Currently, we also register checks in the setup step, but we might
- *       want to move this to a separate step. Setup happens after derivation,
- *       but before execution.
+ *       want to move this to a separate step. Setup happens after generation,
+ *       amendment, and derivation, but before execution.
  */
 abstract contract FuzzSetup is Test, AmountDeriverHelper {
     using CheckHelpers for FuzzTestContext;
@@ -268,7 +271,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
     }
 
     /**
-     *  @dev Set up the offer items on a test context.
+     *  @dev Set up the offer items on a test context. Mints test tokens and
+     *       sets necessary approvals.
      *
      * @param context The test context.
      */
@@ -331,7 +335,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
     }
 
     /**
-     *  @dev Set up the consideration items on a test context.
+     *  @dev Set up the consideration items on a test context. Mints test tokens
+     *       and sets necessary approvals.
      *
      * @param context The test context.
      */

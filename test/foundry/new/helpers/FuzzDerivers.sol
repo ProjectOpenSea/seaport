@@ -52,11 +52,11 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
  *       information based on the order state, like fulfillments and expected
- *       executions. Derivers run after generators, but before setup. Deriver
- *       functions should take a `FuzzTestContext` as input and modify it,
- *       adding any additional information that might be necessary for later
- *       steps. Derivers should not modify the order state itself, only the
- *       `FuzzTestContext`.
+ *       executions. Derivers run after generators, and amendments, but before
+ *       setup. Deriver functions should take a `FuzzTestContext` as input and
+ *       modify it, adding any additional information that might be necessary
+ *       for later steps. Derivers should not modify the order state itself,
+ *       only the `FuzzTestContext`.
  */
 library FuzzDerivers {
     using FuzzEngineLib for FuzzTestContext;

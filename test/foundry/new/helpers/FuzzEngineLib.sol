@@ -37,7 +37,8 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 /**
- * @notice Stateless helpers for FuzzEngine.
+ * @notice Stateless helpers for FuzzEngine. The FuzzEngine uses functions in
+ *         this library to select which Seaport action it should call.
  */
 library FuzzEngineLib {
     using AdvancedOrderLib for AdvancedOrder;
@@ -94,7 +95,8 @@ library FuzzEngineLib {
 
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
-     *      functions can we call," based on the orders in a given FuzzTestContext.
+     *      functions can we call," based on the generated orders in a given
+     *      `FuzzTestContext`.
      *
      * @param context A Fuzz test context.
      * @return bytes4[] of SeaportInterface function selectors.
