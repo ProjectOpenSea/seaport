@@ -1726,65 +1726,65 @@ contract FuzzEngineTest is FuzzEngine {
     }
 
     // TODO: unskip
-    function xtest_check_contractOrderExpectedDataHashes() public {
-        (
-            TestCalldataHashContractOfferer contractOfferer1,
-            TestCalldataHashContractOfferer contractOfferer2
-        ) = _prepareContractOfferers();
+    // function xtest_check_contractOrderExpectedDataHashes() public {
+    //     (
+    //         TestCalldataHashContractOfferer contractOfferer1,
+    //         TestCalldataHashContractOfferer contractOfferer2
+    //     ) = _prepareContractOfferers();
 
-        AdvancedOrder[] memory advancedOrders;
-        FulfillmentComponent[][] memory offerComponents;
-        FulfillmentComponent[][] memory considerationComponents;
+    //     AdvancedOrder[] memory advancedOrders;
+    //     FulfillmentComponent[][] memory offerComponents;
+    //     FulfillmentComponent[][] memory considerationComponents;
 
-        (
-            advancedOrders,
-            offerComponents,
-            considerationComponents
-        ) = _getAdvancedOrdersAndFulfillmentComponents(
-            contractOfferer1,
-            contractOfferer2
-        );
+    //     (
+    //         advancedOrders,
+    //         offerComponents,
+    //         considerationComponents
+    //     ) = _getAdvancedOrdersAndFulfillmentComponents(
+    //         contractOfferer1,
+    //         contractOfferer2
+    //     );
 
-        {
-            bytes4[] memory checks = new bytes4[](1);
-            checks[0] = this.check_contractOrderExpectedDataHashes.selector;
+    //     {
+    //         bytes4[] memory checks = new bytes4[](1);
+    //         checks[0] = this.check_contractOrderExpectedDataHashes.selector;
 
-            FuzzTestContext memory context = FuzzTestContextLib
-                .from({
-                    orders: advancedOrders,
-                    seaport: getSeaport(),
-                    caller: address(this)
-                })
-                .withFuzzParams(
-                    FuzzParams({
-                        seed: 0,
-                        totalOrders: 0,
-                        maxOfferItems: 0,
-                        maxConsiderationItems: 0,
-                        seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
-                    })
-                );
+    //         FuzzTestContext memory context = FuzzTestContextLib
+    //             .from({
+    //                 orders: advancedOrders,
+    //                 seaport: getSeaport(),
+    //                 caller: address(this)
+    //             })
+    //             .withFuzzParams(
+    //                 FuzzParams({
+    //                     seed: 0,
+    //                     totalOrders: 0,
+    //                     maxOfferItems: 0,
+    //                     maxConsiderationItems: 0,
+    //                     seedInput: abi.encodePacked(uint256(0), uint256(0), uint256(0), uint256(0))
+    //                 })
+    //             );
 
-            context = context
-                .withMaximumFulfilled(advancedOrders.length)
-                .withOfferFulfillments(offerComponents)
-                .withConsiderationFulfillments(considerationComponents)
-                .withChecks(checks)
-                .withMaximumFulfilled(2);
+    //         context = context
+    //             .withMaximumFulfilled(advancedOrders.length)
+    //             .withOfferFulfillments(offerComponents)
+    //             .withConsiderationFulfillments(considerationComponents)
+    //             .withChecks(checks)
+    //             .withMaximumFulfilled(2);
 
-            bytes32[2][] memory expectedContractOrderCalldataHashes;
-            expectedContractOrderCalldataHashes = advancedOrders
-                .getExpectedContractOffererCalldataHashes(
-                    address(this),
-                    context.executionState.orderHashes
-                );
-            context
-                .expectations
-                .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
+    //         bytes32[2][] memory expectedContractOrderCalldataHashes;
+    //         expectedContractOrderCalldataHashes = advancedOrders
+    //             .getExpectedContractOffererCalldataHashes(
+    //                 address(this),
+    //                 context.executionState.orderHashes
+    //             );
+    //         context
+    //             .expectations
+    //             .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
 
-            run(context);
-        }
-    }
+    //         run(context);
+    //     }
+    // }
 
     /// @dev Call run for a combined order. Stub the fuzz seed so that it
     ///      always calls Seaport.cancel.
