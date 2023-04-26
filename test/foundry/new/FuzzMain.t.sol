@@ -7,12 +7,12 @@ import { FuzzParams } from "./helpers/FuzzTestContextLib.sol";
 
 contract FuzzMainTest is FuzzEngine {
     /**
-     * @dev FuzzEngine test for valid orders. Generates a random valid order
-     *      configuration, selects and calls a Seaport method, and runs all
-     *      registered checks. This test should never revert.  For more details
-     *      on the lifecycle of this test, see FuzzEngine.sol.
+     * @dev FuzzEngine entry point. Generates a random order configuration,
+     *      selects and calls a Seaport method, and runs all registered checks.
+     *      This test should never revert. For more details on the lifecycle of
+     *      this test, see `FuzzEngine.sol`.
      */
-    function test_fuzz_validOrders(
+    function test_fuzz_generateOrders(
         uint256 seed,
         uint256 orders,
         uint256 maxOfferItemsPerOrder,
@@ -38,6 +38,11 @@ contract FuzzMainTest is FuzzEngine {
         );
     }
 
+    /**
+     * @dev A helper to convert a fuzz test failure into a concrete test.
+     *      Copy/paste fuzz run parameters into the tuple below and remove the
+     *      leading "x" to run a fuzz failure as a concrete test.
+     */
     function xtest_concrete() public {
         (
             uint256 seed,
@@ -46,7 +51,7 @@ contract FuzzMainTest is FuzzEngine {
             uint256 maxConsiderationItemsPerOrder
         ) = (0, 0, 0, 0);
         bytes memory callData = abi.encodeCall(
-            this.test_fuzz_validOrders,
+            this.test_fuzz_generateOrders,
             (seed, orders, maxOfferItemsPerOrder, maxConsiderationItemsPerOrder)
         );
         (bool success, bytes memory result) = address(this).call(callData);

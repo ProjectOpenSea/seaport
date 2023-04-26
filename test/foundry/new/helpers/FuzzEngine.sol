@@ -85,19 +85,13 @@ import { logMutation } from "./Metrics.sol";
  *         BaseOrderTest contract used in the legacy tests.  The relative path
  *         for the relevant version is `test/foundry/new/BaseOrderTest.sol`.
  *
- *         Running test_fuzz_validOrders in FuzzMain triggers the following
- *         lifecycle. First, a pseudorandom `FuzzTestContext` is generated from
- *         the FuzzParams. The important bits of his phase are order and action
- *         generation. Then, the fuzz derivers are run to derive values
- *         such as fulfillments and executions from the orders. Next, the
- *         setup phase is run to set up the necessary conditions for a test to
- *         pass, including minting the necessary tokens and setting up the
- *         necessary approvals. The setup phase also lays out the expectations
- *         for the post-execution state of the test. Then, during the execution
- *         phase, some Seaport function gets called according the the action
- *         determined by the seed in the FuzzParams. Finally, the checks phase
- *         runs all registered checks to ensure that the post-execution state
- *         matches the expectations set up in the setup phase.
+ *         Running test_fuzz_generateOrders in FuzzMain triggers the following
+ *         lifecycle:
+ *
+ *         *Generation* - `generate`
+ *         First, the engine generates a  pseudorandom `FuzzTestContext` from
+ *         the randomized `FuzzParams`. See `FuzzGenerators.sol` for the helper
+ *         libraries used to construct orders from the Seaport state space.
  *
  *         The `generate` function in this file calls out to the `generate`
  *         functions in `TestStateGenerator` (responsible for setting up the
@@ -106,34 +100,70 @@ import { logMutation } from "./Metrics.sol";
  *         `FuzzGeneratorContext` internally, but it returns a `FuzzTestContext`
  *         struct, which is used throughout the rest of the lifecycle.
  *
- *         The `runDerivers` function in this file serves as a central location
- *         to slot in calls to functions that deterministically derive values
- *         from the state that was created in the generation phase.
+ *         *Amendment* - `amendOrderState`
+ *         Next, the engine runs "amendments," which mutate the state of the
+ *         orders. See `FuzzAmendments.sol` for the amendment helper library.
  *
  *         The `amendOrderState` function in this file serves as a central
  *         location to slot in calls to functions that amend the state of the
  *         orders.  For example, calling `validate` on an order.
  *
- *         The `runSetup` function should hold everything that mutates state,
- *         such as minting and approving tokens.  It also contains the logic
- *         for setting up the expectations for the post-execution state of the
- *         test. Logic for handling unavailable orders and balance checking
- *         will also live here.
+ *         *Derivation* - `runDerivers`
+ *         Next up are "derivers," functions that calculate additional values
+ *         like fulfillments and executions from the generated orders. See
+ *         `FuzzDerivers.sol` for the deriver helper library. Derivers don't
+ *         mutate order state, but do add new values to the `FuzzTestContext`.
  *
- *          The `runCheckRegistration` function should hold everything that
- *          registers checks but does not belong naturally elsewhere.  Checks
- *          can be registered throughout the lifecycle, but unless there's a
- *          natural reason to place them inline elsewhere in the lifecycle, they
- *          should go in a helper in `runCheckRegistration`.
+ *         The `runDerivers` function in this file serves as a central location
+ *         to slot in calls to functions that deterministically derive values
+ *         from the state that was created in the generation phase.
  *
- *         The `exec` function is lean and only 1) sets up a prank if the caller
- *         is not the test contract, 2) logs the action, 3) calls the Seaport
- *         function, and adds the values returned by the function call to the
- *         context for later use in checks.
+ *         *Setup* - `runSetup`
+ *         This phase sets up any necessary conditions for a test to pass,
+ *         including minting test tokens and setting up the required approvals.
+ *         The setup phase also detects and registers relevant expectations
+ *         to verify after executing the selected Seaport action.
+ *
+ *         The `runSetup` function should hold everything that mutates test
+ *         environment state, such as minting and approving tokens.  It also
+ *         contains the logic for setting up the expectations for the
+ *         post-execution state of the test. Logic for handling unavailable
+ *         orders and balance checking should also live here. Setup phase
+ *         helpers are in `FuzzSetup.sol`.
+ *
+ *         *Check Registration* - `runCheckRegistration`
+ *         The `runCheckRegistration` function should hold everything that
+ *         registers checks but does not belong naturally elsewhere.  Checks
+ *         can be registered throughout the lifecycle, but unless there's a
+ *         natural reason to place them inline elsewhere in the lifecycle, they
+ *         should go in a helper in `runCheckRegistration`.
+ *
+ *         *Execution* - `execFailure` and `execSuccess`
+ *         The execution phase runs the selected Seaport action and saves the
+ *         returned values to the `FuzzTestContext`. See `FuzzExecutor.sol` for
+ *         the executor helper contract.
+ *
+ *         Execution has two phases: `execFailure` and `execSuccess`. For each
+ *         generated order, we test both a failure and success case. To test the
+ *         failure case, the engine selects and applies a random mutation to the
+ *         order and verifies that it reverts with an expected error. We then
+ *         proceed to the success case, where we execute a successful call to
+ *         Seaport and save return values to the test context.
+ *
+ *         *Checks* - `checkAll`
+ *         Finally, the checks phase runs all registered checks to ensure that
+ *         the post-execution state matches all expectations registered during
+ *          the setup phase.
  *
  *         The `checkAll` function runs all of the checks that were registered
- *         throughout the test lifecycle. To add a new check, add a function
- *         to `FuzzChecks` and then register it with `registerCheck`.
+ *         throughout the test lifecycle. This is where the engine makes actual
+ *         assertions about the effects of a specific test, based on the post
+ *         execution state. The engine registers different checks during test
+ *         setup depending on the order state, like verifying token transfers,
+ *         and account balances, expected events, and expected calldata for
+ *         contract orders. To add a new check, add a function to `FuzzChecks`
+ *         and then register it with `registerCheck`.
+ *
  *
  */
 contract FuzzEngine is
@@ -202,8 +232,9 @@ contract FuzzEngine is
      *      2. runDerivers: Run deriver functions for the test.
      *      3. runSetup: Run setup functions for the test.
      *      4. runCheckRegistration: Register checks for the test.
-     *      5. exec: Select and call a Seaport function.
-     *      6. checkAll: Call all registered checks.
+     *      5. execFailure: Mutate orders and call a function expecting failure.
+     *      6. execSuccess: Call a Seaport function expecting success.
+     *      7. checkAll: Call all registered checks.
      *
      * @param context A Fuzz test context.
      */
@@ -215,11 +246,6 @@ contract FuzzEngine is
         execFailure(context);
         execSuccess(context);
         checkAll(context);
-    }
-
-    function execSuccess(FuzzTestContext memory context) internal {
-        ExpectedEventsUtil.startRecordingLogs();
-        exec(context, true);
     }
 
     /**
@@ -314,18 +340,33 @@ contract FuzzEngine is
     }
 
     /**
-     * @dev Perform any "deriver" steps necessary before calling `runSetup`.
+     * @dev Amend the order state.
      *
-     *      1. deriveAvailableOrders: calculate which orders are available and
-     *         add them to the test context.
-     *      2. deriveCriteriaResolvers: calculate criteria resolvers and add
-     *         them to the test context.
-     *      3. deriveFulfillments: calculate fulfillments and add them to the
-     *         test context.
-     *      4. deriveOrderDetails: calculate order details and add them to the
-     *         test context.
-     *      5. deriveExecutions: calculate expected implicit/explicit executions
-     *         and add them to the test context.
+     * @param context A Fuzz test context.
+     */
+    function amendOrderState(FuzzTestContext memory context) internal {
+        setPartialFills(context);
+        conformOnChainStatusToExpected(context);
+        // Redundant for now, because the counter and nonce are set in the
+        // generation phase.
+        setCounter(context);
+        setContractOffererNonce(context);
+        prepareRebates(context);
+    }
+
+    /**
+     * @dev Perform any "deriver" steps necessary before calling `runSetup`.
+     *      Each `withDerived` function calculates a value from the generated
+     *      orders and adds it to the test context.
+     *
+     *      1. withDerivedAvailableOrders: calculate which orders are available
+     *      2. withDerivedCriteriaResolvers: calculate criteria resolvers
+     *      3. withDerivedOrderDetails: calculate order details
+     *      4. withDetectedRemainders: detect and calculate remainders
+     *      5. withDerivedFulfillments: calculate expected fulfillments
+     *      6. withDerivedCallValue: calculate expected call value
+     *      7. withDerivedExecutions: expected implicit/explicit executions
+     *      8. withDerivedOrderDetails: calculate order details
      *
      * @param context A Fuzz test context.
      */
@@ -342,24 +383,18 @@ contract FuzzEngine is
     }
 
     /**
-     * @dev Perform any setup steps necessary before calling `exec`.
+     * @dev Perform any setup steps necessary before execution
      *
      *      1. setUpZoneParameters: calculate expected zone hashes and set up
      *         zone related checks for restricted orders.
-     *      2. setUpOfferItems: Create and approve offer items for each order.
-     *      3. setUpConsiderationItems: Create and approve consideration items
+     *      2. setUpContractOfferers: configure test contract offerers.
+     *      3. setUpOfferItems: Create and approve offer items for each order.
+     *      4. setUpConsiderationItems: Create and approve consideration items
      *         for each order.
      *
      * @param context A Fuzz test context.
      */
     function runSetup(FuzzTestContext memory context) internal {
-        // 1. order has been cancelled
-        // 2. order has expired
-        // 3. order has not yet started
-        // 4. order is already filled
-        // 5. order is a contract order and the call to the offerer reverts
-        // 6. maximumFullfilled is less than total orders provided and
-        //    enough other orders are available
         setUpZoneParameters(context);
         setUpContractOfferers(context);
         setUpOfferItems(context);
@@ -367,22 +402,14 @@ contract FuzzEngine is
     }
 
     /**
-     * @dev Amend the order state.
+     * @dev Register additional checks for the test.
      *
-     * @param context A Fuzz test context.
-     */
-    function amendOrderState(FuzzTestContext memory context) internal {
-        setPartialFills(context);
-        conformOnChainStatusToExpected(context);
-        // Redundant for now, because the counter and nonce are set in the
-        // generation phase.
-        setCounter(context);
-        setContractOffererNonce(context);
-        prepareRebates(context);
-    }
-
-    /**
-     * @dev Register checks for the test.
+     *      1. registerExpectedEventsAndBalances: checks for expected token
+     *         transfer events and account balance changes.
+     *      2. registerCommonChecks: register common checks applied to all test
+     *         cases: expected Seaport events and post-exec order status.
+     *      4. registerFunctionSpecificChecks: register additional function
+     *         specific checks based on the selected action.
      *
      * @param context A Fuzz test context.
      */
@@ -392,6 +419,17 @@ contract FuzzEngine is
         registerFunctionSpecificChecks(context);
     }
 
+    /**
+     * @dev Mutate an order, call Seaport, and verify the failure.
+     *      `execFailure` is a generative test of its own: the engine selects
+     *      a mutation, applies it to the order, calls Seaport, and verifies
+     *      that the call reverts as expected.
+     *
+     *      Mutations, helpers, and expected errors  are defined in
+     *      `FuzzMutations.sol`.
+     *
+     * @param context A Fuzz test context.
+     */
     function execFailure(FuzzTestContext memory context) internal {
         (
             string memory name,
@@ -445,6 +483,16 @@ contract FuzzEngine is
     }
 
     /**
+     * @dev Call a Seaport function with the generated order.
+     *
+     * @param context A Fuzz test context.
+     */
+    function execSuccess(FuzzTestContext memory context) internal {
+        ExpectedEventsUtil.startRecordingLogs();
+        exec(context, true);
+    }
+
+    /**
      * @dev Perform a "check," i.e. a post-execution assertion we want to
      *      validate. Checks should be public functions that accept a
      *      FuzzTestContext as their only argument. Checks have access to the
@@ -455,8 +503,7 @@ contract FuzzEngine is
      *      this contract. It's a good idea to prefix them with "check_" as a
      *      naming convention, although it doesn't actually matter.
      *
-     *      The idea here is that we can add checks for different scenarios to
-     *      the FuzzEngine by adding them via abstract contracts.
+     *      Shared check functions are defined in `FuzzChecks.sol`.
      *
      * @param context A Fuzz test context.
      * @param selector bytes4 selector of the check function to call.
@@ -477,9 +524,6 @@ contract FuzzEngine is
 
     /**
      * @dev Perform all checks registered in the context.checks array.
-     *
-     *      We can add checks to the FuzzTestContext at any point in the context
-     *      lifecycle, to be called after `exec` in the test lifecycle.
      *
      * @param context A Fuzz test context.
      */
