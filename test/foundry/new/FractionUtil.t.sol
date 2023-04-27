@@ -6,7 +6,7 @@ import {
     FractionUtil,
     FractionResults,
     FractionStatus
-} from "../FractionUtil.sol";
+} from "./helpers/FractionUtil.sol";
 
 contract FractionUtilTest is Test {
     function testGetWholeFillResults() public {
