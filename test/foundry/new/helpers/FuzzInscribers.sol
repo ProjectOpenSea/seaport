@@ -10,7 +10,9 @@ import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 /**
- * @notice Helpers for inscribing order status, contract nonce, and counter.
+ * @notice "Inscribers" are helpers that set Seaport state directly by modifying
+ *         contract storage. For example, changing order status, setting
+ *         contract nonces, and setting counters.
  */
 library FuzzInscribers {
     using AdvancedOrderLib for AdvancedOrder;

@@ -21,6 +21,9 @@ struct FractionResults {
     FractionStatus status;
 }
 
+/**
+ * @dev Helper utilities for calculating partial fill fractions.
+ */
 library FractionUtil {
     function _gcd(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 temp;

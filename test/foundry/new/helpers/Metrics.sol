@@ -29,7 +29,7 @@ function logAssume(string memory name) {
 }
 
 /**
- * @dev Log a counterto a metrics file if the SEAPORT_COLLECT_FUZZ_METRICS env
+ * @dev Log a counter to a metrics file if the SEAPORT_COLLECT_FUZZ_METRICS env
  *      var is set. Named metrics are written as statsd counters, e.g.
  *      "metric:1|c". To write to a new file, it must be allowlisted under
  *      `fs_permissions` in `foundry.toml`.

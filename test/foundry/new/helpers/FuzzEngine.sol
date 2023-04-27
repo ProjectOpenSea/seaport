@@ -88,7 +88,7 @@ import { logMutation } from "./Metrics.sol";
  *         Running test_fuzz_generateOrders in FuzzMain triggers the following
  *         lifecycle:
  *
- *         *Generation* - `generate`
+ *         1. Generation - `generate`
  *         First, the engine generates a  pseudorandom `FuzzTestContext` from
  *         the randomized `FuzzParams`. See `FuzzGenerators.sol` for the helper
  *         libraries used to construct orders from the Seaport state space.
@@ -100,7 +100,7 @@ import { logMutation } from "./Metrics.sol";
  *         `FuzzGeneratorContext` internally, but it returns a `FuzzTestContext`
  *         struct, which is used throughout the rest of the lifecycle.
  *
- *         *Amendment* - `amendOrderState`
+ *         2. Amendment - `amendOrderState`
  *         Next, the engine runs "amendments," which mutate the state of the
  *         orders. See `FuzzAmendments.sol` for the amendment helper library.
  *
@@ -108,7 +108,7 @@ import { logMutation } from "./Metrics.sol";
  *         location to slot in calls to functions that amend the state of the
  *         orders.  For example, calling `validate` on an order.
  *
- *         *Derivation* - `runDerivers`
+ *         3. Derivation - `runDerivers`
  *         Next up are "derivers," functions that calculate additional values
  *         like fulfillments and executions from the generated orders. See
  *         `FuzzDerivers.sol` for the deriver helper library. Derivers don't
@@ -118,7 +118,7 @@ import { logMutation } from "./Metrics.sol";
  *         to slot in calls to functions that deterministically derive values
  *         from the state that was created in the generation phase.
  *
- *         *Setup* - `runSetup`
+ *         4. Setup - `runSetup`
  *         This phase sets up any necessary conditions for a test to pass,
  *         including minting test tokens and setting up the required approvals.
  *         The setup phase also detects and registers relevant expectations
@@ -131,14 +131,14 @@ import { logMutation } from "./Metrics.sol";
  *         orders and balance checking should also live here. Setup phase
  *         helpers are in `FuzzSetup.sol`.
  *
- *         *Check Registration* - `runCheckRegistration`
+ *         5. Check Registration - `runCheckRegistration`
  *         The `runCheckRegistration` function should hold everything that
  *         registers checks but does not belong naturally elsewhere.  Checks
  *         can be registered throughout the lifecycle, but unless there's a
  *         natural reason to place them inline elsewhere in the lifecycle, they
  *         should go in a helper in `runCheckRegistration`.
  *
- *         *Execution* - `execFailure` and `execSuccess`
+ *         6. Execution - `execFailure` and `execSuccess`
  *         The execution phase runs the selected Seaport action and saves the
  *         returned values to the `FuzzTestContext`. See `FuzzExecutor.sol` for
  *         the executor helper contract.
@@ -150,7 +150,7 @@ import { logMutation } from "./Metrics.sol";
  *         proceed to the success case, where we execute a successful call to
  *         Seaport and save return values to the test context.
  *
- *         *Checks* - `checkAll`
+ *         7. Checks - `checkAll`
  *         Finally, the checks phase runs all registered checks to ensure that
  *         the post-execution state matches all expectations registered during
  *          the setup phase.
@@ -483,7 +483,7 @@ contract FuzzEngine is
     }
 
     /**
-     * @dev Call a Seaport function with the generated order.
+     * @dev Call a Seaport function with the generated order, expecting success.
      *
      * @param context A Fuzz test context.
      */

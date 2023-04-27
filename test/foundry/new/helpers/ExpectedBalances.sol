@@ -81,6 +81,9 @@ struct ExpectedBalancesDump {
     ERC1155TokenDump[] erc1155;
 }
 
+/**
+ * @dev Helper library for generating balance related error messages.
+ */
 library BalanceErrorMessages {
     function unexpectedAmountErrorMessage(
         string memory errorSummary,
@@ -291,6 +294,9 @@ contract Subtractor {
     }
 }
 
+/**
+ * @dev Helper contract for tracking, checking, and debugging native balances.
+ */
 contract NativeBalances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
@@ -371,6 +377,9 @@ contract NativeBalances {
     }
 }
 
+/**
+ * @dev Helper contract for tracking, checking, and debugging ERC20 balances.
+ */
 contract ERC20Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -480,19 +489,19 @@ contract ERC20Balances {
     }
 }
 
+/**
+ * @dev Helper contract for tracking, checking, and debugging ERC721 balances.
+ */
 contract ERC721Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
 
     struct TokenData721 {
-        // EnumerableSet.AddressSet accounts;
         mapping(address => EnumerableSet.UintSet) accountIdentifiers;
         EnumerableSet.UintSet touchedIdentifiers;
         EnumerableMap.AddressToUintMap accountBalances;
     }
-    /* 
-    mapping(address => EnumerableMap.AddressToUintMap) private tokenAccounts; */
     EnumerableSet.AddressSet private tokens;
     mapping(address => TokenData721) private tokenDatas;
 
@@ -612,7 +621,6 @@ contract ERC721Balances {
         dump.accounts = tokenData.accountBalances.keys();
         uint256 accountsLength = dump.accounts.length;
 
-        //new ERC721AccountDump[](accountsLength);
         dump.token = token;
         for (uint256 i; i < accountsLength; i++) {
             address account = dump.accounts[i];
@@ -632,6 +640,9 @@ struct ERC1155TransferDetails {
     uint256 amount;
 }
 
+/**
+ * @dev Helper contract for tracking, checking, and debugging ERC721 balances.
+ */
 contract ERC1155Balances {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -815,6 +826,9 @@ contract ERC1155Balances {
     }
 }
 
+/**
+ * @dev Combined helper contract for tracking and checking token balances.
+ */
 contract ExpectedBalances is
     NativeBalances,
     ERC20Balances,
@@ -875,14 +889,4 @@ contract ExpectedBalances is
         checkERC721Balances();
         checkERC1155Balances();
     }
-
-    //     function dumpBalances()
-    //         external
-    //         view
-    //         returns (ExpectedBalancesDump memory balancesDump)
-    //     {
-    //         // balancesDump.erc20 = dumpERC20Balances();
-    //         balancesDump.erc721 = dumpERC721Balances();
-    //         // balancesDump.erc1155 = dumpERC1155Balances();
-    //     }
 }

@@ -91,8 +91,8 @@ struct FuzzGeneratorContext {
 
 library FuzzGeneratorContextLib {
     /**
-     * @dev Create a new FuzzGeneratorContext.  Typically, the `from` function
-     * is likely to be preferable.
+     * @dev Create a new, empty FuzzGeneratorContext. This function is used
+     *      mostly in tests. To create a usable context, use `from` instead.
      */
     function empty() internal returns (FuzzGeneratorContext memory) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG({ state: 0 });
@@ -119,7 +119,7 @@ library FuzzGeneratorContextLib {
                 contractOfferer: new HashCalldataContractOfferer(address(0)),
                 eip1271Offerer: new EIP1271Offerer(),
                 self: address(this),
-                caller: address(this), // TODO: read recipient from FuzzTestContext
+                caller: address(this),
                 alice: testHelpers.makeAccount("alice"),
                 bob: testHelpers.makeAccount("bob"),
                 carol: testHelpers.makeAccount("carol"),
@@ -199,7 +199,7 @@ library FuzzGeneratorContextLib {
                 contractOfferer: contractOfferer,
                 eip1271Offerer: eip1271Offerer,
                 self: address(this),
-                caller: address(this), // TODO: read recipient from FuzzTestContext
+                caller: address(this),
                 alice: testHelpers.makeAccount("alice"),
                 bob: testHelpers.makeAccount("bob"),
                 carol: testHelpers.makeAccount("carol"),

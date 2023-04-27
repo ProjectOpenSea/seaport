@@ -52,7 +52,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
  *       information based on the order state, like fulfillments and expected
- *       executions. Derivers run after generators, and amendments, but before
+ *       executions. Derivers run after generators and amendments, but before
  *       setup. Deriver functions should take a `FuzzTestContext` as input and
  *       modify it, adding any additional information that might be necessary
  *       for later steps. Derivers should not modify the order state itself,
@@ -68,6 +68,12 @@ library FuzzDerivers {
     using ExecutionHelper for OrderDetails;
     using FulfillmentDetailsHelper for FuzzTestContext;
 
+    /**
+     * @dev Calculate msg.value from native token amounts in the generated
+     *      orders.
+     *
+     * @param context A Fuzz test context.
+     */
     function withDerivedCallValue(
         FuzzTestContext memory context
     ) internal returns (FuzzTestContext memory) {
@@ -79,6 +85,11 @@ library FuzzDerivers {
         return context;
     }
 
+    /**
+     * @dev Determine which generated orders are available for fulfillment.
+     *
+     * @param context A Fuzz test context.
+     */
     function withDerivedAvailableOrders(
         FuzzTestContext memory context
     ) internal returns (FuzzTestContext memory) {
@@ -156,6 +167,11 @@ library FuzzDerivers {
         return context;
     }
 
+    /**
+     * @dev Calculate criteria resolvers for the generated orders.
+     *
+     * @param context A Fuzz test context.
+     */
     function withDerivedCriteriaResolvers(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
@@ -171,6 +187,11 @@ library FuzzDerivers {
         return context;
     }
 
+    /**
+     * @dev Calculate OrderDetails for the generated orders.
+     *
+     * @param context A Fuzz test context.
+     */
     function withDerivedOrderDetails(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
@@ -283,6 +304,12 @@ library FuzzDerivers {
         return context;
     }
 
+    /**
+     * @dev Derive implicit and explicit executions for the given orders.
+     *
+     * @param context A Fuzz test context.
+     * @param nativeTokensSupplied quantity of native tokens supplied.
+     */
     function getDerivedExecutions(
         FuzzTestContext memory context,
         uint256 nativeTokensSupplied

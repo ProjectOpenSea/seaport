@@ -65,6 +65,13 @@ using TransferEventsLib for Execution[];
 using FuzzEngineLib for FuzzTestContext;
 using ExecutionFilterCast for Execution[];
 
+/**
+ * @dev Serialize and write a FuzzTestContext to a `fuzz_debug.json` file.
+ *
+ * @param context         the FuzzTestContext to serialize.
+ * @param outputSelection a ContextOutputSelection struct containing flags
+                          that define which FuzzTestContext fields to serialize.
+ */
 function dumpContext(
     FuzzTestContext memory context,
     ContextOutputSelection memory outputSelection
@@ -342,6 +349,9 @@ function dumpContext(
     vm.writeJson(jsonOut, "./fuzz_debug.json");
 }
 
+/**
+ * @dev Helper to cast dumpContext to a pure function.
+ */
 function pureDumpContext()
     pure
     returns (
@@ -363,6 +373,10 @@ function cast(OrderStatusEnum[] memory a) pure returns (uint256[] memory b) {
     }
 }
 
+/**
+ * @dev Serialize and write transfer related fields from FuzzTestContext to a
+ *      `fuzz_debug.json` file.
+ */
 function dumpTransfers(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
     selection.allExpectedExecutions = true;
@@ -372,6 +386,10 @@ function dumpTransfers(FuzzTestContext memory context) view {
     console2.log("Dumped transfer data to ./fuzz_debug.json");
 }
 
+/**
+ * @dev Serialize and write execution related fields from FuzzTestContext to a
+ *      `fuzz_debug.json` file.
+ */
 function dumpExecutions(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
     selection.orders = true;

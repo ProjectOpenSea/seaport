@@ -51,7 +51,11 @@ import {
 } from "./FractionUtil.sol";
 
 /**
- *  @dev Make amendments to state based on the fuzz test context.
+ *  @dev "Amendments" are changes to Seaport state that are required to execute
+ *       a given order configuration. Amendments do not modify the orders, test
+ *       context, or test environment, but rather set up Seaport state like
+ *       order statuses, counters, and contract offerer nonces. Amendments run
+ *       after order generation, but before derivers.
  */
 abstract contract FuzzAmendments is Test {
     using AdvancedOrderLib for AdvancedOrder[];
@@ -66,9 +70,12 @@ abstract contract FuzzAmendments is Test {
 
     using PRNGHelpers for FuzzGeneratorContext;
 
-    // TODO: make it so it adds / removes / modifies more than a single thing
-    // and create arbitrary new items.
+    /**
+     *  @dev Configure the contract offerer to provide rebates if required.
+     */
     function prepareRebates(FuzzTestContext memory context) public {
+        // TODO: make it so it adds / removes / modifies more than a single thing
+        // and create arbitrary new items.
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             OrderParameters memory orderParams = (
                 context.executionState.orders[i].parameters
@@ -189,6 +196,258 @@ abstract contract FuzzAmendments is Test {
         }
     }
 
+    /**
+     *  @dev Validate orders that should be in "Validated" state.
+     *
+     * @param context The test context.
+     */
+    function validateOrdersAndRegisterCheck(
+        FuzzTestContext memory context
+    ) public {
+        for (
+            uint256 i = 0;
+            i < context.executionState.preExecOrderStatuses.length;
+            ++i
+        ) {
+            if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.VALIDATED
+            ) {
+                bool validated = context
+                    .executionState
+                    .orders[i]
+                    .validateTipNeutralizedOrder(context);
+
+                require(validated, "Failed to validate orders.");
+            }
+        }
+
+        context.registerCheck(FuzzChecks.check_ordersValidated.selector);
+    }
+
+    /**
+     *  @dev Set up partial fill fractions for orders.
+     *
+     * @param context The test context.
+     */
+    function setPartialFills(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            if (
+                context.executionState.preExecOrderStatuses[i] !=
+                OrderStatusEnum.PARTIAL
+            ) {
+                continue;
+            }
+
+            AdvancedOrder memory order = context.executionState.orders[i];
+
+            if (
+                order.parameters.orderType != OrderType.PARTIAL_OPEN &&
+                order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
+            ) {
+                revert(
+                    "FuzzAmendments: invalid order type for partial fill state"
+                );
+            }
+
+            (uint256 denominator, bool canScaleUp) = order
+                .parameters
+                .getSmallestDenominator();
+
+            // If the denominator is 0 or 1, the order cannot have a partial
+            // fill fraction applied.
+            if (denominator > 1) {
+                // All partially-filled orders are de-facto valid.
+                order.inscribeOrderStatusValidated(true, context.seaport);
+
+                uint256 numerator = context.generatorContext.randRange(
+                    1,
+                    canScaleUp ? (denominator - 1) : 1
+                );
+
+                uint256 maxScaleFactor = type(uint120).max / denominator;
+
+                uint256 scaleFactor = context.generatorContext.randRange(
+                    1,
+                    maxScaleFactor
+                );
+
+                numerator *= scaleFactor;
+                denominator *= scaleFactor;
+
+                if (
+                    numerator == 0 ||
+                    denominator < 2 ||
+                    numerator >= denominator ||
+                    numerator > type(uint120).max ||
+                    denominator > type(uint120).max
+                ) {
+                    revert("FuzzAmendments: partial fill sanity check failed");
+                }
+
+                order.inscribeOrderStatusNumeratorAndDenominator(
+                    uint120(numerator),
+                    uint120(denominator),
+                    context.seaport
+                );
+
+                // Derive the realized and final fill fractions and status.
+                FractionResults memory fractionResults = (
+                    FractionUtil.getPartialFillResults(
+                        uint120(numerator),
+                        uint120(denominator),
+                        order.numerator,
+                        order.denominator
+                    )
+                );
+
+                // Register the realized and final fill fractions and status.
+                context.expectations.expectedFillFractions[i] = fractionResults;
+
+                // Update "previewed" orders with the realized numerator and
+                // denominator so orderDetails derivation is based on realized.
+                context.executionState.previewedOrders[i].numerator = (
+                    fractionResults.realizedNumerator
+                );
+                context.executionState.previewedOrders[i].denominator = (
+                    fractionResults.realizedDenominator
+                );
+            } else {
+                // TODO: log these occurrences?
+                context.executionState.preExecOrderStatuses[i] = (
+                    OrderStatusEnum.AVAILABLE
+                );
+            }
+        }
+    }
+
+    /**
+     *  @dev Ensure each order's on chain status matches its generated status.
+     *
+     * @param context The test context.
+     */
+    function conformOnChainStatusToExpected(
+        FuzzTestContext memory context
+    ) public {
+        for (
+            uint256 i = 0;
+            i < context.executionState.preExecOrderStatuses.length;
+            ++i
+        ) {
+            if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.VALIDATED
+            ) {
+                validateOrdersAndRegisterCheck(context);
+            } else if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.CANCELLED_EXPLICIT
+            ) {
+                context.executionState.orders[i].inscribeOrderStatusCancelled(
+                    true,
+                    context.seaport
+                );
+            } else if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.FULFILLED
+            ) {
+                context
+                    .executionState
+                    .orders[i]
+                    .inscribeOrderStatusNumeratorAndDenominator(
+                        1,
+                        1,
+                        context.seaport
+                    );
+            } else if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.AVAILABLE
+            ) {
+                context
+                    .executionState
+                    .orders[i]
+                    .inscribeOrderStatusNumeratorAndDenominator(
+                        0,
+                        0,
+                        context.seaport
+                    );
+                context.executionState.orders[i].inscribeOrderStatusCancelled(
+                    false,
+                    context.seaport
+                );
+            } else if (
+                context.executionState.preExecOrderStatuses[i] ==
+                OrderStatusEnum.REVERT
+            ) {
+                OrderParameters memory orderParams = context
+                    .executionState
+                    .orders[i]
+                    .parameters;
+                bytes32 orderHash = context.executionState.orderHashes[i];
+                if (orderParams.orderType != OrderType.CONTRACT) {
+                    revert("FuzzAmendments: bad pre-exec order status");
+                }
+
+                HashCalldataContractOfferer(payable(orderParams.offerer))
+                    .setFailureReason(
+                        orderHash,
+                        OffererZoneFailureReason.ContractOfferer_generateReverts
+                    );
+            }
+        }
+    }
+
+    /**
+     *  @dev Set up offerer's counter value.
+     *
+     * @param context The test context.
+     */
+    function setCounter(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory order = (
+                context.executionState.orders[i].parameters
+            );
+
+            if (order.orderType == OrderType.CONTRACT) {
+                continue;
+            }
+
+            uint256 offererSpecificCounter = context.executionState.counter +
+                uint256(uint160(order.offerer));
+
+            order.offerer.inscribeCounter(
+                offererSpecificCounter,
+                context.seaport
+            );
+        }
+    }
+
+    /**
+     *  @dev Set up contract offerer's nonce value.
+     *
+     * @param context The test context.
+     */
+    function setContractOffererNonce(FuzzTestContext memory context) public {
+        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory order = (
+                context.executionState.orders[i].parameters
+            );
+
+            if (order.orderType != OrderType.CONTRACT) {
+                continue;
+            }
+
+            uint256 contractOffererSpecificContractNonce = context
+                .executionState
+                .contractOffererNonce + uint256(uint160(order.offerer));
+
+            order.offerer.inscribeContractOffererNonce(
+                contractOffererSpecificContractNonce,
+                context.seaport
+            );
+        }
+    }
+
     function _findFirstNon721Index(
         OfferItem[] memory items
     ) internal pure returns (uint256) {
@@ -283,238 +542,6 @@ abstract contract FuzzAmendments is Test {
                 endAmount: item.amount,
                 recipient: item.recipient
             });
-        }
-    }
-
-    /**
-     *  @dev Validate orders.
-     *
-     * @param context The test context.
-     */
-    function validateOrdersAndRegisterCheck(
-        FuzzTestContext memory context
-    ) public {
-        for (
-            uint256 i = 0;
-            i < context.executionState.preExecOrderStatuses.length;
-            ++i
-        ) {
-            if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.VALIDATED
-            ) {
-                bool validated = context
-                    .executionState
-                    .orders[i]
-                    .validateTipNeutralizedOrder(context);
-
-                require(validated, "Failed to validate orders.");
-            }
-        }
-
-        context.registerCheck(FuzzChecks.check_ordersValidated.selector);
-    }
-
-    function setPartialFills(FuzzTestContext memory context) public {
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            if (
-                context.executionState.preExecOrderStatuses[i] !=
-                OrderStatusEnum.PARTIAL
-            ) {
-                continue;
-            }
-
-            AdvancedOrder memory order = context.executionState.orders[i];
-
-            if (
-                order.parameters.orderType != OrderType.PARTIAL_OPEN &&
-                order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
-            ) {
-                revert(
-                    "FuzzAmendments: invalid order type for partial fill state"
-                );
-            }
-
-            (uint256 denominator, bool canScaleUp) = order
-                .parameters
-                .getSmallestDenominator();
-
-            // If the denominator is 0 or 1, the order cannot have a partial
-            // fill fraction applied.
-            if (denominator > 1) {
-                // All partially-filled orders are de-facto valid.
-                order.inscribeOrderStatusValidated(true, context.seaport);
-
-                uint256 numerator = context.generatorContext.randRange(
-                    1,
-                    canScaleUp ? (denominator - 1) : 1
-                );
-
-                uint256 maxScaleFactor = type(uint120).max / denominator;
-
-                uint256 scaleFactor = context.generatorContext.randRange(
-                    1,
-                    maxScaleFactor
-                );
-
-                numerator *= scaleFactor;
-                denominator *= scaleFactor;
-
-                if (
-                    numerator == 0 ||
-                    denominator < 2 ||
-                    numerator >= denominator ||
-                    numerator > type(uint120).max ||
-                    denominator > type(uint120).max
-                ) {
-                    revert("FuzzAmendments: partial fill sanity check failed");
-                }
-
-                order.inscribeOrderStatusNumeratorAndDenominator(
-                    uint120(numerator),
-                    uint120(denominator),
-                    context.seaport
-                );
-
-                // Derive the realized and final fill fractions and status.
-                FractionResults memory fractionResults = (
-                    FractionUtil.getPartialFillResults(
-                        uint120(numerator),
-                        uint120(denominator),
-                        order.numerator,
-                        order.denominator
-                    )
-                );
-
-                // Register the realized and final fill fractions and status.
-                context.expectations.expectedFillFractions[i] = fractionResults;
-
-                // Update "previewed" orders with the realized numerator and
-                // denominator so orderDetails derivation is based on realized.
-                context.executionState.previewedOrders[i].numerator = (
-                    fractionResults.realizedNumerator
-                );
-                context.executionState.previewedOrders[i].denominator = (
-                    fractionResults.realizedDenominator
-                );
-            } else {
-                // TODO: log these occurrences?
-                context.executionState.preExecOrderStatuses[i] = (
-                    OrderStatusEnum.AVAILABLE
-                );
-            }
-        }
-    }
-
-    function conformOnChainStatusToExpected(
-        FuzzTestContext memory context
-    ) public {
-        for (
-            uint256 i = 0;
-            i < context.executionState.preExecOrderStatuses.length;
-            ++i
-        ) {
-            if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.VALIDATED
-            ) {
-                validateOrdersAndRegisterCheck(context);
-            } else if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.CANCELLED_EXPLICIT
-            ) {
-                context.executionState.orders[i].inscribeOrderStatusCancelled(
-                    true,
-                    context.seaport
-                );
-            } else if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.FULFILLED
-            ) {
-                context
-                    .executionState
-                    .orders[i]
-                    .inscribeOrderStatusNumeratorAndDenominator(
-                        1,
-                        1,
-                        context.seaport
-                    );
-            } else if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.AVAILABLE
-            ) {
-                context
-                    .executionState
-                    .orders[i]
-                    .inscribeOrderStatusNumeratorAndDenominator(
-                        0,
-                        0,
-                        context.seaport
-                    );
-                context.executionState.orders[i].inscribeOrderStatusCancelled(
-                    false,
-                    context.seaport
-                );
-            } else if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.REVERT
-            ) {
-                OrderParameters memory orderParams = context
-                    .executionState
-                    .orders[i]
-                    .parameters;
-                bytes32 orderHash = context.executionState.orderHashes[i];
-                if (orderParams.orderType != OrderType.CONTRACT) {
-                    revert("FuzzAmendments: bad pre-exec order status");
-                }
-
-                HashCalldataContractOfferer(payable(orderParams.offerer))
-                    .setFailureReason(
-                        orderHash,
-                        OffererZoneFailureReason.ContractOfferer_generateReverts
-                    );
-            }
-        }
-    }
-
-    function setCounter(FuzzTestContext memory context) public {
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory order = (
-                context.executionState.orders[i].parameters
-            );
-
-            if (order.orderType == OrderType.CONTRACT) {
-                continue;
-            }
-
-            uint256 offererSpecificCounter = context.executionState.counter +
-                uint256(uint160(order.offerer));
-
-            order.offerer.inscribeCounter(
-                offererSpecificCounter,
-                context.seaport
-            );
-        }
-    }
-
-    function setContractOffererNonce(FuzzTestContext memory context) public {
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory order = (
-                context.executionState.orders[i].parameters
-            );
-
-            if (order.orderType != OrderType.CONTRACT) {
-                continue;
-            }
-
-            uint256 contractOffererSpecificContractNonce = context
-                .executionState
-                .contractOffererNonce + uint256(uint160(order.offerer));
-
-            order.offerer.inscribeContractOffererNonce(
-                contractOffererSpecificContractNonce,
-                context.seaport
-            );
         }
     }
 }

@@ -253,6 +253,14 @@ library FuzzEngineLib {
         }
     }
 
+    /**
+     * @dev Determine whether a matching function (either `matchOrders` or
+     *      `matchAdvancedOrders`) will be selected, based on the given order
+     *      configuration.
+     *
+     * @param context A Fuzz test context.
+     * @return bool whether a matching function will be called.
+     */
     function mustUseMatch(
         FuzzTestContext memory context
     ) internal view returns (bool) {
@@ -388,6 +396,13 @@ library FuzzEngineLib {
         return false;
     }
 
+    /**
+     * @dev Determine the amount of native tokens the caller must supply.
+     *
+     * @param context A Fuzz test context.
+     * @return value The amount of native tokens to supply.
+     * @return minimum The minimum amount of native tokens to supply.
+     */
     function getNativeTokensToSupply(
         FuzzTestContext memory context
     ) internal returns (uint256 value, uint256 minimum) {
@@ -485,6 +500,9 @@ library FuzzEngineLib {
         return hugeCallValue - nativeTokensReturned;
     }
 
+    /**
+     * @dev Determine whether or not an order configuration has remainders.
+     */
     function withDetectedRemainders(
         FuzzTestContext memory context
     ) internal returns (FuzzTestContext memory) {

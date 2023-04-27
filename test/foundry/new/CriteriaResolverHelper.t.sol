@@ -13,7 +13,7 @@ import { Test } from "forge-std/Test.sol";
 //     SeaportArrays
 // } from "seaport-sol/SeaportSol.sol";
 
-import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
+import { CriteriaResolverHelper } from "./helpers/CriteriaResolverHelper.sol";
 
 contract CriteriaResolverHelperTest is Test {
     // using LibPRNG for LibPRNG.PRNG;
