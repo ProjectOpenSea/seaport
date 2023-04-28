@@ -155,6 +155,8 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory remainingOfferComponents
         )
     {
+    	assertSupportedStrategy(strategy);
+
         (fulfillments, remainingOfferComponents) = getMatchFulfillments(
             matchDetails,
             strategy,
@@ -179,6 +181,30 @@ library FulfillmentGeneratorLib {
                 seed
             );
         }
+    }
+
+    function assertSupportedStrategy(
+    	FulfillmentStrategy memory strategy
+    ) internal pure {
+    	// TODO: add more strategies here as support is added for them.
+    	AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
+    	if (aggregationStrategy != AggregationStrategy.MAXIMUM) {
+    		revert("FulfillmentGeneratorLib: unsupported aggregation strategy");
+    	}
+
+    	FulfillAvailableStrategy fulfillAvailableStrategy = (
+    		strategy.fulfillAvailableStrategy
+    	);
+    	if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
+    		revert(
+    			"FulfillmentGeneratorLib: unsupported fulfillAvailable strategy"
+    		);
+    	}
+
+    	MatchStrategy matchStrategy = strategy.matchStrategy;
+    	if (matchStrategy != MatchStrategy.MAX_INCLUSION) {
+    		revert("FulfillmentGeneratorLib: unsupported match strategy");
+    	}
     }
 
     function determineEligibility(
