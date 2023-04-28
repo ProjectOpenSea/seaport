@@ -36,9 +36,17 @@ struct HashCount {
 }
 
 struct ItemReferenceGroup {
-    bytes32 hash;
+    bytes32 fullHash;
     ItemReference[] references;
     uint256 assigned;
+}
+
+struct MatchableItemReferenceGroup {
+    bytes32 dataHash;
+    ItemReferenceGroup[] offerItemReferenceGroups;
+    ItemReferenceGroup[] considerationItemReferenceGroups;
+    uint256 offerAssigned;
+    uint256 considerationAssigned;
 }
 
 library FulfillmentLib {
@@ -97,38 +105,73 @@ library FulfillmentLib {
         );
 
         for (uint256 i = 0; i < itemReferences.length; ++i) {
-        	ItemReference memory itemReference = itemReferences[i];
-        	for (uint256 j = 0; j < groups.length; ++j) {
-        		ItemReferenceGroup memory group = groups[j];
-        		if (group.hash == itemReference.fullHash) {
-        			group.references[group.assigned++] = itemReference;
-        			break;
-        		}
-        	}
+            ItemReference memory itemReference = itemReferences[i];
+            for (uint256 j = 0; j < groups.length; ++j) {
+                ItemReferenceGroup memory group = groups[j];
+                if (group.fullHash == itemReference.fullHash) {
+                    group.references[group.assigned++] = itemReference;
+                    break;
+                }
+            }
         }
 
         return groups;
     }
 
     function bundleByMatchable(
-        ItemReference[] memory itemReferences
-    ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory groups = allocateItemReferenceGroup(
-            getUniqueDataHashes(itemReferences)
-        );
+        ItemReference[] memory itemReferences,
+        ItemReferenceGroup[] memory groups
+    ) internal pure returns (MatchableItemReferenceGroup[] memory) {
+        MatchableItemReferenceGroup[]
+            memory matchableGroups = allocateMatchableItemReferenceGroup(
+                getUniqueDataHashes(itemReferences)
+            );
 
-        for (uint256 i = 0; i < itemReferences.length; ++i) {
-        	ItemReference memory itemReference = itemReferences[i];
-        	for (uint256 j = 0; j < groups.length; ++j) {
-        		ItemReferenceGroup memory group = groups[j];
-        		if (group.hash == itemReference.dataHash) {
-        			group.references[group.assigned++] = itemReference;
-        			break;
-        		}
-        	}
+        for (uint256 i = 0; i < groups.length; ++i) {
+            ItemReferenceGroup memory group = groups[i];
+            ItemReference memory firstReference = group.references[0];
+            for (uint256 j = 0; j < matchableGroups.length; ++j) {
+                MatchableItemReferenceGroup memory matchableGroup = (
+                    matchableGroups[j]
+                );
+
+                if (matchableGroup.dataHash == firstReference.dataHash) {
+                    if (firstReference.side == Side.OFFER) {
+                        matchableGroup.offerItemReferenceGroups[
+                            matchableGroup.offerAssigned++
+                        ] = group;
+                    } else if (firstReference.side == Side.CONSIDERATION) {
+                        matchableGroup.considerationItemReferenceGroups[
+                            matchableGroup.considerationAssigned++
+                        ] = group;
+                    } else {
+                        revert("FulfillmentLib: invalid side located");
+                    }
+
+                    break;
+                }
+            }
         }
 
-        return groups;
+        // Reduce reference group array lengths based on assigned elements.
+        for (uint256 i = 0; i < matchableGroups.length; ++i) {
+            MatchableItemReferenceGroup memory group = matchableGroups[i];
+            uint256 offerAssigned = group.offerAssigned;
+            uint256 considerationAssigned = group.considerationAssigned;
+            ItemReferenceGroup[] memory offerItemReferenceGroups = (
+                group.offerItemReferenceGroups
+            );
+            ItemReferenceGroup[] memory considerationItemReferenceGroups = (
+                group.considerationItemReferenceGroups
+            );
+
+            assembly {
+                mstore(offerItemReferenceGroups, offerAssigned)
+                mstore(considerationItemReferenceGroups, considerationAssigned)
+            }
+        }
+
+        return matchableGroups;
     }
 
     function allocateItemReferenceGroup(
@@ -140,9 +183,35 @@ library FulfillmentLib {
 
         for (uint256 i = 0; i < hashCount.length; ++i) {
             group[i] = ItemReferenceGroup({
-                hash: hashCount[i].hash,
+                fullHash: hashCount[i].hash,
                 references: new ItemReference[](hashCount[i].count),
                 assigned: 0
+            });
+        }
+
+        return group;
+    }
+
+    function allocateMatchableItemReferenceGroup(
+        HashCount[] memory hashCount
+    ) internal pure returns (MatchableItemReferenceGroup[] memory) {
+        MatchableItemReferenceGroup[] memory group = (
+            new MatchableItemReferenceGroup[](hashCount.length)
+        );
+
+        for (uint256 i = 0; i < hashCount.length; ++i) {
+            // NOTE: reference group lengths are overallocated and will need to
+            // be reduced once their respective elements have been assigned.
+            group[i] = MatchableItemReferenceGroup({
+                dataHash: hashCount[i].hash,
+                offerItemReferenceGroups: new ItemReferenceGroup[](
+                    hashCount[i].count
+                ),
+                considerationItemReferenceGroups: new ItemReferenceGroup[](
+                    hashCount[i].count
+                ),
+                offerAssigned: 0,
+                considerationAssigned: 0
             });
         }
 
