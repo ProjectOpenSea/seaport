@@ -89,8 +89,51 @@ library FulfillmentPrepLib {
         uint256 considerationAssigned;
     }
 
+    function getFulfillAvailableDetails(
+        OrderDetails[] memory orderDetails,
+        address recipient,
+        address caller,
+        uint256 seed
+    ) internal pure returns (FulfillAvailableDetails memory) {
+        (
+            ItemReferenceGroup[] memory offerGroups,
+            ItemReferenceGroup[] memory considerationGroups
+        ) = splitBySide(
+                bundleByAggregatable(getItemReferences(orderDetails, seed))
+            );
+
+        return
+            getFulfillAvailableDetailsFromGroups(
+                offerGroups,
+                considerationGroups,
+                recipient,
+                caller
+            );
+    }
+
+    function getMatchDetails(
+        OrderDetails[] memory orderDetails,
+        address recipient,
+        uint256 seed
+    ) internal pure returns (MatchDetails memory) {
+        ItemReference[] memory itemReferences = getItemReferences(
+            orderDetails,
+            seed
+        );
+
+        return
+            getMatchDetailsFromGroups(
+                bundleByMatchable(
+                    itemReferences,
+                    bundleByAggregatable(itemReferences)
+                ),
+                recipient
+            );
+    }
+
     function getItemReferences(
-        OrderDetails[] memory orderDetails
+        OrderDetails[] memory orderDetails,
+        uint256 seed
     ) internal pure returns (ItemReference[] memory) {
         ItemReference[] memory itemReferences = new ItemReference[](
             getTotalItems(orderDetails)
@@ -130,7 +173,11 @@ library FulfillmentPrepLib {
             }
         }
 
-        return itemReferences;
+        if (seed == 0) {
+            return itemReferences;
+        }
+
+        return shuffleItemReferences(itemReferences, seed);
     }
 
     function bundleByAggregatable(
@@ -200,7 +247,7 @@ library FulfillmentPrepLib {
         return (offerGroups, considerationGroups);
     }
 
-    function getFulfillAvailableDetails(
+    function getFulfillAvailableDetailsFromGroups(
         ItemReferenceGroup[] memory offerGroups,
         ItemReferenceGroup[] memory considerationGroups,
         address recipient,
@@ -219,7 +266,7 @@ library FulfillmentPrepLib {
             });
     }
 
-    function getMatchDetails(
+    function getMatchDetailsFromGroups(
         MatchableItemReferenceGroup[] memory matchableGroups,
         address recipient
     ) internal pure returns (MatchDetails memory) {
