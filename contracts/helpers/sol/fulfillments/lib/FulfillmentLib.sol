@@ -92,17 +92,43 @@ library FulfillmentLib {
     function bundleByAggregatable(
         ItemReference[] memory itemReferences
     ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory group = allocateItemReferenceGroup(
+        ItemReferenceGroup[] memory groups = allocateItemReferenceGroup(
             getUniqueFullHashes(itemReferences)
         );
+
+        for (uint256 i = 0; i < itemReferences.length; ++i) {
+        	ItemReference memory itemReference = itemReferences[i];
+        	for (uint256 j = 0; j < groups.length; ++j) {
+        		ItemReferenceGroup memory group = groups[j];
+        		if (group.hash == itemReference.fullHash) {
+        			group.references[group.assigned++] = itemReference;
+        			break;
+        		}
+        	}
+        }
+
+        return groups;
     }
 
     function bundleByMatchable(
         ItemReference[] memory itemReferences
     ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory group = allocateItemReferenceGroup(
+        ItemReferenceGroup[] memory groups = allocateItemReferenceGroup(
             getUniqueDataHashes(itemReferences)
         );
+
+        for (uint256 i = 0; i < itemReferences.length; ++i) {
+        	ItemReference memory itemReference = itemReferences[i];
+        	for (uint256 j = 0; j < groups.length; ++j) {
+        		ItemReferenceGroup memory group = groups[j];
+        		if (group.hash == itemReference.dataHash) {
+        			group.references[group.assigned++] = itemReference;
+        			break;
+        		}
+        	}
+        }
+
+        return groups;
     }
 
     function allocateItemReferenceGroup(
