@@ -5,6 +5,8 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { LibSort } from "solady/src/utils/LibSort.sol";
 
+import { MatchComponent } from "seaport-sol/SeaportSol.sol";
+
 import {
     FulfillmentComponent,
     Fulfillment,
@@ -20,10 +22,52 @@ import { ItemType, Side } from "../../SeaportEnums.sol";
 
 import { OrderDetails } from "./Structs.sol";
 
+enum FulfillmentEligibility {
+    NONE,
+    FULFILL_AVAILABLE,
+    MATCH,
+    BOTH
+}
+
+enum AggregationStrategy {
+    MINIMUM, // Aggregate as few items as possible
+    MAXIMUM, // Aggregate as many items as possible
+    RANDOM // Randomize aggregation quantity
+    // NOTE: for match cases, there may be more sophisticated optimal strategies
+}
+
+enum FulfillAvailableStrategy {
+    KEEP_ALL, // Persist default aggregation strategy
+    DROP_SINGLE_OFFER, // Exclude aggregations for single offer items
+    DROP_ALL_OFFER, // Exclude offer aggregations (keep one if no consideration)
+    DROP_RANDOM_OFFER, // Exclude random offer aggregations
+    DROP_SINGLE_KEEP_FILTERED, // Exclude single unless it would be filtered
+    DROP_ALL_KEEP_FILTERED, // Exclude all unfilterable offer aggregations
+    DROP_RANDOM_KEEP_FILTERED // Exclude random, unfilterable offer aggregations
+}
+
+enum MatchStrategy {
+    MAX_FILTERS, // prioritize locating filterable executions
+    MIN_FILTERS, // prioritize avoiding filterable executions where possible
+    MAX_INCLUSION, // try not to leave any unspent offer items
+    MIN_INCLUSION, // leave as many unspent offer items as possible
+    MIN_INCLUSION_MAX_FILTERS, // leave unspent items if not filterable
+    MAX_EXECUTIONS, // use as many fulfillments as possible given aggregations
+    MIN_EXECUTIONS, // use as few fulfillments as possible given aggregations
+    MIN_EXECUTIONS_MAX_FILTERS // minimize fulfillments and prioritize filters
+    // NOTE: more sophisticated match strategies require modifying aggregations
+}
+
 enum ItemCategory {
     NATIVE,
     ERC721,
     OTHER
+}
+
+struct FulfillmentStrategy {
+    AggregationStrategy aggregationStrategy;
+    FulfillAvailableStrategy fulfillAvailableStrategy;
+    MatchStrategy matchStrategy;
 }
 
 struct FulfillmentItem {
@@ -53,6 +97,82 @@ struct FulfillAvailableDetails {
 struct MatchDetails {
     DualFulfillmentItems[] items;
     address recipient;
+}
+
+library FulfillmentGeneratorLib {
+    using LibPRNG for LibPRNG.PRNG;
+    using FulfillmentPrepLib for OrderDetails[];
+    using FulfillmentPrepLib for FulfillmentPrepLib.ItemReference[];
+
+    function getFulfillments(
+        OrderDetails[] memory orderDetails,
+        FulfillmentStrategy memory strategy,
+        address recipient,
+        address caller,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            FulfillmentEligibility eligibility,
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments,
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents
+        )
+    {
+        FulfillmentPrepLib.ItemReference[] memory itemReferences = orderDetails
+            .getItemReferences(seed);
+
+        FulfillAvailableDetails memory fulfillAvailableDetails = itemReferences
+            .getFulfillAvailableDetailsFromReferences(recipient, caller);
+
+        MatchDetails memory matchDetails = itemReferences
+            .getMatchDetailsFromReferences(recipient);
+
+        return
+            getFulfillmentsFromDetails(
+                fulfillAvailableDetails,
+                matchDetails,
+                strategy,
+                seed
+            );
+    }
+
+    function getFulfillmentsFromDetails(
+        FulfillAvailableDetails memory fulfillAvailableDetails,
+        MatchDetails memory matchDetails,
+        FulfillmentStrategy memory strategy,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            FulfillmentEligibility eligibility,
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments,
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents
+        )
+    {
+        // ...
+    }
+
+    function determineEligibility(
+        FulfillAvailableDetails memory fulfillAvailableDetails,
+        MatchDetails memory matchDetails
+    ) internal pure returns (FulfillmentEligibility) {
+        // FulfillAvailable: cannot be used if native offer items are present on
+        // non-contract orders or if ERC721 items with amounts != 1 are present.
+        // There must also be at least one unfiltered explicit execution. Note
+        // that it is also *very* tricky to use FulfillAvailable in cases where
+        // ERC721 items are present on both the offer side & consideration side.
+
+        // Match: cannot be used if there is no way to meet each consideration
+        // item. In these cases, remaining offer components should be returned.
+
+        return FulfillmentEligibility.NONE;
+    }
 }
 
 library FulfillmentPrepLib {
@@ -95,12 +215,23 @@ library FulfillmentPrepLib {
         address caller,
         uint256 seed
     ) internal pure returns (FulfillAvailableDetails memory) {
+        return
+            getFulfillAvailableDetailsFromReferences(
+                getItemReferences(orderDetails, seed),
+                recipient,
+                caller
+            );
+    }
+
+    function getFulfillAvailableDetailsFromReferences(
+        ItemReference[] memory itemReferences,
+        address recipient,
+        address caller
+    ) internal pure returns (FulfillAvailableDetails memory) {
         (
             ItemReferenceGroup[] memory offerGroups,
             ItemReferenceGroup[] memory considerationGroups
-        ) = splitBySide(
-                bundleByAggregatable(getItemReferences(orderDetails, seed))
-            );
+        ) = splitBySide(bundleByAggregatable(itemReferences));
 
         return
             getFulfillAvailableDetailsFromGroups(
@@ -116,11 +247,17 @@ library FulfillmentPrepLib {
         address recipient,
         uint256 seed
     ) internal pure returns (MatchDetails memory) {
-        ItemReference[] memory itemReferences = getItemReferences(
-            orderDetails,
-            seed
-        );
+        return
+            getMatchDetailsFromReferences(
+                getItemReferences(orderDetails, seed),
+                recipient
+            );
+    }
 
+    function getMatchDetailsFromReferences(
+        ItemReference[] memory itemReferences,
+        address recipient
+    ) internal pure returns (MatchDetails memory) {
         return
             getMatchDetailsFromGroups(
                 bundleByMatchable(
@@ -618,7 +755,7 @@ library FulfillmentPrepLib {
         }
 
         LibPRNG.PRNG memory prng;
-        prng.seed(seed);
+        prng.seed(seed ^ 0xee);
         prng.shuffle(indices);
 
         for (uint256 i = 0; i < indices.length; ++i) {
