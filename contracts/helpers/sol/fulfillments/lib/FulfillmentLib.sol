@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
+import { LibSort } from "solady/src/utils/LibSort.sol";
+
 import {
     FulfillmentComponent,
     Fulfillment,
@@ -28,40 +30,26 @@ struct ItemReference {
     bool is721;
 }
 
+struct HashCount {
+    bytes32 hash;
+    uint256 count;
+}
+
+struct ItemReferenceGroup {
+    bytes32 hash;
+    ItemReference[] references;
+    uint256 assigned;
+}
+
 library FulfillmentLib {
     using LibPRNG for LibPRNG.PRNG;
-
-    function shuffleItemReferences(
-    	ItemReference[] memory itemReferences,
-    	uint256 seed
-    ) internal pure returns (
-    	ItemReference[] memory
-    ) {
-		ItemReference[] memory shuffledItemReferences = new ItemReference[](
-        	itemReferences.length
-        );
-
-        uint256[] memory indices = new uint256[](itemReferences.length);
-        for (uint256 i = 0; i < indices.length; ++i) {
-        	indices[i] = i;
-        }
-
-        LibPRNG.PRNG memory prng;
-        prng.seed(seed);
-        prng.shuffle(indices);
-
-        for (uint256 i = 0; i < indices.length; ++i) {
-        	shuffledItemReferences[i] = copy(itemReferences[indices[i]]);
-        }
-
-        return shuffledItemReferences;
-    }
+    using LibSort for uint256[];
 
     function getItemReferences(
         OrderDetails[] memory orderDetails
     ) internal pure returns (ItemReference[] memory) {
         ItemReference[] memory itemReferences = new ItemReference[](
-        	getTotalItems(orderDetails)
+            getTotalItems(orderDetails)
         );
 
         uint256 itemReferenceIndex = 0;
@@ -99,6 +87,98 @@ library FulfillmentLib {
         }
 
         return itemReferences;
+    }
+
+    function bundleByAggregatable(
+        ItemReference[] memory itemReferences
+    ) internal pure returns (ItemReferenceGroup[] memory) {
+        ItemReferenceGroup[] memory group = allocateItemReferenceGroup(
+            getUniqueFullHashes(itemReferences)
+        );
+    }
+
+    function bundleByMatchable(
+        ItemReference[] memory itemReferences
+    ) internal pure returns (ItemReferenceGroup[] memory) {
+        ItemReferenceGroup[] memory group = allocateItemReferenceGroup(
+            getUniqueDataHashes(itemReferences)
+        );
+    }
+
+    function allocateItemReferenceGroup(
+        HashCount[] memory hashCount
+    ) internal pure returns (ItemReferenceGroup[] memory) {
+        ItemReferenceGroup[] memory group = new ItemReferenceGroup[](
+            hashCount.length
+        );
+
+        for (uint256 i = 0; i < hashCount.length; ++i) {
+            group[i] = ItemReferenceGroup({
+                hash: hashCount[i].hash,
+                references: new ItemReference[](hashCount[i].count),
+                assigned: 0
+            });
+        }
+
+        return group;
+    }
+
+    function getUniqueFullHashes(
+        ItemReference[] memory itemReferences
+    ) internal pure returns (HashCount[] memory) {
+        uint256[] memory fullHashes = new uint256[](itemReferences.length);
+
+        for (uint256 i = 0; i < itemReferences.length; ++i) {
+            fullHashes[i] = uint256(itemReferences[i].fullHash);
+        }
+
+        return getHashCount(fullHashes);
+    }
+
+    function getUniqueDataHashes(
+        ItemReference[] memory itemReferences
+    ) internal pure returns (HashCount[] memory) {
+        uint256[] memory dataHashes = new uint256[](itemReferences.length);
+
+        for (uint256 i = 0; i < itemReferences.length; ++i) {
+            dataHashes[i] = uint256(itemReferences[i].dataHash);
+        }
+
+        return getHashCount(dataHashes);
+    }
+
+    function getHashCount(
+        uint256[] memory hashes
+    ) internal pure returns (HashCount[] memory) {
+        if (hashes.length == 0) {
+            return new HashCount[](0);
+        }
+
+        hashes.sort();
+
+        HashCount[] memory hashCount = new HashCount[](hashes.length);
+        hashCount[0] = HashCount({ hash: bytes32(hashes[0]), count: 1 });
+
+        uint256 hashCountPointer = 0;
+        for (uint256 i = 1; i < hashes.length; ++i) {
+            bytes32 element = bytes32(hashes[i]);
+
+            if (element != hashCount[hashCountPointer].hash) {
+                hashCount[++hashCountPointer] = HashCount({
+                    hash: element,
+                    count: 1
+                });
+            } else {
+                ++hashCount[hashCountPointer].count;
+            }
+        }
+
+        // update length of the hashCount array.
+        assembly {
+            mstore(hashCount, hashCountPointer)
+        }
+
+        return hashCount;
     }
 
     function getTotalItems(
@@ -171,8 +251,32 @@ library FulfillmentLib {
             });
     }
 
+    function shuffleItemReferences(
+        ItemReference[] memory itemReferences,
+        uint256 seed
+    ) internal pure returns (ItemReference[] memory) {
+        ItemReference[] memory shuffledItemReferences = new ItemReference[](
+            itemReferences.length
+        );
+
+        uint256[] memory indices = new uint256[](itemReferences.length);
+        for (uint256 i = 0; i < indices.length; ++i) {
+            indices[i] = i;
+        }
+
+        LibPRNG.PRNG memory prng;
+        prng.seed(seed);
+        prng.shuffle(indices);
+
+        for (uint256 i = 0; i < indices.length; ++i) {
+            shuffledItemReferences[i] = copy(itemReferences[indices[i]]);
+        }
+
+        return shuffledItemReferences;
+    }
+
     function copy(
-    	ItemReference memory itemReference
+        ItemReference memory itemReference
     ) internal pure returns (ItemReference memory) {
         return
             ItemReference({
