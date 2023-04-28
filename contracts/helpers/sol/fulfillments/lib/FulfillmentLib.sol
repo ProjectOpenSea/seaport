@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+
 import {
     FulfillmentComponent,
     Fulfillment,
@@ -27,10 +29,40 @@ struct ItemReference {
 }
 
 library FulfillmentLib {
+    using LibPRNG for LibPRNG.PRNG;
+
+    function shuffleItemReferences(
+    	ItemReference[] memory itemReferences,
+    	uint256 seed
+    ) internal pure returns (
+    	ItemReference[] memory
+    ) {
+		ItemReference[] memory shuffledItemReferences = new ItemReference[](
+        	itemReferences.length
+        );
+
+        uint256[] memory indices = new uint256[](itemReferences.length);
+        for (uint256 i = 0; i < indices.length; ++i) {
+        	indices[i] = i;
+        }
+
+        LibPRNG.PRNG memory prng;
+        prng.seed(seed);
+        prng.shuffle(indices);
+
+        for (uint256 i = 0; i < indices.length; ++i) {
+        	shuffledItemReferences[i] = copy(itemReferences[indices[i]]);
+        }
+
+        return shuffledItemReferences;
+    }
+
     function getItemReferences(
         OrderDetails[] memory orderDetails
-    ) internal pure returns (ItemReference[] memory itemReferences) {
-        itemReferences = new ItemReference[](getTotalItems(orderDetails));
+    ) internal pure returns (ItemReference[] memory) {
+        ItemReference[] memory itemReferences = new ItemReference[](
+        	getTotalItems(orderDetails)
+        );
 
         uint256 itemReferenceIndex = 0;
 
@@ -65,6 +97,8 @@ library FulfillmentLib {
                 );
             }
         }
+
+        return itemReferences;
     }
 
     function getTotalItems(
@@ -134,6 +168,21 @@ library FulfillmentLib {
                 fullHash: fullHash,
                 amount: item.amount,
                 is721: item.itemType == ItemType.ERC721
+            });
+    }
+
+    function copy(
+    	ItemReference memory itemReference
+    ) internal pure returns (ItemReference memory) {
+        return
+            ItemReference({
+                orderIndex: itemReference.orderIndex,
+                itemIndex: itemReference.itemIndex,
+                side: itemReference.side,
+                dataHash: itemReference.dataHash,
+                fullHash: itemReference.fullHash,
+                amount: itemReference.amount,
+                is721: itemReference.is721
             });
     }
 }
