@@ -155,23 +155,143 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory remainingOfferComponents
         )
     {
-        // ...
+        (fulfillments, remainingOfferComponents) = getMatchFulfillments(
+            matchDetails,
+            strategy,
+            seed
+        );
+
+        eligibility = determineEligibility(
+            fulfillAvailableDetails,
+            remainingOfferComponents.length
+        );
+
+        if (
+            eligibility == FulfillmentEligibility.FULFILL_AVAILABLE ||
+            eligibility == FulfillmentEligibility.BOTH
+        ) {
+            (
+                offerFulfillments,
+                considerationFulfillments
+            ) = getFulfillAvailableFulfillments(
+                fulfillAvailableDetails,
+                strategy,
+                seed
+            );
+        }
     }
 
     function determineEligibility(
         FulfillAvailableDetails memory fulfillAvailableDetails,
-        MatchDetails memory matchDetails
+        uint256 totalRemainingOfferComponents
     ) internal pure returns (FulfillmentEligibility) {
         // FulfillAvailable: cannot be used if native offer items are present on
         // non-contract orders or if ERC721 items with amounts != 1 are present.
         // There must also be at least one unfiltered explicit execution. Note
         // that it is also *very* tricky to use FulfillAvailable in cases where
         // ERC721 items are present on both the offer side & consideration side.
+        bool eligibleForFulfillAvailable = determineFulfillAvailableEligibility(
+            fulfillAvailableDetails
+        );
 
         // Match: cannot be used if there is no way to meet each consideration
         // item. In these cases, remaining offer components should be returned.
+        bool eligibleForMatch = totalRemainingOfferComponents == 0;
 
-        return FulfillmentEligibility.NONE;
+        if (eligibleForFulfillAvailable) {
+            return
+                eligibleForMatch
+                    ? FulfillmentEligibility.BOTH
+                    : FulfillmentEligibility.FULFILL_AVAILABLE;
+        }
+
+        return
+            eligibleForMatch
+                ? FulfillmentEligibility.MATCH
+                : FulfillmentEligibility.NONE;
+    }
+
+    function getMatchFulfillments(
+        MatchDetails memory matchDetails,
+        FulfillmentStrategy memory strategy,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents
+        )
+    {
+        // ...
+    }
+
+    function getFulfillAvailableFulfillments(
+        FulfillAvailableDetails memory fulfillAvailableDetails,
+        FulfillmentStrategy memory strategy,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        )
+    {
+        // ...
+    }
+
+    function determineFulfillAvailableEligibility(
+        FulfillAvailableDetails memory fulfillAvailableDetails
+    ) internal pure returns (bool) {
+        bool atLeastOneExecution = false;
+
+        FulfillmentItems[] memory offer = fulfillAvailableDetails.items.offer;
+        for (uint256 i = 0; i < offer.length; ++i) {
+            FulfillmentItems memory fulfillmentItems = offer[i];
+            if (
+                fulfillmentItems.itemCategory == ItemCategory.NATIVE ||
+                (fulfillmentItems.itemCategory == ItemCategory.ERC721 &&
+                    fulfillmentItems.totalAmount != 1)
+            ) {
+                return false;
+            }
+
+            if (!atLeastOneExecution) {
+                for (uint256 j = 0; j < fulfillmentItems.items.length; ++j) {
+                    FulfillmentItem memory item = fulfillmentItems.items[j];
+                    if (item.account != fulfillAvailableDetails.recipient) {
+                        atLeastOneExecution = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        FulfillmentItems[] memory consideration = (
+            fulfillAvailableDetails.items.consideration
+        );
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            FulfillmentItems memory fulfillmentItems = consideration[i];
+            if (
+                fulfillmentItems.itemCategory == ItemCategory.ERC721 &&
+                fulfillmentItems.totalAmount != 1
+            ) {
+                return false;
+            }
+
+            if (!atLeastOneExecution) {
+                for (uint256 j = 0; j < fulfillmentItems.items.length; ++j) {
+                    FulfillmentItem memory item = fulfillmentItems.items[j];
+                    if (item.account != fulfillAvailableDetails.caller) {
+                        atLeastOneExecution = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }
 
