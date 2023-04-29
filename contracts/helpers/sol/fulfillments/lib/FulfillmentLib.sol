@@ -113,7 +113,18 @@ library FulfillmentGeneratorLib {
     using FulfillmentPrepLib for OrderDetails[];
     using FulfillmentPrepLib for FulfillmentPrepLib.ItemReference[];
 
-    function getDefaultFulfillments(
+    function getDefaultFulfillmentStrategy() internal pure returns (
+        FulfillmentStrategy memory
+    ) {
+        return FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
+    }
+
+    // This uses the "default" set of strategies and applies no randomization.
+    function getFulfillments(
         OrderDetails[] memory orderDetails,
         address recipient,
         address caller
@@ -129,15 +140,15 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
-        FulfillmentStrategy memory strategy = FulfillmentStrategy({
-            aggregationStrategy: AggregationStrategy.MAXIMUM,
-            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
-            matchStrategy: MatchStrategy.MAX_INCLUSION
-        });
-
         uint256 seed = 0;
 
-        return getFulfillments(orderDetails, strategy, recipient, caller, seed);
+        return getFulfillments(
+            orderDetails,
+            getDefaultFulfillmentStrategy(),
+            recipient,
+            caller,
+            seed
+        );
     }
 
     function getFulfillments(
@@ -247,7 +258,7 @@ library FulfillmentGeneratorLib {
 
     function determineEligibility(
         FulfillAvailableDetails memory fulfillAvailableDetails,
-        uint256 totalunmetConsiderationComponents
+        uint256 totalUnmetConsiderationComponents
     ) internal pure returns (FulfillmentEligibility) {
         // FulfillAvailable: cannot be used if native offer items are present on
         // non-contract orders or if ERC721 items with amounts != 1 are present.
@@ -260,7 +271,7 @@ library FulfillmentGeneratorLib {
 
         // Match: cannot be used if there is no way to meet each consideration
         // item. In these cases, remaining offer components should be returned.
-        bool eligibleForMatch = totalunmetConsiderationComponents == 0;
+        bool eligibleForMatch = totalUnmetConsiderationComponents == 0;
 
         if (eligibleForFulfillAvailable) {
             return
@@ -307,6 +318,29 @@ library FulfillmentGeneratorLib {
         }
     }
 
+    function getTotalUncoveredComponents(
+        DualFulfillmentMatchContext[] memory contexts
+    )
+        internal
+        pure
+        returns (
+            uint256 totalUnspentOfferComponents,
+            uint256 totalUnmetConsiderationComponents
+        )
+    {
+        for (uint256 i = 0; i < contexts.length; ++i) {
+            DualFulfillmentMatchContext memory context = contexts[i];
+
+            if (context.totalConsiderationAmount > context.totalOfferAmount) {
+                ++totalUnmetConsiderationComponents;
+            } else if (
+                context.totalConsiderationAmount < context.totalOfferAmount
+            ) {
+                ++totalUnspentOfferComponents;
+            }
+        }
+    }
+
     function getUncoveredComponents(
         MatchDetails memory matchDetails
     )
@@ -317,8 +351,10 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
-        uint256 totalUnspentOfferComponents = 0;
-        uint256 totalUnmetConsiderationComponents = 0;
+        (
+            uint256 totalUnspentOfferComponents,
+            uint256 totalUnmetConsiderationComponents
+        ) = getTotalUncoveredComponents(matchDetails.context);
 
         for (uint256 i = 0; i < matchDetails.context.length; ++i) {
             DualFulfillmentMatchContext memory context = (
