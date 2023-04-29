@@ -98,12 +98,14 @@ struct FulfillAvailableDetails {
     DualFulfillmentItems items;
     address caller;
     address recipient;
+    uint256 totalItems;
 }
 
 struct MatchDetails {
     DualFulfillmentItems[] items;
     DualFulfillmentMatchContext[] context;
     address recipient;
+    uint256 totalItems;
 }
 
 library FulfillmentGeneratorLib {
@@ -402,6 +404,7 @@ library FulfillmentGeneratorLib {
         }
     }
 
+    // NOTE: this function will "consume" the match details provided to it.
     function getMaxInclusionMatchFulfillments(
         MatchDetails memory matchDetails
     )
@@ -417,6 +420,10 @@ library FulfillmentGeneratorLib {
             unspentOfferComponents,
             unmetConsiderationComponents
         ) = getUncoveredComponents(matchDetails);
+
+        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
+            DualFulfillmentItems memory matchItems = matchDetails.items[i];
+        }
 
         // ...
     }
@@ -764,16 +771,17 @@ library FulfillmentPrepLib {
         address recipient,
         address caller
     ) internal pure returns (FulfillAvailableDetails memory) {
-        DualFulfillmentItems memory items = getDualFulfillmentItems(
-            offerGroups,
-            considerationGroups
-        );
+        (
+            DualFulfillmentItems memory items,
+            uint256 totalItems
+        ) = getDualFulfillmentItems(offerGroups, considerationGroups);
 
         return
             FulfillAvailableDetails({
                 items: items,
                 caller: caller,
-                recipient: recipient
+                recipient: recipient,
+                totalItems: totalItems
             });
     }
 
@@ -785,22 +793,28 @@ library FulfillmentPrepLib {
             matchableGroups.length
         );
 
+        uint256 totalItems = 0;
+        uint256 itemsInGroup = 0;
+
         for (uint256 i = 0; i < matchableGroups.length; ++i) {
             MatchableItemReferenceGroup memory matchableGroup = (
                 matchableGroups[i]
             );
 
-            items[i] = getDualFulfillmentItems(
+            (items[i], itemsInGroup) = getDualFulfillmentItems(
                 matchableGroup.offerGroups,
                 matchableGroup.considerationGroups
             );
+
+            totalItems += itemsInGroup;
         }
 
         return
             MatchDetails({
                 items: items,
                 context: getFulfillmentMatchContext(items),
-                recipient: recipient
+                recipient: recipient,
+                totalItems: totalItems
             });
     }
 
@@ -862,28 +876,37 @@ library FulfillmentPrepLib {
     function getDualFulfillmentItems(
         ItemReferenceGroup[] memory offerGroups,
         ItemReferenceGroup[] memory considerationGroups
-    ) internal pure returns (DualFulfillmentItems memory) {
+    ) internal pure returns (DualFulfillmentItems memory, uint256 totalItems) {
         DualFulfillmentItems memory items = DualFulfillmentItems({
             offer: new FulfillmentItems[](offerGroups.length),
             consideration: new FulfillmentItems[](considerationGroups.length)
         });
 
+        uint256 currentItems;
+
         for (uint256 i = 0; i < offerGroups.length; ++i) {
-            items.offer[i] = getFulfillmentItems(offerGroups[i].references);
+            // XYZ
+            (items.offer[i], currentItems) = getFulfillmentItems(
+                offerGroups[i].references
+            );
+
+            totalItems += currentItems;
         }
 
         for (uint256 i = 0; i < considerationGroups.length; ++i) {
-            items.consideration[i] = getFulfillmentItems(
+            (items.consideration[i], currentItems) = getFulfillmentItems(
                 considerationGroups[i].references
             );
+
+            totalItems += currentItems;
         }
 
-        return items;
+        return (items, totalItems);
     }
 
     function getFulfillmentItems(
         ItemReference[] memory itemReferences
-    ) internal pure returns (FulfillmentItems memory) {
+    ) internal pure returns (FulfillmentItems memory, uint256 totalItems) {
         // Sanity check: ensure there's at least one reference
         if (itemReferences.length == 0) {
             revert("FulfillmentPrepLib: empty item references supplied");
@@ -908,7 +931,7 @@ library FulfillmentPrepLib {
             });
         }
 
-        return fulfillmentItems;
+        return (fulfillmentItems, totalItems);
     }
 
     function bundleByMatchable(
