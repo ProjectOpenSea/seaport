@@ -20,6 +20,8 @@ optimized-out
 reference-working
 offerers-out
 
+#foundry script run output files
+broadcast/
 
 .DS_Store
 
