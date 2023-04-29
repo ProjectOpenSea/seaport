@@ -463,25 +463,36 @@ library FulfillmentGeneratorLib {
         );
 
         for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
-            FulfillmentItem[] memory items = fulfillmentItems[i].items;
-
-            FulfillmentComponent[] memory fulfillment = (
-                new FulfillmentComponent[](items.length)
+            fulfillments[i] = getFulfillmentComponents(
+                fulfillmentItems[i].items
             );
-
-            for (uint256 j = 0; j < items.length; ++j) {
-                FulfillmentItem memory item = items[j];
-
-                fulfillment[j] = FulfillmentComponent({
-                    orderIndex: item.orderIndex,
-                    itemIndex: item.itemIndex
-                });
-            }
-
-            fulfillments[i] = fulfillment;
         }
 
         return fulfillments;
+    }
+
+    function getFulfillmentComponents(
+        FulfillmentItem[] memory items
+    ) internal pure returns (FulfillmentComponent[] memory) {
+        FulfillmentComponent[] memory fulfillment = new FulfillmentComponent[](
+            items.length
+        );
+
+        for (uint256 i = 0; i < items.length; ++i) {
+            fulfillment[i] = getFulfillmentComponent(items[i]);
+        }
+
+        return fulfillment;
+    }
+
+    function getFulfillmentComponent(
+        FulfillmentItem memory item
+    ) internal pure returns (FulfillmentComponent memory) {
+        return
+            FulfillmentComponent({
+                orderIndex: item.orderIndex,
+                itemIndex: item.itemIndex
+            });
     }
 
     function determineFulfillAvailableEligibility(
