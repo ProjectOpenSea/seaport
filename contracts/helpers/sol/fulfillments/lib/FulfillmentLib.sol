@@ -88,6 +88,12 @@ struct DualFulfillmentItems {
     FulfillmentItems[] consideration;
 }
 
+struct DualFulfillmentMatchContext {
+    ItemCategory itemCategory;
+    uint256 totalOfferAmount;
+    uint256 totalConsiderationAmount;
+}
+
 struct FulfillAvailableDetails {
     DualFulfillmentItems items;
     address caller;
@@ -96,6 +102,7 @@ struct FulfillAvailableDetails {
 
 struct MatchDetails {
     DualFulfillmentItems[] items;
+    DualFulfillmentMatchContext[] context;
     address recipient;
 }
 
@@ -266,7 +273,35 @@ library FulfillmentGeneratorLib {
     function getMatchFulfillments(
         MatchDetails memory matchDetails,
         FulfillmentStrategy memory strategy,
-        uint256 seed
+        uint256 /* seed */
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents
+        )
+    {
+        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
+        MatchStrategy matchStrategy = strategy.matchStrategy;
+
+        if (
+            aggregationStrategy == AggregationStrategy.MAXIMUM &&
+            matchStrategy == MatchStrategy.MAX_INCLUSION
+        ) {
+            (
+                fulfillments,
+                remainingOfferComponents
+            ) = getMaxInclusionMatchFulfillments(matchDetails);
+        } else {
+            revert(
+                "FulfillmentGeneratorLib: only MAXIMUM+MAX_INCLUSION supported"
+            );
+        }
+    }
+
+    function getMaxInclusionMatchFulfillments(
+        MatchDetails memory matchDetails
     )
         internal
         pure
@@ -303,6 +338,8 @@ library FulfillmentGeneratorLib {
             considerationFulfillments = getMaxFulfillmentComponents(
                 fulfillAvailableDetails.items.consideration
             );
+        } else {
+            revert("FulfillmentGeneratorLib: only MAXIMUM supported for now");
         }
 
         if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
