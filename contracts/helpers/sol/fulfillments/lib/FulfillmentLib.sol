@@ -104,6 +104,32 @@ library FulfillmentGeneratorLib {
     using FulfillmentPrepLib for OrderDetails[];
     using FulfillmentPrepLib for FulfillmentPrepLib.ItemReference[];
 
+    function getDefaultFulfillments(
+        OrderDetails[] memory orderDetails,
+        address recipient,
+        address caller
+    )
+        internal
+        pure
+        returns (
+            FulfillmentEligibility eligibility,
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments,
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory remainingOfferComponents
+        )
+    {
+        FulfillmentStrategy memory strategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
+
+        uint256 seed = 0;
+
+        return getFulfillments(orderDetails, strategy, recipient, caller, seed);
+    }
+
     function getFulfillments(
         OrderDetails[] memory orderDetails,
         FulfillmentStrategy memory strategy,
@@ -155,7 +181,7 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory remainingOfferComponents
         )
     {
-    	assertSupportedStrategy(strategy);
+        assertSupportedStrategy(strategy);
 
         (fulfillments, remainingOfferComponents) = getMatchFulfillments(
             matchDetails,
@@ -184,27 +210,27 @@ library FulfillmentGeneratorLib {
     }
 
     function assertSupportedStrategy(
-    	FulfillmentStrategy memory strategy
+        FulfillmentStrategy memory strategy
     ) internal pure {
-    	// TODO: add more strategies here as support is added for them.
-    	AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
-    	if (aggregationStrategy != AggregationStrategy.MAXIMUM) {
-    		revert("FulfillmentGeneratorLib: unsupported aggregation strategy");
-    	}
+        // TODO: add more strategies here as support is added for them.
+        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
+        if (aggregationStrategy != AggregationStrategy.MAXIMUM) {
+            revert("FulfillmentGeneratorLib: unsupported aggregation strategy");
+        }
 
-    	FulfillAvailableStrategy fulfillAvailableStrategy = (
-    		strategy.fulfillAvailableStrategy
-    	);
-    	if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
-    		revert(
-    			"FulfillmentGeneratorLib: unsupported fulfillAvailable strategy"
-    		);
-    	}
+        FulfillAvailableStrategy fulfillAvailableStrategy = (
+            strategy.fulfillAvailableStrategy
+        );
+        if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
+            revert(
+                "FulfillmentGeneratorLib: unsupported fulfillAvailable strategy"
+            );
+        }
 
-    	MatchStrategy matchStrategy = strategy.matchStrategy;
-    	if (matchStrategy != MatchStrategy.MAX_INCLUSION) {
-    		revert("FulfillmentGeneratorLib: unsupported match strategy");
-    	}
+        MatchStrategy matchStrategy = strategy.matchStrategy;
+        if (matchStrategy != MatchStrategy.MAX_INCLUSION) {
+            revert("FulfillmentGeneratorLib: unsupported match strategy");
+        }
     }
 
     function determineEligibility(
@@ -255,7 +281,7 @@ library FulfillmentGeneratorLib {
     function getFulfillAvailableFulfillments(
         FulfillAvailableDetails memory fulfillAvailableDetails,
         FulfillmentStrategy memory strategy,
-        uint256 seed
+        uint256 /* seed */
     )
         internal
         pure
@@ -264,7 +290,53 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory considerationFulfillments
         )
     {
-        // ...
+        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
+        FulfillAvailableStrategy fulfillAvailableStrategy = (
+            strategy.fulfillAvailableStrategy
+        );
+
+        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
+            offerFulfillments = getMaxFulfillmentComponents(
+                fulfillAvailableDetails.items.offer
+            );
+
+            considerationFulfillments = getMaxFulfillmentComponents(
+                fulfillAvailableDetails.items.consideration
+            );
+        }
+
+        if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
+            revert("FulfillmentGeneratorLib: only KEEP_ALL supported for now");
+        }
+    }
+
+    function getMaxFulfillmentComponents(
+        FulfillmentItems[] memory fulfillmentItems
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](fulfillmentItems.length)
+        );
+
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            FulfillmentItem[] memory items = fulfillmentItems[i].items;
+
+            FulfillmentComponent[] memory fulfillment = (
+                new FulfillmentComponent[](items.length)
+            );
+
+            for (uint256 j = 0; j < items.length; ++j) {
+                FulfillmentItem memory item = items[j];
+
+                fulfillment[j] = FulfillmentComponent({
+                    orderIndex: item.orderIndex,
+                    itemIndex: item.itemIndex
+                });
+            }
+
+            fulfillments[i] = fulfillment;
+        }
+
+        return fulfillments;
     }
 
     function determineFulfillAvailableEligibility(
