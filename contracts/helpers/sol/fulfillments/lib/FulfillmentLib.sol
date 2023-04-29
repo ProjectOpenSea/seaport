@@ -421,11 +421,187 @@ library FulfillmentGeneratorLib {
             unmetConsiderationComponents
         ) = getUncoveredComponents(matchDetails);
 
-        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
-            DualFulfillmentItems memory matchItems = matchDetails.items[i];
+        if (matchDetails.totalItems == 0) {
+            revert("FulfillmentGeneratorLib: no items found for match group");
         }
 
-        // ...
+        // Allocate based on max possible fulfillments; reduce after assignment.
+        fulfillments = new Fulfillment[](matchDetails.totalItems - 1);
+        uint256 currentFulfillment = 0;
+
+        // The outer loop processes each matchable group.
+        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
+            // This is actually a "while" loop, but bound it as a sanity check.
+            bool allProcessed = false;
+            for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
+                Fulfillment memory fulfillment = consumeItemsAndGetFulfillment(
+                    matchDetails.items[i]
+                );
+
+                // Exit the inner loop if no fulfillment was located.
+                if (fulfillment.offerComponents.length == 0) {
+                    allProcessed = true;
+                    break;
+                }
+
+                // append the located fulfillment and continue searching.
+                fulfillments[currentFulfillment++] = fulfillment;
+            }
+            if (!allProcessed) {
+                revert("FulfillmentGeneratorLib: did not complete processing");
+            }
+        }
+
+        // Resize the fulfillments array based on number of elements assigned.
+        assembly {
+            mstore(fulfillments, currentFulfillment)
+        }
+    }
+
+    // NOTE: this does not currently minimize the number of fulfillments.
+    function consumeItemsAndGetFulfillment(
+        DualFulfillmentItems memory matchItems
+    ) internal pure returns (Fulfillment memory) {
+        // Search for something that can be offered.
+        for (uint256 i = 0; i < matchItems.offer.length; ++i) {
+            FulfillmentItems memory offerItems = matchItems.offer[i];
+            if (offerItems.totalAmount != 0) {
+                // Search for something it can be matched against.
+                for (uint256 j = 0; j < matchItems.consideration.length; ++j) {
+                    FulfillmentItems memory considerationItems = (
+                        matchItems.consideration[j]
+                    );
+
+                    if (considerationItems.totalAmount != 0) {
+                        return
+                            consumeItemsAndGetFulfillment(
+                                offerItems,
+                                considerationItems
+                            );
+                    }
+                }
+            }
+        }
+
+        // If none were found, return an empty fulfillment.
+        return emptyFulfillment();
+    }
+
+    function consumeItemsAndGetFulfillment(
+        FulfillmentItems memory offerItems,
+        FulfillmentItems memory considerationItems
+    ) internal pure returns (Fulfillment memory) {
+        if (
+            offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
+        ) {
+            revert("FulfillmentGeneratorLib: missing item amounts to consume");
+        }
+
+        // Allocate fulfillment component arrays using total items; reduce
+        // length after based on the total number of elements assigned to each.
+        FulfillmentComponent[] memory offerComponents = (
+            new FulfillmentComponent[](offerItems.items.length)
+        );
+        FulfillmentComponent[] memory considerationComponents = (
+            new FulfillmentComponent[](considerationItems.items.length)
+        );
+
+        uint256 assignmentIndex = 0;
+
+        uint256 amountToConsume = offerItems.totalAmount >
+            considerationItems.totalAmount
+            ? considerationItems.totalAmount
+            : offerItems.totalAmount;
+
+        uint256 amountToCredit = amountToConsume;
+
+        for (uint256 i = 0; i < offerItems.items.length; ++i) {
+            FulfillmentItem memory item = offerItems.items[i];
+            if (item.amount != 0) {
+                offerComponents[assignmentIndex++] = getFulfillmentComponent(
+                    item
+                );
+
+                if (item.amount >= amountToConsume) {
+                    item.amount -= amountToConsume;
+                    offerItems.totalAmount -= amountToConsume;
+
+                    amountToConsume = 0;
+                    break;
+                } else {
+                    amountToConsume -= item.amount;
+                    offerItems.totalAmount -= item.amount;
+
+                    item.amount = 0;
+                }
+            }
+        }
+
+        // Sanity check
+        if (amountToConsume != 0) {
+            revert("FulfillmentGeneratorLib: did not consume expected amount");
+        }
+
+        // Reduce offerComponents length based on number of elements assigned.
+        assembly {
+            mstore(offerComponents, assignmentIndex)
+        }
+
+        assignmentIndex = 0;
+
+        for (uint256 i = 0; i < considerationItems.items.length; ++i) {
+            FulfillmentItem memory item = considerationItems.items[i];
+            if (item.amount != 0) {
+                considerationComponents[assignmentIndex++] = (
+                    getFulfillmentComponent(item)
+                );
+
+                if (item.amount >= amountToCredit) {
+                    item.amount -= amountToCredit;
+                    considerationItems.totalAmount -= amountToCredit;
+
+                    amountToCredit = 0;
+                    break;
+                } else {
+                    amountToCredit -= item.amount;
+                    considerationItems.totalAmount -= item.amount;
+
+                    item.amount = 0;
+                }
+            }
+        }
+
+        // Sanity check
+        if (amountToCredit != 0) {
+            revert("FulfillmentGeneratorLib: did not credit expected amount");
+        }
+
+        // Reduce considerationComponents length based on # elements assigned.
+        assembly {
+            mstore(considerationComponents, assignmentIndex)
+        }
+
+        // Sanity check
+        if (
+            offerComponents.length == 0 || considerationComponents.length == 0
+        ) {
+            revert("FulfillmentGeneratorLib: empty match component generated");
+        }
+
+        return
+            Fulfillment({
+                offerComponents: offerComponents,
+                considerationComponents: considerationComponents
+            });
+    }
+
+    function emptyFulfillment() internal pure returns (Fulfillment memory) {
+        FulfillmentComponent[] memory components;
+        return
+            Fulfillment({
+                offerComponents: components,
+                considerationComponents: components
+            });
     }
 
     function getFulfillAvailableFulfillments(
