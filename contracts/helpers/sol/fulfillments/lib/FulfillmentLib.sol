@@ -123,7 +123,8 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments,
             Fulfillment[] memory fulfillments,
-            MatchComponent[] memory remainingOfferComponents
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
         )
     {
         FulfillmentStrategy memory strategy = FulfillmentStrategy({
@@ -151,7 +152,8 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments,
             Fulfillment[] memory fulfillments,
-            MatchComponent[] memory remainingOfferComponents
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
         )
     {
         FulfillmentPrepLib.ItemReference[] memory itemReferences = orderDetails
@@ -185,20 +187,21 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments,
             Fulfillment[] memory fulfillments,
-            MatchComponent[] memory remainingOfferComponents
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
         )
     {
         assertSupportedStrategy(strategy);
 
-        (fulfillments, remainingOfferComponents) = getMatchFulfillments(
-            matchDetails,
-            strategy,
-            seed
-        );
+        (
+            fulfillments,
+            unspentOfferComponents,
+            unmetConsiderationComponents
+        ) = getMatchFulfillments(matchDetails, strategy, seed);
 
         eligibility = determineEligibility(
             fulfillAvailableDetails,
-            remainingOfferComponents.length
+            unmetConsiderationComponents.length
         );
 
         if (
@@ -242,7 +245,7 @@ library FulfillmentGeneratorLib {
 
     function determineEligibility(
         FulfillAvailableDetails memory fulfillAvailableDetails,
-        uint256 totalRemainingOfferComponents
+        uint256 totalunmetConsiderationComponents
     ) internal pure returns (FulfillmentEligibility) {
         // FulfillAvailable: cannot be used if native offer items are present on
         // non-contract orders or if ERC721 items with amounts != 1 are present.
@@ -255,7 +258,7 @@ library FulfillmentGeneratorLib {
 
         // Match: cannot be used if there is no way to meet each consideration
         // item. In these cases, remaining offer components should be returned.
-        bool eligibleForMatch = totalRemainingOfferComponents == 0;
+        bool eligibleForMatch = totalunmetConsiderationComponents == 0;
 
         if (eligibleForFulfillAvailable) {
             return
@@ -279,7 +282,8 @@ library FulfillmentGeneratorLib {
         pure
         returns (
             Fulfillment[] memory fulfillments,
-            MatchComponent[] memory remainingOfferComponents
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
         )
     {
         AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
@@ -291,12 +295,110 @@ library FulfillmentGeneratorLib {
         ) {
             (
                 fulfillments,
-                remainingOfferComponents
+                unspentOfferComponents,
+                unmetConsiderationComponents
             ) = getMaxInclusionMatchFulfillments(matchDetails);
         } else {
             revert(
                 "FulfillmentGeneratorLib: only MAXIMUM+MAX_INCLUSION supported"
             );
+        }
+    }
+
+    function getUncoveredComponents(
+        MatchDetails memory matchDetails
+    )
+        internal
+        pure
+        returns (
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
+        )
+    {
+        uint256 totalUnspentOfferComponents = 0;
+        uint256 totalUnmetConsiderationComponents = 0;
+
+        for (uint256 i = 0; i < matchDetails.context.length; ++i) {
+            DualFulfillmentMatchContext memory context = (
+                matchDetails.context[i]
+            );
+
+            if (context.totalConsiderationAmount > context.totalOfferAmount) {
+                ++totalUnmetConsiderationComponents;
+            } else if (
+                context.totalConsiderationAmount < context.totalOfferAmount
+            ) {
+                ++totalUnspentOfferComponents;
+            }
+        }
+
+        unspentOfferComponents = (
+            new MatchComponent[](totalUnspentOfferComponents)
+        );
+
+        unmetConsiderationComponents = (
+            new MatchComponent[](totalUnmetConsiderationComponents)
+        );
+
+        totalUnspentOfferComponents = 0;
+        totalUnmetConsiderationComponents = 0;
+
+        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
+            DualFulfillmentMatchContext memory context = (
+                matchDetails.context[i]
+            );
+
+            FulfillmentItems[] memory offer = matchDetails.items[i].offer;
+
+            FulfillmentItems[] memory consideration = (
+                matchDetails.items[i].consideration
+            );
+
+            if (context.totalConsiderationAmount > context.totalOfferAmount) {
+                uint256 amount = (context.totalConsiderationAmount -
+                    context.totalOfferAmount);
+
+                FulfillmentItem memory item = consideration[0].items[0];
+
+                if (
+                    item.orderIndex > type(uint8).max ||
+                    item.itemIndex > type(uint8).max
+                ) {
+                    revert(
+                        "FulfillmentGeneratorLib: OOR consideration item index"
+                    );
+                }
+
+                unmetConsiderationComponents[
+                    totalUnmetConsiderationComponents++
+                ] = MatchComponent({
+                    amount: amount,
+                    orderIndex: uint8(item.orderIndex),
+                    itemIndex: uint8(item.itemIndex)
+                });
+            } else if (
+                context.totalConsiderationAmount < context.totalOfferAmount
+            ) {
+                uint256 amount = (context.totalOfferAmount -
+                    context.totalConsiderationAmount);
+
+                FulfillmentItem memory item = offer[0].items[0];
+
+                if (
+                    item.orderIndex > type(uint8).max ||
+                    item.itemIndex > type(uint8).max
+                ) {
+                    revert("FulfillmentGeneratorLib: OOR offer item index");
+                }
+
+                unspentOfferComponents[
+                    totalUnspentOfferComponents++
+                ] = MatchComponent({
+                    amount: amount,
+                    orderIndex: uint8(item.orderIndex),
+                    itemIndex: uint8(item.itemIndex)
+                });
+            }
         }
     }
 
@@ -307,9 +409,15 @@ library FulfillmentGeneratorLib {
         pure
         returns (
             Fulfillment[] memory fulfillments,
-            MatchComponent[] memory remainingOfferComponents
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
         )
     {
+        (
+            unspentOfferComponents,
+            unmetConsiderationComponents
+        ) = getUncoveredComponents(matchDetails);
+
         // ...
     }
 
