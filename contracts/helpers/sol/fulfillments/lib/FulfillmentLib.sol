@@ -677,7 +677,67 @@ library FulfillmentPrepLib {
             );
         }
 
-        return MatchDetails({ items: items, recipient: recipient });
+        return
+            MatchDetails({
+                items: items,
+                context: getFulfillmentMatchContext(items),
+                recipient: recipient
+            });
+    }
+
+    function getFulfillmentMatchContext(
+        DualFulfillmentItems[] memory matchItems
+    ) internal pure returns (DualFulfillmentMatchContext[] memory) {
+        DualFulfillmentMatchContext[] memory context = (
+            new DualFulfillmentMatchContext[](matchItems.length)
+        );
+
+        for (uint256 i = 0; i < matchItems.length; ++i) {
+            bool itemCategorySet = false;
+            ItemCategory itemCategory;
+            uint256 totalOfferAmount = 0;
+            uint256 totalConsiderationAmount = 0;
+
+            FulfillmentItems[] memory offer = matchItems[i].offer;
+            for (uint256 j = 0; j < offer.length; ++j) {
+                FulfillmentItems memory items = offer[j];
+
+                if (!itemCategorySet) {
+                    itemCategory = items.itemCategory;
+                } else if (itemCategory != items.itemCategory) {
+                    revert(
+                        "FulfillmentGeneratorLib: mismatched item categories"
+                    );
+                }
+
+                totalOfferAmount += items.totalAmount;
+            }
+
+            FulfillmentItems[] memory consideration = (
+                matchItems[i].consideration
+            );
+            for (uint256 j = 0; j < consideration.length; ++j) {
+                FulfillmentItems memory items = consideration[j];
+
+                if (!itemCategorySet) {
+                    itemCategory = items.itemCategory;
+                } else if (itemCategory != items.itemCategory) {
+                    revert(
+                        "FulfillmentGeneratorLib: mismatched item categories"
+                    );
+                }
+
+                totalConsiderationAmount += items.totalAmount;
+            }
+
+            context[i] = DualFulfillmentMatchContext({
+                itemCategory: itemCategory,
+                totalOfferAmount: totalOfferAmount,
+                totalConsiderationAmount: totalConsiderationAmount
+            });
+        }
+
+        return context;
     }
 
     function getDualFulfillmentItems(
