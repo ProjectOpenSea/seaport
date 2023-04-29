@@ -398,7 +398,7 @@ Not deployed
 
 </td><td>
 
-Not deployed
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://moonriver.moonscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
 
 </td><td>
 
