@@ -292,7 +292,7 @@ library FulfillmentGeneratorLib {
 
     // This uses the "default" set of strategies, applies no randomization, and
     // does not give a recipient & will not properly detect filtered executions.
-    function getMatchDetails(
+    function getMatchedFulfillments(
         OrderDetails[] memory orderDetails
     )
         internal

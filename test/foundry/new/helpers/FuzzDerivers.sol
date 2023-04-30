@@ -49,6 +49,10 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
+import {
+    FulfillmentGeneratorLib
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
  *       information based on the order state, like fulfillments and expected
@@ -67,6 +71,7 @@ library FuzzDerivers {
     using ExecutionHelper for FulfillmentDetails;
     using ExecutionHelper for OrderDetails;
     using FulfillmentDetailsHelper for FuzzTestContext;
+    using FulfillmentGeneratorLib for OrderDetails[];
 
     function withDerivedCallValue(
         FuzzTestContext memory context
@@ -228,9 +233,8 @@ library FuzzDerivers {
             action == context.seaport.matchAdvancedOrders.selector
         ) {
             // For the match functions, derive the fulfillments array.
-            (fulfillments, remainingOfferComponents, ) = context
-                .testHelpers
-                .getMatchedFulfillments(orderDetails);
+            (fulfillments, remainingOfferComponents, ) = orderDetails
+                .getMatchedFulfillments();
         }
     }
 

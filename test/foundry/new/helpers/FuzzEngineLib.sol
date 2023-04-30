@@ -36,6 +36,10 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 
+import {
+    FulfillmentGeneratorLib
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+
 /**
  * @notice Stateless helpers for FuzzEngine.
  */
@@ -45,6 +49,7 @@ library FuzzEngineLib {
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
+    using FulfillmentGeneratorLib for OrderDetails[];
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];
@@ -89,9 +94,7 @@ library FuzzEngineLib {
     function withDetectedRemainders(
         FuzzTestContext memory context
     ) internal returns (FuzzTestContext memory) {
-        (, , MatchComponent[] memory remainders) = context
-            .testHelpers
-            .getMatchedFulfillments(context.executionState.orderDetails);
+        (, , MatchComponent[] memory remainders) = context.executionState.orderDetails.getMatchedFulfillments();
 
         context.executionState.hasRemainders = remainders.length != 0;
 
