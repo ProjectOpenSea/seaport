@@ -825,6 +825,10 @@ library FulfillmentGeneratorLib {
                 return false;
             }
 
+            // TODO: Ensure that the same ERC721 item doesn't appear on both the
+            // offer side and the consideration side if the recipient does not
+            // equal the caller.
+
             if (!atLeastOneExecution) {
                 for (uint256 j = 0; j < fulfillmentItems.items.length; ++j) {
                     FulfillmentItem memory item = fulfillmentItems.items[j];

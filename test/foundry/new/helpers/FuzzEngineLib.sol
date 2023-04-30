@@ -93,8 +93,11 @@ library FuzzEngineLib {
 
     function withDetectedRemainders(
         FuzzTestContext memory context
-    ) internal returns (FuzzTestContext memory) {
-        (, , MatchComponent[] memory remainders) = context.executionState.orderDetails.getMatchedFulfillments();
+    ) internal pure returns (FuzzTestContext memory) {
+        (, , MatchComponent[] memory remainders) = context
+            .executionState
+            .orderDetails
+            .getMatchedFulfillments();
 
         context.executionState.hasRemainders = remainders.length != 0;
 
@@ -262,130 +265,53 @@ library FuzzEngineLib {
 
     function mustUseMatch(
         FuzzTestContext memory context
-    ) internal view returns (bool) {
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory orderParams = context
-                .executionState
-                .orders[i]
-                .parameters;
-            if (orderParams.orderType == OrderType.CONTRACT) {
+    ) internal pure returns (bool) {
+        OrderDetails[] memory orders = context.executionState.orderDetails;
+
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderDetails memory order = orders[i];
+
+            if (order.isContract) {
                 continue;
             }
 
-            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
-                OfferItem memory item = orderParams.offer[j];
-
-                if (item.itemType == ItemType.NATIVE) {
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                if (order.offer[j].itemType == ItemType.NATIVE) {
                     return true;
                 }
             }
         }
 
-        for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory orderParams = context
-                .executionState
-                .orders[i]
-                .parameters;
-            for (uint256 j = 0; j < orderParams.offer.length; ++j) {
-                OfferItem memory item = orderParams.offer[j];
+        if (context.executionState.caller == context.executionState.recipient) {
+            return false;
+        }
 
-                if (
-                    item.itemType == ItemType.ERC721 ||
-                    item.itemType == ItemType.ERC721_WITH_CRITERIA
-                ) {
-                    uint256 resolvedIdentifier = item.identifierOrCriteria;
+        for (uint256 i = 0; i < orders.length; ++i) {
+            OrderDetails memory order = orders[i];
 
-                    if (item.itemType == ItemType.ERC721_WITH_CRITERIA) {
-                        if (item.identifierOrCriteria == 0) {
-                            bytes32 itemHash = keccak256(
-                                abi.encodePacked(
-                                    uint256(i),
-                                    uint256(j),
-                                    Side.OFFER
-                                )
-                            );
-                            resolvedIdentifier = context
-                                .testHelpers
-                                .criteriaResolverHelper()
-                                .wildcardIdentifierForGivenItemHash(itemHash);
-                        } else {
-                            resolvedIdentifier = context
-                                .testHelpers
-                                .criteriaResolverHelper()
-                                .resolvableIdentifierForGivenCriteria(
-                                    item.identifierOrCriteria
-                                )
-                                .resolvedIdentifier;
-                        }
-                    }
+            for (uint256 j = 0; j < order.offer.length; ++j) {
+                SpentItem memory item = order.offer[j];
 
+                if (item.itemType != ItemType.ERC721) {
+                    continue;
+                }
+
+                for (uint256 k = 0; k < orders.length; ++k) {
+                    OrderDetails memory comparisonOrder = orders[k];
                     for (
-                        uint256 k = 0;
-                        k < context.executionState.orders.length;
-                        ++k
+                        uint256 l = 0;
+                        l < comparisonOrder.consideration.length;
+                        ++l
                     ) {
-                        OrderParameters memory comparisonOrderParams = context
-                            .executionState
-                            .orders[k]
-                            .parameters;
-                        for (
-                            uint256 l = 0;
-                            l < comparisonOrderParams.consideration.length;
-                            ++l
+                        ReceivedItem memory considerationItem = comparisonOrder
+                            .consideration[l];
+
+                        if (
+                            considerationItem.itemType == ItemType.ERC721 &&
+                            considerationItem.identifier == item.identifier &&
+                            considerationItem.token == item.token
                         ) {
-                            ConsiderationItem
-                                memory considerationItem = comparisonOrderParams
-                                    .consideration[l];
-
-                            if (
-                                considerationItem.itemType == ItemType.ERC721 ||
-                                considerationItem.itemType ==
-                                ItemType.ERC721_WITH_CRITERIA
-                            ) {
-                                uint256 considerationResolvedIdentifier = considerationItem
-                                        .identifierOrCriteria;
-
-                                if (
-                                    considerationItem.itemType ==
-                                    ItemType.ERC721_WITH_CRITERIA
-                                ) {
-                                    if (
-                                        considerationItem
-                                            .identifierOrCriteria == 0
-                                    ) {
-                                        bytes32 itemHash = keccak256(
-                                            abi.encodePacked(
-                                                uint256(k),
-                                                uint256(l),
-                                                Side.CONSIDERATION
-                                            )
-                                        );
-                                        considerationResolvedIdentifier = context
-                                            .testHelpers
-                                            .criteriaResolverHelper()
-                                            .wildcardIdentifierForGivenItemHash(
-                                                itemHash
-                                            );
-                                    } else {
-                                        considerationResolvedIdentifier = context
-                                            .testHelpers
-                                            .criteriaResolverHelper()
-                                            .resolvableIdentifierForGivenCriteria(
-                                                considerationItem
-                                                    .identifierOrCriteria
-                                            )
-                                            .resolvedIdentifier;
-                                    }
-                                }
-
-                                if (
-                                    resolvedIdentifier ==
-                                    considerationResolvedIdentifier &&
-                                    item.token == considerationItem.token
-                                ) {
-                                    return true;
-                                }
-                            }
+                            return true;
                         }
                     }
                 }
