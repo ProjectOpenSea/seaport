@@ -427,20 +427,6 @@ library FulfillmentGeneratorLib {
             uint256 totalUnmetConsiderationComponents
         ) = getTotalUncoveredComponents(matchDetails.context);
 
-        for (uint256 i = 0; i < matchDetails.context.length; ++i) {
-            DualFulfillmentMatchContext memory context = (
-                matchDetails.context[i]
-            );
-
-            if (context.totalConsiderationAmount > context.totalOfferAmount) {
-                ++totalUnmetConsiderationComponents;
-            } else if (
-                context.totalConsiderationAmount < context.totalOfferAmount
-            ) {
-                ++totalUnspentOfferComponents;
-            }
-        }
-
         unspentOfferComponents = (
             new MatchComponent[](totalUnspentOfferComponents)
         );
@@ -448,6 +434,12 @@ library FulfillmentGeneratorLib {
         unmetConsiderationComponents = (
             new MatchComponent[](totalUnmetConsiderationComponents)
         );
+
+        if (
+            totalUnspentOfferComponents + totalUnmetConsiderationComponents == 0
+        ) {
+            return (unspentOfferComponents, unmetConsiderationComponents);
+        }
 
         totalUnspentOfferComponents = 0;
         totalUnmetConsiderationComponents = 0;
@@ -507,6 +499,34 @@ library FulfillmentGeneratorLib {
                     orderIndex: uint8(item.orderIndex),
                     itemIndex: uint8(item.itemIndex)
                 });
+            }
+        }
+
+        // Sanity checks
+        if (unspentOfferComponents.length != totalUnspentOfferComponents) {
+            revert(
+                "FulfillmentGeneratorLib: unspent match item assignment error"
+            );
+        }
+
+        if (
+            unmetConsiderationComponents.length !=
+            totalUnmetConsiderationComponents
+        ) {
+            revert(
+                "FulfillmentGeneratorLib: unmet match item assignment error"
+            );
+        }
+
+        for (uint256 i = 0; i < unspentOfferComponents.length; ++i) {
+            if (unspentOfferComponents[i].amount == 0) {
+                revert("FulfillmentGeneratorLib: unspent match amount of zero");
+            }
+        }
+
+        for (uint256 i = 0; i < unmetConsiderationComponents.length; ++i) {
+            if (unmetConsiderationComponents[i].amount == 0) {
+                revert("FulfillmentGeneratorLib: unmet match amount of zero");
             }
         }
     }
