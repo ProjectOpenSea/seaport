@@ -1214,6 +1214,8 @@ library FulfillmentPrepLib {
             });
         }
 
+        totalItems = itemReferences.length;
+
         return (fulfillmentItems, totalItems);
     }
 
