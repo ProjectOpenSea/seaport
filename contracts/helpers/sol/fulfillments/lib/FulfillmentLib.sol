@@ -543,14 +543,18 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
+        if (matchDetails.totalItems == 0) {
+            return (
+                fulfillments,
+                unspentOfferComponents,
+                unmetConsiderationComponents
+            );
+        }
+
         (
             unspentOfferComponents,
             unmetConsiderationComponents
         ) = getUncoveredComponents(matchDetails);
-
-        if (matchDetails.totalItems == 0) {
-            revert("FulfillmentGeneratorLib: no items found for match group");
-        }
 
         // Allocate based on max possible fulfillments; reduce after assignment.
         fulfillments = new Fulfillment[](matchDetails.totalItems - 1);
