@@ -113,14 +113,17 @@ library FulfillmentGeneratorLib {
     using FulfillmentPrepLib for OrderDetails[];
     using FulfillmentPrepLib for FulfillmentPrepLib.ItemReference[];
 
-    function getDefaultFulfillmentStrategy() internal pure returns (
-        FulfillmentStrategy memory
-    ) {
-        return FulfillmentStrategy({
-            aggregationStrategy: AggregationStrategy.MAXIMUM,
-            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
-            matchStrategy: MatchStrategy.MAX_INCLUSION
-        });
+    function getDefaultFulfillmentStrategy()
+        internal
+        pure
+        returns (FulfillmentStrategy memory)
+    {
+        return
+            FulfillmentStrategy({
+                aggregationStrategy: AggregationStrategy.MAXIMUM,
+                fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+                matchStrategy: MatchStrategy.MAX_INCLUSION
+            });
     }
 
     // This uses the "default" set of strategies and applies no randomization.
@@ -142,13 +145,14 @@ library FulfillmentGeneratorLib {
     {
         uint256 seed = 0;
 
-        return getFulfillments(
-            orderDetails,
-            getDefaultFulfillmentStrategy(),
-            recipient,
-            caller,
-            seed
-        );
+        return
+            getFulfillments(
+                orderDetails,
+                getDefaultFulfillmentStrategy(),
+                recipient,
+                caller,
+                seed
+            );
     }
 
     function getFulfillments(
@@ -284,6 +288,73 @@ library FulfillmentGeneratorLib {
             eligibleForMatch
                 ? FulfillmentEligibility.MATCH
                 : FulfillmentEligibility.NONE;
+    }
+
+    // This uses the "default" set of strategies, applies no randomization, and
+    // does not give a recipient & will not properly detect filtered executions.
+    function getMatchDetails(
+        OrderDetails[] memory orderDetails
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
+        )
+    {
+        return
+            getMatchFulfillments(
+                orderDetails.getItemReferences(0).getMatchDetailsFromReferences(
+                    address(0)
+                )
+            );
+    }
+
+    function getMatchDetails(
+        OrderDetails[] memory orderDetails,
+        FulfillmentStrategy memory strategy,
+        address recipient,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
+        )
+    {
+        return
+            getMatchFulfillments(
+                orderDetails
+                    .getItemReferences(seed)
+                    .getMatchDetailsFromReferences(recipient),
+                strategy,
+                seed
+            );
+    }
+
+    // This uses the "default" set of strategies and applies no randomization.
+    function getMatchFulfillments(
+        MatchDetails memory matchDetails
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
+        )
+    {
+        uint256 seed = 0;
+
+        return
+            getMatchFulfillments(
+                matchDetails,
+                getDefaultFulfillmentStrategy(),
+                seed
+            );
     }
 
     function getMatchFulfillments(
