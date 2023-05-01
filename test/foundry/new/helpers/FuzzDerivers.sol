@@ -7,7 +7,6 @@ import { assume } from "./VmUtils.sol";
 
 import {
     AdvancedOrderLib,
-    FulfillAvailableHelper,
     MatchComponent,
     MatchComponentType
 } from "seaport-sol/SeaportSol.sol";
@@ -29,10 +28,6 @@ import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
-
-import {
-    AmountDeriverHelper
-} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
