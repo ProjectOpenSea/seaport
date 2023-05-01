@@ -1395,9 +1395,9 @@ library FulfillmentPrepLib {
             }
         }
 
-        // update length of the hashCount array.
+        // update length of the hashCount array based on the hash count pointer.
         assembly {
-            mstore(hashCount, hashCountPointer)
+            mstore(hashCount, add(hashCountPointer, 1))
         }
 
         return hashCount;
