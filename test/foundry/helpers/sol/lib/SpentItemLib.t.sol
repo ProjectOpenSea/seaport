@@ -24,7 +24,7 @@ contract SpentItemLibTest is BaseTest {
             ItemType(itemType),
             token,
             identifier,
-            amount
+            amount == 0 ? 1 : amount
         );
         SpentItemLib.saveDefault(spentItem, "default");
         SpentItem memory defaultSpentItem = SpentItemLib.fromDefault("default");

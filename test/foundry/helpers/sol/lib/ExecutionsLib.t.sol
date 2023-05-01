@@ -34,7 +34,7 @@ contract ExecutionLibTest is BaseTest {
             itemType: toItemType(blob.itemType),
             token: blob.token,
             identifier: blob.identifier,
-            amount: blob.amount,
+            amount: blob.amount == 0 ? 1 : blob.amount,
             recipient: blob.recipient
         });
         Execution memory execution = Execution({
