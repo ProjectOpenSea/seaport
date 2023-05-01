@@ -646,15 +646,30 @@ library FulfillmentGeneratorLib {
 
         uint256 amountToCredit = amountToConsume;
 
+        bool firstConsumedItemLocated = false;
+        uint256 firstConsumedItemIndex;
+
         for (uint256 i = 0; i < offerItems.items.length; ++i) {
             FulfillmentItem memory item = offerItems.items[i];
             if (item.amount != 0) {
+                if (!firstConsumedItemLocated) {
+                    firstConsumedItemLocated = true;
+                    firstConsumedItemIndex = i;
+                }
+
                 offerComponents[assignmentIndex++] = getFulfillmentComponent(
                     item
                 );
 
                 if (item.amount >= amountToConsume) {
-                    item.amount -= amountToConsume;
+                    uint256 amountToAddBack = item.amount - amountToConsume;
+
+                    item.amount = 0;
+
+                    offerItems.items[firstConsumedItemIndex].amount += (
+                        amountToAddBack
+                    );
+
                     offerItems.totalAmount -= amountToConsume;
 
                     amountToConsume = 0;
@@ -678,17 +693,30 @@ library FulfillmentGeneratorLib {
             mstore(offerComponents, assignmentIndex)
         }
 
+        firstConsumedItemLocated = false;
         assignmentIndex = 0;
 
         for (uint256 i = 0; i < considerationItems.items.length; ++i) {
             FulfillmentItem memory item = considerationItems.items[i];
             if (item.amount != 0) {
+                if (!firstConsumedItemLocated) {
+                    firstConsumedItemLocated = true;
+                    firstConsumedItemIndex = i;
+                }
+
                 considerationComponents[assignmentIndex++] = (
                     getFulfillmentComponent(item)
                 );
 
                 if (item.amount >= amountToCredit) {
-                    item.amount -= amountToCredit;
+                    uint256 amountToAddBack = item.amount - amountToCredit;
+
+                    item.amount = 0;
+
+                    considerationItems.items[firstConsumedItemIndex].amount += (
+                        amountToAddBack
+                    );
+
                     considerationItems.totalAmount -= amountToCredit;
 
                     amountToCredit = 0;
