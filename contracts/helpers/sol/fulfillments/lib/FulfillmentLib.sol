@@ -459,6 +459,18 @@ library FulfillmentGeneratorLib {
                 uint256 amount = (context.totalConsiderationAmount -
                     context.totalOfferAmount);
 
+                if (consideration.length == 0) {
+                    revert(
+                        "FulfillmentGeneratorLib: empty consideration array"
+                    );
+                }
+
+                if (consideration[0].items.length == 0) {
+                    revert(
+                        "FulfillmentGeneratorLib: empty consideration items"
+                    );
+                }
+
                 FulfillmentItem memory item = consideration[0].items[0];
 
                 if (
@@ -482,6 +494,14 @@ library FulfillmentGeneratorLib {
             ) {
                 uint256 amount = (context.totalOfferAmount -
                     context.totalConsiderationAmount);
+
+                if (offer.length == 0) {
+                    revert("FulfillmentGeneratorLib: empty offer array");
+                }
+
+                if (offer[0].items.length == 0) {
+                    revert("FulfillmentGeneratorLib: empty offer items");
+                }
 
                 FulfillmentItem memory item = offer[0].items[0];
 
@@ -1084,6 +1104,11 @@ library FulfillmentPrepLib {
 
         for (uint256 i = 0; i < groups.length; ++i) {
             ItemReferenceGroup memory group = groups[i];
+
+            if (group.references.length == 0) {
+                revert("FulfillmentPrepLib: no items in group");
+            }
+
             Side side = group.references[0].side;
 
             if (side == Side.OFFER) {
@@ -1287,6 +1312,13 @@ library FulfillmentPrepLib {
 
         for (uint256 i = 0; i < groups.length; ++i) {
             ItemReferenceGroup memory group = groups[i];
+
+            if (group.references.length == 0) {
+                revert(
+                    "FulfillmentPrepLib: empty item reference group supplied"
+                );
+            }
+
             ItemReference memory firstReference = group.references[0];
             for (uint256 j = 0; j < matchableGroups.length; ++j) {
                 MatchableItemReferenceGroup memory matchableGroup = (

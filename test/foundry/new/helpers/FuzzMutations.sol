@@ -1013,6 +1013,10 @@ library MutationFilters {
             return true;
         }
 
+        if (context.executionState.fulfillments.length == 0) {
+            return true;
+        }
+
         return false;
     }
 
