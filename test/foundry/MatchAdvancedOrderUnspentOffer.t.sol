@@ -219,7 +219,6 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         token1.mint(offerer, 10000);
         vm.prank(fulfiller);
         test721_1.setApprovalForAll(address(context.seaport), true);
-        vm.stopPrank();
         vm.prank(offerer);
         token1.approve(address(context.seaport), type(uint256).max);
 
