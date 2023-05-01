@@ -138,11 +138,7 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // The caller does not provide any items during match actions.
-        bytes4 action = context.action();
-        if (
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector
-        ) {
+        if (ineligibleWhenMatch(context)) {
             return true;
         }
 
@@ -153,11 +149,7 @@ library MutationFilters {
         // On basic orders, the caller does not need ERC20 approvals when
         // accepting bids (as the offerer provides the ERC20 tokens).
         uint256 eligibleItemTotal = order.parameters.consideration.length;
-        if (
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
-        ) {
+        if (ineligibleWhenBasic(context)) {
             if (order.parameters.offer[0].itemType == ItemType.ERC20) {
                 eligibleItemTotal = 1;
             }
@@ -187,6 +179,64 @@ library MutationFilters {
             action != context.seaport.fulfillBasicOrder.selector &&
             action !=
             context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenBasic(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenFulfillAvailable(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenMatch(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotMatch(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.matchOrders.selector &&
+            action != context.seaport.matchAdvancedOrders.selector
         ) {
             return true;
         }
@@ -229,16 +279,7 @@ library MutationFilters {
     function ineligibleWhenNotAdvancedOrWithNoAvailableItems(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
-        ) {
+        if (ineligibleWhenNotAdvanced(context)) {
             return true;
         }
 
@@ -273,11 +314,9 @@ library MutationFilters {
 
         if (
             action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchOrders.selector ||
             action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            action == context.seaport.matchOrders.selector ||
+            ineligibleWhenBasic(context)
         ) {
             return true;
         }
@@ -433,32 +472,15 @@ library MutationFilters {
         return ineligibleWhenUnavailable(context, orderIndex);
     }
 
-    function ineligibleWhenFulfillAvailable(
-        AdvancedOrder memory /* order */,
-        uint256 /* orderIndex */,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     function ineligibleWhenNotContractOrderOrFulfillAvailable(
         AdvancedOrder memory order,
-        uint256 orderIndex,
+        uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
         if (ineligibleWhenNotContractOrder(order)) {
             return true;
         }
-        return ineligibleWhenFulfillAvailable(order, orderIndex, context);
+        return ineligibleWhenFulfillAvailable(context);
     }
 
     function ineligibleWhenNotAvailableOrNotRestrictedOrder(
@@ -628,9 +650,7 @@ library MutationFilters {
         if (
             action == context.seaport.fulfillAdvancedOrder.selector ||
             action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            ineligibleWhenBasic(context)
         ) {
             return true;
         }
@@ -670,7 +690,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -690,7 +710,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -763,12 +783,7 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
+        if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
@@ -780,11 +795,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal returns (bool) {
-        bytes4 action = context.action();
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
+        if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
@@ -853,12 +864,8 @@ library MutationFilters {
         bytes4 action = context.action();
 
         if (
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector ||
-            action == context.seaport.matchOrders.selector
+            ineligibleWhenNotAdvanced(context) ||
+            action == context.seaport.fulfillOrder.selector
         ) {
             return true;
         }
@@ -909,12 +916,7 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
+        if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
@@ -934,17 +936,11 @@ library MutationFilters {
             return true;
         }
 
-        bytes4 action = context.action();
-
         // TODO: verify whether match / matchAdvanced are actually ineligible
         if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            ineligibleWhenFulfillAvailable(context) ||
+            ineligibleWhenMatch(context) ||
+            ineligibleWhenBasic(context)
         ) {
             return true;
         }
@@ -985,12 +981,7 @@ library MutationFilters {
             return true;
         }
 
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector
-        ) {
+        if (ineligibleWhenMatch(context)) {
             return true;
         }
 
@@ -1004,11 +995,8 @@ library MutationFilters {
             return true;
         }
 
-        bytes4 action = context.action();
-
         if (
-            action != context.seaport.matchOrders.selector &&
-            action != context.seaport.matchAdvancedOrders.selector
+            ineligibleWhenNotMatch(context)
         ) {
             return true;
         }
@@ -1019,11 +1007,8 @@ library MutationFilters {
     function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
         if (
-            action != context.seaport.matchAdvancedOrders.selector &&
-            action != context.seaport.matchOrders.selector
+            ineligibleWhenNotMatch(context)
         ) {
             return true;
         }
@@ -1056,11 +1041,8 @@ library MutationFilters {
     function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
         if (
-            action != context.seaport.matchAdvancedOrders.selector &&
-            action != context.seaport.matchOrders.selector
+            ineligibleWhenNotMatch(context)
         ) {
             return true;
         }
@@ -1166,21 +1148,14 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
         if (
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector ||
-            action == context.seaport.matchOrders.selector
+            ineligibleWhenFulfillAvailable(context) ||
+            ineligibleWhenMatch(context)
         ) {
             return true;
         }
 
-        if (
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
-        ) {
+        if (ineligibleWhenBasic(context)) {
             if (
                 order.parameters.consideration[0].itemType == ItemType.ERC721 ||
                 order.parameters.consideration[0].itemType == ItemType.ERC1155
@@ -1245,7 +1220,7 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal pure returns (bool) {
         // Order must be available
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -1297,13 +1272,8 @@ library MutationFilters {
     function ineligibleForNoContract(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
         // Can't be one of the fulfillAvailable actions.
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
+        if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
@@ -1330,12 +1300,9 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
-        bytes4 action = context.action();
         if (
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector ||
-            action == context.seaport.matchOrders.selector
+            ineligibleWhenFulfillAvailable(context) ||
+            ineligibleWhenMatch(context)
         ) {
             return true;
         }
@@ -1389,12 +1356,9 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
-        bytes4 action = context.action();
         if (
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector ||
-            action == context.seaport.matchOrders.selector
+            ineligibleWhenFulfillAvailable(context) ||
+            ineligibleWhenMatch(context)
         ) {
             return true;
         }
@@ -1425,16 +1389,14 @@ library MutationFilters {
         // executions are checked. Also deals with partial fills
         bytes4 action = context.action();
         if (
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector ||
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector ||
             action == context.seaport.fulfillAdvancedOrder.selector ||
-            action == context.seaport.matchOrders.selector
+            ineligibleWhenFulfillAvailable(context) ||
+            ineligibleWhenMatch(context)
         ) {
             return true;
         }
 
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -1492,7 +1454,7 @@ library MutationFilters {
         }
 
         // Order must be available
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -1512,12 +1474,8 @@ library MutationFilters {
         // Exclude methods that don't support partial fills
         bytes4 action = context.action();
         if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.matchOrders.selector ||
             action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            ineligibleWhenNotAdvanced(context)
         ) {
             return true;
         }
@@ -1532,7 +1490,7 @@ library MutationFilters {
         }
 
         // Order must be available
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
@@ -1554,7 +1512,7 @@ library MutationFilters {
         }
 
         // TODO: this overfits a bit, instead use time + max fulfilled
-        if (!context.expectations.expectedAvailableOrders[orderIndex]) {
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
