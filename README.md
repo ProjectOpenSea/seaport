@@ -303,6 +303,23 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://gnossiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
+<tr><td>Chiado</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://blockscout.com/gnosis/chiado/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC/contracts#address-tabs)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://blockscout.com/gnosis/chiado/address/0x00000000F9490004C11Cef243f5400493c00Ad63/contracts#address-tabs)
+
+</td></tr>
 <tr><td>BSC</td><td>
 
 [0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://bscscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
