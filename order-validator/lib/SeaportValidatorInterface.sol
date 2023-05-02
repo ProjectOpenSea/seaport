@@ -27,7 +27,8 @@ interface SeaportValidatorInterface {
      * @return errorsAndWarnings The errors and warnings found in the order.
      */
     function isValidOrder(
-        Order calldata order
+        Order calldata order,
+        address seaportAddress
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -35,7 +36,8 @@ interface SeaportValidatorInterface {
      */
     function isValidOrderWithConfiguration(
         ValidationConfiguration memory validationConfiguration,
-        Order memory order
+        Order memory order,
+        address seaportAddress
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -44,7 +46,8 @@ interface SeaportValidatorInterface {
      * @return errorsAndWarnings The errors and warnings
      */
     function isValidConduit(
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     // TODO: Need to add support for order with extra data
@@ -58,12 +61,14 @@ interface SeaportValidatorInterface {
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     function validateSignature(
-        Order memory order
+        Order memory order,
+        address seaportAddress
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     function validateSignatureWithCounter(
         Order memory order,
-        uint256 counter
+        uint256 counter,
+        address seaportAddress
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -85,7 +90,8 @@ interface SeaportValidatorInterface {
      * @return errorsAndWarnings  The errors and warnings
      */
     function validateOrderStatus(
-        OrderParameters memory orderParameters
+        OrderParameters memory orderParameters,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -94,7 +100,8 @@ interface SeaportValidatorInterface {
      * @return errorsAndWarnings  The errors and warnings
      */
     function validateOfferItems(
-        OrderParameters memory orderParameters
+        OrderParameters memory orderParameters,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -103,7 +110,8 @@ interface SeaportValidatorInterface {
      * @return errorsAndWarnings  The errors and warnings
      */
     function validateConsiderationItems(
-        OrderParameters memory orderParameters
+        OrderParameters memory orderParameters,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -137,7 +145,8 @@ interface SeaportValidatorInterface {
      */
     function validateConsiderationItem(
         OrderParameters memory orderParameters,
-        uint256 considerationItemIndex
+        uint256 considerationItemIndex,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -148,7 +157,8 @@ interface SeaportValidatorInterface {
      */
     function validateConsiderationItemParameters(
         OrderParameters memory orderParameters,
-        uint256 considerationItemIndex
+        uint256 considerationItemIndex,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -159,7 +169,8 @@ interface SeaportValidatorInterface {
      */
     function validateOfferItem(
         OrderParameters memory orderParameters,
-        uint256 offerItemIndex
+        uint256 offerItemIndex,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -171,7 +182,8 @@ interface SeaportValidatorInterface {
      */
     function validateOfferItemParameters(
         OrderParameters memory orderParameters,
-        uint256 offerItemIndex
+        uint256 offerItemIndex,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -182,7 +194,8 @@ interface SeaportValidatorInterface {
      */
     function validateOfferItemApprovalAndBalance(
         OrderParameters memory orderParameters,
-        uint256 offerItemIndex
+        uint256 offerItemIndex,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**

@@ -73,8 +73,8 @@ contract SeaportValidator is
     using IssueParser for *;
 
     /// @notice Cross-chain seaport address
-    ConsiderationInterface public constant seaport =
-        ConsiderationInterface(0x00000000000001ad428e4906aE43D8F9852d0dD6);
+    // ConsiderationInterface public constant seaport =
+    //     ConsiderationInterface(0x00000000000001ad428e4906aE43D8F9852d0dD6);
     /// @notice Cross-chain conduit controller Address
     ConduitControllerInterface public constant conduitController =
         ConduitControllerInterface(0x00000000F9490004C11Cef243f5400493c00Ad63);
@@ -138,7 +138,8 @@ contract SeaportValidator is
      * @return errorsAndWarnings The errors and warnings found in the order.
      */
     function isValidOrder(
-        Order calldata order
+        Order calldata order,
+        address seaportAddress
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings) {
         return
             isValidOrderWithConfiguration(
@@ -150,7 +151,8 @@ contract SeaportValidator is
                     30 minutes,
                     26 weeks
                 ),
-                order
+                order,
+                seaportAddress
             );
     }
 
@@ -161,7 +163,8 @@ contract SeaportValidator is
      */
     function isValidOrderWithConfiguration(
         ValidationConfiguration memory validationConfiguration,
-        Order memory order
+        Order memory order,
+        address seaportAddress
     ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -173,11 +176,17 @@ contract SeaportValidator is
                 validationConfiguration.distantOrderExpiration
             )
         );
-        errorsAndWarnings.concat(validateOrderStatus(order.parameters));
-        errorsAndWarnings.concat(validateOfferItems(order.parameters));
-        errorsAndWarnings.concat(validateConsiderationItems(order.parameters));
+        errorsAndWarnings.concat(
+            validateOrderStatus(order.parameters, seaportAddress)
+        );
+        errorsAndWarnings.concat(
+            validateOfferItems(order.parameters, seaportAddress)
+        );
+        errorsAndWarnings.concat(
+            validateConsiderationItems(order.parameters, seaportAddress)
+        );
         errorsAndWarnings.concat(isValidZone(order.parameters));
-        errorsAndWarnings.concat(validateSignature(order));
+        errorsAndWarnings.concat(validateSignature(order, seaportAddress));
 
         // Skip strict validation if requested
         if (!validationConfiguration.skipStrictValidation) {
@@ -198,9 +207,10 @@ contract SeaportValidator is
      * @return errorsAndWarnings The errors and warnings
      */
     function isValidConduit(
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings) {
-        (, errorsAndWarnings) = getApprovalAddress(conduitKey);
+        (, errorsAndWarnings) = getApprovalAddress(conduitKey, seaportAddress);
     }
 
     /**
@@ -250,11 +260,13 @@ contract SeaportValidator is
     /**
      * @notice Gets the approval address for the given conduit key
      * @param conduitKey Conduit key to get approval address for
+     * @param seaportAddress The Seaport address
      * @return approvalAddress The address to use for approvals
      * @return errorsAndWarnings An ErrorsAndWarnings structs with results
      */
     function getApprovalAddress(
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        address seaportAddress
     )
         public
         view
@@ -263,7 +275,7 @@ contract SeaportValidator is
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // Zero conduit key corresponds to seaport
-        if (conduitKey == 0) return (address(seaport), errorsAndWarnings);
+        if (conduitKey == 0) return (seaportAddress, errorsAndWarnings);
 
         // Pull conduit info from conduitController
         (address conduitAddress, bool exists) = conduitController.getConduit(
@@ -276,13 +288,10 @@ contract SeaportValidator is
             conduitAddress = address(0); // Don't return invalid conduit
         }
 
-        // Approval address does not have Seaport v1.4 added as a channel
+        // Approval address does not have Seaport added as a channel
         if (
             exists &&
-            !conduitController.getChannelStatus(
-                conduitAddress,
-                address(seaport)
-            )
+            !conduitController.getChannelStatus(conduitAddress, seaportAddress)
         ) {
             errorsAndWarnings.addError(
                 ConduitIssue.MissingCanonicalSeaportChannel.parseInt()
@@ -297,12 +306,15 @@ contract SeaportValidator is
      * @dev Will also check if order is validated on chain.
      */
     function validateSignature(
-        Order memory order
+        Order memory order,
+        address seaportAddress
     ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
         // Pull current counter from seaport
-        uint256 currentCounter = seaport.getCounter(order.parameters.offerer);
+        uint256 currentCounter = ConsiderationInterface(seaportAddress)
+            .getCounter(order.parameters.offerer);
 
-        return validateSignatureWithCounter(order, currentCounter);
+        return
+            validateSignatureWithCounter(order, currentCounter, seaportAddress);
     }
 
     /**
@@ -311,9 +323,13 @@ contract SeaportValidator is
      */
     function validateSignatureWithCounter(
         Order memory order,
-        uint256 counter
+        uint256 counter,
+        address seaportAddress
     ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+
+        // Typecast Seaport address to ConsiderationInterface
+        ConsiderationInterface seaport = ConsiderationInterface(seaportAddress);
 
         // Contract orders do not have signatures
         if (uint8(order.parameters.orderType) == 4) {
@@ -464,9 +480,13 @@ contract SeaportValidator is
      * @return errorsAndWarnings  The errors and warnings
      */
     function validateOrderStatus(
-        OrderParameters memory orderParameters
+        OrderParameters memory orderParameters,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+
+        // Typecast Seaport address to ConsiderationInterface
+        ConsiderationInterface seaport = ConsiderationInterface(seaportAddress);
 
         // Cannot validate status of contract order
         if (uint8(orderParameters.orderType) == 4) {
@@ -505,13 +525,16 @@ contract SeaportValidator is
      * @return errorsAndWarnings  The errors and warnings
      */
     function validateOfferItems(
-        OrderParameters memory orderParameters
+        OrderParameters memory orderParameters,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // Iterate over each offer item and validate it
         for (uint256 i = 0; i < orderParameters.offer.length; i++) {
-            errorsAndWarnings.concat(validateOfferItem(orderParameters, i));
+            errorsAndWarnings.concat(
+                validateOfferItem(orderParameters, i, seaportAddress)
+            );
 
             // Check for duplicate offer item
             OfferItem memory offerItem1 = orderParameters.offer[i];
@@ -553,12 +576,14 @@ contract SeaportValidator is
      */
     function validateOfferItem(
         OrderParameters memory orderParameters,
-        uint256 offerItemIndex
+        uint256 offerItemIndex,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         // First validate the parameters (correct amount, contract, etc)
         errorsAndWarnings = validateOfferItemParameters(
             orderParameters,
-            offerItemIndex
+            offerItemIndex,
+            seaportAddress
         );
         if (errorsAndWarnings.hasErrors()) {
             // Only validate approvals and balances if parameters are valid
@@ -567,7 +592,11 @@ contract SeaportValidator is
 
         // Validate approvals and balances for the offer item
         errorsAndWarnings.concat(
-            validateOfferItemApprovalAndBalance(orderParameters, offerItemIndex)
+            validateOfferItemApprovalAndBalance(
+                orderParameters,
+                offerItemIndex,
+                seaportAddress
+            )
         );
     }
 
@@ -580,7 +609,8 @@ contract SeaportValidator is
      */
     function validateOfferItemParameters(
         OrderParameters memory orderParameters,
-        uint256 offerItemIndex
+        uint256 offerItemIndex,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -684,8 +714,8 @@ contract SeaportValidator is
                 !offerItem.token.safeStaticCallUint256(
                     abi.encodeWithSelector(
                         ERC20Interface.allowance.selector,
-                        address(seaport),
-                        address(seaport)
+                        seaportAddress,
+                        seaportAddress
                     ),
                     0
                 )
@@ -716,7 +746,8 @@ contract SeaportValidator is
      */
     function validateOfferItemApprovalAndBalance(
         OrderParameters memory orderParameters,
-        uint256 offerItemIndex
+        uint256 offerItemIndex,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         // Note: If multiple items are of the same token, token amounts are not summed for validation
 
@@ -726,7 +757,7 @@ contract SeaportValidator is
         (
             address approvalAddress,
             ErrorsAndWarnings memory ew
-        ) = getApprovalAddress(orderParameters.conduitKey);
+        ) = getApprovalAddress(orderParameters.conduitKey, seaportAddress);
         errorsAndWarnings.concat(ew);
 
         if (ew.hasErrors()) {
@@ -915,7 +946,8 @@ contract SeaportValidator is
      * @return errorsAndWarnings  The errors and warnings
      */
     function validateConsiderationItems(
-        OrderParameters memory orderParameters
+        OrderParameters memory orderParameters,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -935,7 +967,7 @@ contract SeaportValidator is
         for (uint256 i = 0; i < orderParameters.consideration.length; i++) {
             // Validate consideration item
             errorsAndWarnings.concat(
-                validateConsiderationItem(orderParameters, i)
+                validateConsiderationItem(orderParameters, i, seaportAddress)
             );
 
             ConsiderationItem memory considerationItem1 = orderParameters
@@ -992,7 +1024,8 @@ contract SeaportValidator is
      */
     function validateConsiderationItem(
         OrderParameters memory orderParameters,
-        uint256 considerationItemIndex
+        uint256 considerationItemIndex,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -1000,7 +1033,8 @@ contract SeaportValidator is
         errorsAndWarnings.concat(
             validateConsiderationItemParameters(
                 orderParameters,
-                considerationItemIndex
+                considerationItemIndex,
+                seaportAddress
             )
         );
     }
@@ -1013,7 +1047,8 @@ contract SeaportValidator is
      */
     function validateConsiderationItemParameters(
         OrderParameters memory orderParameters,
-        uint256 considerationItemIndex
+        uint256 considerationItemIndex,
+        address seaportAddress
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -1146,8 +1181,8 @@ contract SeaportValidator is
                 !considerationItem.token.safeStaticCallUint256(
                     abi.encodeWithSelector(
                         ERC20Interface.allowance.selector,
-                        address(seaport),
-                        address(seaport)
+                        seaportAddress,
+                        seaportAddress
                     ),
                     0
                 )
