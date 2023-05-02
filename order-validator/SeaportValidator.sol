@@ -301,9 +301,9 @@ contract SeaportValidator is
             return errorsAndWarnings;
         }
 
-        // EOA zone is always valid
+        // Warn if zone is an EOA
         if (address(orderParameters.zone).code.length == 0) {
-            // Address is EOA. Valid order
+            errorsAndWarnings.addWarning(ZoneIssue.EOAZone.parseInt());
             return errorsAndWarnings;
         }
 
@@ -356,7 +356,7 @@ contract SeaportValidator is
             !conduitController.getChannelStatus(conduitAddress, seaportAddress)
         ) {
             errorsAndWarnings.addError(
-                ConduitIssue.MissingCanonicalSeaportChannel.parseInt()
+                ConduitIssue.MissingSeaportChannel.parseInt()
             );
         }
 

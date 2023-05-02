@@ -90,7 +90,7 @@ enum TimeIssue {
 
 enum ConduitIssue {
     KeyInvalid, // 1000
-    MissingCanonicalSeaportChannel // 1001
+    MissingSeaportChannel // 1001
 }
 
 enum SignatureIssue {
@@ -119,7 +119,8 @@ enum NativeIssue {
 enum ZoneIssue {
     InvalidZone, // 1400
     RejectedOrder, // 1401
-    NotSet // 1402
+    NotSet, // 1402
+    EOAZone // 1403
 }
 
 enum MerkleIssue {
