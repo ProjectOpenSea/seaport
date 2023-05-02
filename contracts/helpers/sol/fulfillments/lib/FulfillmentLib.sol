@@ -5,8 +5,6 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import { LibSort } from "solady/src/utils/LibSort.sol";
 
-import { MatchComponent } from "seaport-sol/SeaportSol.sol";
-
 import {
     FulfillmentComponent,
     Fulfillment,
@@ -20,7 +18,7 @@ import {
 
 import { ItemType, Side } from "../../SeaportEnums.sol";
 
-import { OrderDetails } from "./Structs.sol";
+import { MatchComponent, OrderDetails } from "./Structs.sol";
 
 enum FulfillmentEligibility {
     NONE,
