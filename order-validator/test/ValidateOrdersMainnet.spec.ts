@@ -238,7 +238,10 @@ describe("Validate Orders", function () {
   describe("Validate Offer Items", function () {
     it("Zero offer items", async function () {
       expect(
-        await validator.validateOfferItems(baseOrderParameters)
+        await validator.validateOfferItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], [OfferIssue.ZeroItems]]);
     });
 
@@ -264,7 +267,10 @@ describe("Validate Orders", function () {
       ];
 
       expect(
-        await validator.validateOfferItems(baseOrderParameters)
+        await validator.validateOfferItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         [OfferIssue.DuplicateItem],
         [OfferIssue.MoreThanOneItem],
@@ -285,7 +291,8 @@ describe("Validate Orders", function () {
       expect(
         await validator.validateOfferItemApprovalAndBalance(
           baseOrderParameters,
-          0
+          0,
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([[ConduitIssue.KeyInvalid], []]);
     });
@@ -314,7 +321,10 @@ describe("Validate Orders", function () {
       ];
 
       expect(
-        await validator.validateOfferItems(baseOrderParameters)
+        await validator.validateOfferItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], [OfferIssue.MoreThanOneItem]]);
     });
 
@@ -329,8 +339,12 @@ describe("Validate Orders", function () {
         },
       ];
 
-      await expect(validator.validateOfferItems(baseOrderParameters)).to.be
-        .reverted;
+      await expect(
+        validator.validateOfferItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
+      ).to.be.reverted;
     });
 
     describe("ERC721", function () {
@@ -347,7 +361,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.NotApproved], []]);
       });
 
@@ -362,7 +379,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.NotOwner, ERC721Issue.NotApproved],
           [],
@@ -370,7 +390,10 @@ describe("Validate Orders", function () {
 
         await erc721_1.mint(otherAccounts[0].address, 2);
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.NotOwner, ERC721Issue.NotApproved],
           [],
@@ -391,7 +414,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
 
@@ -409,7 +435,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
 
@@ -424,7 +453,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.InvalidToken], []]);
       });
 
@@ -439,7 +471,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.InvalidToken], []]);
       });
 
@@ -454,7 +489,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.InvalidToken], []]);
       });
 
@@ -470,7 +508,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.AmountNotOne],
           [OfferIssue.AmountStepLarge],
@@ -487,7 +528,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.AmountNotOne],
           [OfferIssue.AmountStepLarge],
@@ -506,7 +550,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.NotApproved], []]);
       });
 
@@ -524,7 +571,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
 
@@ -540,7 +590,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.InvalidToken], []]);
       });
 
@@ -558,7 +611,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.CriteriaNotPartialFill],
           [OfferIssue.AmountStepLarge],
@@ -575,7 +631,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.CriteriaNotPartialFill],
           [OfferIssue.AmountStepLarge],
@@ -593,7 +652,10 @@ describe("Validate Orders", function () {
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
     });
@@ -612,7 +674,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC1155Issue.NotApproved], []]);
       });
 
@@ -627,7 +692,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC1155Issue.NotApproved, ERC1155Issue.InsufficientBalance],
           [],
@@ -645,7 +713,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC1155Issue.InvalidToken], []]);
       });
 
@@ -663,7 +734,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
 
@@ -679,7 +753,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC1155Issue.NotApproved], []]);
       });
 
@@ -697,7 +774,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
 
@@ -713,7 +793,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC1155Issue.InvalidToken], []]);
       });
 
@@ -731,7 +814,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
     });
@@ -750,7 +836,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC20Issue.InsufficientAllowance],
           [],
@@ -770,7 +859,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC20Issue.InsufficientAllowance, ERC20Issue.InsufficientBalance],
           [],
@@ -788,7 +880,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC20Issue.InvalidToken], []]);
       });
 
@@ -806,7 +901,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC20Issue.IdentifierNonZero], []]);
       });
 
@@ -824,7 +922,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
     });
@@ -841,7 +942,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[NativeIssue.TokenAddress], []]);
       });
 
@@ -856,7 +960,10 @@ describe("Validate Orders", function () {
           },
         ];
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [NativeIssue.IdentifierNonZero],
           [],
@@ -875,7 +982,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], [OfferIssue.NativeItem]]);
       });
 
@@ -893,7 +1003,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItems(baseOrderParameters)
+          await validator.validateOfferItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [NativeIssue.InsufficientBalance],
           [OfferIssue.NativeItem],
@@ -922,7 +1035,11 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItemParameters(baseOrderParameters, 0)
+          await validator.validateOfferItemParameters(
+            baseOrderParameters,
+            0,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [],
           [OfferIssue.AmountVelocityHigh],
@@ -949,7 +1066,11 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateOfferItemParameters(baseOrderParameters, 0)
+          await validator.validateOfferItemParameters(
+            baseOrderParameters,
+            0,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [OfferIssue.AmountVelocityHigh],
           [],
@@ -961,7 +1082,10 @@ describe("Validate Orders", function () {
   describe("Validate Consideration Items", function () {
     it("Zero consideration items", async function () {
       expect(
-        await validator.validateConsiderationItems(baseOrderParameters)
+        await validator.validateConsiderationItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], [ConsiderationIssue.ZeroItems]]);
     });
 
@@ -978,7 +1102,10 @@ describe("Validate Orders", function () {
       ];
 
       expect(
-        await validator.validateConsiderationItems(baseOrderParameters)
+        await validator.validateConsiderationItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         [ConsiderationIssue.NullRecipient],
         [ConsiderationIssue.OffererNotReceivingAtLeastOneItem],
@@ -998,7 +1125,10 @@ describe("Validate Orders", function () {
       ];
 
       expect(
-        await validator.validateConsiderationItems(baseOrderParameters)
+        await validator.validateConsiderationItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[ConsiderationIssue.AmountZero], []]);
     });
 
@@ -1014,8 +1144,12 @@ describe("Validate Orders", function () {
         },
       ];
 
-      await expect(validator.validateConsiderationItems(baseOrderParameters)).to
-        .be.reverted;
+      await expect(
+        validator.validateConsiderationItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
+      ).to.be.reverted;
     });
 
     it("Duplicate consideration item", async function () {
@@ -1039,7 +1173,10 @@ describe("Validate Orders", function () {
       ];
 
       expect(
-        await validator.validateConsiderationItems(baseOrderParameters)
+        await validator.validateConsiderationItems(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         [],
         [ConsiderationIssue.DuplicateItem],
@@ -1061,7 +1198,8 @@ describe("Validate Orders", function () {
       expect(
         await validator.validateConsiderationItemParameters(
           baseOrderParameters,
-          0
+          0,
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([
         [],
@@ -1085,7 +1223,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.AmountNotOne],
           [ConsiderationIssue.AmountStepLarge],
@@ -1103,7 +1244,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [ERC721Issue.AmountNotOne],
           [ConsiderationIssue.AmountStepLarge],
@@ -1123,7 +1267,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.IdentifierDNE], []]);
       });
 
@@ -1140,7 +1287,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.InvalidToken], []]);
       });
 
@@ -1157,7 +1307,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC721Issue.InvalidToken], []]);
       });
 
@@ -1174,7 +1327,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
     });
@@ -1193,7 +1349,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC1155Issue.InvalidToken], []]);
       });
 
@@ -1210,7 +1369,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[], []]);
       });
     });
@@ -1229,7 +1391,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC20Issue.InvalidToken], []]);
       });
 
@@ -1246,7 +1411,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[ERC20Issue.IdentifierNonZero], []]);
       });
     });
@@ -1265,7 +1433,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([[NativeIssue.TokenAddress], []]);
       });
 
@@ -1282,7 +1453,10 @@ describe("Validate Orders", function () {
         ];
 
         expect(
-          await validator.validateConsiderationItems(baseOrderParameters)
+          await validator.validateConsiderationItems(
+            baseOrderParameters,
+            CROSS_CHAIN_SEAPORT_ADDRESS
+          )
         ).to.include.deep.ordered.members([
           [NativeIssue.IdentifierNonZero],
           [],
@@ -1314,7 +1488,8 @@ describe("Validate Orders", function () {
         expect(
           await validator.validateConsiderationItemParameters(
             baseOrderParameters,
-            0
+            0,
+            CROSS_CHAIN_SEAPORT_ADDRESS
           )
         ).to.include.deep.ordered.members([
           [],
@@ -1345,7 +1520,8 @@ describe("Validate Orders", function () {
         expect(
           await validator.validateConsiderationItemParameters(
             baseOrderParameters,
-            0
+            0,
+            CROSS_CHAIN_SEAPORT_ADDRESS
           )
         ).to.include.deep.ordered.members([
           [ConsiderationIssue.AmountVelocityHigh],
@@ -1829,7 +2005,10 @@ describe("Validate Orders", function () {
     it("null conduit", async function () {
       // null conduit key points to seaport
       expect(
-        await validator.getApprovalAddress(EMPTY_BYTES32)
+        await validator.getApprovalAddress(
+          EMPTY_BYTES32,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         CROSS_CHAIN_SEAPORT_ADDRESS,
         [[], []],
@@ -1838,14 +2017,18 @@ describe("Validate Orders", function () {
 
     it("valid conduit key", async function () {
       expect(
-        await validator.getApprovalAddress(OPENSEA_CONDUIT_KEY)
+        await validator.getApprovalAddress(
+          OPENSEA_CONDUIT_KEY,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([OPENSEA_CONDUIT_ADDRESS, [[], []]]);
     });
 
     it("invalid conduit key", async function () {
       expect(
         await validator.getApprovalAddress(
-          "0x0000000000000000000000000000000000000000000000000000000000000099"
+          "0x0000000000000000000000000000000000000000000000000000000000000099",
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([
         NULL_ADDRESS,
@@ -1855,14 +2038,18 @@ describe("Validate Orders", function () {
 
     it("isValidConduit valid", async function () {
       expect(
-        await validator.isValidConduit(OPENSEA_CONDUIT_KEY)
+        await validator.isValidConduit(
+          OPENSEA_CONDUIT_KEY,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], []]);
     });
 
     it("isValidConduit invalid", async function () {
       expect(
         await validator.isValidConduit(
-          "0x0000000000000000000000000000000000000000000000000000000000000099"
+          "0x0000000000000000000000000000000000000000000000000000000000000099",
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([[ConduitIssue.KeyInvalid], []]);
     });
@@ -2039,7 +2226,10 @@ describe("Validate Orders", function () {
       await seaport.fulfillOrder(order, EMPTY_BYTES32);
 
       expect(
-        await validator.validateOrderStatus(baseOrderParameters)
+        await validator.validateOrderStatus(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[StatusIssue.FullyFilled], []]);
     });
 
@@ -2062,7 +2252,10 @@ describe("Validate Orders", function () {
       ]);
 
       expect(
-        await validator.validateOrderStatus(baseOrderParameters)
+        await validator.validateOrderStatus(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[StatusIssue.Cancelled], []]);
     });
 
@@ -2083,7 +2276,10 @@ describe("Validate Orders", function () {
       baseOrderParameters.orderType = OrderType.CONTRACT;
 
       expect(
-        await validator.validateOrderStatus(baseOrderParameters)
+        await validator.validateOrderStatus(
+          baseOrderParameters,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], [StatusIssue.ContractOrder]]);
     });
   });
@@ -2707,7 +2903,10 @@ describe("Validate Orders", function () {
 
       const order = await signOrder(baseOrderParameters, owner);
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2728,7 +2927,10 @@ describe("Validate Orders", function () {
 
       const order = await signOrder(baseOrderParameters, otherAccounts[0]);
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -2753,7 +2955,10 @@ describe("Validate Orders", function () {
       order.signature = sig;
 
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -2770,7 +2975,9 @@ describe("Validate Orders", function () {
 
       const order = await signOrder(baseOrderParameters, owner);
       expect(
-        await validator.connect(owner).callStatic.validateSignature(order)
+        await validator
+          .connect(owner)
+          .callStatic.validateSignature(order, CROSS_CHAIN_SEAPORT_ADDRESS)
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2798,7 +3005,10 @@ describe("Validate Orders", function () {
       const order = await signOrder(baseOrderParameters, owner);
 
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         [SignatureIssue.Invalid],
         [SignatureIssue.OriginalConsiderationItems],
@@ -2821,7 +3031,11 @@ describe("Validate Orders", function () {
       await seaport.incrementCounter();
 
       expect(
-        await validator.callStatic.validateSignatureWithCounter(order, 0)
+        await validator.callStatic.validateSignatureWithCounter(
+          order,
+          0,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[SignatureIssue.LowCounter], []]);
     });
 
@@ -2839,7 +3053,11 @@ describe("Validate Orders", function () {
       const order = await signOrder(baseOrderParameters, owner, 4);
 
       expect(
-        await validator.callStatic.validateSignatureWithCounter(order, 4)
+        await validator.callStatic.validateSignatureWithCounter(
+          order,
+          4,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[SignatureIssue.HighCounter], []]);
     });
 
@@ -2857,7 +3075,10 @@ describe("Validate Orders", function () {
       const order = { parameters: baseOrderParameters, signature: "0x" };
 
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -2877,7 +3098,10 @@ describe("Validate Orders", function () {
       await seaport.validate([order]);
 
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -2900,7 +3124,10 @@ describe("Validate Orders", function () {
       const order = { parameters: baseOrderParameters, signature: "0x" };
 
       expect(
-        await validator.callStatic.validateSignature(order)
+        await validator.callStatic.validateSignature(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], [SignatureIssue.ContractOrder]]);
     });
   });
@@ -2974,7 +3201,10 @@ describe("Validate Orders", function () {
       await seaport.validate([order]);
 
       expect(
-        await validator.callStatic.isValidOrder(order)
+        await validator.callStatic.isValidOrder(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -3007,7 +3237,10 @@ describe("Validate Orders", function () {
       const order: OrderStruct = await signOrder(baseOrderParameters, owner);
 
       expect(
-        await validator.callStatic.isValidOrder(order)
+        await validator.callStatic.isValidOrder(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[], []]);
     });
 
@@ -3069,7 +3302,8 @@ describe("Validate Orders", function () {
       expect(
         await validator.callStatic.isValidOrderWithConfiguration(
           validationConfiguration,
-          order
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([[], []]);
     });
@@ -3139,7 +3373,8 @@ describe("Validate Orders", function () {
       expect(
         await validator.callStatic.isValidOrderWithConfiguration(
           validationConfiguration,
-          order
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([[], [OfferIssue.MoreThanOneItem]]);
     });
@@ -3184,7 +3419,8 @@ describe("Validate Orders", function () {
       expect(
         await validator.callStatic.isValidOrderWithConfiguration(
           validationConfiguration,
-          order
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
         )
       ).to.include.deep.ordered.members([[], []]);
     });
@@ -3221,7 +3457,10 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.callStatic.isValidOrder(order)
+        await validator.callStatic.isValidOrder(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([[SignatureIssue.Invalid], []]);
     });
 
@@ -3248,7 +3487,10 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.callStatic.isValidOrder(order)
+        await validator.callStatic.isValidOrder(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         [SignatureIssue.Invalid, GenericIssue.InvalidOrderFormat],
         [OfferIssue.ZeroItems],
@@ -3288,7 +3530,10 @@ describe("Validate Orders", function () {
       };
 
       expect(
-        await validator.callStatic.isValidOrder(order)
+        await validator.callStatic.isValidOrder(
+          order,
+          CROSS_CHAIN_SEAPORT_ADDRESS
+        )
       ).to.include.deep.ordered.members([
         [
           OfferIssue.AmountZero,
@@ -3308,7 +3553,7 @@ describe("Validate Orders", function () {
     const sig = await signer._signTypedData(
       {
         name: "Seaport",
-        version: "1.4",
+        version: "1.5",
         chainId: "31337",
         verifyingContract: seaport.address,
       },

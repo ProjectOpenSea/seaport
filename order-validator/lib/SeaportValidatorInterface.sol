@@ -41,6 +41,15 @@ interface SeaportValidatorInterface {
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
+     * @notice Same as `isValidOrderWithConfiguration` but doesn't call `validate` on Seaport.
+     */
+    function isValidOrderWithConfigurationReadOnly(
+        ValidationConfiguration memory validationConfiguration,
+        Order memory order,
+        address seaportAddress
+    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
+
+    /**
      * @notice Checks if a conduit key is valid.
      * @param conduitKey The conduit key to check.
      * @return errorsAndWarnings The errors and warnings
@@ -215,7 +224,8 @@ interface SeaportValidatorInterface {
      * @return errorsAndWarnings An ErrorsAndWarnings structs with results
      */
     function getApprovalAddress(
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        address seaportAddress
     )
         external
         view

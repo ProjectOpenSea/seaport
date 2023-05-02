@@ -72,9 +72,6 @@ contract SeaportValidator is
     using SafeStaticCall for address;
     using IssueParser for *;
 
-    /// @notice Cross-chain seaport address
-    // ConsiderationInterface public constant seaport =
-    //     ConsiderationInterface(0x00000000000001ad428e4906aE43D8F9852d0dD6);
     /// @notice Cross-chain conduit controller Address
     ConduitControllerInterface public constant conduitController =
         ConduitControllerInterface(0x00000000F9490004C11Cef243f5400493c00Ad63);
@@ -187,6 +184,50 @@ contract SeaportValidator is
         );
         errorsAndWarnings.concat(isValidZone(order.parameters));
         errorsAndWarnings.concat(validateSignature(order, seaportAddress));
+
+        // Skip strict validation if requested
+        if (!validationConfiguration.skipStrictValidation) {
+            errorsAndWarnings.concat(
+                validateStrictLogic(
+                    order.parameters,
+                    validationConfiguration.primaryFeeRecipient,
+                    validationConfiguration.primaryFeeBips,
+                    validationConfiguration.checkCreatorFee
+                )
+            );
+        }
+    }
+
+    /**
+     * @notice Same as `isValidOrderWithConfiguration` but doesn't call `validate` on Seaport.
+     *    If `skipStrictValidation` is set order logic validation is not carried out: fees are not
+     *       checked and there may be more than one offer item as well as any number of consideration items.
+     */
+    function isValidOrderWithConfigurationReadOnly(
+        ValidationConfiguration memory validationConfiguration,
+        Order memory order,
+        address seaportAddress
+    ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
+        errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+
+        // Concatenates errorsAndWarnings with the returned errorsAndWarnings
+        errorsAndWarnings.concat(
+            validateTime(
+                order.parameters,
+                validationConfiguration.shortOrderDuration,
+                validationConfiguration.distantOrderExpiration
+            )
+        );
+        errorsAndWarnings.concat(
+            validateOrderStatus(order.parameters, seaportAddress)
+        );
+        errorsAndWarnings.concat(
+            validateOfferItems(order.parameters, seaportAddress)
+        );
+        errorsAndWarnings.concat(
+            validateConsiderationItems(order.parameters, seaportAddress)
+        );
+        errorsAndWarnings.concat(isValidZone(order.parameters));
 
         // Skip strict validation if requested
         if (!validationConfiguration.skipStrictValidation) {
