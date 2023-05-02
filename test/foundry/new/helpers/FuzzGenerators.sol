@@ -83,7 +83,9 @@ import { FuzzInscribers } from "./FuzzInscribers.sol";
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import {
-    FulfillmentGeneratorLib
+    AggregationStrategy,
+    FulfillmentGeneratorLib,
+    FulfillmentStrategy
 } from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
 /**
@@ -335,6 +337,20 @@ library TestStateGenerator {
                 .unavailableReason = UnavailableReason.AVAILABLE;
         }
 
+        FulfillmentStrategy memory strategy = (
+            FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+        );
+
+        {
+            // TODO: fuzz on AggregationStrategy.RANDOM (index 2) as well
+            strategy.aggregationStrategy = AggregationStrategy(
+                context.randEnum(0, 1)
+            );
+
+            // TODO: fuzz on FulfillAvailableStrategy && MatchStrategy
+
+        }
+
         return
             AdvancedOrdersSpace({
                 orders: components,
@@ -343,7 +359,7 @@ library TestStateGenerator {
                 recipient: FulfillmentRecipient(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
                 caller: Caller(context.randEnum(0, 6)),
-                strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+                strategy: strategy
             });
     }
 
