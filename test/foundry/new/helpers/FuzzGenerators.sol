@@ -342,7 +342,8 @@ library TestStateGenerator {
                 maximumFulfilled: maximumFulfilled,
                 recipient: FulfillmentRecipient(context.randEnum(0, 3)),
                 conduit: ConduitChoice(context.randEnum(0, 2)),
-                caller: Caller(context.randEnum(0, 6))
+                caller: Caller(context.randEnum(0, 6)),
+                strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
             });
     }
 
@@ -460,7 +461,8 @@ library TestStateGenerator {
                 maximumFulfilled: 0,
                 recipient: FulfillmentRecipient.ZERO,
                 conduit: ConduitChoice.NONE,
-                caller: Caller.TEST_CONTRACT
+                caller: Caller.TEST_CONTRACT,
+                strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
             });
     }
 }

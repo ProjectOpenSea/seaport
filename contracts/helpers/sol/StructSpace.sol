@@ -24,6 +24,10 @@ import {
     ZoneHash
 } from "./SpaceEnums.sol";
 
+import {
+    FulfillmentStrategy
+} from "./fulfillments/lib/FulfillmentLib.sol";
+
 struct OfferItemSpace {
     ItemType itemType;
     TokenIndex tokenIndex;
@@ -76,4 +80,5 @@ struct AdvancedOrdersSpace {
     FulfillmentRecipient recipient;
     ConduitChoice conduit;
     Caller caller;
+    FulfillmentStrategy strategy;
 }
