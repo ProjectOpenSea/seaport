@@ -283,7 +283,7 @@ library FuzzMutationSelectorLib {
             );
 
         failuresAndFilters[i++] = Failure.CriteriaNotEnabledForItem.withGeneric(
-            MutationFilters.ineligibleWhenNotAdvancedOrWithNoAvailableItems
+            MutationFilters.ineligibleForCriteriaNotEnabledForItem
         );
 
         failuresAndFilters[i++] = Failure.InvalidProof_Merkle.withCriteria(
