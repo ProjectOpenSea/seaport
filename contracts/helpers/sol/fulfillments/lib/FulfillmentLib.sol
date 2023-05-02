@@ -1039,7 +1039,7 @@ library FulfillmentGeneratorLib {
         for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
             FulfillmentItem[] memory items = fulfillmentItems[i].items;
 
-            for (uint256 j = 0; j < items.length; ++i) {
+            for (uint256 j = 0; j < items.length; ++j) {
                 FulfillmentComponent[] memory fulfillment = (
                     new FulfillmentComponent[](1)
                 );
