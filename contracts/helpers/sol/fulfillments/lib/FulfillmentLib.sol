@@ -239,7 +239,7 @@ library FulfillmentGeneratorLib {
     ) internal pure {
         // TODO: add more strategies here as support is added for them.
         AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
-        if (aggregationStrategy != AggregationStrategy.MAXIMUM) {
+        if (aggregationStrategy == AggregationStrategy.RANDOM) {
             revert("FulfillmentGeneratorLib: unsupported aggregation strategy");
         }
 
@@ -306,6 +306,32 @@ library FulfillmentGeneratorLib {
                 orderDetails.getItemReferences(0).getMatchDetailsFromReferences(
                     address(0)
                 )
+            );
+    }
+
+    // This allows for supplying strategies but applies no randomization and
+    // does not give a recipient & will not properly detect filtered executions.
+    function getMatchedFulfillments(
+        OrderDetails[] memory orderDetails,
+        FulfillmentStrategy memory strategy
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
+        )
+    {
+        uint256 seed = 0;
+
+        return
+            getMatchFulfillments(
+                orderDetails.getItemReferences(0).getMatchDetailsFromReferences(
+                    address(0)
+                ),
+                strategy,
+                seed
             );
     }
 
@@ -380,6 +406,17 @@ library FulfillmentGeneratorLib {
                 unspentOfferComponents,
                 unmetConsiderationComponents
             ) = getMaxInclusionMatchFulfillments(matchDetails);
+        } else if (
+            aggregationStrategy == AggregationStrategy.MINIMUM &&
+            matchStrategy == MatchStrategy.MAX_INCLUSION
+        ) {
+            (
+                fulfillments,
+                unspentOfferComponents,
+                unmetConsiderationComponents
+            ) = getMaxInclusionMinimumAggregationMatchFulfillments(
+                matchDetails
+            );
         } else {
             revert(
                 "FulfillmentGeneratorLib: only MAXIMUM+MAX_INCLUSION supported"
@@ -550,6 +587,65 @@ library FulfillmentGeneratorLib {
     }
 
     // NOTE: this function will "consume" the match details provided to it.
+    function getMaxInclusionMinimumAggregationMatchFulfillments(
+        MatchDetails memory matchDetails
+    )
+        internal
+        pure
+        returns (
+            Fulfillment[] memory fulfillments,
+            MatchComponent[] memory unspentOfferComponents,
+            MatchComponent[] memory unmetConsiderationComponents
+        )
+    {
+        if (matchDetails.totalItems == 0) {
+            return (
+                fulfillments,
+                unspentOfferComponents,
+                unmetConsiderationComponents
+            );
+        }
+
+        (
+            unspentOfferComponents,
+            unmetConsiderationComponents
+        ) = getUncoveredComponents(matchDetails);
+
+        // Allocate based on max possible fulfillments; reduce after assignment.
+        fulfillments = new Fulfillment[](matchDetails.totalItems - 1);
+        uint256 currentFulfillment = 0;
+
+        // The outer loop processes each matchable group.
+        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
+            // This is actually a "while" loop, but bound it as a sanity check.
+            bool allProcessed = false;
+            for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
+                Fulfillment
+                    memory fulfillment = consumeMinimumItemsAndGetFulfillment(
+                        matchDetails.items[i]
+                    );
+
+                // Exit the inner loop if no fulfillment was located.
+                if (fulfillment.offerComponents.length == 0) {
+                    allProcessed = true;
+                    break;
+                }
+
+                // append the located fulfillment and continue searching.
+                fulfillments[currentFulfillment++] = fulfillment;
+            }
+            if (!allProcessed) {
+                revert("FulfillmentGeneratorLib: did not complete processing");
+            }
+        }
+
+        // Resize the fulfillments array based on number of elements assigned.
+        assembly {
+            mstore(fulfillments, currentFulfillment)
+        }
+    }
+
+    // NOTE: this function will "consume" the match details provided to it.
     function getMaxInclusionMatchFulfillments(
         MatchDetails memory matchDetails
     )
@@ -608,6 +704,35 @@ library FulfillmentGeneratorLib {
     }
 
     // NOTE: this does not currently minimize the number of fulfillments.
+    function consumeMinimumItemsAndGetFulfillment(
+        DualFulfillmentItems memory matchItems
+    ) internal pure returns (Fulfillment memory) {
+        // Search for something that can be offered.
+        for (uint256 i = 0; i < matchItems.offer.length; ++i) {
+            FulfillmentItems memory offerItems = matchItems.offer[i];
+            if (offerItems.totalAmount != 0) {
+                // Search for something it can be matched against.
+                for (uint256 j = 0; j < matchItems.consideration.length; ++j) {
+                    FulfillmentItems memory considerationItems = (
+                        matchItems.consideration[j]
+                    );
+
+                    if (considerationItems.totalAmount != 0) {
+                        return
+                            consumeMinimumItemsAndGetFulfillment(
+                                offerItems,
+                                considerationItems
+                            );
+                    }
+                }
+            }
+        }
+
+        // If none were found, return an empty fulfillment.
+        return emptyFulfillment();
+    }
+
+    // NOTE: this does not currently minimize the number of fulfillments.
     function consumeItemsAndGetFulfillment(
         DualFulfillmentItems memory matchItems
     ) internal pure returns (Fulfillment memory) {
@@ -634,6 +759,64 @@ library FulfillmentGeneratorLib {
 
         // If none were found, return an empty fulfillment.
         return emptyFulfillment();
+    }
+
+    function consumeMinimumItemsAndGetFulfillment(
+        FulfillmentItems memory offerItems,
+        FulfillmentItems memory considerationItems
+    ) internal pure returns (Fulfillment memory) {
+        if (
+            offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
+        ) {
+            revert("FulfillmentGeneratorLib: missing item amounts to consume");
+        }
+
+        // Allocate fulfillment component arrays with a single element.
+        FulfillmentComponent[] memory offerComponents = (
+            new FulfillmentComponent[](1)
+        );
+        FulfillmentComponent[] memory considerationComponents = (
+            new FulfillmentComponent[](1)
+        );
+
+        FulfillmentItem memory offerItem;
+        for (uint256 i = 0; i < offerItems.items.length; ++i) {
+            offerItem = offerItems.items[i];
+
+            if (offerItem.amount != 0) {
+                break;
+            }
+        }
+
+        FulfillmentItem memory considerationItem;
+        for (uint256 i = 0; i < considerationItems.items.length; ++i) {
+            considerationItem = considerationItems.items[i];
+
+            if (considerationItem.amount != 0) {
+                break;
+            }
+        }
+
+        offerComponents[0] = getFulfillmentComponent(offerItem);
+        considerationComponents[0] = getFulfillmentComponent(considerationItem);
+
+        if (offerItem.amount < considerationItem.amount) {
+            offerItems.totalAmount -= offerItem.amount;
+            considerationItems.totalAmount -= offerItem.amount;
+            considerationItem.amount -= offerItem.amount;
+            offerItem.amount = 0;
+        } else {
+            offerItems.totalAmount -= considerationItem.amount;
+            considerationItems.totalAmount -= considerationItem.amount;
+            offerItem.amount -= considerationItem.amount;
+            considerationItem.amount = 0;
+        }
+
+        return
+            Fulfillment({
+                offerComponents: offerComponents,
+                considerationComponents: considerationComponents
+            });
     }
 
     function consumeItemsAndGetFulfillment(
@@ -806,6 +989,14 @@ library FulfillmentGeneratorLib {
             considerationFulfillments = getMaxFulfillmentComponents(
                 fulfillAvailableDetails.items.consideration
             );
+        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
+            offerFulfillments = getMinFulfillmentComponents(
+                fulfillAvailableDetails.items.offer
+            );
+
+            considerationFulfillments = getMinFulfillmentComponents(
+                fulfillAvailableDetails.items.consideration
+            );
         } else {
             revert("FulfillmentGeneratorLib: only MAXIMUM supported for now");
         }
@@ -826,6 +1017,35 @@ library FulfillmentGeneratorLib {
             fulfillments[i] = getFulfillmentComponents(
                 fulfillmentItems[i].items
             );
+        }
+
+        return fulfillments;
+    }
+
+    function getMinFulfillmentComponents(
+        FulfillmentItems[] memory fulfillmentItems
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        uint256 fulfillmentCount = 0;
+
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            fulfillmentCount += fulfillmentItems[i].items.length;
+        }
+
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](fulfillmentCount)
+        );
+
+        fulfillmentCount = 0;
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            FulfillmentItem[] memory items = fulfillmentItems[i].items;
+
+            for (uint256 j = 0; j < items.length; ++i) {
+                FulfillmentComponent[] memory fulfillment = (
+                    new FulfillmentComponent[](1)
+                );
+                fulfillment[0] = getFulfillmentComponent(items[j]);
+                fulfillments[fulfillmentCount++] = fulfillment;
+            }
         }
 
         return fulfillments;
