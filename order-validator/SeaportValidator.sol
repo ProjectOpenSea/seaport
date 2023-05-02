@@ -313,7 +313,7 @@ contract SeaportValidator is
             return errorsAndWarnings;
         }
 
-        // Check if the contract offerer implements SIP-5
+        // Check if the zone implements SIP-5
         try ZoneInterface(orderParameters.zone).getSeaportMetadata() {} catch {
             errorsAndWarnings.addWarning(ZoneIssue.InvalidZone.parseInt());
         }
