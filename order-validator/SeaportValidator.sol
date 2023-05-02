@@ -61,6 +61,7 @@ import { Verifiers } from "../contracts/lib/Verifiers.sol";
 
 /**
  * @title SeaportValidator
+ * @author OpenSea Protocol Team
  * @notice SeaportValidator provides advanced validation to seaport orders.
  */
 contract SeaportValidator is
@@ -138,6 +139,28 @@ contract SeaportValidator is
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings) {
         return
             isValidOrderWithConfiguration(
+                ValidationConfiguration(
+                    address(0),
+                    0,
+                    false,
+                    false,
+                    30 minutes,
+                    26 weeks
+                ),
+                order,
+                seaportAddress
+            );
+    }
+
+    /**
+     * @notice Same as `isValidOrder` but does not modify state.
+     */
+    function isValidOrderReadOnly(
+        Order calldata order,
+        address seaportAddress
+    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings) {
+        return
+            isValidOrderWithConfigurationReadOnly(
                 ValidationConfiguration(
                     address(0),
                     0,
