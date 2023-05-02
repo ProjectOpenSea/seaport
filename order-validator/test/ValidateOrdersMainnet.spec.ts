@@ -1989,7 +1989,7 @@ describe("Validate Orders", function () {
       baseOrderParameters.zoneHash = coder.encode(["uint256"], [1]);
       expect(
         await validator.isValidZone(baseOrderParameters)
-      ).to.include.deep.ordered.members([[ZoneIssue.InvalidZone], []]);
+      ).to.include.deep.ordered.members([[], [ZoneIssue.InvalidZone]]);
     });
 
     it("zone not checked on open order", async function () {
@@ -3160,8 +3160,8 @@ describe("Validate Orders", function () {
           invalidContractOfferer.address
         )
       ).to.include.deep.ordered.members([
-        [ContractOffererIssue.InvalidContractOfferer],
         [],
+        [ContractOffererIssue.InvalidContractOfferer],
       ]);
     });
   });
