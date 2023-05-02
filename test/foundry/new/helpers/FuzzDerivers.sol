@@ -226,6 +226,9 @@ library FuzzDerivers {
             MatchComponent[] memory remainingOfferComponents
         )
     {
+        // TODO: actually provide a random seed
+        uint256 seed = 0;
+
         // Note: items do not need corresponding fulfillments for unavailable
         // orders, but generally will be provided as availability is usually
         // unknown at submission time. Consider adding a fuzz condition to
@@ -238,8 +241,10 @@ library FuzzDerivers {
             remainingOfferComponents,
 
         ) = orderDetails.getFulfillments(
+            context.advancedOrdersSpace.strategy,
             context.executionState.caller,
-            context.executionState.recipient
+            context.executionState.recipient,
+            seed
         );
     }
 
