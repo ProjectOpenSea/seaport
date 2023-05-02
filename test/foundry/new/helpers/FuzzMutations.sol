@@ -428,7 +428,13 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenAnySignatureFailureRequired(order, orderIndex, context)) {
+        if (
+            ineligibleWhenAnySignatureFailureRequired(
+                order,
+                orderIndex,
+                context
+            )
+        ) {
             return true;
         }
 
@@ -455,7 +461,10 @@ library MutationFilters {
         return false;
     }
 
-    // The following functions are ineligibility filters.
+    // The following functions are ineligibility filters.  These should
+    // encapsulate the logic for determining whether an order is ineligible
+    // for a given mutation.  These functions are wired up with their
+    // corresponding mutation in `FuzzMutationSelectorLib.sol`.
 
     function ineligibleForOfferItemMissingApproval(
         AdvancedOrder memory order,
@@ -694,7 +703,13 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenAnySignatureFailureRequired(order, orderIndex, context)) {
+        if (
+            ineligibleWhenAnySignatureFailureRequired(
+                order,
+                orderIndex,
+                context
+            )
+        ) {
             return true;
         }
 
@@ -763,7 +778,9 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)) {
+        if (
+            ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)
+        ) {
             return true;
         }
 
@@ -779,7 +796,9 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)) {
+        if (
+            ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)
+        ) {
             return true;
         }
 
@@ -798,7 +817,9 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)) {
+        if (
+            ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)
+        ) {
             return true;
         }
 
@@ -1598,17 +1619,17 @@ library MutationFilters {
 }
 
 contract FuzzMutations is Test, FuzzExecutor {
-    using FuzzEngineLib for FuzzTestContext;
-    using MutationEligibilityLib for FuzzTestContext;
     using AdvancedOrderLib for AdvancedOrder;
-    using FuzzHelpers for AdvancedOrder;
-    using OrderParametersLib for OrderParameters;
-    using FuzzDerivers for FuzzTestContext;
-    using FuzzInscribers for AdvancedOrder;
     using CheckHelpers for FuzzTestContext;
-    using MutationHelpersLib for FuzzTestContext;
-    using MutationFilters for FuzzTestContext;
     using ConsiderationItemLib for ConsiderationItem;
+    using FuzzDerivers for FuzzTestContext;
+    using FuzzEngineLib for FuzzTestContext;
+    using FuzzHelpers for AdvancedOrder;
+    using FuzzInscribers for AdvancedOrder;
+    using MutationEligibilityLib for FuzzTestContext;
+    using MutationFilters for FuzzTestContext;
+    using MutationHelpersLib for FuzzTestContext;
+    using OrderParametersLib for OrderParameters;
 
     function mutation_invalidContractOrderGenerateReverts(
         FuzzTestContext memory context,
@@ -1617,6 +1638,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer.
         HashCalldataContractOfferer(payable(order.parameters.offerer))
             .setFailureReason(
                 orderHash,
@@ -1633,6 +1656,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer.
         HashCalldataContractOfferer(payable(order.parameters.offerer))
             .setFailureReason(
                 orderHash,
@@ -1650,6 +1675,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer.
         HashCalldataContractOfferer(payable(order.parameters.offerer))
             .setFailureReason(
                 orderHash,
@@ -1666,6 +1693,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer.
         HashCalldataContractOfferer(payable(order.parameters.offerer))
             .setFailureReason(
                 orderHash,
@@ -1682,6 +1711,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer.
         HashValidationZoneOfferer(payable(order.parameters.zone))
             .setFailureReason(orderHash, OffererZoneFailureReason.Zone_reverts);
 
@@ -1695,6 +1726,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = mutationState.selectedOrder;
         bytes32 orderHash = mutationState.selectedOrderHash;
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer.
         HashValidationZoneOfferer(payable(order.parameters.zone))
             .setFailureReason(
                 orderHash,
@@ -1715,6 +1748,9 @@ contract FuzzMutations is Test, FuzzExecutor {
             payable(order.parameters.offerer)
         );
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer and by mutating the amount
+        // of the first item in the offer.
         offerer.setFailureReason(
             orderHash,
             OffererZoneFailureReason.ContractOfferer_InsufficientMinimumReceived
@@ -1738,6 +1774,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by mutating the amount of the first
+        // item in the offer. It triggers an `InvalidContractOrder` revert
+        // because the start amount of a contract order offer item must be equal
+        // to the end amount.
         order.parameters.offer[0].startAmount = 1;
         order.parameters.offer[0].endAmount = 2;
 
@@ -1755,6 +1795,10 @@ contract FuzzMutations is Test, FuzzExecutor {
             payable(order.parameters.offerer)
         );
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer and by calling a function
+        // that stores a value in the contract offerer that causes the contract
+        // offerer to change the length of the offer in its `generate` function.
         offerer.setFailureReason(
             orderHash,
             OffererZoneFailureReason.ContractOfferer_IncorrectMinimumReceived
@@ -1777,6 +1821,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This triggers an `InvalidContractOrder` revert because the start
+        // amount of a contract order consideration item must be equal to the
+        // end amount.
         order.parameters.consideration[0].startAmount =
             order.parameters.consideration[0].endAmount +
             1;
@@ -1795,6 +1842,11 @@ contract FuzzMutations is Test, FuzzExecutor {
             payable(order.parameters.offerer)
         );
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer and by calling a function
+        // that stores a value in the contract offerer that causes the contract
+        // offerer to add an extra item to the consideration in its `generate`
+        // function.
         offerer.setFailureReason(
             orderHash,
             OffererZoneFailureReason.ContractOfferer_ExcessMaximumSpent
@@ -1826,6 +1878,11 @@ contract FuzzMutations is Test, FuzzExecutor {
             payable(order.parameters.offerer)
         );
 
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashCalldataContractOfferer and by calling a function
+        // that stores a value in the contract offerer that causes the contract
+        // offerer to change the amount of a consideration item in its
+        // `generate` function.
         offerer.setFailureReason(
             orderHash,
             OffererZoneFailureReason.ContractOfferer_IncorrectMaximumSpent
@@ -1847,6 +1904,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         MutationState memory mutationState
     ) external {
         AdvancedOrder memory order = mutationState.selectedOrder;
+
+        // This mutation triggers a revert by pranking an approval revocation on
+        // a non-filtered, non-native item in the offer. The offerer needs to
+        // have approved items that will be transferred.
 
         // TODO: pick a random item (this always picks the first one)
         OfferItem memory item;
@@ -1880,6 +1941,10 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         AdvancedOrder memory order = mutationState.selectedOrder;
 
+        // This mutation triggers a revert by pranking an approval revocation on
+        // a non-filtered, non-native item in the consideration. The caller
+        // needs to have approved items that will be transferred.
+
         // TODO: pick a random item (this always picks the first one)
         ConsiderationItem memory item;
         for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
@@ -1908,6 +1973,11 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         BasicOrderType orderType = order.getBasicOrderType();
 
+        // This mutation triggers a revert by setting the msg.value to an
+        // incorrect value. The msg.value must be equal to or greater than the
+        // amount of native tokens required for payable routes and must be
+        // 0 for nonpayable routes.
+
         // BasicOrderType 0-7 are payable Native-Token routes
         if (uint8(orderType) < 8) {
             context.executionState.value = 0;
@@ -1926,6 +1996,12 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 minimumRequired = context.expectations.minimumValue;
 
+        // This mutation triggers a revert by setting the msg.value to one less
+        // than the minimum required value. In this test framework, the minimum
+        // required value is calculated to be the lowest possible value that
+        // will not trigger a revert.  Lowering it by one will trigger a revert
+        // because the caller isn't putting enough money in to cover everything.
+
         context.executionState.value = minimumRequired - 1;
 
         exec(context);
@@ -1935,12 +2011,19 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
+        // This mutation triggers a revert by adding a criteria resolver for an
+        // item that does not have the correct item type. It's not permitted to
+        // add a criteria resolver for an item that is not a *WithCriteria type.
+
+        // Grab the old resolvers.
         CriteriaResolver[] memory oldResolvers = context
             .executionState
             .criteriaResolvers;
+        // Make a new array with one more slot.
         CriteriaResolver[] memory newResolvers = new CriteriaResolver[](
             oldResolvers.length + 1
         );
+        // Copy the old resolvers into the new array.
         for (uint256 i = 0; i < oldResolvers.length; ++i) {
             newResolvers[i] = oldResolvers[i];
         }
@@ -1948,18 +2031,25 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex;
         Side side;
 
+        // Iterate over orders.
         for (
             ;
             orderIndex < context.executionState.orders.length;
             ++orderIndex
         ) {
+            // Skip unavailable orders.
             if (context.ineligibleWhenUnavailable(orderIndex)) {
                 continue;
             }
 
+            // Grab the order at the current index.
             AdvancedOrder memory order = context.executionState.previewedOrders[
                 orderIndex
             ];
+
+            // If it has an offer, set the side to offer and break, otherwise
+            // if it has a consideration, set the side to consideration and
+            // break.
             if (order.parameters.offer.length > 0) {
                 side = Side.OFFER;
                 break;
@@ -1969,6 +2059,8 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
+        // Add a new resolver to the end of the array with the correct index and
+        // side, but with empty values otherwise.
         newResolvers[oldResolvers.length] = CriteriaResolver({
             orderIndex: orderIndex,
             side: side,
@@ -1977,6 +2069,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             criteriaProof: new bytes32[](0)
         });
 
+        // Set the new resolvers to the execution state.
         context.executionState.criteriaResolvers = newResolvers;
 
         exec(context);
@@ -1988,6 +2081,10 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by setting the signature to a
+        // signature with an invalid length. Seaport rejects signatures that
+        // are not one of the valid lengths.
 
         // TODO: fuzz on size of invalid signature
         order.signature = "";
@@ -2002,6 +2099,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by setting the signature to a
+        // signature that recovers to an invalid address. Seaport rejects
+        // signatures that do not recover to the correct signer address.
+
         order.signature[0] = bytes1(uint8(order.signature[0]) ^ 0x01);
 
         exec(context);
@@ -2013,6 +2114,10 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by changing the order so that the
+        // otherwise-valid signature is for a different order. Seaport rejects
+        // signatures that do not recover to the correct signer address.
 
         order.parameters.salt ^= 0x01;
 
@@ -2026,6 +2131,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by setting the byte at the end of the
+        // signature to a value that is not 27 or 28. Seaport rejects
+        // signatures that do not have a valid V value.
+
         order.signature[64] = 0xff;
 
         exec(context);
@@ -2037,6 +2146,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by setting the signature to a
+        // signature that recovers to an invalid address, but only in cases
+        // where a 1271 contract is the signer. Seaport rejects signatures that
+        // do not recover to the correct signer address.
 
         if (order.signature.length == 0) {
             order.signature = new bytes(1);
@@ -2054,6 +2168,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by changing the order so that the
+        // otherwise-valid signature is for a different order, but only in cases
+        // where a 1271 contract is the signer. Seaport rejects signatures that
+        // do not recover to the correct signer address.
+
         order.parameters.salt ^= 0x01;
 
         exec(context);
@@ -2066,6 +2185,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by calling a function on the 1271
+        // offerer that causes it to not return the magic value. Seaport
+        // requires that 1271 contracts return the magic value.
+
         EIP1271Offerer(payable(order.parameters.offerer)).returnEmpty();
 
         exec(context);
@@ -2077,6 +2200,13 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by setting the total original
+        // consideration items value to a value that is less than the length of
+        // the consideration array of a contract order (tips on a contract
+        // order). The total original consideration items value must be equal to
+        // the length of the consideration array.
+
         order.parameters.totalOriginalConsiderationItems =
             order.parameters.consideration.length -
             1;
@@ -2090,6 +2220,13 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by setting the total original
+        // consideration items value to a value that is greater than the length
+        // of the consideration array of a contract order (tips on a contract
+        // order). The total original consideration items value must be equal to
+        // the length of the consideration array.
+
         order.parameters.totalOriginalConsiderationItems =
             order.parameters.consideration.length +
             1;
@@ -2103,6 +2240,13 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by setting the total original
+        // consideration items value to a value that is greater than the length
+        // of the consideration array of a non-contract order. The total
+        // original consideration items value must be equal to the length of the
+        // consideration array.
+
         order.parameters.totalOriginalConsiderationItems =
             order.parameters.consideration.length +
             1;
@@ -2117,6 +2261,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by setting the start time to a value
+        // that is in the future. The start time must be in the past.
+
         order.parameters.startTime = block.timestamp + 1;
         order.parameters.endTime = block.timestamp + 2;
 
@@ -2130,6 +2277,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by setting the end time to a value
+        // that is not in the future. The end time must be in the future.
+
         order.parameters.startTime = block.timestamp - 1;
         order.parameters.endTime = block.timestamp;
 
@@ -2140,6 +2290,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation triggers a revert by setting the conduit key to an
+        // invalid value. The conduit key must correspond to a real, valid
+        // conduit.
+
         // Note: We should also adjust approvals for any items approved on the
         // old conduit, but the error here will be thrown before transfers
         // begin to occur.
@@ -2184,6 +2338,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by setting the numerator to 0. The
+        // numerator must be greater than 0.
+
         order.numerator = 0;
 
         exec(context);
@@ -2195,6 +2352,10 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation triggers a revert by setting the numerator to a value
+        // that is greater than the denominator. The numerator must be less than
+        // or equal to the denominator.
 
         // TODO: fuzz on a range of potential overfill amounts
         order.numerator = 2;
@@ -2208,6 +2369,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         MutationState memory mutationState
     ) external {
         bytes32 orderHash = mutationState.selectedOrderHash;
+
+        // This mutation triggers a revert by using cheatcodes to mark the order
+        // as cancelled in the Seaport internal mapping. A cancelled order
+        // cannot be filled.
+
         FuzzInscribers.inscribeOrderStatusCancelled(
             orderHash,
             true,
@@ -2223,6 +2389,10 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         AdvancedOrder memory order = mutationState.selectedOrder;
 
+        // This mutation triggers a revert by using cheatcodes to mark the order
+        // as filled in the Seaport internal mapping. An order that has already
+        // been filled cannot be filled again.
+
         order.inscribeOrderStatusNumeratorAndDenominator(1, 1, context.seaport);
 
         exec(context);
@@ -2233,6 +2403,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         MutationState memory mutationState
     ) external {
         AdvancedOrder memory order = mutationState.selectedOrder;
+
+        // This mutation triggers a revert by setting the caller as an address
+        // that is not the offerer. Only the offerer can cancel an order.
 
         context.executionState.caller = address(
             uint160(order.parameters.offerer) - 1
