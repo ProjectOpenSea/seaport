@@ -219,7 +219,7 @@ See the [TestContractOfferer.sol](https://github.com/ProjectOpenSea/seaport/blob
 
 ### Arguments and Basic Functionality
 
-When Seaport receives a contract order request from an EOA or a [1271](https://eips.ethereum.org/EIPS/eip-1271) contract, it calls the Seaport app contract’s `generateOrder` function, which returns an array of `SpentItem`s and an array of `ReceivedItem`s.  The Seaport app can adjust the response according to its own rules and if its response falls within the acceptable range specified in the original requester's offer (`minimumReceived`) and consideration (`maximumSpent`) parameters, Seaport will execute the orders.  If not, the call will revert.
+When Seaport receives a contract order request from a fulfiller, it calls the Seaport app contract’s `generateOrder` function, which returns an array of `SpentItem`s and an array of `ReceivedItem`s.  The Seaport app can adjust the response according to its own rules and if its response falls within the acceptable range specified in the original requester's offer (`minimumReceived`) and consideration (`maximumSpent`) parameters, Seaport will execute the orders.  If not, the call will revert.
 
 Note that when a request for a contract order is made, the requester is not supplying a conventional, signed order.  Instead, the requester is supplying parameters that specify an acceptable range for the Seaport app to work within.
 
