@@ -88,8 +88,6 @@ contract SeaportValidator is
 
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
-    bytes4 public constant SIP_5_INTERFACE_ID = 0x2e778efc;
-
     constructor() {
         address creatorFeeEngineAddress;
         if (block.chainid == 1 || block.chainid == 31337) {
@@ -288,13 +286,13 @@ contract SeaportValidator is
 
         // Check the EIP165 zone interface
         if (!checkInterface(orderParameters.zone, ZONE_INTERFACE_ID)) {
-            errorsAndWarnings.addError(ZoneIssue.InvalidZone.parseInt());
+            errorsAndWarnings.addWarning(ZoneIssue.InvalidZone.parseInt());
             return errorsAndWarnings;
         }
 
         // Check if the contract offerer implements SIP-5
         try ZoneInterface(orderParameters.zone).getSeaportMetadata() {} catch {
-            errorsAndWarnings.addError(ZoneIssue.InvalidZone.parseInt());
+            errorsAndWarnings.addWarning(ZoneIssue.InvalidZone.parseInt());
         }
     }
 
@@ -444,7 +442,7 @@ contract SeaportValidator is
 
         // Check the EIP165 contract offerer interface
         if (!checkInterface(contractOfferer, CONTRACT_OFFERER_INTERFACE_ID)) {
-            errorsAndWarnings.addError(
+            errorsAndWarnings.addWarning(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
         }
@@ -453,7 +451,7 @@ contract SeaportValidator is
         try
             ContractOffererInterface(contractOfferer).getSeaportMetadata()
         {} catch {
-            errorsAndWarnings.addError(
+            errorsAndWarnings.addWarning(
                 ContractOffererIssue.InvalidContractOfferer.parseInt()
             );
         }
