@@ -25,7 +25,7 @@ contract ReceivedItemLibTest is BaseTest {
             ItemType(itemType),
             token,
             identifier,
-            amount,
+            amount == 0 ? 1 : amount,
             recipient
         );
         ReceivedItemLib.saveDefault(receivedItem, "default");
