@@ -59,7 +59,7 @@ Orders are fulfilled via one of four methods:
   - If the order has an ERC721 item, that item has an amount of `1`.
   - If the order has multiple consideration items and all consideration items other than the first consideration item have the same item type as the offered item, the offered item amount is not less than the sum of all consideration item amounts excluding the first consideration item amount.
 - Calling one of two "fulfill available" functions, `fulfillAvailableOrders` and `fulfillAvailableAdvancedOrders`, where a group of orders are supplied alongside a group of fulfillments specifying which offer items can be aggregated into distinct transfers and which consideration items can be accordingly aggregated, and where any orders that have been cancelled, have an invalid time, or have already been fully filled will be skipped without causing the rest of the available orders to revert. Additionally, any remaining orders will be skipped once `maximumFulfilled` available orders have been located. Similar to the standard fulfillment method, all offer items will be transferred from the respective offerer to the fulfiller, then all consideration items will be transferred from the fulfiller to the named recipient.
-- Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of fulfillments specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method, but supporting partial fills via supplied `numerator` and `denominator` fractional values as well as an optional `extraData` argument that will be supplied as part of a call to the `validateOrder` function when fulfilling restricted order types or to `generateOrder` and `ratifyOrder` as "context" on contract order types). Note that orders fulfilled in this manner do not have an explicit fulfiller; instead, Seaport will simply ensure coincidence of wants across each order.  Note also that contract orders do not enforce usage of a specific conduit, but a contract offerer can require the usage of a specific conduit by setting allowances or approval on tokens for specific conduits.  If a fulfiller does not supply the correct conduit key, the call will revert.  There's currently no endpoint for finding which conduit a given contract offerer prefers.
+- Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of fulfillments specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method, but supporting partial fills via supplied `numerator` and `denominator` fractional values as well as an optional `extraData` argument that will be supplied as part of a call to the `validateOrder` function when fulfilling restricted order types or to `generateOrder` and `ratifyOrder` as "context" on contract order types). Note that orders fulfilled in this manner do not have an explicit fulfiller; instead, Seaport will simply ensure coincidence of wants across each order.  Note also that contract orders do not enforce usage of a specific conduit, but a Seaport app can require the usage of a specific conduit by setting allowances or approval on tokens for specific conduits.  If a fulfiller does not supply the correct conduit key, the call will revert.  There's currently no endpoint for finding which conduit a given Seaport app prefers.
 
 While the standard method can technically be used for fulfilling any order, it suffers from key efficiency limitations in certain scenarios:
 
@@ -67,9 +67,9 @@ While the standard method can technically be used for fulfilling any order, it s
 - It requires the fulfiller to approve each consideration item, even if the consideration item can be fulfilled using an offer item (as is commonly the case when fulfilling an order that offers ERC20 items for an ERC721 or ERC1155 item and also includes consideration items with the same ERC20 item type for paying fees).
 - It can result in unnecessary transfers, whereas in the "match" case those transfers can be reduced to a more minimal set.
 
-> Note: Calls to Seaport that would fulfill or match a collection of advanced orders can be monitored and where there are unused offer items, it's possible for a third party to claim them. Anyone can monitor the mempool to find calls to `fulfillAvailableOrders`, `fulfillAvailableAdvancedOrders`, `matchOrders`, `matchAdvancedOrders` and calculate if there are any unused offer item amounts.  If there are unused offer item amounts, the third party can create orders with no offer items, but with consideration items mirroring the unused offer items and populate the fulfillment aggregation data to match the unused offer items with the new mirrored consideration items.  This would allow the third party to claim the unused offer items.  A contract offerer or a zone could prevent this, but by default, it's possible.
+> Note: Calls to Seaport that would fulfill or match a collection of advanced orders can be monitored and where there are unused offer items, it's possible for a third party to claim them. Anyone can monitor the mempool to find calls to `fulfillAvailableOrders`, `fulfillAvailableAdvancedOrders`, `matchOrders`, `matchAdvancedOrders` and calculate if there are any unused offer item amounts.  If there are unused offer item amounts, the third party can create orders with no offer items, but with consideration items mirroring the unused offer items and populate the fulfillment aggregation data to match the unused offer items with the new mirrored consideration items.  This would allow the third party to claim the unused offer items.  A Seaport app or a zone could prevent this, but by default, it's possible.
 
-> Note: Contract orders can supply additional offer amounts when the order is executed. However, if they supply extra offer items with criteria, on the fly, the fulfiller won't be able to supply the necessary criteria resolvers, which would make fulfilling the order infeasible.  Contract offerers should specifically avoid returning criteria-based items and generally avoid mismatches between previewOrder and what's executed on-chain.
+> Note: Contract orders can supply additional offer amounts when the order is executed. However, if they supply extra offer items with criteria, on the fly, the fulfiller won't be able to supply the necessary criteria resolvers, which would make fulfilling the order infeasible.  Seaport apps should specifically avoid returning criteria-based items and generally avoid mismatches between previewOrder and what's executed on-chain.
 
 ### Balance and Approval Requirements
 
@@ -166,13 +166,15 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 
 ## Contract Orders
 
-Seaport v1.2 introduced support for a new type of order: the contract order.  In brief, a smart contract that implements the `ContractOffererInterface` (referred to as an “order generator contract” or “order generator” in the docs and a “contract offerer” in the code) can now provide a dynamically generated order (a contract order) in response to a buyer or seller’s contract order request.  Support for contract orders puts on-chain liquidity on equal footing with off-chain liquidity in the Seaport ecosystem.  Further, the two types of liquidity are now broadly composable.
+Seaport v1.2 introduced support for a new type of order: the contract order.  In brief, a smart contract that implements the `ContractOffererInterface` (referred to as an “Seaport app contract” or "Seaport app" in the docs and a “contract offerer” in the code) can now provide a dynamically generated order (a contract order) in response to a buyer or seller’s contract order request.  Support for contract orders puts on-chain liquidity on equal footing with off-chain liquidity in the Seaport ecosystem.  Further, the two types of liquidity are now broadly composable.
 
-This unlocks a broad range of Seaport-native functionality, including instant conversion from an order’s specified currency (e.g. WETH) to a fulfiller’s preferred currency (e.g. ETH or DAI), flashloan-enriched functionality, liquidation engines, and more.  
+This unlocks a broad range of Seaport-native functionality, including instant conversion from an order’s specified currency (e.g. WETH) to a fulfiller’s preferred currency (e.g. ETH or DAI), flashloan-enriched functionality, liquidation engines, and more.  In general, Seaport apps allow the Seaport community to extend default Seaport functionality.  Developers with ideas or use cases that could be implemented as Seaport apps should open PRs in [the Seaport Improvement Protocol (SIP) repo](https://github.com/ProjectOpenSea/SIPs).
 
-Anyone can build an order generator contract that interfaces with Seaport.  An order generator just has to comply with the following interface:
+### Creating a Seaport App
 
-```
+Anyone can build a Seaport app contract that interfaces with Seaport.  A Seaport app just has to comply with the following interface:
+
+```solidity
 interface ContractOffererInterface {
 
 function generateOrder(
@@ -213,47 +215,59 @@ function getSeaportMetadata()
 }
 ```
 
-See the [TestContractOfferer.sol](https://github.com/ProjectOpenSea/seaport/blob/main/contracts/test/TestContractOfferer.sol) file in `./contracts/test/` for an example of an MVP order generator contract.
+See the [TestContractOfferer.sol](https://github.com/ProjectOpenSea/seaport/blob/main/contracts/test/TestContractOfferer.sol) file in `./contracts/test/` for an example of an MVP Seaport app contract.
 
-When Seaport receives a signed contract order request from an EOA or a [1271](https://eips.ethereum.org/EIPS/eip-1271) contract, it calls the order generator contract’s `generateOrder` function, which returns an array of `SpentItem`s and an array of `ReceivedItem`s.  The order generator can adjust the response according to its own rules and if its response falls within the acceptable range specified in the original buyer or seller’s `minimumReceived` and `maximumSpent` parameters, Seaport will execute the orders.  If not, the call will revert.
+### Arguments and Basic Functionality
 
-The `minimumReceived` array represents the smallest set that a buyer or seller is willing to accept from the order generator contract in the deal, though the order generator can provide more.  The `maximumSpent` array represents the largest set that a buyer or seller is willing to provide to the order generator in the deal, though the order generator can accept less.  These two guardrails can provide protection against slippage, among other safety functions.
+When Seaport receives a signed contract order request from an EOA or a [1271](https://eips.ethereum.org/EIPS/eip-1271) contract, it calls the Seaport app contract’s `generateOrder` function, which returns an array of `SpentItem`s and an array of `ReceivedItem`s.  The Seaport app can adjust the response according to its own rules and if its response falls within the acceptable range specified in the original buyer or seller’s `minimumReceived` and `maximumSpent` parameters, Seaport will execute the orders.  If not, the call will revert.
 
-The third argument provided to an order generator contract is `context`, which functions analogously to a zone’s `extraData` argument. For example, an order generator that provides AMM-like functionality might use context to determine which token IDs a buyer prefers or whether to take an “exact in” or “exact out” approach to deriving the order.  The `context` is arbitrary bytes, but should be encoded according to a standard provided in [the Seaport Improvement Protocol (SIP) repo](https://github.com/ProjectOpenSea/SIPs).  
+The `minimumReceived` array represents the smallest set that a buyer or seller is willing to accept from the Seaport app contract in the deal, though the Seaport app can provide more.  The `maximumSpent` array represents the largest set that a buyer or seller is willing to provide to the Seaport app in the deal, though the Seaport app can accept less.  These two guardrails can provide protection against slippage, among other safety functions.
+
+Where a Seaport app provide extra offer items, increases offer item amounts, removes consideration items, or reduces consideration item amounts, those changes are collectively referred to as a "rebate."  When a Seaport app attempts to provide fewer offer items, decreased offer item amounts, additional consideration items, or increased consideration item amounts, those changes are collectively referred to as a "penalty," and Seaport will catch and reject the order.
+
+The third argument provided to a Seaport app contract is `context`, which functions analogously to a zone’s `extraData` argument. For example, a Seaport app that provides AMM-like functionality might use context to determine which token IDs a buyer prefers or whether to take an “exact in” or “exact out” approach to deriving the order.  The `context` is arbitrary bytes, but should be encoded according to a standard provided in [the Seaport Improvement Protocol (SIP) repo](https://github.com/ProjectOpenSea/SIPs).
+
+### The Context Concept
 
 While it’s still early days for the SIP ecosystem, every order generator contract should eventually be able to find an SIP that provides a `context` encoding and decoding standard that matches its use case.  Order generators that adopt one or more SIP-standardized encoding or decoding approaches should signal that fact according to the specifications found in [SIP 5](https://github.com/ProjectOpenSea/SIPs/blob/main/SIPS/sip-5.md), which functions analogously to EIP 165.
 
-Context may be left empty, or it may contain all of the information necessary to fulfill the contract order (in place of fleshed-out `minimumReceived` and `maximumSpent` arguments). The latter case should only be utilized when the order generator contract in question is known to be reliable, as using the `minimumReceived` and `maximumSpent` arrays will cause Seaport to perform additional validation that the returned order meets the fulfiller’s expectations.  Note that `minimumReceived` is optional, but `maximumSpent` is not.  Even if the context is doing the majority of the work, `maximumSpent` must still be present as a safeguard.
+Context may be left empty, or it may contain all of the information necessary to fulfill the contract order (in place of fleshed-out `minimumReceived` and `maximumSpent` arguments). The latter case should only be utilized when the Seaport app contract in question is known to be reliable, as using the `minimumReceived` and `maximumSpent` arrays will cause Seaport to perform additional validation that the returned order meets the fulfiller’s expectations.  Note that `minimumReceived` is optional, but `maximumSpent` is not.  Even if the context is doing the majority of the work, `maximumSpent` must still be present as a safeguard.
 
-Contract orders are not signed and validated ahead of time like the other Seaport order types, but instead are generated on demand by the order generator contract.  Order hashes for orders created by order generators are derived on the fly in `_getGeneratedOrder`, based on the order generator’s address and the `contractNonce`, which is incremented per order generator on each generated contract order.  By virtue of responding to a call from Seaport, an order generator is effectively stating that its provided offer is acceptable and valid from its perspective.
+### Lifecycle
+
+Contract orders are not signed and validated ahead of time like the other Seaport order types, but instead are generated on demand by the Seaport app contract.  Order hashes for orders created by order generators are derived on the fly in `_getGeneratedOrder`, based on the Seaport app’s address and the `contractNonce`, which is incremented per order generator on each generated contract order.  By virtue of responding to a call from Seaport, a Seaport app is effectively stating that its provided offer is acceptable and valid from its perspective.
 
 The contract order lifecycle contains both a stateful `generateOrder` call to derive the contract order prior to execution and a stateful `ratifyOrder` call performed after execution.  This means that contract orders can respond to the condition of e.g. the price of a fungible token before execution and verify post-execution that a flashloan was repaid or a critical feature of an NFT was not changed mid-flight.
 
-Note that when a collection-wide criteria-based item (criteria = 0) is provided as an input to a contract order, the order generator contract has full latitude to choose any identifier they want mid-flight. This deviates from Seaport’s behavior elsewhere, where the fulfiller can pick which identifier to receive by providing a CriteriaResolver.  For contract order requests with identifierOrCriteria = 0, Seaport does not expect a corresponding CriteriaResolver, and will revert if one is provided.  See `_getGeneratedOrder` and `_compareItems` for more detail.
+### Divergence from Non-Contract Orders
+
+Note that when a collection-wide criteria-based item (criteria = 0) is provided as an input to a contract order, the Seaport app contract has full latitude to choose any identifier they want mid-flight. This deviates from Seaport’s behavior elsewhere, where the fulfiller can pick which identifier to receive by providing a CriteriaResolver.  For contract order requests with identifierOrCriteria = 0, Seaport does not expect a corresponding CriteriaResolver, and will revert if one is provided.  See `_getGeneratedOrder` and `_compareItems` for more detail.
 
 During fulfillment, contract orders may designate native token (e.g. Ether) offer items; order generator contracts can then send native tokens directly to Seaport as part of the `generateOrder` call (or otherwise), allowing the fulfiller to use those native tokens. Any unused native tokens will be sent to the fulfiller (i.e. the caller). Native tokens can only be sent to Seaport when the reentrancy lock is set, and only then under specific circumstances. This enables conversion between ETH and WETH on-the-fly, among other possibilities. Note that any native tokens sent to Seaport will be immediately spendable by the current (or next) caller.  Note also that this is a deviation from Seaport’s behavior elsewhere, where buyers may not supply native tokens as offer items.
 
-Seaport also makes an exception to its normal reentrancy policies for order generator contracts.  Order generator contracts may call the receive hook and provide native tokens.  Anything that’s available to the order generator can be spent, including `msg.value` and balance.
+Seaport also makes an exception to its normal reentrancy policies for order generator contracts.  Order generator contracts may call the receive hook and provide native tokens.  Anything that’s available to the Seaport app can be spent, including `msg.value` and balance.
 
-Buyers interacting with order generator contracts should note that in some cases, order generator contracts will be able to lower the value of an offered NFT by transferring out valuable tokens that are attached to the NFT.  For example, an order generator could modify a property of an NFT it owns when Seaport calls its `generateOrder` function.  Consider using a mirrored order that allows for a post-transfer validation, such as a contract order or a restricted order, in cases like this.
+Buyers interacting with order generator contracts should note that in some cases, order generator contracts will be able to lower the value of an offered NFT by transferring out valuable tokens that are attached to the NFT.  For example, a Seaport app could modify a property of an NFT it owns when Seaport calls its `generateOrder` function.  Consider using a mirrored order that allows for a post-transfer validation, such as a contract order or a restricted order, in cases like this.
+
+# Example Lifecycle Journey
 
 To recap everything discussed above, here’s a description of the lifecycle of an example contract order:
 
-- An EOA buyer calls `fulfillOrder` and passes in an `Order` struct with `OrderParameters` that has `OrderType` of `CONTRACT`.  Basically, the order says, "Go to the order generator contract at 0x123 and tell it I want to buy at least one Blitmap.  Tell the order generator that I'm willing to spend up to 10 ETH but no more."
+- An EOA buyer calls `fulfillOrder` and passes in an `Order` struct with `OrderParameters` that has `OrderType` of `CONTRACT`.  Basically, the order says, "Go to the Seaport app contract at 0x123 and tell it I want to buy at least one Blitmap.  Tell the Seaport app that I'm willing to spend up to 10 ETH but no more."
 - `fulfillOrder` calls `_validateAndFulfillAdvancedOrder`, as with other order types.
 - `_validateAndFulfillAdvancedOrder` calls `_validateOrderAndUpdateStatus`, as with other order types.
 - Inside `_validateOrderAndUpdateStatus`, at the point where the code path hits the line `if (orderParameters.orderType == OrderType.CONTRACT) { ...`, the code path for contract orders diverges from the code path for other order types.  
 - After some initial checks, `_validateOrderAndUpdateStatus` calls `_getGeneratedOrder`.
 - `_getGeneratedOrder` does a low level call to the targeted order generator's `generateOrder` function.
-- The order generator contract can do pretty much anything it wants at this point, but a typical example would include processing the arguments it received, picking some NFTs it’s willing to sell, and returning a `SpentItem` array and a `ReceivedItem` array.  In this example narrative, the order generator's response says "OK, I'm willing to sell the Blitmaps item for 10 ETH."
+- The Seaport app contract can do pretty much anything it wants at this point, but a typical example would include processing the arguments it received, picking some NFTs it’s willing to sell, and returning a `SpentItem` array and a `ReceivedItem` array.  In this example narrative, the Seaport app's response says "OK, I'm willing to sell the Blitmaps item for 10 ETH."
 - `_getGeneratedOrder` massages the result of the external `generateOrder` call into Seaport format, does some checks, and then returns the order hash to `_validateOrderAndUpdateStatus`.
 - `_validateOrderAndUpdateStatus` transfers the NFTs and the payment via `_applyFractionsAndTransferEach` and performs further checks, including calling `_assertRestrictedAdvancedOrderValidity`.
-`_assertRestrictedAdvancedOrderValidity` calls the order generator contract’s `ratifyOrder` function, which gives the order generator a chance to object to the way things played out.  If, from the perspective of the order generator, something went wrong in the process of the transfer, the order generator contract has the opportunity to pass along a revert to Seaport, which will revert the entire `fulfillOrder` function call.
+`_assertRestrictedAdvancedOrderValidity` calls the Seaport app contract’s `ratifyOrder` function, which gives the Seaport app a chance to object to the way things played out.  If, from the perspective of the Seaport app, something went wrong in the process of the transfer, the Seaport app contract has the opportunity to pass along a revert to Seaport, which will revert the entire `fulfillOrder` function call.
 - If `_assertRestrictedAdvancedOrderValidity` and the other checks all pass, `_validateOrderAndUpdateStatus` emits an `OrderFulfilled` event, and returns `true` to `fulfillOrder`, which in turn returns `true` itself, as with other order types.
 
-Here’s a code example of what the order generator contract from the example above might look like:
+Here’s a simplified code example of what the Seaport app contract from the example above might look like:
 
-```
+```solidity
 import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
@@ -268,7 +282,7 @@ import {
 
 /**
  * @title ExampleContractOfferer
- * @notice ExampleContractOfferer is a pseudocode sketch of an order generator
+ * @notice ExampleContractOfferer is a pseudocode sketch of a Seaport app
  *         contract that sells one Blitmaps NFT at a time for 10 or more ETH.
  */
 contract ExampleContractOfferer is ContractOffererInterface {
@@ -378,6 +392,8 @@ contract ExampleContractOfferer is ContractOffererInterface {
 }
 ```
 
+Remember to create a [Seaport Improvement Protocol (SIP)](https://github.com/ProjectOpenSea/SIPs) proposal for any novel Seaport app.
+
 ## Bulk Order Creation
 
 Seaport v1.2 introduced a bulk order creation feature.  In brief, a buyer or seller can now sign a single bulk order payload that creates multiple orders with one ECDSA signature.  So, instead of signing a dozen single order payloads to create a dozen orders, a user can now create the same dozen orders with a single click in their wallet UI.
@@ -386,9 +402,13 @@ Bulk signature payloads of depth 1 (2 orders) to depth 24 (16,777,216 orders) ar
 
 Note that there is a gas cost increase associated with fulfilling orders created in the course of bulk order creation.  The cost increases logarithmically with the number of orders in the bulk order payload: roughly 4,000 gas for a tree height of 1 and then roughly an additional 700 gas per extra unit of height.  Accordingly, it’s advisable to balance the convenience of creating multiple orders at once against the additional gas cost imposed on fulfillers.
 
-Note that the `incrementCounter` function has been modified in v1.2 to increment the counter by a quasi-random value derived from the last block hash.  This change prevents the type of situation where a user is tricked into signing a malicious bulk signature payload containing orders that are fulfillable at both the current counter value and future counter values, which would be possible if counters were still incremented serially.  Instead, since the counter jumps a very large, quasi-random amount, the effects of a malicious signature can still be neutralized by incrementing the counter a single time.  In other words, the change to `incrementCounter` gives buyers and sellers the ability to "hard reset" regardless of what orders might have been unknowingly signed for in a large, malicious bulk order payload.
+### Bulk Order Cancellation
+
+Note that the `incrementCounter` function was modified in v1.2 to increment the counter by a quasi-random value derived from the last block hash.  This change prevents the type of situation where a user is tricked into signing a malicious bulk signature payload containing orders that are fulfillable at both the current counter value and future counter values, which would be possible if counters were still incremented serially.  Instead, since the counter jumps a very large, quasi-random amount, the effects of a malicious signature can still be neutralized by incrementing the counter a single time.  In other words, the change to `incrementCounter` gives buyers and sellers the ability to "hard reset" regardless of what orders might have been unknowingly signed for in a large, malicious bulk order payload.
 
 Note that orders created in the course of bulk order creation still need to be canceled individually.  For example, if a maker creates 4 orders in a single bulk order payload, it will take 4 `cancel` transactions to cancel those 4 orders.  Alternatively, the maker could call `incrementCounter` once, but that will also cause all of the maker’s other active orders to become unfillable.  Users should exercise caution in creating large numbers of orders using bulk order creation and should prefer to regularly create short-lived orders instead of occasionally creating long lasting orders.
+
+### Bulk Order Signing and Structure
 
 A bulk signature is an EIP 712 type Merkle tree where the root is a `BulkOrder` and the leaves are `OrderComponents`.  Each level will be either a pair of orders or an order and an array.  Each level gets hashed up the tree until it’s all rolled up into a single hash, which gets signed.  The signature on the rolled up hash is the ECDSA signature referred to throughout.
 
@@ -421,9 +441,11 @@ For example:
 
 This structure allows a fulfiller to disregard the fact that a signature is for a bulk order.  A fulfiller can just select the full bulk signature that has the index of the order they want to fulfill and pass it in as if it were a bare signature for a single order.  Seaport handles parsing of the bulk signature into its component parts and allows the fulfiller to fulfill exclusively the order they are targeting.
 
+### Bulk Order Construction Example
+
 In JavaScript, the `bulkOrderType` is defined like this:
 
-```
+```javascript
 ​​const bulkOrderType = {
   BulkOrder: [{ name: "tree", type: "OrderComponents[2][2][2][2][2][2][2]" }],
   OrderComponents: [
@@ -459,7 +481,7 @@ In JavaScript, the `bulkOrderType` is defined like this:
 
 So, an example bulk order object in Javascript might look like this:
 
-```
+```javascript
 const bulkOrder = {
   name: "tree",
   type: "OrderComponents[2][2][2][2][2][2][2]",
@@ -520,7 +542,7 @@ const bulkOrder = {
 
 So, creating a bulk signature might happen like this:
 
-```
+```javascript
 const signature = _signTypedData(
   domainData,
   bulkOrderType,
@@ -531,6 +553,8 @@ const signature = _signTypedData(
 Where `domainData` is the same as it would be for a single order, the `bulkOrderType` is defined as it is above, and the value is a tree of `OrderComponents`, as illustrated above.  For an implementation example, see [the `signBulkOrder` function](https://github.com/ProjectOpenSea/seaport-js/blob/2c8e9bee9240c3c7669fc63d4d2a703ea4718d46/src/seaport.ts#L522-L555) in seaport-js.  
 
 Note again that the heavy lifting for marketplaces supporting bulk orders happens on the maker signature creation side.  On the taker side, a fulfiller will be able to pass in a bulk signature just as if it were a signature for a normal order.  For completeness and general interest, the following two paragraphs provide a sketch of how Seaport internally parses bulk signatures.
+
+### Bulk Signature Processing in Seaport
 
 When processing a signature, Seaport will first check if the signature is a bulk signature (a 64 or 65 byte ECDSA signature, followed by a three-byte index, followed by additional proof elements). Then, Seaport will remove the extra data to create a new digest and process the remaining 64 or 65 byte ECDSA signature normally, following the usual code paths starting with signature validation.
 
