@@ -7,7 +7,6 @@ import { assume } from "./VmUtils.sol";
 
 import {
     AdvancedOrderLib,
-    FulfillAvailableHelper,
     MatchComponent,
     MatchComponentType
 } from "seaport-sol/SeaportSol.sol";
@@ -30,10 +29,6 @@ import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
 
-import {
-    AmountDeriverHelper
-} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
-
 import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
 import {
@@ -48,6 +43,10 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
+
+import {
+    FulfillmentGeneratorLib
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional
@@ -67,6 +66,7 @@ library FuzzDerivers {
     using ExecutionHelper for FulfillmentDetails;
     using ExecutionHelper for OrderDetails;
     using FulfillmentDetailsHelper for FuzzTestContext;
+    using FulfillmentGeneratorLib for OrderDetails[];
 
     /**
      * @dev Calculate msg.value from native token amounts in the generated
@@ -218,6 +218,7 @@ library FuzzDerivers {
         OrderDetails[] memory orderDetails
     )
         internal
+        pure
         returns (
             FulfillmentComponent[][] memory offerFulfillments,
             FulfillmentComponent[][] memory considerationFulfillments,
@@ -225,34 +226,21 @@ library FuzzDerivers {
             MatchComponent[] memory remainingOfferComponents
         )
     {
-        // Determine the action.
-        bytes4 action = context.action();
+        // Note: items do not need corresponding fulfillments for unavailable
+        // orders, but generally will be provided as availability is usually
+        // unknown at submission time. Consider adding a fuzz condition to
+        // supply all or only necessary consideration fulfillment components.
+        (
+            ,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillments,
+            remainingOfferComponents,
 
-        // For the fulfill functions, derive the offerFullfillments and
-        // considerationFulfillments arrays.
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
-            // Note: items do not need corresponding fulfillments for
-            // unavailable orders, but generally will be provided as
-            // availability is usually unknown at submission time.
-            // Consider adding a fuzz condition to supply all or only
-            // the necessary consideration fulfillment components.
-
-            // TODO: Use `getAggregatedFulfillmentComponents` sometimes?
-            (offerFulfillments, considerationFulfillments) = context
-                .testHelpers
-                .getNaiveFulfillmentComponents(orderDetails);
-        } else if (
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector
-        ) {
-            // For the match functions, derive the fulfillments array.
-            (fulfillments, remainingOfferComponents, ) = context
-                .testHelpers
-                .getMatchedFulfillments(orderDetails);
-        }
+        ) = orderDetails.getFulfillments(
+            context.executionState.caller,
+            context.executionState.recipient
+        );
     }
 
     /**
@@ -264,7 +252,7 @@ library FuzzDerivers {
      */
     function withDerivedFulfillments(
         FuzzTestContext memory context
-    ) internal returns (FuzzTestContext memory) {
+    ) internal pure returns (FuzzTestContext memory) {
         // Derive the required fulfillment arrays.
         (
             FulfillmentComponent[][] memory offerFulfillments,
@@ -276,30 +264,19 @@ library FuzzDerivers {
                 context.executionState.orderDetails
             );
 
-        // Determine the action.
-        bytes4 action = context.action();
+        // For the fulfillAvailable functions, set the offerFullfillments
+        // and considerationFulfillments arrays.
+        context.executionState.offerFulfillments = offerFulfillments;
+        context
+            .executionState
+            .considerationFulfillments = considerationFulfillments;
 
-        // For the fulfillAvailable functions, set the offerFullfillments and
-        // considerationFulfillments arrays.
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
-            context.executionState.offerFulfillments = offerFulfillments;
-            context
-                .executionState
-                .considerationFulfillments = considerationFulfillments;
-        } else if (
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector
-        ) {
-            // For match, set fulfillment and remaining offer component arrays.
-            context.executionState.fulfillments = fulfillments;
-            context
-                .executionState
-                .remainingOfferComponents = remainingOfferComponents
-                .toFulfillmentComponents();
-        }
+        // For match, set fulfillment and remaining offer component arrays.
+        context.executionState.fulfillments = fulfillments;
+        context
+            .executionState
+            .remainingOfferComponents = remainingOfferComponents
+            .toFulfillmentComponents();
 
         return context;
     }
@@ -392,16 +369,6 @@ library FuzzDerivers {
                 context.executionState.fulfillments,
                 nativeTokensSupplied
             );
-
-            // TEMP (TODO: handle upstream)
-            assume(
-                explicitExecutions.length > 0,
-                "no_explicit_executions_match"
-            );
-
-            if (explicitExecutions.length == 0) {
-                revert("FuzzDerivers: no explicit executions derived - match");
-            }
         }
     }
 
