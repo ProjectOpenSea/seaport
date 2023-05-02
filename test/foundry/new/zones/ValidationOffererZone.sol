@@ -142,4 +142,18 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);
     }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ContractOffererInterface, ZoneInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            interfaceId == type(ZoneInterface).interfaceId;
+    }
 }

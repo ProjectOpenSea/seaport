@@ -482,6 +482,12 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         return this.onERC1155Received.selector;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
+    }
+
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {
         _expectedOfferRecipient = expectedOfferRecipient;
     }

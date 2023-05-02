@@ -624,4 +624,18 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     function setExpectedOfferRecipient(address expectedOfferRecipient) public {
         _expectedOfferRecipient = expectedOfferRecipient;
     }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ContractOffererInterface, ZoneInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            interfaceId == type(ZoneInterface).interfaceId;
+    }
 }
