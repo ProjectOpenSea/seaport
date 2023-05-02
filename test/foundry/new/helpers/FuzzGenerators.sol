@@ -82,6 +82,10 @@ import { FuzzInscribers } from "./FuzzInscribers.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
+import {
+    FulfillmentGeneratorLib
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+
 /**
  *  @dev Generators are responsible for creating guided, random order data for
  *       FuzzEngine tests. Generation happens in two phases: first, we create an
@@ -464,6 +468,8 @@ library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
+    using FulfillmentGeneratorLib for OrderDetails[];
+
     using BroadOrderTypeGenerator for AdvancedOrder;
     using ConduitGenerator for ConduitChoice;
     using ConsiderationItemSpaceGenerator for ConsiderationItemSpace;
@@ -759,9 +765,7 @@ library AdvancedOrdersSpaceGenerator {
                 .deriveCriteriaResolvers(orders);
             OrderDetails[] memory details = orders.getOrderDetails(resolvers);
             // Get the remainders.
-            (, , remainders) = context.testHelpers.getMatchedFulfillments(
-                details
-            );
+            (, , remainders) = details.getMatchedFulfillments();
         }
 
         // Iterate over the remainders and insert them into the orders.
@@ -914,9 +918,7 @@ library AdvancedOrdersSpaceGenerator {
                 .deriveCriteriaResolvers(orders);
             OrderDetails[] memory details = orders.getOrderDetails(resolvers);
             // Get the remainders.
-            (, , remainders) = context.testHelpers.getMatchedFulfillments(
-                details
-            );
+            (, , remainders) = details.getMatchedFulfillments();
 
             if (remainders.length > 0) {
                 // NOTE: this may be caused by inserting offer items into orders

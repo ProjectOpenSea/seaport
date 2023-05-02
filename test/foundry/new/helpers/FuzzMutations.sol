@@ -1013,6 +1013,10 @@ library MutationFilters {
             return true;
         }
 
+        if (context.executionState.fulfillments.length == 0) {
+            return true;
+        }
+
         return false;
     }
 
@@ -2301,6 +2305,26 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .fulfillments[0]
                 .considerationComponents[0]
                 .orderIndex = context.executionState.orders.length;
+        } else {
+            context
+                .executionState
+                .fulfillments = new Fulfillment[](1);
+
+            context
+                .executionState
+                .fulfillments[0]
+                .offerComponents = new FulfillmentComponent[](1);
+
+            context
+                .executionState
+                .fulfillments[0]
+                .considerationComponents = new FulfillmentComponent[](1);
+
+            context
+                .executionState
+                .fulfillments[0]
+                .considerationComponents[0]
+                .orderIndex = context.executionState.orders.length;
         }
 
         if (context.executionState.offerFulfillments.length != 0) {
@@ -2308,15 +2332,28 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .executionState
                 .orders
                 .length;
-        }
-
-        if (context.executionState.considerationFulfillments.length != 0) {
+        } else if (context.executionState.considerationFulfillments.length != 0) {
             context
-            .executionState
-            .considerationFulfillments[0][0].orderIndex = context
                 .executionState
-                .orders
-                .length;
+                .considerationFulfillments[0][0].orderIndex = context
+                    .executionState
+                    .orders
+                    .length;
+        } else {
+            context.executionState.considerationFulfillments = (
+                new FulfillmentComponent[][](1)
+            );
+
+            context.executionState.considerationFulfillments[0] = (
+                new FulfillmentComponent[](1)
+            );
+
+            context
+                .executionState
+                .considerationFulfillments[0][0].orderIndex = context
+                    .executionState
+                    .orders
+                    .length;
         }
 
         exec(context);
