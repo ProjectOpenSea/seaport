@@ -96,6 +96,9 @@ import {
  *       returning a value or modifying an order according to the selected
  *       state. Generators have access to a PRNG in their context, which they
  *       can use to generate random values.
+ *
+ *       The TestStateGenerator library is responsible for step one: generating
+ *       an AdvancedOrdersSpace struct representing a fuzzed order permutation.
  */
 library TestStateGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
@@ -462,6 +465,11 @@ library TestStateGenerator {
     }
 }
 
+/**
+ * @dev Convert an AdvancedOrdersSpace struct representing a given order
+ *      permutation into an array of AdvancedOrder structs with valid random
+ *      parameters.
+ */
 library AdvancedOrdersSpaceGenerator {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -1351,6 +1359,9 @@ library AdvancedOrdersSpaceGenerator {
     }
 }
 
+/**
+ * @dev Convert an OrderComponentsSpace struct into actual OrderParameters.
+ */
 library OrderComponentsSpaceGenerator {
     using OrderParametersLib for OrderParameters;
 
@@ -1417,6 +1428,9 @@ library OrderComponentsSpaceGenerator {
     }
 }
 
+/**
+ * @dev Select a conduit.
+ */
 library ConduitGenerator {
     function generate(
         ConduitChoice conduit,
@@ -1438,6 +1452,10 @@ library ConduitGenerator {
     }
 }
 
+/**
+ * @dev Generate parameters related to an order's "broad" type: full, partial,
+ *      or contract.
+ */
 library BroadOrderTypeGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using AdvancedOrderLib for AdvancedOrder;
@@ -1482,6 +1500,9 @@ library BroadOrderTypeGenerator {
     }
 }
 
+/**
+ * @dev Generate extra data on an order.
+ */
 library ExtraDataGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using AdvancedOrderLib for AdvancedOrder;
@@ -1530,6 +1551,9 @@ library ExtraDataGenerator {
     }
 }
 
+/**
+ * @dev Generate zone-related parameters for an order.
+ */
 library ZoneGenerator {
     using PRNGHelpers for FuzzGeneratorContext;
     using OrderParametersLib for OrderParameters;
@@ -1555,6 +1579,10 @@ library ZoneGenerator {
     }
 }
 
+/**
+ * @dev Convert an array of generated OfferItemSpace structs into actual
+ *      OfferItem structs.
+ */
 library OfferItemSpaceGenerator {
     using OfferItemLib for OfferItem;
 
@@ -1615,6 +1643,10 @@ library OfferItemSpaceGenerator {
     }
 }
 
+/**
+ * @dev Convert an array of generated ConsiderationItemSpace structs into actual
+ *      ConsiderationItem structs.
+ */
 library ConsiderationItemSpaceGenerator {
     using ConsiderationItemLib for ConsiderationItem;
 
@@ -1673,6 +1705,9 @@ library ConsiderationItemSpaceGenerator {
     }
 }
 
+/**
+ * @dev Generate an order signature using the given method and params.
+ */
 library SignatureGenerator {
     using LibPRNG for LibPRNG.PRNG;
 
@@ -1862,6 +1897,9 @@ library SignatureGenerator {
     }
 }
 
+/**
+ * @dev Select a test token by index.
+ */
 library TokenIndexGenerator {
     function generate(
         TokenIndex tokenIndex,
@@ -1892,6 +1930,9 @@ library TokenIndexGenerator {
     }
 }
 
+/**
+ * @dev Generate order start and end timestamps.
+ */
 library TimeGenerator {
     using LibPRNG for LibPRNG.PRNG;
     using OrderParametersLib for OrderParameters;
@@ -1948,6 +1989,9 @@ library TimeGenerator {
     }
 }
 
+/**
+ * @dev Generate offer and consideration item amounts.
+ */
 library AmountGenerator {
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
@@ -2029,6 +2073,9 @@ library AmountGenerator {
     }
 }
 
+/**
+ * @dev Generate a recipient address.
+ */
 library RecipientGenerator {
     using LibPRNG for LibPRNG.PRNG;
 
@@ -2056,6 +2103,9 @@ library RecipientGenerator {
     }
 }
 
+/**
+ * @dev Generate offer and consideration criteria.
+ */
 library CriteriaGenerator {
     using OfferItemLib for OfferItem;
     using ConsiderationItemLib for ConsiderationItem;
@@ -2180,6 +2230,9 @@ library CriteriaGenerator {
     }
 }
 
+/**
+ * @dev Generate offerer address and key.
+ */
 library OffererGenerator {
     function generate(
         Offerer offerer,
@@ -2218,6 +2271,9 @@ library OffererGenerator {
     }
 }
 
+/**
+ * @dev Generate a fulfillment recipient address.
+ */
 library FulfillmentRecipientGenerator {
     function generate(
         FulfillmentRecipient recipient,
@@ -2237,6 +2293,9 @@ library FulfillmentRecipientGenerator {
     }
 }
 
+/**
+ * @dev Generate a caller address.
+ */
 library CallerGenerator {
     function generate(
         Caller caller,
@@ -2262,6 +2321,9 @@ library CallerGenerator {
     }
 }
 
+/**
+ * @dev Helpers for generating random values
+ */
 library PRNGHelpers {
     using LibPRNG for LibPRNG.PRNG;
 
@@ -2295,7 +2357,9 @@ library PRNGHelpers {
     }
 }
 
-// @dev Implementation cribbed from forge-std bound
+/**
+ * @dev Implementation cribbed from forge-std bound
+ */
 function bound(
     uint256 x,
     uint256 min,

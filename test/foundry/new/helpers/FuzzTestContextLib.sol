@@ -126,6 +126,9 @@ struct ReturnValues {
     Execution[] executions;
 }
 
+/**
+ * @dev Context data related to post-execution expectations.
+ */
 struct Expectations {
     /**
      * @dev Expected zone calldata hashes.
@@ -150,6 +153,10 @@ struct Expectations {
     Execution[] expectedImplicitPostExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
+    /**
+     * @dev Whether an order is available and will be fulfilled. Indexes
+     *      correspond to order indexes in the orders array.
+     */
     bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
@@ -163,12 +170,24 @@ struct Expectations {
     bytes32[] expectedSeaportEventHashes;
     bool[] ineligibleOrders;
     bool[] ineligibleFailures;
+    /**
+     * @dev Number of expected implicit native executions.
+     */
     uint256 expectedImpliedNativeExecutions;
+    /**
+     * @dev Amount of native tokens we expect to be returned to the caller.
+     */
     uint256 expectedNativeTokensReturned;
+    /**
+     * @dev Minimum msg.value that must be provided by caller.
+     */
     uint256 minimumValue;
     FractionResults[] expectedFillFractions;
 }
 
+/**
+ * @dev Context data related to test execution
+ */
 struct ExecutionState {
     /**
      * @dev A caller address. If this is nonzero, the FuzzEngine will prank this
@@ -239,12 +258,24 @@ struct ExecutionState {
      *      fulfillAvailable functions.
      */
     uint256 maximumFulfilled;
+    /**
+     * @dev Status of each order before execution.
+     */
     OrderStatusEnum[] preExecOrderStatuses;
     uint256 value;
 }
 
+/**
+ * @dev Context data related to failure mutations.
+ */
 struct MutationState {
+    /**
+     * @dev Copy of the order selected for mutation.
+     */
     AdvancedOrder selectedOrder;
+    /**
+     * @dev Index of the selected order in the orders array.
+     */
     uint256 selectedOrderIndex;
     bytes32 selectedOrderHash;
     Side side;
@@ -254,7 +285,15 @@ struct MutationState {
 }
 
 struct FuzzTestContext {
+    /**
+     * @dev Cached selector of the chosen Seaport action.
+     */
     bytes4 _action;
+    /**
+     * @dev Whether a Seaport action has been selected. This boolean is used as
+     *      a workaround to detect when the cached action is set, since the
+     *      empty selector is a valid Seaport action (fulfill basic efficient).
+     */
     bool actionSelected;
     /**
      * @dev A Seaport interface, either the reference or optimized version.
@@ -303,6 +342,10 @@ struct FuzzTestContext {
      *      and reference throughout the rest of the lifecycle.
      */
     FuzzGeneratorContext generatorContext;
+    /**
+     * @dev The AdvancedOrdersSpace used to generate the orders. A nested struct
+     *      of enums defining the selected permutation of orders.
+     */
     AdvancedOrdersSpace advancedOrdersSpace;
 }
 

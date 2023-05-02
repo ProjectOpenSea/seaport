@@ -41,7 +41,8 @@ import {
 } from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
 /**
- * @notice Stateless helpers for FuzzEngine.
+ * @notice Stateless helpers for FuzzEngine. The FuzzEngine uses functions in
+ *         this library to select which Seaport action it should call.
  */
 library FuzzEngineLib {
     using AdvancedOrderLib for AdvancedOrder;
@@ -57,8 +58,8 @@ library FuzzEngineLib {
 
     /**
      * @dev Select an available "action," i.e. "which Seaport function to call,"
-     *      based on the orders in a given FuzzTestContext. Selects a random action
-     *      using the context's fuzzParams.seed when multiple actions are
+     *      based on the orders in a given FuzzTestContext. Selects a random
+     *      action using the context's fuzzParams.seed when multiple actions are
      *      available for the given order config.
      *
      * @param context A Fuzz test context.
@@ -75,6 +76,12 @@ library FuzzEngineLib {
         ]);
     }
 
+    /**
+     * @dev Get the human-readable name of the selected action.
+     *
+     * @param context A Fuzz test context.
+     * @return string name of the selected action.
+     */
     function actionName(
         FuzzTestContext memory context
     ) internal view returns (string memory) {
@@ -91,22 +98,10 @@ library FuzzEngineLib {
         revert("Unknown selector");
     }
 
-    function withDetectedRemainders(
-        FuzzTestContext memory context
-    ) internal pure returns (FuzzTestContext memory) {
-        (, , MatchComponent[] memory remainders) = context
-            .executionState
-            .orderDetails
-            .getMatchedFulfillments();
-
-        context.executionState.hasRemainders = remainders.length != 0;
-
-        return context;
-    }
-
     /**
      * @dev Get an array of all possible "actions," i.e. "which Seaport
-     *      functions can we call," based on the orders in a given FuzzTestContext.
+     *      functions can we call," based on the generated orders in a given
+     *      `FuzzTestContext`.
      *
      * @param context A Fuzz test context.
      * @return bytes4[] of SeaportInterface function selectors.
@@ -263,6 +258,14 @@ library FuzzEngineLib {
         }
     }
 
+    /**
+     * @dev Determine whether a matching function (either `matchOrders` or
+     *      `matchAdvancedOrders`) will be selected, based on the given order
+     *      configuration.
+     *
+     * @param context A Fuzz test context.
+     * @return bool whether a matching function will be called.
+     */
     function mustUseMatch(
         FuzzTestContext memory context
     ) internal pure returns (bool) {
@@ -321,6 +324,13 @@ library FuzzEngineLib {
         return false;
     }
 
+    /**
+     * @dev Determine the amount of native tokens the caller must supply.
+     *
+     * @param context A Fuzz test context.
+     * @return value The amount of native tokens to supply.
+     * @return minimum The minimum amount of native tokens to supply.
+     */
     function getNativeTokensToSupply(
         FuzzTestContext memory context
     ) internal returns (uint256 value, uint256 minimum) {
@@ -416,5 +426,21 @@ library FuzzEngineLib {
         }
 
         return hugeCallValue - nativeTokensReturned;
+    }
+
+    /**
+     * @dev Determine whether or not an order configuration has remainders.
+     */
+    function withDetectedRemainders(
+        FuzzTestContext memory context
+    ) internal pure returns (FuzzTestContext memory) {
+        (, , MatchComponent[] memory remainders) = context
+            .executionState
+            .orderDetails
+            .getMatchedFulfillments();
+
+        context.executionState.hasRemainders = remainders.length != 0;
+
+        return context;
     }
 }

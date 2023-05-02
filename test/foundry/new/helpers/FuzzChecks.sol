@@ -160,6 +160,12 @@ abstract contract FuzzChecks is Test {
         }
     }
 
+    /**
+     * @dev Check that contract orders were generated and ratified with expected
+     *      calldata hashes.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_contractOrderExpectedDataHashes(
         FuzzTestContext memory context
     ) public {
@@ -217,9 +223,12 @@ abstract contract FuzzChecks is Test {
         );
     }
 
+    /**
+     * @dev Check that returned executions match the expected executions.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_executions(FuzzTestContext memory context) public {
-        // TODO: fulfillAvailable cases return an extra expected execution
-
         assertEq(
             context.returnValues.executions.length,
             context.expectations.expectedExplicitExecutions.length,
@@ -274,18 +283,33 @@ abstract contract FuzzChecks is Test {
         }
     }
 
+    /**
+     * @dev Check that expected token transfer events were correctly emitted.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_expectedTransferEventsEmitted(
         FuzzTestContext memory context
     ) public {
         ExpectedEventsUtil.checkExpectedTransferEvents(context);
     }
 
+    /**
+     * @dev Check that expected Seaport events were correctly emitted.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_expectedSeaportEventsEmitted(
         FuzzTestContext memory context
     ) public {
         ExpectedEventsUtil.checkExpectedSeaportEvents(context);
     }
 
+    /**
+     * @dev Check that account balance changes (native and tokens) are correct.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_expectedBalances(
         FuzzTestContext memory context
     ) public view {
@@ -408,6 +432,11 @@ abstract contract FuzzChecks is Test {
         }
     }
 
+    /**
+     * @dev Check that validated order status is updated.
+     *
+     * @param context A Fuzz test context.
+     */
     function check_ordersValidated(FuzzTestContext memory context) public {
         // Iterate over all orders and if the order was validated pre-execution,
         // check that calling `getOrderStatus` on the order hash returns `true`

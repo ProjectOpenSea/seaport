@@ -34,6 +34,10 @@ import { FuzzHelpers } from "./FuzzHelpers.sol";
 import { logCall } from "./Metrics.sol";
 import { dumpExecutions } from "./DebugUtil.sol";
 
+/**
+ * @notice Abstract FuzzEngine helper contract responsible for executing the
+ *         selected Seaport action.
+ */
 abstract contract FuzzExecutor is Test {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -50,10 +54,13 @@ abstract contract FuzzExecutor is Test {
      * @dev Call an available Seaport function based on the orders in the given
      *      FuzzTestContext. FuzzEngine will deduce which actions are available
      *      for the given orders and call a Seaport function at random using the
-     *      context's fuzzParams.seed.
+     *      context's `fuzzParams.seed`.
      *
-     *      If a caller address is provided in the context, exec will prank the
-     *      address before executing the selected action.
+     *      1. Log the call to a call metrics file.
+     *      2. If a caller address is set in the context, prank the address.
+     *      3. Call the selected Seaport function, passing any additional data
+     *         necessary from the test context.
+     *      4. Store the return value of the call in the context.
      *
      * @param context A Fuzz test context.
      */

@@ -43,6 +43,9 @@ import {
 
 import { withLabel } from "./Labeler.sol";
 
+/**
+ * @notice A helper library to seralize test data as JSON.
+ */
 library Searializer {
     function tojsonBytes32(
         string memory objectKey,

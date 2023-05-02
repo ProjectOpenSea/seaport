@@ -9,6 +9,11 @@ address constant VM_ADDRESS = address(
 );
 Vm constant vm = Vm(VM_ADDRESS);
 
+/**
+ * @dev A wrapper for Foundry vm.assume that logs rejected fuzz runs with a
+ *      named reason. Use this instead of vm.assume in fuzz tests and give
+ *      each assumption a unique name.
+ */
 function assume(bool condition, string memory name) {
     if (!condition) {
         logAssume(name);
