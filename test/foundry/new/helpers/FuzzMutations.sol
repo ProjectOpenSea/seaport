@@ -94,11 +94,367 @@ library MutationFilters {
     using MutationHelpersLib for FuzzTestContext;
     using FulfillmentDetailsHelper for FuzzTestContext;
 
+    // The following functions are ineligibility helpers. They're prefixed with
+    // `ineligibleWhen` and then have a description of what they check for. They
+    // can be stitched together to form the eligibility filter for a given
+    // mutation. The eligibility filters are prefixed with `ineligibleFor`
+    // followed by the name of the failure the mutation targets.
+
     function ineligibleWhenUnavailable(
         FuzzTestContext memory context,
         uint256 orderIndex
     ) internal pure returns (bool) {
         return !context.expectations.expectedAvailableOrders[orderIndex];
+    }
+
+    function ineligibleWhenBasic(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenFulfillAvailable(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenMatch(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.matchOrders.selector ||
+            action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotMatch(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+        if (
+            action != context.seaport.matchOrders.selector &&
+            action != context.seaport.matchAdvancedOrders.selector
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotAdvanced(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAvailableOrders.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            action == context.seaport.matchOrders.selector ||
+            ineligibleWhenBasic(context)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotAdvancedOrUnavailable(
+        FuzzTestContext memory context,
+        uint256 orderIndex
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotAdvanced(context)) {
+            return true;
+        }
+
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenContractOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.orderType == OrderType.CONTRACT;
+    }
+
+    function ineligibleWhenNotAvailableOrContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotContractOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.orderType != OrderType.CONTRACT;
+    }
+
+    function ineligibleWhenNotRestrictedOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return (order.parameters.orderType != OrderType.FULL_RESTRICTED &&
+            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED);
+    }
+
+    function ineligibleWhenNotAvailableOrNotContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotContractOrderOrFulfillAvailable(
+        AdvancedOrder memory order,
+        uint256 /* orderIndex */,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+        return ineligibleWhenFulfillAvailable(context);
+    }
+
+    function ineligibleWhenNotAvailableOrNotRestrictedOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (ineligibleWhenNotRestrictedOrder(order)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
+    function ineligibleWhenNotActiveTime(
+        AdvancedOrder memory order
+    ) internal view returns (bool) {
+        return (order.parameters.startTime > block.timestamp ||
+            order.parameters.endTime <= block.timestamp);
+    }
+
+    function ineligibleWhenNoConsiderationLength(
+        AdvancedOrder memory order
+    ) internal pure returns (bool) {
+        return order.parameters.consideration.length == 0;
+    }
+
+    function ineligibleWhenPastMaxFulfilled(
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        uint256 remainingFulfillable = context.executionState.maximumFulfilled;
+
+        if (remainingFulfillable == 0) {
+            return true;
+        }
+
+        for (
+            uint256 i = 0;
+            i < context.expectations.expectedAvailableOrders.length;
+            ++i
+        ) {
+            if (context.expectations.expectedAvailableOrders[i]) {
+                remainingFulfillable -= 1;
+            }
+
+            if (remainingFulfillable == 0) {
+                return orderIndex > i;
+            }
+        }
+
+        return false;
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrder(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // TODO: get more precise about when this is allowed or not
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].rebate !=
+            ContractOrderRebate.NONE
+        ) {
+            return true;
+        }
+
+        if (ineligibleWhenNotActiveTime(order)) {
+            return true;
+        }
+
+        if (ineligibleWhenPastMaxFulfilled(orderIndex, context)) {
+            return true;
+        }
+
+        if (ineligibleWhenNotContractOrder(order)) {
+            return true;
+        }
+
+        OffererZoneFailureReason failureReason = HashCalldataContractOfferer(
+            payable(order.parameters.offerer)
+        ).failureReasons(context.executionState.orderHashes[orderIndex]);
+
+        return (failureReason ==
+            OffererZoneFailureReason.ContractOfferer_generateReverts);
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (order.parameters.offer.length == 0) {
+            return true;
+        }
+
+        return
+            ineligibleWhenNotActiveTimeOrNotContractOrder(
+                order,
+                orderIndex,
+                context
+            );
+    }
+
+    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleWhenNoConsiderationLength(order)) {
+            return true;
+        }
+
+        return
+            ineligibleWhenNotActiveTimeOrNotContractOrder(
+                order,
+                orderIndex,
+                context
+            );
+    }
+
+    function ineligibleWhenOrderHasRebates(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        if (order.parameters.orderType == OrderType.CONTRACT) {
+            if (
+                context.executionState.orderDetails[orderIndex].offer.length !=
+                order.parameters.offer.length ||
+                context
+                    .executionState
+                    .orderDetails[orderIndex]
+                    .consideration
+                    .length !=
+                order.parameters.consideration.length
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The following functions are ineligibility filters.
+
+    function ineligibleForAnySignatureFailure(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (
+            ineligibleWhenNotAvailableOrContractOrder(
+                order,
+                orderIndex,
+                context
+            )
+        ) {
+            return true;
+        }
+
+        if (order.parameters.offerer == context.executionState.caller) {
+            return true;
+        }
+
+        (bool isValidated, , , ) = context.seaport.getOrderStatus(
+            context.executionState.orderHashes[orderIndex]
+        );
+
+        if (isValidated) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForEOASignature(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleForAnySignatureFailure(order, orderIndex, context)) {
+            return true;
+        }
+
+        if (order.parameters.offerer.code.length != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForFulfillmentIngestingFunctions(
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        bytes4 action = context.action();
+
+        if (
+            action == context.seaport.fulfillAdvancedOrder.selector ||
+            action == context.seaport.fulfillOrder.selector ||
+            ineligibleWhenBasic(context)
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     function ineligibleForOfferItemMissingApproval(
@@ -186,64 +542,6 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleWhenBasic(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-        if (
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleWhenFulfillAvailable(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillAvailableAdvancedOrders.selector
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleWhenMatch(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-        if (
-            action == context.seaport.matchOrders.selector ||
-            action == context.seaport.matchAdvancedOrders.selector
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleWhenNotMatch(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-        if (
-            action != context.seaport.matchOrders.selector &&
-            action != context.seaport.matchAdvancedOrders.selector
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     function ineligibleForInsufficientNativeTokens(
         FuzzTestContext memory context
     ) internal pure returns (bool) {
@@ -260,23 +558,7 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForNativeTokenTransferGenericFailure(
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (context.expectations.expectedImpliedNativeExecutions == 0) {
-            return true;
-        }
-
-        uint256 minimumRequired = context.expectations.minimumValue;
-
-        if (minimumRequired == 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleWhenNotAdvancedOrWithNoAvailableItems(
+    function ineligibleForCriteriaNotEnabledForItem(
         FuzzTestContext memory context
     ) internal view returns (bool) {
         if (ineligibleWhenNotAdvanced(context)) {
@@ -307,17 +589,16 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleWhenNotAdvanced(
+    function ineligibleForNativeTokenTransferGenericFailure(
         FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
+    ) internal pure returns (bool) {
+        if (context.expectations.expectedImpliedNativeExecutions == 0) {
+            return true;
+        }
 
-        if (
-            action == context.seaport.fulfillAvailableOrders.selector ||
-            action == context.seaport.fulfillOrder.selector ||
-            action == context.seaport.matchOrders.selector ||
-            ineligibleWhenBasic(context)
-        ) {
+        uint256 minimumRequired = context.expectations.minimumValue;
+
+        if (minimumRequired == 0) {
             return true;
         }
 
@@ -408,256 +689,6 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleWhenNotAdvancedOrUnavailable(
-        FuzzTestContext memory context,
-        uint256 orderIndex
-    ) internal view returns (bool) {
-        if (ineligibleWhenNotAdvanced(context)) {
-            return true;
-        }
-
-        if (ineligibleWhenUnavailable(context, orderIndex)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function neverIneligible(
-        FuzzTestContext memory /* context */
-    ) internal pure returns (bool) {
-        return false;
-    }
-
-    function ineligibleWhenContractOrder(
-        AdvancedOrder memory order
-    ) internal pure returns (bool) {
-        return order.parameters.orderType == OrderType.CONTRACT;
-    }
-
-    function ineligibleWhenNotAvailableOrContractOrder(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (ineligibleWhenContractOrder(order)) {
-            return true;
-        }
-
-        return ineligibleWhenUnavailable(context, orderIndex);
-    }
-
-    function ineligibleWhenNotContractOrder(
-        AdvancedOrder memory order
-    ) internal pure returns (bool) {
-        return order.parameters.orderType != OrderType.CONTRACT;
-    }
-
-    function ineligibleWhenNotRestrictedOrder(
-        AdvancedOrder memory order
-    ) internal pure returns (bool) {
-        return (order.parameters.orderType != OrderType.FULL_RESTRICTED &&
-            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED);
-    }
-
-    function ineligibleWhenNotAvailableOrNotContractOrder(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (ineligibleWhenNotContractOrder(order)) {
-            return true;
-        }
-
-        return ineligibleWhenUnavailable(context, orderIndex);
-    }
-
-    function ineligibleWhenNotContractOrderOrFulfillAvailable(
-        AdvancedOrder memory order,
-        uint256 /* orderIndex */,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        if (ineligibleWhenNotContractOrder(order)) {
-            return true;
-        }
-        return ineligibleWhenFulfillAvailable(context);
-    }
-
-    function ineligibleWhenNotAvailableOrNotRestrictedOrder(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (ineligibleWhenNotRestrictedOrder(order)) {
-            return true;
-        }
-
-        return ineligibleWhenUnavailable(context, orderIndex);
-    }
-
-    function ineligibleWhenNotActiveTime(
-        AdvancedOrder memory order
-    ) internal view returns (bool) {
-        return (order.parameters.startTime > block.timestamp ||
-            order.parameters.endTime <= block.timestamp);
-    }
-
-    function ineligibleWhenPastMaxFulfilled(
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        uint256 remainingFulfillable = context.executionState.maximumFulfilled;
-
-        if (remainingFulfillable == 0) {
-            return true;
-        }
-
-        for (
-            uint256 i = 0;
-            i < context.expectations.expectedAvailableOrders.length;
-            ++i
-        ) {
-            if (context.expectations.expectedAvailableOrders[i]) {
-                remainingFulfillable -= 1;
-            }
-
-            if (remainingFulfillable == 0) {
-                return orderIndex > i;
-            }
-        }
-
-        return false;
-    }
-
-    function ineligibleWhenNotActiveTimeOrNotContractOrder(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        // TODO: get more precise about when this is allowed or not
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].rebate !=
-            ContractOrderRebate.NONE
-        ) {
-            return true;
-        }
-
-        if (ineligibleWhenNotActiveTime(order)) {
-            return true;
-        }
-
-        if (ineligibleWhenPastMaxFulfilled(orderIndex, context)) {
-            return true;
-        }
-
-        if (ineligibleWhenNotContractOrder(order)) {
-            return true;
-        }
-
-        OffererZoneFailureReason failureReason = HashCalldataContractOfferer(
-            payable(order.parameters.offerer)
-        ).failureReasons(context.executionState.orderHashes[orderIndex]);
-
-        return (failureReason ==
-            OffererZoneFailureReason.ContractOfferer_generateReverts);
-    }
-
-    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        if (order.parameters.offer.length == 0) {
-            return true;
-        }
-
-        return
-            ineligibleWhenNotActiveTimeOrNotContractOrder(
-                order,
-                orderIndex,
-                context
-            );
-    }
-
-    function ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        if (order.parameters.consideration.length == 0) {
-            return true;
-        }
-
-        return
-            ineligibleWhenNotActiveTimeOrNotContractOrder(
-                order,
-                orderIndex,
-                context
-            );
-    }
-
-    function ineligibleForAnySignatureFailure(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        if (
-            ineligibleWhenNotAvailableOrContractOrder(
-                order,
-                orderIndex,
-                context
-            )
-        ) {
-            return true;
-        }
-
-        if (order.parameters.offerer == context.executionState.caller) {
-            return true;
-        }
-
-        (bool isValidated, , , ) = context.seaport.getOrderStatus(
-            context.executionState.orderHashes[orderIndex]
-        );
-
-        if (isValidated) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleForEOASignature(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        if (ineligibleForAnySignatureFailure(order, orderIndex, context)) {
-            return true;
-        }
-
-        if (order.parameters.offerer.code.length != 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleForFulfillmentIngestingFunctions(
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            action == context.seaport.fulfillAdvancedOrder.selector ||
-            action == context.seaport.fulfillOrder.selector ||
-            ineligibleWhenBasic(context)
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
     function ineligibleForBadContractSignature(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -698,7 +729,7 @@ library MutationFilters {
             return true;
         }
 
-        if (order.parameters.consideration.length == 0) {
+        if (ineligibleWhenNoConsiderationLength(order)) {
             return true;
         }
 
@@ -714,11 +745,11 @@ library MutationFilters {
             return true;
         }
 
-        if (order.parameters.orderType == OrderType.CONTRACT) {
+        if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
-        if (order.parameters.consideration.length == 0) {
+        if (ineligibleWhenNoConsiderationLength(order)) {
             return true;
         }
 
@@ -920,7 +951,7 @@ library MutationFilters {
             return true;
         }
 
-        if (order.parameters.orderType == OrderType.CONTRACT) {
+        if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
@@ -932,14 +963,12 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (order.parameters.orderType == OrderType.CONTRACT) {
+        if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
-        // TODO: verify whether match / matchAdvanced are actually ineligible
         if (
             ineligibleWhenFulfillAvailable(context) ||
-            ineligibleWhenMatch(context) ||
             ineligibleWhenBasic(context)
         ) {
             return true;
@@ -995,9 +1024,7 @@ library MutationFilters {
             return true;
         }
 
-        if (
-            ineligibleWhenNotMatch(context)
-        ) {
+        if (ineligibleWhenNotMatch(context)) {
             return true;
         }
 
@@ -1011,9 +1038,7 @@ library MutationFilters {
     function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (
-            ineligibleWhenNotMatch(context)
-        ) {
+        if (ineligibleWhenNotMatch(context)) {
             return true;
         }
 
@@ -1045,9 +1070,7 @@ library MutationFilters {
     function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (
-            ineligibleWhenNotMatch(context)
-        ) {
+        if (ineligibleWhenNotMatch(context)) {
             return true;
         }
 
@@ -1331,29 +1354,6 @@ library MutationFilters {
         return true;
     }
 
-    function ineligibleWhenOrderHasRebates(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (order.parameters.orderType == OrderType.CONTRACT) {
-            if (
-                context.executionState.orderDetails[orderIndex].offer.length !=
-                order.parameters.offer.length ||
-                context
-                    .executionState
-                    .orderDetails[orderIndex]
-                    .consideration
-                    .length !=
-                order.parameters.consideration.length
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     function ineligibleForUnusedItemParameters_Identifier(
         AdvancedOrder memory order,
         uint256 orderIndex,
@@ -1453,7 +1453,7 @@ library MutationFilters {
         }
 
         // Must not be a contract order
-        if (order.parameters.orderType == OrderType.CONTRACT) {
+        if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
@@ -1463,7 +1463,7 @@ library MutationFilters {
         }
 
         // Order must have at least one consideration item
-        if (order.parameters.consideration.length == 0) {
+        if (ineligibleWhenNoConsiderationLength(order)) {
             return true;
         }
 
@@ -1488,7 +1488,7 @@ library MutationFilters {
         if (
             order.parameters.orderType == OrderType.PARTIAL_OPEN ||
             order.parameters.orderType == OrderType.PARTIAL_RESTRICTED ||
-            order.parameters.orderType == OrderType.CONTRACT
+            ineligibleWhenContractOrder(order)
         ) {
             return true;
         }
@@ -2264,9 +2264,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .considerationComponents[0]
                 .orderIndex = context.executionState.orders.length;
         } else {
-            context
-                .executionState
-                .fulfillments = new Fulfillment[](1);
+            context.executionState.fulfillments = new Fulfillment[](1);
 
             context
                 .executionState
@@ -2290,13 +2288,15 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .executionState
                 .orders
                 .length;
-        } else if (context.executionState.considerationFulfillments.length != 0) {
+        } else if (
+            context.executionState.considerationFulfillments.length != 0
+        ) {
             context
+            .executionState
+            .considerationFulfillments[0][0].orderIndex = context
                 .executionState
-                .considerationFulfillments[0][0].orderIndex = context
-                    .executionState
-                    .orders
-                    .length;
+                .orders
+                .length;
         } else {
             context.executionState.considerationFulfillments = (
                 new FulfillmentComponent[][](1)
@@ -2307,11 +2307,11 @@ contract FuzzMutations is Test, FuzzExecutor {
             );
 
             context
+            .executionState
+            .considerationFulfillments[0][0].orderIndex = context
                 .executionState
-                .considerationFulfillments[0][0].orderIndex = context
-                    .executionState
-                    .orders
-                    .length;
+                .orders
+                .length;
         }
 
         exec(context);
