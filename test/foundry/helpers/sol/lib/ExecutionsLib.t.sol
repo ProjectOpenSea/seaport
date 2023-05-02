@@ -34,7 +34,7 @@ contract ExecutionLibTest is BaseTest {
             itemType: toItemType(blob.itemType),
             token: blob.token,
             identifier: blob.identifier,
-            amount: blob.amount,
+            amount: blob.amount == 0 ? 1 : blob.amount,
             recipient: blob.recipient
         });
         Execution memory execution = Execution({
@@ -45,6 +45,14 @@ contract ExecutionLibTest is BaseTest {
         ExecutionLib.saveDefault(execution, "default");
         Execution memory defaultExecution = ExecutionLib.fromDefault("default");
         assertEq(execution, defaultExecution);
+    }
+
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty Execution selected.");
+        ExecutionLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty Execution array selected.");
+        ExecutionLib.fromDefaultMany("nonexistent");
     }
 
     function _fromBlob(

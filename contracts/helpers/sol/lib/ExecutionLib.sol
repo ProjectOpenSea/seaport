@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Execution, ReceivedItem } from "../../../lib/ConsiderationStructs.sol";
+import {
+    Execution,
+    ItemType,
+    ReceivedItem
+} from "../../../lib/ConsiderationStructs.sol";
 
 import { ReceivedItemLib } from "./ReceivedItemLib.sol";
 
@@ -19,6 +23,22 @@ library ExecutionLib {
         keccak256("seaport.ExecutionDefaults");
     bytes32 private constant EXECUTIONS_MAP_POSITION =
         keccak256("seaport.ExecutionsDefaults");
+    bytes32 private constant EMPTY_EXECUTION =
+        keccak256(
+            abi.encode(
+                Execution({
+                    item: ReceivedItem({
+                        itemType: ItemType(0),
+                        token: address(0),
+                        identifier: 0,
+                        amount: 0,
+                        recipient: payable(address(0))
+                    }),
+                    offerer: address(0),
+                    conduitKey: bytes32(0)
+                })
+            )
+        );
 
     using ReceivedItemLib for ReceivedItem;
     using ReceivedItemLib for ReceivedItem[];
@@ -70,6 +90,10 @@ library ExecutionLib {
     ) internal view returns (Execution memory item) {
         mapping(string => Execution) storage executionMap = _executionMap();
         item = executionMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_EXECUTION) {
+            revert("Empty Execution selected.");
+        }
     }
 
     /**
@@ -84,6 +108,10 @@ library ExecutionLib {
     ) internal view returns (Execution[] memory items) {
         mapping(string => Execution[]) storage executionsMap = _executionsMap();
         items = executionsMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty Execution array selected.");
+        }
     }
 
     /**

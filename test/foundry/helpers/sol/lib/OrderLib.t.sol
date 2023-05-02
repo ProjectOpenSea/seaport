@@ -30,6 +30,14 @@ contract OrderLibTest is BaseTest {
         assertEq(order, defaultOrder);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty Order selected.");
+        OrderLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty Order array selected.");
+        OrderLib.fromDefaultMany("nonexistent");
+    }
+
     function testCopy() public {
         OrderParameters memory parameters = OrderParametersLib
             .empty()

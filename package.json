@@ -1,6 +1,6 @@
 {
   "name": "seaport",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
   "main": "contracts/Seaport.sol",
   "author": "0age",
@@ -14,7 +14,8 @@
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.12.1-ir.0",
-    "merkletreejs": "^0.3.9"
+    "merkletreejs": "^0.3.9",
+    "solady": "^0.0.84"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
@@ -29,6 +30,7 @@
     "@typescript-eslint/eslint-plugin": "^5.9.1",
     "@typescript-eslint/parser": "^5.9.1",
     "chai": "^4.3.4",
+    "cli-barchart": "^0.2.3",
     "dotenv": "^16.0.0",
     "eslint": "^8.6.0",
     "eslint-config-prettier": "^8.3.0",
@@ -87,6 +89,7 @@
     "coverage": "yarn clean; hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
     "coverage:forge": "SEAPORT_COVERAGE=true forge coverage --report summary",
+    "coverage:fuzz": "SEAPORT_COVERAGE=true forge coverage --match-path test/foundry/new/FuzzCoverage.t.sol --report summary --report lcov && lcov -o lcov.info --remove lcov.info --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 'test/*' 'script/*' 'contracts/helpers/*' 'contracts/test/*' 'contracts/zones/*' 'reference/*' && genhtml lcov.info -o html --branch",
     "generate:optimized-yul": "yarn build; jq -r '.output.contracts.\"contracts/Seaport.sol\".Seaport.irOptimized' artifacts/build-info/\"$(jq -r '.buildInfo[17:]' artifacts/contracts/Seaport.sol/Seaport.dbg.json)\" | cat > Seaport.yul",
     "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
     "lint:check:format": "prettier --check **.{sol,js,ts}",
@@ -98,9 +101,12 @@
     "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
-    "prepare": "husky install",
     "build:validator": "hardhat compile --config ./hardhat-validator.config.ts",
     "test:validator": "hardhat test --config ./hardhat-validator.config.ts"
+    "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
+    "test:fuzz:concrete": "forge test --mt test_concrete",
+    "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "*.sol": "prettier --write",

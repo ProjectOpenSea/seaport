@@ -24,6 +24,10 @@ import {
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
+/**
+ * @dev This contract is used to validate transfer within the zone/offerer.  Use
+ *      the HashValidationZoneOfferer to validate calldata via hashes.
+ */
 contract TestTransferValidationZoneOfferer is
     ContractOffererInterface,
     ZoneInterface,
@@ -57,10 +61,13 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
+    event ValidateOrderDataHash(bytes32 dataHash);
 
     receive() external payable {}
 
     address internal _expectedOfferRecipient;
+
+    mapping(bytes32 => bytes32) public orderHashToValidateOrderDataHash;
 
     // Pass in the null address to expect the fulfiller.
     constructor(address expectedOfferRecipient) {
@@ -87,6 +94,32 @@ contract TestTransferValidationZoneOfferer is
         // zero at the start of the transaction.  Accordingly, take care to
         // use an address in tests that is not pre-populated with tokens.
 
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
+
+        // Create a variable to store msg.data in memory
+        bytes memory data;
+
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
+
+        // Get the hash of msg.data
+        bytes32 calldataHash = keccak256(data);
+
+        // Get the orderHash from zoneParameters
+        bytes32 orderHash = zoneParameters.orderHash;
+
+        // Store callDataHash in orderHashToValidateOrderDataHash
+        orderHashToValidateOrderDataHash[orderHash] = calldataHash;
+
+        // Emit a DataHash event with the hash of msg.data
+        emit ValidateOrderDataHash(calldataHash);
+
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
         uint256 seaportBalance = address(msg.sender).balance;
@@ -95,7 +128,8 @@ contract TestTransferValidationZoneOfferer is
             revert IncorrectSeaportBalance(0, seaportBalance);
         }
 
-        // Check if all consideration items have been received.
+        // Ensure that the offerer or recipient has received all consideration
+        // items.
         _assertValidReceivedItems(zoneParameters.consideration);
 
         address expectedOfferRecipient = _expectedOfferRecipient == address(0)

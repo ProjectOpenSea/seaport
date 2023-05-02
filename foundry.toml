@@ -10,12 +10,19 @@ remappings = [
     'forge-std/=lib/forge-std/src/',
     'murky/=lib/murky/src/',
     'openzeppelin-contracts/=lib/openzeppelin-contracts/',
-    'seaport-sol/=contracts/helpers/sol/'
+    'seaport-sol/=contracts/helpers/sol/',
+    'seaport-core/=contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [
     { access = "read", path = "./optimized-out" },
     { access = "read", path = "./reference-out" },
+    { access = "write", path = "./call-metrics.txt" },
+    { access = "write", path = "./mutation-metrics.txt" },
+    { access = "write", path = "./assume-metrics.txt" },
+    { access = "write", path = "./fuzz_debug.json" }
 ]
 
 [profile.validator]
@@ -39,6 +46,7 @@ test = 'reference'
 via_ir = true
 out = 'optimized-out'
 script = 'contracts'
+bytecode_hash = 'none'
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
 test ='contracts'
 
@@ -53,6 +61,11 @@ out = 'optimized-out'
 
 [profile.debug]
 src = 'contracts'
+optimizer = false
+
+[profile.moat_debug]
+optimizer = false
+test = 'test/foundry/new'
 
 [profile.offerers]
 src='offerers'
