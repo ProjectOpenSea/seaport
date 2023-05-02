@@ -55,6 +55,10 @@ import {
     HashCalldataContractOfferer
 } from "../../../contracts/test/HashCalldataContractOfferer.sol";
 
+import {
+    FulfillmentGeneratorLib
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
     using PRNGHelpers for FuzzGeneratorContext;
@@ -118,7 +122,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             maximumFulfilled: 0,
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
-            caller: Caller.TEST_CONTRACT
+            caller: Caller.TEST_CONTRACT,
+            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -163,7 +168,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
-            caller: Caller.TEST_CONTRACT
+            caller: Caller.TEST_CONTRACT,
+            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -217,7 +223,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
-            caller: Caller.TEST_CONTRACT
+            caller: Caller.TEST_CONTRACT,
+            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -282,7 +289,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             maximumFulfilled: 1,
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
-            caller: Caller.TEST_CONTRACT
+            caller: Caller.TEST_CONTRACT,
+            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

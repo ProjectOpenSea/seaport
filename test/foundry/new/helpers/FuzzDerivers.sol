@@ -238,8 +238,10 @@ library FuzzDerivers {
             remainingOfferComponents,
 
         ) = orderDetails.getFulfillments(
+            context.advancedOrdersSpace.strategy,
             context.executionState.caller,
-            context.executionState.recipient
+            context.executionState.recipient,
+            context.fuzzParams.seed
         );
     }
 
