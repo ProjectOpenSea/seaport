@@ -26,11 +26,19 @@ contract OfferItemLibTest is BaseTest {
             token: token,
             identifierOrCriteria: identifier,
             startAmount: startAmount,
-            endAmount: endAmount
+            endAmount: endAmount == 0 ? 1 : endAmount
         });
         OfferItemLib.saveDefault(offerItem, "default");
         OfferItem memory defaultOfferItem = OfferItemLib.fromDefault("default");
         assertEq(offerItem, defaultOfferItem);
+    }
+
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty OfferItem selected.");
+        OfferItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty OfferItem array selected.");
+        OfferItemLib.fromDefaultMany("nonexistent");
     }
 
     function testComposeEmpty(

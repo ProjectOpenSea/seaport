@@ -108,7 +108,9 @@ contract BadOffererTest is BaseOrderTest, ZoneInteractionErrors {
                 seaport: consideration,
                 id: id,
                 eoa: false,
-                shouldFail: false // shouldn't fail because the revert happens within GenerateOrder, so it can be safely skipped
+                // shouldn't fail because the revert happens within
+                // GenerateOrder, so it can be safely skipped
+                shouldFail: false
             })
         );
         test(

@@ -363,7 +363,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
                     // ERC1155 has three indexed topics plus data.
 
                     if (item.itemType == ConduitItemType.ERC20) {
-                        vm.expectEmit(true, true, true, true, item.token);
+                        vm.expectEmit(true, true, false, true, item.token);
 
                         emit Transfer(
                             from,
@@ -439,7 +439,7 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
                     // but tokenId is indexed for 721 and not for ERC20 (so amount is data)
                     // ERC1155 has three indexed topics plus data.
                     if (item.itemType == ConduitItemType.ERC20) {
-                        vm.expectEmit(true, true, true, true, item.token);
+                        vm.expectEmit(true, true, false, true, item.token);
 
                         emit Transfer(
                             from,

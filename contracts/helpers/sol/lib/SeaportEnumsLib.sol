@@ -2,17 +2,26 @@
 pragma solidity ^0.8.17;
 
 import {
-    BasicOrderParameters,
-    OrderParameters
-} from "../../../lib/ConsiderationStructs.sol";
-import {
-    OrderType,
     BasicOrderType,
     ItemType,
-    BasicOrderRouteType
+    OrderType
 } from "../../../lib/ConsiderationEnums.sol";
 
 library SeaportEnumsLib {
+    /**
+     * @dev Parses a BasicOrderType into its constituent parts.
+     *
+     * @param basicOrderType the BasicOrderType to parse
+     *
+     * @return orderType                           the OrderType
+     * @return offerType                           the ItemType of the offer
+     * @return considerationType                   the ItemType of the
+     *                                             consideration
+     * @return additionalRecipientsType            the ItemType of the
+     *                                             additional recipients
+     * @return offerTypeIsAdditionalRecipientsType whether the offer type is the
+     *                                             additional recipients type
+     */
     function parseBasicOrderType(
         BasicOrderType basicOrderType
     )

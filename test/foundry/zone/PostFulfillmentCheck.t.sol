@@ -3,8 +3,6 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
-import { BaseConduitTest } from "../conduit/BaseConduitTest.sol";
-
 import { TestZone } from "./impl/TestZone.sol";
 
 import {
@@ -23,9 +21,7 @@ import {
     CriteriaResolver,
     FulfillmentComponent,
     ItemType,
-    OfferItem,
-    OrderComponents,
-    OrderParameters
+    OfferItem
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import {
@@ -455,7 +451,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         address[] memory allAdditional = new address[](
             uint256(context.numOriginalAdditional) + context.numTips
         );
-        // make new stateful zone with a larger amount so each additional recipient can receive
+        // make new stateful zone with a larger amount so each additional
+        // recipient can receive
         statefulZone = new PostFulfillmentStatefulTestZone(5000);
         // clear storage array just in case
         delete additionalRecipients;
@@ -474,7 +471,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             allAdditional[i] = recipient;
             // add to consideration items that will be hashed with order
             addErc20ConsiderationItem(recipient, 1);
-            // add to the additional recipients array included with the basic order
+            // add to the additional recipients array included with the basic
+            // order
             additionalRecipients.push(
                 AdditionalRecipient({ recipient: recipient, amount: 1 })
             );
@@ -488,7 +486,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             // add to all additional
             allAdditional[i + context.numOriginalAdditional] = recipient;
             // do not add to consideration items that will be hashed with order
-            // add to the additional recipients array included with the basic order
+            // add to the additional recipients array included with the basic
+            // order
             additionalRecipients.push(
                 AdditionalRecipient({ recipient: recipient, amount: 1 })
             );

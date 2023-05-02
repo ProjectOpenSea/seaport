@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/**
+ * @title ArrayLib
+ * @author James Wenzel (emo.eth)
+ * @notice ArrayLib is a library for managing arrays.
+ */
 library ArrayLib {
+    /**
+     * @dev Sets the values of an array.
+     *
+     * @param array  the array to set
+     * @param values the values to set
+     */
     function setBytes32s(
         bytes32[] storage array,
         bytes32[] memory values
@@ -14,6 +25,13 @@ library ArrayLib {
         }
     }
 
+    /**
+     * @dev Makes a copy of an array.
+     *
+     * @param array the array to copy
+     *
+     * @custom:return copiedArray the copied array
+     */
     function copy(
         bytes32[] memory array
     ) internal pure returns (bytes32[] memory) {

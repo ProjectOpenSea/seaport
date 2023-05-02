@@ -134,43 +134,43 @@ contract TypehashDirectory {
     function getTreeSubTypes() internal pure returns (bytes memory) {
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = bytes(
-                "OfferItem("
-                    "uint8 itemType,"
-                    "address token,"
-                    "uint256 identifierOrCriteria,"
-                    "uint256 startAmount,"
-                    "uint256 endAmount"
-                ")"
-            );
+            "OfferItem("
+            "uint8 itemType,"
+            "address token,"
+            "uint256 identifierOrCriteria,"
+            "uint256 startAmount,"
+            "uint256 endAmount"
+            ")"
+        );
 
         // Construct the ConsiderationItem type string.
         bytes memory considerationItemTypeString = bytes(
-                "ConsiderationItem("
-                    "uint8 itemType,"
-                    "address token,"
-                    "uint256 identifierOrCriteria,"
-                    "uint256 startAmount,"
-                    "uint256 endAmount,"
-                    "address recipient"
-                ")"
-            );
+            "ConsiderationItem("
+            "uint8 itemType,"
+            "address token,"
+            "uint256 identifierOrCriteria,"
+            "uint256 startAmount,"
+            "uint256 endAmount,"
+            "address recipient"
+            ")"
+        );
 
         // Construct the OrderComponents type string, not including the above.
         bytes memory orderComponentsPartialTypeString = bytes(
-                "OrderComponents("
-                    "address offerer,"
-                    "address zone,"
-                    "OfferItem[] offer,"
-                    "ConsiderationItem[] consideration,"
-                    "uint8 orderType,"
-                    "uint256 startTime,"
-                    "uint256 endTime,"
-                    "bytes32 zoneHash,"
-                    "uint256 salt,"
-                    "bytes32 conduitKey,"
-                    "uint256 counter"
-                ")"
-            );
+            "OrderComponents("
+            "address offerer,"
+            "address zone,"
+            "OfferItem[] offer,"
+            "ConsiderationItem[] consideration,"
+            "uint8 orderType,"
+            "uint256 startTime,"
+            "uint256 endTime,"
+            "bytes32 zoneHash,"
+            "uint256 salt,"
+            "bytes32 conduitKey,"
+            "uint256 counter"
+            ")"
+        );
 
         // Return the combined string.
         return

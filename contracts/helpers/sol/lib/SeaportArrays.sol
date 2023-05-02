@@ -2,19 +2,19 @@
 pragma solidity ^0.8.17;
 
 import {
-    OrderComponents,
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    BasicOrderParameters,
     AdditionalRecipient,
-    OrderParameters,
-    Order,
     AdvancedOrder,
+    BasicOrderParameters,
+    ConsiderationItem,
     CriteriaResolver,
     Fulfillment,
-    FulfillmentComponent
+    FulfillmentComponent,
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters,
+    ReceivedItem,
+    SpentItem
 } from "../../../lib/ConsiderationStructs.sol";
 
 library SeaportArrays {

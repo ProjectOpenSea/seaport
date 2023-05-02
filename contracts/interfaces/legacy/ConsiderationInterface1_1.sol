@@ -2,15 +2,14 @@
 pragma solidity ^0.8.7;
 
 import {
+    AdvancedOrder,
     BasicOrderParameters,
-    OrderComponents,
+    CriteriaResolver,
+    Execution,
     Fulfillment,
     FulfillmentComponent,
-    Execution,
     Order,
-    AdvancedOrder,
-    OrderStatus,
-    CriteriaResolver
+    OrderComponents
 } from "../../lib/ConsiderationStructs.sol";
 
 /**
