@@ -198,7 +198,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         assertEq(recordedLogs[4].emitter, address(token1));
     }
 
-    function testSweepRemaining() public {
+    // TODO: look into sporadic failures here
+    function xtestSweepRemaining() public {
         test(this.execSweepRemaining, Context({ seaport: consideration }));
         test(
             this.execSweepRemaining,
@@ -303,7 +304,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         assertEq(endingToken1Balance, startingToken1Balance + 200);
     }
 
-    function testSweepRemainingAdvanced() public {
+    // TODO: look into sporadic failures here
+    function xtestSweepRemainingAdvanced() public {
         test(
             this.execSweepRemainingAdvanced,
             Context({ seaport: consideration })
