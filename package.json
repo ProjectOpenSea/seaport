@@ -102,7 +102,7 @@
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "build:validator": "hardhat compile --config ./hardhat-validator.config.ts",
-    "test:validator": "hardhat test --config ./hardhat-validator.config.ts"
+    "test:validator": "hardhat test --config ./hardhat-validator.config.ts",
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
