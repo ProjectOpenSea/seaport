@@ -393,9 +393,7 @@ library MutationFilters {
         return false;
     }
 
-    // The following functions are ineligibility filters.
-
-    function ineligibleForAnySignatureFailure(
+    function ineligibleWhenAnySignatureFailureRequired(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
@@ -425,12 +423,12 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForEOASignature(
+    function ineligibleWhenEOASignatureFailureRequire(
         AdvancedOrder memory order,
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForAnySignatureFailure(order, orderIndex, context)) {
+        if (ineligibleWhenAnySignatureFailureRequired(order, orderIndex, context)) {
             return true;
         }
 
@@ -441,7 +439,7 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForFulfillmentIngestingFunctions(
+    function ineligibleWhenNotFulfillmentIngestingFunction(
         FuzzTestContext memory context
     ) internal view returns (bool) {
         bytes4 action = context.action();
@@ -456,6 +454,8 @@ library MutationFilters {
 
         return false;
     }
+
+    // The following functions are ineligibility filters.
 
     function ineligibleForOfferItemMissingApproval(
         AdvancedOrder memory order,
@@ -694,7 +694,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForAnySignatureFailure(order, orderIndex, context)) {
+        if (ineligibleWhenAnySignatureFailureRequired(order, orderIndex, context)) {
             return true;
         }
 
@@ -763,7 +763,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForEOASignature(order, orderIndex, context)) {
+        if (ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)) {
             return true;
         }
 
@@ -779,7 +779,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForEOASignature(order, orderIndex, context)) {
+        if (ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)) {
             return true;
         }
 
@@ -798,7 +798,7 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForEOASignature(order, orderIndex, context)) {
+        if (ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)) {
             return true;
         }
 
@@ -996,7 +996,7 @@ library MutationFilters {
     function ineligibleForInvalidFulfillmentComponentData(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+        if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
 
@@ -1006,7 +1006,7 @@ library MutationFilters {
     function ineligibleForMissingFulfillmentComponentOnAggregation(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+        if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
 
@@ -1020,7 +1020,7 @@ library MutationFilters {
     function ineligibleForOfferAndConsiderationRequiredOnFulfillment(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleForFulfillmentIngestingFunctions(context)) {
+        if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
 
