@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {
     ConsiderationIssue,
     ErrorsAndWarnings,
+    ErrorsAndWarningsLib,
     GenericIssue,
     ERC20Issue,
     ERC721Issue,
@@ -48,6 +49,8 @@ contract SeaportValidatorTest is BaseOrderTest {
     using IssueParser for SignatureIssue;
     using IssueParser for TimeIssue;
 
+    using ErrorsAndWarningsLib for ErrorsAndWarnings;
+
     SeaportValidator internal validator;
 
     function setUp() public override {
@@ -57,53 +60,56 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     function test_empty_isValidOrder() public {
         Order memory order = OrderLib.empty();
-        ErrorsAndWarnings memory validation = validator.isValidOrder(
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(TimeIssue.EndTimeBeforeStartTime)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(OfferIssue.ZeroItems)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(errors[0], TimeIssue.EndTimeBeforeStartTime.parseInt());
-        assertEq(errors[1], SignatureIssue.Invalid.parseInt());
-        assertEq(errors[2], GenericIssue.InvalidOrderFormat.parseInt());
-
-        assertEq(warnings[0], OfferIssue.ZeroItems.parseInt());
-        assertEq(warnings[1], ConsiderationIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
     }
 
     function test_empty_isValidOrderReadOnly() public {
         Order memory order = OrderLib.empty();
-        ErrorsAndWarnings memory validation = validator.isValidOrderReadOnly(
+        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
 
-        assertEq(errors[0], TimeIssue.EndTimeBeforeStartTime.parseInt());
-        assertEq(errors[1], GenericIssue.InvalidOrderFormat.parseInt());
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(TimeIssue.EndTimeBeforeStartTime)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(OfferIssue.ZeroItems)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(warnings[0], OfferIssue.ZeroItems.parseInt());
-        assertEq(warnings[1], ConsiderationIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
     }
 
     function test_default_full_isValidOrder() public {
         Order memory order = OrderLib.empty().withParameters(
             OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
         );
-        ErrorsAndWarnings memory validation = validator.isValidOrder(
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
 
-        assertEq(errors[0], SignatureIssue.Invalid.parseInt());
-        assertEq(errors[1], GenericIssue.InvalidOrderFormat.parseInt());
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.ZeroItems)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(warnings[0], TimeIssue.ShortOrder.parseInt());
-        assertEq(warnings[1], OfferIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
     }
 
     function test_default_full_isValidOrder_identifierNonZero() public {
@@ -118,20 +124,22 @@ contract SeaportValidatorTest is BaseOrderTest {
             .toOrderParameters()
             .withOffer(offer);
         Order memory order = OrderLib.empty().withParameters(parameters);
-        ErrorsAndWarnings memory validation = validator.isValidOrder(
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
 
-        assertEq(errors[0], ERC20Issue.IdentifierNonZero.parseInt());
-        assertEq(errors[1], ERC20Issue.InvalidToken.parseInt());
-        assertEq(errors[2], SignatureIssue.Invalid.parseInt());
-        assertEq(errors[3], GenericIssue.InvalidOrderFormat.parseInt());
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC20Issue.IdentifierNonZero)
+            .addError(ERC20Issue.InvalidToken)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(warnings[0], TimeIssue.ShortOrder.parseInt());
-        assertEq(warnings[1], ConsiderationIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
     }
 
     function test_default_full_isValidOrder_invalidToken() public {
@@ -146,19 +154,21 @@ contract SeaportValidatorTest is BaseOrderTest {
             .toOrderParameters()
             .withOffer(offer);
         Order memory order = OrderLib.empty().withParameters(parameters);
-        ErrorsAndWarnings memory validation = validator.isValidOrder(
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
 
-        assertEq(errors[0], ERC20Issue.InvalidToken.parseInt());
-        assertEq(errors[1], SignatureIssue.Invalid.parseInt());
-        assertEq(errors[2], GenericIssue.InvalidOrderFormat.parseInt());
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC20Issue.InvalidToken)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(warnings[0], TimeIssue.ShortOrder.parseInt());
-        assertEq(warnings[1], ConsiderationIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
     }
 
     function test_default_full_isValidOrder_amountNotOne() public {
@@ -172,36 +182,62 @@ contract SeaportValidatorTest is BaseOrderTest {
             .toOrderParameters()
             .withOffer(offer);
         Order memory order = OrderLib.empty().withParameters(parameters);
-        ErrorsAndWarnings memory validation = validator.isValidOrder(
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
 
-        assertEq(errors[0], ERC721Issue.AmountNotOne.parseInt());
-        assertEq(errors[1], ERC721Issue.InvalidToken.parseInt());
-        assertEq(errors[2], SignatureIssue.Invalid.parseInt());
-        assertEq(errors[3], GenericIssue.InvalidOrderFormat.parseInt());
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC721Issue.AmountNotOne)
+            .addError(ERC721Issue.InvalidToken)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(warnings[0], TimeIssue.ShortOrder.parseInt());
-        assertEq(warnings[1], ConsiderationIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
     }
 
     function test_default_full_isValidOrderReadOnly() public {
         Order memory order = OrderLib.empty().withParameters(
             OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
         );
-        ErrorsAndWarnings memory validation = validator.isValidOrderReadOnly(
+        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
             order,
             address(seaport)
         );
-        uint16[] memory errors = validation.errors;
-        uint16[] memory warnings = validation.warnings;
 
-        assertEq(errors[0], GenericIssue.InvalidOrderFormat.parseInt());
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.ZeroItems)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
-        assertEq(warnings[0], TimeIssue.ShortOrder.parseInt());
-        assertEq(warnings[1], OfferIssue.ZeroItems.parseInt());
+        assertEq(actual, expected);
+    }
+
+    function assertEq(
+        ErrorsAndWarnings memory left,
+        ErrorsAndWarnings memory right
+    ) internal {
+        assertEq(
+            left.errors.length,
+            right.errors.length,
+            "unexpected number of errors"
+        );
+        assertEq(
+            left.warnings.length,
+            right.warnings.length,
+            "unexpected number of warnings"
+        );
+        for (uint i = 0; i < left.errors.length; i++) {
+            assertEq(left.errors[i], right.errors[i], "unexpected error");
+        }
+        for (uint i = 0; i < left.warnings.length; i++) {
+            assertEq(left.warnings[i], right.warnings[i], "unexpected warning");
+        }
     }
 }

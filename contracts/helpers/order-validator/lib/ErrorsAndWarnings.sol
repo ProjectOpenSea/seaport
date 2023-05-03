@@ -1,53 +1,196 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
+import {
+    ConsiderationIssue,
+    ERC20Issue,
+    ERC721Issue,
+    GenericIssue,
+    OfferIssue,
+    SignatureIssue,
+    TimeIssue,
+    IssueParser
+} from "./SeaportValidatorTypes.sol";
+
 struct ErrorsAndWarnings {
     uint16[] errors;
     uint16[] warnings;
 }
 
 library ErrorsAndWarningsLib {
-    function concat(ErrorsAndWarnings memory ew1, ErrorsAndWarnings memory ew2)
-        internal
-        pure
-    {
+    using IssueParser for ConsiderationIssue;
+    using IssueParser for ERC20Issue;
+    using IssueParser for ERC721Issue;
+    using IssueParser for GenericIssue;
+    using IssueParser for OfferIssue;
+    using IssueParser for SignatureIssue;
+    using IssueParser for TimeIssue;
+
+    function concat(
+        ErrorsAndWarnings memory ew1,
+        ErrorsAndWarnings memory ew2
+    ) internal pure {
         ew1.errors = concatMemory(ew1.errors, ew2.errors);
         ew1.warnings = concatMemory(ew1.warnings, ew2.warnings);
     }
 
-    function addError(ErrorsAndWarnings memory ew, uint16 err) internal pure {
+    function empty() internal pure returns (ErrorsAndWarnings memory) {
+        return ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+    }
+
+    function addError(
+        uint16 err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        ErrorsAndWarnings memory ew = ErrorsAndWarnings(
+            new uint16[](0),
+            new uint16[](0)
+        );
         ew.errors = pushMemory(ew.errors, err);
+        return ew;
     }
 
-    function addWarning(ErrorsAndWarnings memory ew, uint16 warn)
-        internal
-        pure
-    {
+    function addError(
+        ErrorsAndWarnings memory ew,
+        uint16 err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        ew.errors = pushMemory(ew.errors, err);
+        return ew;
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        GenericIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        ERC20Issue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        ERC721Issue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        ConsiderationIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        OfferIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        SignatureIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        TimeIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addWarning(
+        uint16 warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        ErrorsAndWarnings memory ew = ErrorsAndWarnings(
+            new uint16[](0),
+            new uint16[](0)
+        );
         ew.warnings = pushMemory(ew.warnings, warn);
+        return ew;
     }
 
-    function hasErrors(ErrorsAndWarnings memory ew)
-        internal
-        pure
-        returns (bool)
-    {
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        uint16 warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        ew.warnings = pushMemory(ew.warnings, warn);
+        return ew;
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        GenericIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        ERC20Issue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        ERC721Issue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        OfferIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        ConsiderationIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        SignatureIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        TimeIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function hasErrors(
+        ErrorsAndWarnings memory ew
+    ) internal pure returns (bool) {
         return ew.errors.length != 0;
     }
 
-    function hasWarnings(ErrorsAndWarnings memory ew)
-        internal
-        pure
-        returns (bool)
-    {
+    function hasWarnings(
+        ErrorsAndWarnings memory ew
+    ) internal pure returns (bool) {
         return ew.warnings.length != 0;
     }
 
     // Helper Functions
-    function concatMemory(uint16[] memory array1, uint16[] memory array2)
-        private
-        pure
-        returns (uint16[] memory)
-    {
+    function concatMemory(
+        uint16[] memory array1,
+        uint16[] memory array2
+    ) private pure returns (uint16[] memory) {
         if (array1.length == 0) {
             return array2;
         } else if (array2.length == 0) {
@@ -68,11 +211,10 @@ library ErrorsAndWarningsLib {
         return returnValue;
     }
 
-    function pushMemory(uint16[] memory uint16Array, uint16 newValue)
-        internal
-        pure
-        returns (uint16[] memory)
-    {
+    function pushMemory(
+        uint16[] memory uint16Array,
+        uint16 newValue
+    ) internal pure returns (uint16[] memory) {
         uint16[] memory returnValue = new uint16[](uint16Array.length + 1);
 
         for (uint256 i = 0; i < uint16Array.length; i++) {
