@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {
+    ERC20Interface,
     ERC721Interface,
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
@@ -20,10 +21,7 @@ import {
     SpentItem
 } from "../lib/ConsiderationStructs.sol";
 
-/**
- * @title TestContractOffererNativeToken
- */
-contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
+contract TestInvalidContractOfferer165 {
     error OrderUnavailable();
 
     address private immutable _SEAPORT;
@@ -47,20 +45,6 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
     }
 
     receive() external payable {}
-
-    function activate(
-        SpentItem memory available,
-        SpentItem memory required
-    ) public payable {
-        if (ready || fulfilled) {
-            revert OrderUnavailable();
-        }
-
-        // Set storage variables.
-        _available = available;
-        _required = required;
-        ready = true;
-    }
 
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`
@@ -101,6 +85,49 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
         ready = true;
     }
 
+    function activate(
+        SpentItem memory available,
+        SpentItem memory required
+    ) public payable {
+        if (ready || fulfilled) {
+            revert OrderUnavailable();
+        }
+
+        // Retrieve the offered item and set associated approvals.
+        if (available.itemType == ItemType.NATIVE) {
+            available.amount = address(this).balance;
+        } else if (available.itemType == ItemType.ERC20) {
+            ERC20Interface token = ERC20Interface(available.token);
+
+            token.transferFrom(msg.sender, address(this), available.amount);
+
+            token.approve(_SEAPORT, available.amount);
+        } else if (available.itemType == ItemType.ERC721) {
+            ERC721Interface token = ERC721Interface(available.token);
+
+            token.transferFrom(msg.sender, address(this), available.identifier);
+
+            token.setApprovalForAll(_SEAPORT, true);
+        } else if (available.itemType == ItemType.ERC1155) {
+            ERC1155Interface token = ERC1155Interface(available.token);
+
+            token.safeTransferFrom(
+                msg.sender,
+                address(this),
+                available.identifier,
+                available.amount,
+                ""
+            );
+
+            token.setApprovalForAll(_SEAPORT, true);
+        }
+
+        // Set storage variables.
+        _available = available;
+        _required = required;
+        ready = true;
+    }
+
     function extendAvailable() public {
         if (!ready || fulfilled) {
             revert OrderUnavailable();
@@ -121,43 +148,41 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
 
     function generateOrder(
         address,
-        SpentItem[] calldata minimumReceived,
-        SpentItem[] calldata maximumSpent,
-        bytes calldata /* context */
+        SpentItem[] calldata,
+        SpentItem[] calldata,
+        bytes calldata context
     )
         external
         virtual
-        override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
-        // Set the offer and consideration that were supplied during deployment.
-        offer = new SpentItem[](1);
-        consideration = new ReceivedItem[](1);
-
-        // Send eth to Seaport.
-        (bool success, ) = _SEAPORT.call{ value: minimumReceived[0].amount }(
-            ""
-        );
-
-        // Revert if transaction fails.
-        if (!success) {
-            assembly {
-                returndatacopy(0, 0, returndatasize())
-                revert(0, returndatasize())
-            }
+        // Ensure the caller is Seaport & the order has not yet been fulfilled.
+        if (
+            !ready ||
+            fulfilled ||
+            msg.sender != _SEAPORT ||
+            context.length % 32 != 0
+        ) {
+            revert OrderUnavailable();
         }
 
-        // Set the offer item as the _available item in storage.
-        offer[0] = minimumReceived[0];
+        // Set the offer and consideration that were supplied during deployment.
+        offer = new SpentItem[](1 + extraAvailable);
+        consideration = new ReceivedItem[](1 + extraRequired);
 
-        // Set the erc721 consideration item.
-        consideration[0] = ReceivedItem({
-            itemType: ItemType.ERC721,
-            token: maximumSpent[0].token,
-            identifier: maximumSpent[0].identifier,
-            amount: maximumSpent[0].amount,
-            recipient: payable(address(this))
-        });
+        for (uint256 i = 0; i < 1 + extraAvailable; ++i) {
+            offer[i] = _available;
+        }
+
+        for (uint256 i = 0; i < 1 + extraRequired; ++i) {
+            consideration[i] = ReceivedItem({
+                itemType: _required.itemType,
+                token: _required.token,
+                identifier: _required.identifier,
+                amount: _required.amount,
+                recipient: payable(address(this))
+            });
+        }
 
         // Update storage to reflect that the order has been fulfilled.
         fulfilled = true;
@@ -172,11 +197,15 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
     )
         external
         view
-        override
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
-        if (!ready || fulfilled || caller != _SEAPORT || context.length != 0) {
+        if (
+            !ready ||
+            fulfilled ||
+            caller != _SEAPORT ||
+            context.length % 32 != 0
+        ) {
             revert OrderUnavailable();
         }
 
@@ -225,16 +254,29 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
     function ratifyOrder(
         SpentItem[] calldata /* offer */,
         ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        bytes calldata context,
+        bytes32[] calldata orderHashes,
         uint256 /* contractNonce */
-    )
-        external
-        pure
-        virtual
-        override
-        returns (bytes4 /* ratifyOrderMagicValue */)
-    {
+    ) external pure virtual returns (bytes4 /* ratifyOrderMagicValue */) {
+        if (context.length > 32 && context.length % 32 == 0) {
+            bytes32[] memory expectedOrderHashes = abi.decode(
+                context,
+                (bytes32[])
+            );
+
+            uint256 expectedLength = expectedOrderHashes.length;
+
+            if (expectedLength != orderHashes.length) {
+                revert("Revert on unexpected order hashes length");
+            }
+
+            for (uint256 i = 0; i < expectedLength; ++i) {
+                if (expectedOrderHashes[i] != orderHashes[i]) {
+                    revert("Revert on unexpected order hash");
+                }
+            }
+        }
+
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
@@ -248,27 +290,12 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
         return bytes4(0xf23a6e61);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(ERC165, ContractOffererInterface)
-        returns (bool)
-    {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
     /**
      * @dev Returns the metadata for this contract offerer.
      */
     function getSeaportMetadata()
         external
         pure
-        override
         returns (
             string memory name,
             Schema[] memory schemas // map to Seaport Improvement Proposal IDs
@@ -278,6 +305,6 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
         schemas[0].id = 1337;
         schemas[0].metadata = new bytes(0);
 
-        return ("TestContractOffererNativeToken", schemas);
+        return ("TestContractOfferer", schemas);
     }
 }

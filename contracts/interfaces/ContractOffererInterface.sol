@@ -6,13 +6,14 @@ import {
     Schema,
     SpentItem
 } from "../lib/ConsiderationStructs.sol";
+import { IERC165 } from "../interfaces/IERC165.sol";
 
 /**
  * @title ContractOffererInterface
  * @notice Contains the minimum interfaces needed to interact with a contract
  *         offerer.
  */
-interface ContractOffererInterface {
+interface ContractOffererInterface is IERC165 {
     /**
      * @dev Generates an order with the specified minimum and maximum spent
      *      items, and optional context (supplied as extraData).
@@ -96,6 +97,10 @@ interface ContractOffererInterface {
             string memory name,
             Schema[] memory schemas // map to Seaport Improvement Proposal IDs
         );
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external view override returns (bool);
 
     // Additional functions and/or events based on implemented schemaIDs
 }

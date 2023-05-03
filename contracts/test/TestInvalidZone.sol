@@ -1,28 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ZoneParameters,
-    Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
 
-import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+import { ERC165 } from "../interfaces/ERC165.sol";
 
-import {
-    ZoneInterface
-} from "../../../../contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-contract BadZone is ERC165, ZoneInterface {
+contract TestInvalidZone is ERC165, ZoneInterface {
+    // Returns invalid magic value
     function validateOrder(
-        ZoneParameters calldata zoneParameters
+        ZoneParameters calldata
     ) external pure returns (bytes4 validOrderMagicValue) {
-        if (zoneParameters.consideration[0].identifier == 1) {
-            return ZoneInterface.validateOrder.selector;
-        } else {
-            assembly {
-                return(0, 0)
-            }
-        }
+        return ZoneInterface.getSeaportMetadata.selector;
     }
 
     /**
@@ -41,7 +31,7 @@ contract BadZone is ERC165, ZoneInterface {
         schemas[0].id = 3003;
         schemas[0].metadata = new bytes(0);
 
-        return ("BadZone", schemas);
+        return ("TestZone", schemas);
     }
 
     function supportsInterface(
