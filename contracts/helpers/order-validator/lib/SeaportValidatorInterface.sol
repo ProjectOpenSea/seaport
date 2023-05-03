@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../../lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
     ZoneParameters
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "../../../lib/ConsiderationStructs.sol";
 import { ErrorsAndWarnings } from "./ErrorsAndWarnings.sol";
 import { ValidationConfiguration } from "./SeaportValidatorTypes.sol";
 

@@ -14,10 +14,7 @@
     "./typechain-types",
     "./eip-712-types",
     "./*.config.ts",
-    "./docs/prepare-docs.js",
-    "order-validator/test/ValidateOrderArbitrum.spec.ts",
-    "order-validator/test/ValidateOrdersMainnet.spec.ts",
-    "order-validator/test/order-validator-constants.ts"
+    "./docs/prepare-docs.js"
   ],
   "files": ["./hardhat.config.ts"]
 }

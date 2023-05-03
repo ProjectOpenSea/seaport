@@ -49,8 +49,8 @@ const config: HardhatUserConfig = {
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
   paths: {
-    sources: "./order-validator",
-    tests: "./order-validator/test",
+    sources: "./contracts",
+    tests: "./test/order-validator",
     cache: "hh-cache",
   },
 };

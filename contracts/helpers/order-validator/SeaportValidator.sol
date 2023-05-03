@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "../../lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
@@ -10,28 +10,28 @@ import {
     ConsiderationItem,
     Schema,
     ZoneParameters
-} from "../contracts/lib/ConsiderationStructs.sol";
+} from "../../lib/ConsiderationStructs.sol";
 import { ConsiderationTypeHashes } from "./lib/ConsiderationTypeHashes.sol";
 import {
     ConsiderationInterface
-} from "../contracts/interfaces/ConsiderationInterface.sol";
+} from "../../interfaces/ConsiderationInterface.sol";
 import {
     ConduitControllerInterface
-} from "../contracts/interfaces/ConduitControllerInterface.sol";
+} from "../../interfaces/ConduitControllerInterface.sol";
 import {
     ContractOffererInterface
-} from "../contracts/interfaces/ContractOffererInterface.sol";
-import { ZoneInterface } from "../contracts/interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "../contracts/lib/GettersAndDerivers.sol";
+} from "../../interfaces/ContractOffererInterface.sol";
+import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
+import { GettersAndDerivers } from "../../lib/GettersAndDerivers.sol";
 import { SeaportValidatorInterface } from "./lib/SeaportValidatorInterface.sol";
-import { ZoneInterface } from "../contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../contracts/interfaces/AbridgedTokenInterfaces.sol";
-import { IERC165 } from "../contracts/interfaces/IERC165.sol";
-import { IERC2981 } from "../contracts/interfaces/IERC2981.sol";
+} from "../../interfaces/AbridgedTokenInterfaces.sol";
+import { IERC165 } from "../../interfaces/IERC165.sol";
+import { IERC2981 } from "../../interfaces/IERC2981.sol";
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
@@ -57,7 +57,7 @@ import {
     SignatureIssue,
     GenericIssue
 } from "./lib/SeaportValidatorTypes.sol";
-import { Verifiers } from "../contracts/lib/Verifiers.sol";
+import { Verifiers } from "../../lib/Verifiers.sol";
 
 /**
  * @title SeaportValidator
