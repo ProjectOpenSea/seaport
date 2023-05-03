@@ -56,14 +56,21 @@ contract SeaportValidatorTest is BaseOrderTest {
     function setUp() public override {
         super.setUp();
         validator = new SeaportValidator(address(conduitController));
+
+        OrderLib
+            .empty()
+            .withParameters(
+                OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
+            )
+            .saveDefault(STANDARD);
     }
 
     function test_empty_isValidOrder() public {
-        Order memory order = OrderLib.empty();
         ErrorsAndWarnings memory actual = validator.isValidOrder(
-            order,
+            OrderLib.empty(),
             address(seaport)
         );
+
         ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
             .empty()
             .addError(TimeIssue.EndTimeBeforeStartTime)
@@ -76,9 +83,8 @@ contract SeaportValidatorTest is BaseOrderTest {
     }
 
     function test_empty_isValidOrderReadOnly() public {
-        Order memory order = OrderLib.empty();
         ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            order,
+            OrderLib.empty(),
             address(seaport)
         );
 
@@ -93,11 +99,8 @@ contract SeaportValidatorTest is BaseOrderTest {
     }
 
     function test_default_full_isValidOrder() public {
-        Order memory order = OrderLib.empty().withParameters(
-            OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
-        );
         ErrorsAndWarnings memory actual = validator.isValidOrder(
-            order,
+            OrderLib.fromDefault(STANDARD),
             address(seaport)
         );
 
