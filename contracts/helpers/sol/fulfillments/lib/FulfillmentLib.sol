@@ -679,8 +679,8 @@ library FulfillmentGeneratorLib {
             // This is actually a "while" loop, but bound it as a sanity check.
             bool allProcessed = false;
             for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
-                Fulfillment memory fulfillment = consumeItemsAndGetFulfillment(
-                    matchDetails.items[i]
+                Fulfillment memory fulfillment = (
+                    consumeMaximumItemsAndGetFulfillment(matchDetails.items[i])
                 );
 
                 // Exit the inner loop if no fulfillment was located.
@@ -733,7 +733,7 @@ library FulfillmentGeneratorLib {
     }
 
     // NOTE: this does not currently minimize the number of fulfillments.
-    function consumeItemsAndGetFulfillment(
+    function consumeMaximumItemsAndGetFulfillment(
         DualFulfillmentItems memory matchItems
     ) internal pure returns (Fulfillment memory) {
         // Search for something that can be offered.
@@ -748,7 +748,7 @@ library FulfillmentGeneratorLib {
 
                     if (considerationItems.totalAmount != 0) {
                         return
-                            consumeItemsAndGetFulfillment(
+                            consumeMaximumItemsAndGetFulfillment(
                                 offerItems,
                                 considerationItems
                             );
@@ -819,7 +819,7 @@ library FulfillmentGeneratorLib {
             });
     }
 
-    function consumeItemsAndGetFulfillment(
+    function consumeMaximumItemsAndGetFulfillment(
         FulfillmentItems memory offerItems,
         FulfillmentItems memory considerationItems
     ) internal pure returns (Fulfillment memory) {
@@ -946,6 +946,148 @@ library FulfillmentGeneratorLib {
             offerComponents.length == 0 || considerationComponents.length == 0
         ) {
             revert("FulfillmentGeneratorLib: empty match component generated");
+        }
+
+        return
+            Fulfillment({
+                offerComponents: offerComponents,
+                considerationComponents: considerationComponents
+            });
+    }
+
+    function consumeRandomItemsAndGetFulfillment(
+        FulfillmentItems memory offerItems,
+        FulfillmentItems memory considerationItems,
+        uint256 seed
+    ) internal pure returns (Fulfillment memory) {
+        if (
+            offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
+        ) {
+            revert("FulfillmentGeneratorLib: missing item amounts to consume");
+        }
+
+        // Allocate fulfillment component arrays using total items; reduce
+        // length after based on the total number of elements assigned to each.
+        FulfillmentComponent[] memory offerComponents = (
+            new FulfillmentComponent[](offerItems.items.length)
+        );
+
+        FulfillmentComponent[] memory considerationComponents = (
+            new FulfillmentComponent[](considerationItems.items.length)
+        );
+
+        uint256[] memory consumableOfferIndices = new uint256[](
+            offerItems.items.length
+        );
+        uint256[] memory consumableConsiderationIndices = new uint256[](
+            considerationItems.items.length
+        );
+
+        {
+            uint256 assignmentIndex = 0;
+
+            for (uint256 i = 0; i < offerItems.items.length; ++i) {
+                FulfillmentItem memory item = offerItems.items[i];
+                if (item.amount != 0) {
+                    consumableOfferIndices[assignmentIndex++] = i;
+                }
+            }
+
+            assembly {
+                mstore(consumableOfferIndices, assignmentIndex)
+            }
+
+            assignmentIndex = 0;
+
+            for (uint256 i = 0; i < considerationItems.items.length; ++i) {
+                FulfillmentItem memory item = considerationItems.items[i];
+                if (item.amount != 0) {
+                    consumableConsiderationIndices[assignmentIndex++] = i;
+                }
+            }
+
+            assembly {
+                mstore(consumableConsiderationIndices, assignmentIndex)
+            }
+
+            // Sanity check
+            if (
+                consumableOfferIndices.length == 0 ||
+                consumableConsiderationIndices.length == 0
+            ) {
+                revert(
+                    "FulfillmentGeneratorLib: did not find consumable items"
+                );
+            }
+
+            LibPRNG.PRNG memory prng;
+            prng.seed(seed ^ 0xdd);
+
+            assignmentIndex = prng.uniform(consumableOfferIndices.length) + 1;
+            assembly {
+                mstore(offerComponents, assignmentIndex)
+                mstore(consumableOfferIndices, assignmentIndex)
+            }
+
+            assignmentIndex =
+                prng.uniform(consumableConsiderationIndices.length) +
+                1;
+            assembly {
+                mstore(considerationComponents, assignmentIndex)
+                mstore(consumableConsiderationIndices, assignmentIndex)
+            }
+
+            prng.shuffle(consumableOfferIndices);
+            prng.shuffle(consumableConsiderationIndices);
+        }
+
+        uint256 totalOfferAmount = 0;
+        uint256 totalConsiderationAmount = 0;
+
+        for (uint256 i = 0; i < consumableOfferIndices.length; ++i) {
+            FulfillmentItem memory item = offerItems.items[
+                consumableOfferIndices[i]
+            ];
+
+            offerComponents[i] = getFulfillmentComponent(item);
+
+            totalOfferAmount += item.amount;
+            item.amount = 0;
+        }
+
+        for (uint256 i = 0; i < consumableConsiderationIndices.length; ++i) {
+            FulfillmentItem memory item = considerationItems.items[
+                consumableConsiderationIndices[i]
+            ];
+
+            considerationComponents[i] = getFulfillmentComponent(item);
+
+            totalConsiderationAmount += item.amount;
+            item.amount = 0;
+        }
+
+        if (totalOfferAmount > totalConsiderationAmount) {
+            uint256 remainingAmount = (totalOfferAmount -
+                totalConsiderationAmount);
+
+            // add back excess to first offer item
+            offerItems.items[consumableOfferIndices[0]].amount += (
+                remainingAmount
+            );
+
+            offerItems.totalAmount -= totalConsiderationAmount;
+            considerationItems.totalAmount -= totalConsiderationAmount;
+        } else {
+            uint256 remainingAmount = (totalConsiderationAmount -
+                totalOfferAmount);
+
+            // add back excess to first consideration item
+            considerationItems
+                .items[consumableConsiderationIndices[0]]
+                .amount += remainingAmount;
+
+            offerItems.totalAmount -= totalOfferAmount;
+            considerationItems.totalAmount -= totalOfferAmount;
         }
 
         return
