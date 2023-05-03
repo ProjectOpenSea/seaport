@@ -74,8 +74,7 @@ contract SeaportValidator is
     using IssueParser for *;
 
     /// @notice Cross-chain conduit controller Address
-    ConduitControllerInterface public constant conduitController =
-        ConduitControllerInterface(0x00000000F9490004C11Cef243f5400493c00Ad63);
+    ConduitControllerInterface private immutable _conduitController;
 
     SeaportValidatorHelper private immutable _helper;
 
@@ -89,8 +88,11 @@ contract SeaportValidator is
 
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
-    constructor() {
+    constructor(address conduitControllerAddress) {
         _helper = new SeaportValidatorHelper();
+        _conduitController = ConduitControllerInterface(
+            conduitControllerAddress
+        );
     }
 
     /**
@@ -363,7 +365,7 @@ contract SeaportValidator is
         if (conduitKey == 0) return (seaportAddress, errorsAndWarnings);
 
         // Pull conduit info from conduitController
-        (address conduitAddress, bool exists) = conduitController.getConduit(
+        (address conduitAddress, bool exists) = _conduitController.getConduit(
             conduitKey
         );
 
@@ -376,7 +378,7 @@ contract SeaportValidator is
         // Approval address does not have Seaport added as a channel
         if (
             exists &&
-            !conduitController.getChannelStatus(conduitAddress, seaportAddress)
+            !_conduitController.getChannelStatus(conduitAddress, seaportAddress)
         ) {
             errorsAndWarnings.addError(
                 ConduitIssue.MissingSeaportChannel.parseInt()
