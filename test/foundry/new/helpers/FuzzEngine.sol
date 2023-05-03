@@ -77,6 +77,14 @@ import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
 import { logMutation } from "./Metrics.sol";
 
+import {
+    SeaportValidator
+} from "../../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    ErrorsAndWarnings
+} from "../../../../../contracts/helpers/order-validator/lib/ErrorsAndWarnings.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -305,6 +313,7 @@ contract FuzzEngine is
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)
+            .withSeaportValidator(seaportValidator)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
             .withPreExecOrderStatuses(space)
@@ -488,6 +497,11 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function execSuccess(FuzzTestContext memory context) internal {
+        for (uint i = 0; i < context.executionState.orders.length; ++i) {
+            Order memory order = context.executionState.orders[i].toOrder();
+            ErrorsAndWarnings memory errorsAndWarnings = validator
+                .isValidOrderReadOnly(order, address(context.seaport));
+        }
         ExpectedEventsUtil.startRecordingLogs();
         exec(context, true);
     }

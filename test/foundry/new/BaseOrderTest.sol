@@ -62,6 +62,10 @@ import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
+import {
+    SeaportValidator
+} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
 /**
  * @dev used to store address and key outputs from makeAddrAndKey(name)
  */
