@@ -249,13 +249,22 @@ contract SeaportValidator is
             )
         );
         errorsAndWarnings.concat(
-            validateOrderStatus(order.parameters, validationConfiguration.seaport)
+            validateOrderStatus(
+                order.parameters,
+                validationConfiguration.seaport
+            )
         );
         errorsAndWarnings.concat(
-            validateOfferItems(order.parameters, validationConfiguration.seaport)
+            validateOfferItems(
+                order.parameters,
+                validationConfiguration.seaport
+            )
         );
         errorsAndWarnings.concat(
-            validateConsiderationItems(order.parameters, validationConfiguration.seaport)
+            validateConsiderationItems(
+                order.parameters,
+                validationConfiguration.seaport
+            )
         );
         errorsAndWarnings.concat(isValidZone(order.parameters));
 
@@ -1374,123 +1383,129 @@ contract SeaportValidator is
     {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
-        // non-fungible item address
-        address itemAddress;
-        // non-fungible item identifier
-        uint256 itemIdentifier;
-        // fungible item start amount
-        uint256 transactionAmountStart;
-        // fungible item end amount
-        uint256 transactionAmountEnd;
+        bool primaryFeePresent;
 
         // Consideration item to hold expected creator fee info
         ConsiderationItem memory creatorFeeConsideration;
-
-        if (isPaymentToken(orderParameters.offer[0].itemType)) {
-            // Offer is an offer. Offer item is fungible and used for fees
-            creatorFeeConsideration.itemType = orderParameters
-                .offer[0]
-                .itemType;
-            creatorFeeConsideration.token = orderParameters.offer[0].token;
-            transactionAmountStart = orderParameters.offer[0].startAmount;
-            transactionAmountEnd = orderParameters.offer[0].endAmount;
-
-            // Set non-fungible information for calculating creator fee
-            itemAddress = orderParameters.consideration[0].token;
-            itemIdentifier = orderParameters
-                .consideration[0]
-                .identifierOrCriteria;
-        } else {
-            // Offer is an offer. Consideration item is fungible and used for fees
-            creatorFeeConsideration.itemType = orderParameters
-                .consideration[0]
-                .itemType;
-            creatorFeeConsideration.token = orderParameters
-                .consideration[0]
-                .token;
-            transactionAmountStart = orderParameters
-                .consideration[0]
-                .startAmount;
-            transactionAmountEnd = orderParameters.consideration[0].endAmount;
-
-            // Set non-fungible information for calculating creator fees
-            itemAddress = orderParameters.offer[0].token;
-            itemIdentifier = orderParameters.offer[0].identifierOrCriteria;
-        }
-
-        // Store flag if primary fee is present
-        bool primaryFeePresent = false;
         {
-            // Calculate primary fee start and end amounts
-            uint256 primaryFeeStartAmount = (transactionAmountStart *
-                primaryFeeBips) / 10000;
-            uint256 primaryFeeEndAmount = (transactionAmountEnd *
-                primaryFeeBips) / 10000;
+            // non-fungible item address
+            address itemAddress;
+            // non-fungible item identifier
+            uint256 itemIdentifier;
+            // fungible item start amount
+            uint256 transactionAmountStart;
+            // fungible item end amount
+            uint256 transactionAmountEnd;
 
-            // Check if primary fee check is desired. Skip if calculated amount is zero.
-            if (
-                primaryFeeRecipient != address(0) &&
-                (primaryFeeStartAmount > 0 || primaryFeeEndAmount > 0)
-            ) {
-                // Ensure primary fee is present
-                if (orderParameters.consideration.length < 2) {
-                    errorsAndWarnings.addError(
-                        PrimaryFeeIssue.Missing.parseInt()
-                    );
-                    return (0, errorsAndWarnings);
-                }
-                primaryFeePresent = true;
+            if (isPaymentToken(orderParameters.offer[0].itemType)) {
+                // Offer is an offer. Offer item is fungible and used for fees
+                creatorFeeConsideration.itemType = orderParameters
+                    .offer[0]
+                    .itemType;
+                creatorFeeConsideration.token = orderParameters.offer[0].token;
+                transactionAmountStart = orderParameters.offer[0].startAmount;
+                transactionAmountEnd = orderParameters.offer[0].endAmount;
 
-                ConsiderationItem memory primaryFeeItem = orderParameters
-                    .consideration[1];
+                // Set non-fungible information for calculating creator fee
+                itemAddress = orderParameters.consideration[0].token;
+                itemIdentifier = orderParameters
+                    .consideration[0]
+                    .identifierOrCriteria;
+            } else {
+                // Offer is an offer. Consideration item is fungible and used for fees
+                creatorFeeConsideration.itemType = orderParameters
+                    .consideration[0]
+                    .itemType;
+                creatorFeeConsideration.token = orderParameters
+                    .consideration[0]
+                    .token;
+                transactionAmountStart = orderParameters
+                    .consideration[0]
+                    .startAmount;
+                transactionAmountEnd = orderParameters
+                    .consideration[0]
+                    .endAmount;
 
-                // Check item type
+                // Set non-fungible information for calculating creator fees
+                itemAddress = orderParameters.offer[0].token;
+                itemIdentifier = orderParameters.offer[0].identifierOrCriteria;
+            }
+
+            // Store flag if primary fee is present
+            primaryFeePresent = false;
+            {
+                // Calculate primary fee start and end amounts
+                uint256 primaryFeeStartAmount = (transactionAmountStart *
+                    primaryFeeBips) / 10000;
+                uint256 primaryFeeEndAmount = (transactionAmountEnd *
+                    primaryFeeBips) / 10000;
+
+                // Check if primary fee check is desired. Skip if calculated amount is zero.
                 if (
-                    primaryFeeItem.itemType != creatorFeeConsideration.itemType
+                    primaryFeeRecipient != address(0) &&
+                    (primaryFeeStartAmount > 0 || primaryFeeEndAmount > 0)
                 ) {
-                    errorsAndWarnings.addError(
-                        PrimaryFeeIssue.ItemType.parseInt()
-                    );
-                    return (0, errorsAndWarnings);
-                }
-                // Check token
-                if (primaryFeeItem.token != creatorFeeConsideration.token) {
-                    errorsAndWarnings.addError(
-                        PrimaryFeeIssue.Token.parseInt()
-                    );
-                }
-                // Check start amount
-                if (primaryFeeItem.startAmount < primaryFeeStartAmount) {
-                    errorsAndWarnings.addError(
-                        PrimaryFeeIssue.StartAmount.parseInt()
-                    );
-                }
-                // Check end amount
-                if (primaryFeeItem.endAmount < primaryFeeEndAmount) {
-                    errorsAndWarnings.addError(
-                        PrimaryFeeIssue.EndAmount.parseInt()
-                    );
-                }
-                // Check recipient
-                if (primaryFeeItem.recipient != primaryFeeRecipient) {
-                    errorsAndWarnings.addError(
-                        PrimaryFeeIssue.Recipient.parseInt()
-                    );
+                    // Ensure primary fee is present
+                    if (orderParameters.consideration.length < 2) {
+                        errorsAndWarnings.addError(
+                            PrimaryFeeIssue.Missing.parseInt()
+                        );
+                        return (0, errorsAndWarnings);
+                    }
+                    primaryFeePresent = true;
+
+                    ConsiderationItem memory primaryFeeItem = orderParameters
+                        .consideration[1];
+
+                    // Check item type
+                    if (
+                        primaryFeeItem.itemType !=
+                        creatorFeeConsideration.itemType
+                    ) {
+                        errorsAndWarnings.addError(
+                            PrimaryFeeIssue.ItemType.parseInt()
+                        );
+                        return (0, errorsAndWarnings);
+                    }
+                    // Check token
+                    if (primaryFeeItem.token != creatorFeeConsideration.token) {
+                        errorsAndWarnings.addError(
+                            PrimaryFeeIssue.Token.parseInt()
+                        );
+                    }
+                    // Check start amount
+                    if (primaryFeeItem.startAmount < primaryFeeStartAmount) {
+                        errorsAndWarnings.addError(
+                            PrimaryFeeIssue.StartAmount.parseInt()
+                        );
+                    }
+                    // Check end amount
+                    if (primaryFeeItem.endAmount < primaryFeeEndAmount) {
+                        errorsAndWarnings.addError(
+                            PrimaryFeeIssue.EndAmount.parseInt()
+                        );
+                    }
+                    // Check recipient
+                    if (primaryFeeItem.recipient != primaryFeeRecipient) {
+                        errorsAndWarnings.addError(
+                            PrimaryFeeIssue.Recipient.parseInt()
+                        );
+                    }
                 }
             }
-        }
 
-        // Check creator fee
-        (
-            creatorFeeConsideration.recipient,
-            creatorFeeConsideration.startAmount,
-            creatorFeeConsideration.endAmount
-        ) = getCreatorFeeInfo(
-            itemAddress,
-            itemIdentifier,
-            transactionAmountStart,
-            transactionAmountEnd
-        );
+            // Check creator fee
+            (
+                creatorFeeConsideration.recipient,
+                creatorFeeConsideration.startAmount,
+                creatorFeeConsideration.endAmount
+            ) = getCreatorFeeInfo(
+                itemAddress,
+                itemIdentifier,
+                transactionAmountStart,
+                transactionAmountEnd
+            );
+        }
 
         // Flag indicating if creator fee is present in considerations
         bool creatorFeePresent = false;
