@@ -53,6 +53,8 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     SeaportValidator internal validator;
 
+    string constant SINGLE_ERC20 = "SINGLE_ERC20";
+
     function setUp() public override {
         super.setUp();
         validator = new SeaportValidator(address(conduitController));
@@ -63,6 +65,26 @@ contract SeaportValidatorTest is BaseOrderTest {
                 OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
             )
             .saveDefault(STANDARD);
+
+        // Set up and store order with single ERC20 offer item
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItemLib.empty().withItemType(ItemType.ERC20).withAmount(
+            1
+        );
+        OrderParameters memory parameters = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .toOrderParameters()
+            .withOffer(offer);
+        OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC20);
+
+        // Set up and store order with single ERC721 offer item
+        offer = new OfferItem[](1);
+        offer[0] = OfferItemLib.empty().withItemType(ItemType.ERC721);
+        parameters = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .toOrderParameters()
+            .withOffer(offer);
+        OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC721);
     }
 
     function test_empty_isValidOrder() public {
@@ -116,17 +138,8 @@ contract SeaportValidatorTest is BaseOrderTest {
     }
 
     function test_default_full_isValidOrder_identifierNonZero() public {
-        OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib
-            .empty()
-            .withItemType(ItemType.ERC20)
-            .withAmount(1)
-            .withIdentifierOrCriteria(1);
-        OrderParameters memory parameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOffer(offer);
-        Order memory order = OrderLib.empty().withParameters(parameters);
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
+        order.parameters.offer[0].identifierOrCriteria = 1;
 
         ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
@@ -146,17 +159,8 @@ contract SeaportValidatorTest is BaseOrderTest {
     }
 
     function test_default_full_isValidOrder_invalidToken() public {
-        OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib
-            .empty()
-            .withItemType(ItemType.ERC20)
-            .withAmount(1)
-            .withToken(address(0));
-        OrderParameters memory parameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOffer(offer);
-        Order memory order = OrderLib.empty().withParameters(parameters);
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
+        order.parameters.offer[0].token = address(0);
 
         ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
@@ -175,16 +179,9 @@ contract SeaportValidatorTest is BaseOrderTest {
     }
 
     function test_default_full_isValidOrder_amountNotOne() public {
-        OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib
-            .empty()
-            .withItemType(ItemType.ERC721)
-            .withAmount(3);
-        OrderParameters memory parameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters()
-            .withOffer(offer);
-        Order memory order = OrderLib.empty().withParameters(parameters);
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offer[0].startAmount = 3;
+        order.parameters.offer[0].endAmount = 3;
 
         ErrorsAndWarnings memory actual = validator.isValidOrder(
             order,
