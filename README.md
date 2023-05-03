@@ -20,6 +20,7 @@ Seaport is a marketplace protocol for safely and efficiently buying and selling 
   - [Background](#background)
   - [Deployments](#deployments)
   - [Diagram](#diagram)
+  - [Docs](#docs)
   - [Install](#install)
   - [Usage](#usage)
     - [Foundry Tests](#foundry-tests)
@@ -468,6 +469,14 @@ graph TD
 ```
 
 For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.svg).
+
+## Docs
+
+- [Seaport Deployment](./docs/Deployment.md)
+- [Seaport Documentation](./docs/SeaportDocumentation.md)
+- [Zone Documentation](./docs/ZoneDocumentation.md)
+- [Function Signatures](./docs/FunctionSignatures.md)
+- [Order Validator](./docs/OrderValidator.md)
 
 ## Install
 
