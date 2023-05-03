@@ -18,6 +18,12 @@ struct ValidationConfiguration {
     uint256 distantOrderExpiration;
 }
 
+struct ConsiderationItemConfiguration {
+    address primaryFeeRecipient;
+    uint256 primaryFeeBips;
+    bool checkCreatorFee;
+}
+
 enum GenericIssue {
     InvalidOrderFormat // 100
 }

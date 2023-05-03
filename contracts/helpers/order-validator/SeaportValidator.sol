@@ -55,7 +55,8 @@ import {
     ConduitIssue,
     CreatorFeeIssue,
     SignatureIssue,
-    GenericIssue
+    GenericIssue,
+    ConsiderationItemConfiguration
 } from "./lib/SeaportValidatorTypes.sol";
 import { Verifiers } from "../../lib/Verifiers.sol";
 
@@ -1349,9 +1350,11 @@ contract SeaportValidator is
             ErrorsAndWarnings memory errorsAndWarningsLocal
         ) = _validateSecondaryConsiderationItems(
                 orderParameters,
-                primaryFeeRecipient,
-                primaryFeeBips,
-                checkCreatorFee
+                ConsiderationItemConfiguration({
+                    primaryFeeRecipient: primaryFeeRecipient,
+                    primaryFeeBips: primaryFeeBips,
+                    checkCreatorFee: checkCreatorFee
+                })
             );
 
         errorsAndWarnings.concat(errorsAndWarningsLocal);
@@ -1370,23 +1373,24 @@ contract SeaportValidator is
 
     function _validateSecondaryConsiderationItems(
         OrderParameters memory orderParameters,
-        address primaryFeeRecipient,
-        uint256 primaryFeeBips,
-        bool checkCreatorFee
+        ConsiderationItemConfiguration memory config
     )
         internal
         view
         returns (
-            uint256 tertiaryConsiderationIndex,
-            ErrorsAndWarnings memory errorsAndWarnings
+            uint256 /* tertiaryConsiderationIndex */,
+            ErrorsAndWarnings memory  /* errorsAndWarnings */
         )
     {
-        errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
-
-        bool primaryFeePresent;
+        ErrorsAndWarnings memory errorsAndWarnings = ErrorsAndWarnings(
+            new uint16[](0), new uint16[](0)
+        );
 
         // Consideration item to hold expected creator fee info
         ConsiderationItem memory creatorFeeConsideration;
+
+        bool primaryFeePresent;
+
         {
             // non-fungible item address
             address itemAddress;
@@ -1436,13 +1440,13 @@ contract SeaportValidator is
             {
                 // Calculate primary fee start and end amounts
                 uint256 primaryFeeStartAmount = (transactionAmountStart *
-                    primaryFeeBips) / 10000;
+                    config.primaryFeeBips) / 10000;
                 uint256 primaryFeeEndAmount = (transactionAmountEnd *
-                    primaryFeeBips) / 10000;
+                    config.primaryFeeBips) / 10000;
 
                 // Check if primary fee check is desired. Skip if calculated amount is zero.
                 if (
-                    primaryFeeRecipient != address(0) &&
+                    config.primaryFeeRecipient != address(0) &&
                     (primaryFeeStartAmount > 0 || primaryFeeEndAmount > 0)
                 ) {
                     // Ensure primary fee is present
@@ -1486,7 +1490,7 @@ contract SeaportValidator is
                         );
                     }
                     // Check recipient
-                    if (primaryFeeItem.recipient != primaryFeeRecipient) {
+                    if (primaryFeeItem.recipient != config.primaryFeeRecipient) {
                         errorsAndWarnings.addError(
                             PrimaryFeeIssue.Recipient.parseInt()
                         );
@@ -1513,7 +1517,7 @@ contract SeaportValidator is
         // Determine if should check for creator fee
         if (
             creatorFeeConsideration.recipient != address(0) &&
-            checkCreatorFee &&
+            config.checkCreatorFee &&
             (creatorFeeConsideration.startAmount > 0 ||
                 creatorFeeConsideration.endAmount > 0)
         ) {
@@ -1566,10 +1570,12 @@ contract SeaportValidator is
         }
 
         // Calculate index of first tertiary consideration item
-        tertiaryConsiderationIndex =
+        uint256 tertiaryConsiderationIndex =
             1 +
             (primaryFeePresent ? 1 : 0) +
             (creatorFeePresent ? 1 : 0);
+
+        return (tertiaryConsiderationIndex, errorsAndWarnings);
     }
 
     /**
