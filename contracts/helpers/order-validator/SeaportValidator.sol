@@ -140,6 +140,7 @@ contract SeaportValidator is
         return
             isValidOrderWithConfiguration(
                 ValidationConfiguration(
+                    seaportAddress,
                     address(0),
                     0,
                     false,
@@ -147,8 +148,7 @@ contract SeaportValidator is
                     30 minutes,
                     26 weeks
                 ),
-                order,
-                seaportAddress
+                order
             );
     }
 
@@ -162,6 +162,7 @@ contract SeaportValidator is
         return
             isValidOrderWithConfigurationReadOnly(
                 ValidationConfiguration(
+                    seaportAddress,
                     address(0),
                     0,
                     false,
@@ -169,8 +170,7 @@ contract SeaportValidator is
                     30 minutes,
                     26 weeks
                 ),
-                order,
-                seaportAddress
+                order
             );
     }
 
@@ -181,8 +181,7 @@ contract SeaportValidator is
      */
     function isValidOrderWithConfiguration(
         ValidationConfiguration memory validationConfiguration,
-        Order memory order,
-        address seaportAddress
+        Order memory order
     ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -195,16 +194,27 @@ contract SeaportValidator is
             )
         );
         errorsAndWarnings.concat(
-            validateOrderStatus(order.parameters, seaportAddress)
+            validateOrderStatus(
+                order.parameters,
+                validationConfiguration.seaport
+            )
         );
         errorsAndWarnings.concat(
-            validateOfferItems(order.parameters, seaportAddress)
+            validateOfferItems(
+                order.parameters,
+                validationConfiguration.seaport
+            )
         );
         errorsAndWarnings.concat(
-            validateConsiderationItems(order.parameters, seaportAddress)
+            validateConsiderationItems(
+                order.parameters,
+                validationConfiguration.seaport
+            )
         );
         errorsAndWarnings.concat(isValidZone(order.parameters));
-        errorsAndWarnings.concat(validateSignature(order, seaportAddress));
+        errorsAndWarnings.concat(
+            validateSignature(order, validationConfiguration.seaport)
+        );
 
         // Skip strict validation if requested
         if (!validationConfiguration.skipStrictValidation) {
@@ -226,8 +236,7 @@ contract SeaportValidator is
      */
     function isValidOrderWithConfigurationReadOnly(
         ValidationConfiguration memory validationConfiguration,
-        Order memory order,
-        address seaportAddress
+        Order memory order
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
@@ -240,13 +249,13 @@ contract SeaportValidator is
             )
         );
         errorsAndWarnings.concat(
-            validateOrderStatus(order.parameters, seaportAddress)
+            validateOrderStatus(order.parameters, validationConfiguration.seaport)
         );
         errorsAndWarnings.concat(
-            validateOfferItems(order.parameters, seaportAddress)
+            validateOfferItems(order.parameters, validationConfiguration.seaport)
         );
         errorsAndWarnings.concat(
-            validateConsiderationItems(order.parameters, seaportAddress)
+            validateConsiderationItems(order.parameters, validationConfiguration.seaport)
         );
         errorsAndWarnings.concat(isValidZone(order.parameters));
 

@@ -36,8 +36,7 @@ interface SeaportValidatorInterface {
      */
     function isValidOrderWithConfiguration(
         ValidationConfiguration memory validationConfiguration,
-        Order memory order,
-        address seaportAddress
+        Order memory order
     ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
@@ -45,8 +44,7 @@ interface SeaportValidatorInterface {
      */
     function isValidOrderWithConfigurationReadOnly(
         ValidationConfiguration memory validationConfiguration,
-        Order memory order,
-        address seaportAddress
+        Order memory order
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**

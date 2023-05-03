@@ -2,6 +2,8 @@
 pragma solidity ^0.8.10;
 
 struct ValidationConfiguration {
+    /// @notice The seaport address.
+    address seaport;
     /// @notice Recipient for primary fee payments.
     address primaryFeeRecipient;
     /// @notice Bips for primary fee payments.
