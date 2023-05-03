@@ -480,7 +480,8 @@ contract Executor is Verifiers, TokenTransferrer {
             _revertInvalidCallToConduit(conduit);
         }
 
-        // Ensure result was extracted and matches EIP-1271 magic value.
+        // Ensure result was extracted and matches the Conduit executor magic
+        // value.
         if (result != ConduitInterface.execute.selector) {
             _revertInvalidConduit(conduitKey, conduit);
         }
