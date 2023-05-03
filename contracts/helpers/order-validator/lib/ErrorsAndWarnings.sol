@@ -5,6 +5,7 @@ import {
     ConsiderationIssue,
     ERC20Issue,
     ERC721Issue,
+    ERC1155Issue,
     GenericIssue,
     OfferIssue,
     SignatureIssue,
@@ -21,6 +22,7 @@ library ErrorsAndWarningsLib {
     using IssueParser for ConsiderationIssue;
     using IssueParser for ERC20Issue;
     using IssueParser for ERC721Issue;
+    using IssueParser for ERC1155Issue;
     using IssueParser for GenericIssue;
     using IssueParser for OfferIssue;
     using IssueParser for SignatureIssue;
@@ -74,6 +76,13 @@ library ErrorsAndWarningsLib {
     function addError(
         ErrorsAndWarnings memory ew,
         ERC721Issue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        ERC1155Issue err
     ) internal pure returns (ErrorsAndWarnings memory) {
         return addError(ew, err.parseInt());
     }
@@ -142,6 +151,13 @@ library ErrorsAndWarningsLib {
     function addWarning(
         ErrorsAndWarnings memory ew,
         ERC721Issue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        ERC1155Issue warn
     ) internal pure returns (ErrorsAndWarnings memory) {
         return addWarning(ew, warn.parseInt());
     }

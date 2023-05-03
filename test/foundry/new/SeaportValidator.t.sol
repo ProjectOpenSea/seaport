@@ -8,6 +8,7 @@ import {
     GenericIssue,
     ERC20Issue,
     ERC721Issue,
+    ERC1155Issue,
     IssueParser,
     OfferIssue,
     SeaportValidator,
@@ -54,6 +55,7 @@ contract SeaportValidatorTest is BaseOrderTest {
     SeaportValidator internal validator;
 
     string constant SINGLE_ERC20 = "SINGLE_ERC20";
+    string constant SINGLE_ERC1155 = "SINGLE_ERC1155";
 
     function setUp() public override {
         super.setUp();
@@ -79,12 +81,29 @@ contract SeaportValidatorTest is BaseOrderTest {
 
         // Set up and store order with single ERC721 offer item
         offer = new OfferItem[](1);
-        offer[0] = OfferItemLib.empty().withItemType(ItemType.ERC721);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
         parameters = OrderComponentsLib
             .fromDefault(STANDARD)
             .toOrderParameters()
             .withOffer(offer);
         OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC721);
+
+        // Set up and store order with single ERC1155 offer item
+        offer = new OfferItem[](1);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC1155)
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+        parameters = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .toOrderParameters()
+            .withOffer(offer);
+        OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC1155);
     }
 
     function test_empty_isValidOrder() public {
@@ -137,7 +156,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_identifierNonZero() public {
+    function test_default_full_isValidOrder_erc20_identifierNonZero() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
         order.parameters.offer[0].identifierOrCriteria = 1;
 
@@ -158,7 +177,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_invalidToken() public {
+    function test_default_full_isValidOrder_erc20_invalidToken() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
         order.parameters.offer[0].token = address(0);
 
@@ -178,7 +197,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_amountNotOne() public {
+    function test_default_full_isValidOrder_erc721_amountNotOne() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.offer[0].startAmount = 3;
         order.parameters.offer[0].endAmount = 3;
@@ -192,6 +211,46 @@ contract SeaportValidatorTest is BaseOrderTest {
             .empty()
             .addError(ERC721Issue.AmountNotOne)
             .addError(ERC721Issue.InvalidToken)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_default_full_isValidOrder_erc721_invalidToken() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offer[0].token = address(0);
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC721Issue.InvalidToken)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_default_full_isValidOrder_erc1155_invalidToken() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC1155);
+        order.parameters.offer[0].token = address(0);
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC1155Issue.InvalidToken)
             .addError(SignatureIssue.Invalid)
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(TimeIssue.ShortOrder)
