@@ -75,8 +75,7 @@ contract SeaportValidator is
     using IssueParser for *;
 
     /// @notice Cross-chain conduit controller Address
-    ConduitControllerInterface public constant conduitController =
-        ConduitControllerInterface(0x00000000F9490004C11Cef243f5400493c00Ad63);
+    ConduitControllerInterface public immutable conduitController;
     /// @notice Ethereum creator fee engine address
     CreatorFeeEngineInterface public immutable creatorFeeEngine;
 
@@ -90,7 +89,7 @@ contract SeaportValidator is
 
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
-    constructor() {
+    constructor(address _conduitControllerAddress) {
         address creatorFeeEngineAddress;
         if (block.chainid == 1 || block.chainid == 31337) {
             creatorFeeEngineAddress = 0x0385603ab55642cb4Dd5De3aE9e306809991804f;
@@ -116,6 +115,10 @@ contract SeaportValidator is
             // No creator fee engine for this chain
             creatorFeeEngineAddress = address(0);
         }
+
+        conduitController = ConduitControllerInterface(
+            _conduitControllerAddress
+        );
 
         creatorFeeEngine = CreatorFeeEngineInterface(creatorFeeEngineAddress);
     }
@@ -184,35 +187,11 @@ contract SeaportValidator is
         ValidationConfiguration memory validationConfiguration,
         Order memory order
     ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
-        errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
+        errorsAndWarnings = isValidOrderWithConfigurationReadOnly(
+            validationConfiguration,
+            order
+        );
 
-        // Concatenates errorsAndWarnings with the returned errorsAndWarnings
-        errorsAndWarnings.concat(
-            validateTime(
-                order.parameters,
-                validationConfiguration.shortOrderDuration,
-                validationConfiguration.distantOrderExpiration
-            )
-        );
-        errorsAndWarnings.concat(
-            validateOrderStatus(
-                order.parameters,
-                validationConfiguration.seaport
-            )
-        );
-        errorsAndWarnings.concat(
-            validateOfferItems(
-                order.parameters,
-                validationConfiguration.seaport
-            )
-        );
-        errorsAndWarnings.concat(
-            validateConsiderationItems(
-                order.parameters,
-                validationConfiguration.seaport
-            )
-        );
-        errorsAndWarnings.concat(isValidZone(order.parameters));
         errorsAndWarnings.concat(
             validateSignature(order, validationConfiguration.seaport)
         );
@@ -1379,11 +1358,12 @@ contract SeaportValidator is
         view
         returns (
             uint256 /* tertiaryConsiderationIndex */,
-            ErrorsAndWarnings memory  /* errorsAndWarnings */
+            ErrorsAndWarnings memory /* errorsAndWarnings */
         )
     {
         ErrorsAndWarnings memory errorsAndWarnings = ErrorsAndWarnings(
-            new uint16[](0), new uint16[](0)
+            new uint16[](0),
+            new uint16[](0)
         );
 
         // Consideration item to hold expected creator fee info
@@ -1490,7 +1470,9 @@ contract SeaportValidator is
                         );
                     }
                     // Check recipient
-                    if (primaryFeeItem.recipient != config.primaryFeeRecipient) {
+                    if (
+                        primaryFeeItem.recipient != config.primaryFeeRecipient
+                    ) {
                         errorsAndWarnings.addError(
                             PrimaryFeeIssue.Recipient.parseInt()
                         );
@@ -1570,8 +1552,7 @@ contract SeaportValidator is
         }
 
         // Calculate index of first tertiary consideration item
-        uint256 tertiaryConsiderationIndex =
-            1 +
+        uint256 tertiaryConsiderationIndex = 1 +
             (primaryFeePresent ? 1 : 0) +
             (creatorFeePresent ? 1 : 0);
 
