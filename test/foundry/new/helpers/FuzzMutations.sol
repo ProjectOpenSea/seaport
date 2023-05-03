@@ -3172,22 +3172,6 @@ contract FuzzMutations is Test, FuzzExecutor {
             order.parameters.totalOriginalConsiderationItems = 0;
 
             _signOrValidateMutatedOrder(context, i);
-
-            // // Re-sign order
-            // if (
-            //     context.advancedOrdersSpace.orders[i].signatureMethod ==
-            //     SignatureMethod.VALIDATE
-            // ) {
-            //     order.inscribeOrderStatusValidated(true, context.seaport);
-            // } else if (
-            //     context.executionState.caller != order.parameters.offerer
-            // ) {
-            //     AdvancedOrdersSpaceGenerator._signOrders(
-            //         context.advancedOrdersSpace,
-            //         context.executionState.orders,
-            //         context.generatorContext
-            //     );
-            // }
         }
         context.executionState.offerFulfillments = new FulfillmentComponent[][](
             0
