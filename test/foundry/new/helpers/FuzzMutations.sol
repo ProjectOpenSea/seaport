@@ -2301,18 +2301,8 @@ contract FuzzMutations is Test, FuzzExecutor {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
         order.parameters.conduitKey = keccak256("invalid conduit");
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else if (context.executionState.caller != order.parameters.offerer) {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
-        }
+
+        _signOrValidateMutatedOrder(context, orderIndex);
 
         context
             .executionState
@@ -2421,6 +2411,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation triggers a revert by setting the numerator to a value
+        // that is less than the denominator. Contract orders can't have a
+        // partial fill.
+
         order.numerator = 6;
         order.denominator = 9;
 
@@ -2430,13 +2424,21 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_invalidFulfillmentComponentData(
         FuzzTestContext memory context
     ) external {
+        // This mutation triggers a revert by modifying or creating a
+        // fulfillment component that uses an order index that is out of bounds.
+        // The order index must be within bounds.
+
         if (context.executionState.fulfillments.length != 0) {
+            // If there's already one or more fulfillments, just set the order index
+            // for the first fulfillment's consideration component to an invalid
+            // value.
             context
                 .executionState
                 .fulfillments[0]
                 .considerationComponents[0]
                 .orderIndex = context.executionState.orders.length;
         } else {
+            // Otherwise, create a new, empty fulfillment.
             context.executionState.fulfillments = new Fulfillment[](1);
 
             context
@@ -2456,6 +2458,8 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .orderIndex = context.executionState.orders.length;
         }
 
+        // Do the same sort of thing for offer fulfillments and consideration
+        // fulfillments.
         if (context.executionState.offerFulfillments.length != 0) {
             context.executionState.offerFulfillments[0][0].orderIndex = context
                 .executionState
@@ -2494,6 +2498,15 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation triggers a revert by creating or swapping in an empty
+        // fulfillment component array.  At least one fulfillment component must
+        // be supplied.
+
+        // If the mutation side is OFFER and there are no offer fulfillments,
+        // create a new, empty offer fulfillment. Otherwise, reset the first
+        // offer fulfillment to an empty FulfillmentComponent array.  If the
+        // mutation side is CONSIDERATION, reset the first consideration
+        // fulfillment to an empty FulfillmentComponent array.
         if (mutationState.side == Side.OFFER) {
             if (context.executionState.offerFulfillments.length == 0) {
                 context
@@ -2523,6 +2536,11 @@ contract FuzzMutations is Test, FuzzExecutor {
             .executionState
             .criteriaResolvers[criteriaResolverIndex];
 
+        // This mutation triggers a revert by modifying the first proof element
+        // in a criteria resolver's proof array. Seaport will reject a criteria
+        // resolver if the the identifiers, criteria, and proof do not
+        // harmonize.
+
         bytes32 firstProofElement = resolver.criteriaProof[0];
         resolver.criteriaProof[0] = bytes32(uint256(firstProofElement) ^ 1);
 
@@ -2532,6 +2550,11 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_offerAndConsiderationRequiredOnFulfillment(
         FuzzTestContext memory context
     ) external {
+        // This mutation triggers a revert by setting the offerComponents and
+        // considerationComponents arrays to empty FulfillmentComponent arrays.
+        // At least one offer component and one consideration component must be
+        // supplied.
+
         context.executionState.fulfillments[0] = Fulfillment({
             offerComponents: new FulfillmentComponent[](0),
             considerationComponents: new FulfillmentComponent[](0)
@@ -2543,10 +2566,20 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified(
         FuzzTestContext memory context
     ) external {
+        // This mutation triggers a revert by modifying the token addresses of
+        // all of the offer items referenced in the first fulfillment's offer
+        // components.  Corresponding offer and consideration components must
+        // each target the same item.
+
+        // Get the first fulfillment's offer components.
         FulfillmentComponent[] memory firstOfferComponents = (
             context.executionState.fulfillments[0].offerComponents
         );
 
+        // Iterate over the offer components and modify the token address of
+        // each corresponding offer item. This preserves the intended
+        // aggregation and filtering patterns, but causes the offer and
+        // consideration components to have mismatched token addresses.
         for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
             FulfillmentComponent memory component = (firstOfferComponents[i]);
             address token = context
@@ -2564,23 +2597,9 @@ contract FuzzMutations is Test, FuzzExecutor {
                 .token = modifiedToken;
         }
 
+        // "Resign" the orders.
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            AdvancedOrder memory order = context.executionState.orders[i];
-
-            if (
-                context.advancedOrdersSpace.orders[i].signatureMethod ==
-                SignatureMethod.VALIDATE
-            ) {
-                order.inscribeOrderStatusValidated(true, context.seaport);
-            } else if (
-                context.executionState.caller != order.parameters.offerer
-            ) {
-                AdvancedOrdersSpaceGenerator._signOrders(
-                    context.advancedOrdersSpace,
-                    context.executionState.orders,
-                    context.generatorContext
-                );
-            }
+            _signOrValidateMutatedOrder(context, i);
         }
 
         exec(context);
@@ -2805,23 +2824,10 @@ contract FuzzMutations is Test, FuzzExecutor {
                             );
                     }
 
-                    if (
-                        context
-                            .advancedOrdersSpace
-                            .orders[fulfillmentComponent.orderIndex]
-                            .signatureMethod == SignatureMethod.VALIDATE
-                    ) {
-                        order.inscribeOrderStatusValidated(
-                            true,
-                            context.seaport
-                        );
-                    } else {
-                        AdvancedOrdersSpaceGenerator._signOrders(
-                            context.advancedOrdersSpace,
-                            context.executionState.orders,
-                            context.generatorContext
-                        );
-                    }
+                    _signOrValidateMutatedOrder(
+                        context,
+                        fulfillmentComponent.orderIndex
+                    );
 
                     break;
                 }
@@ -2853,18 +2859,7 @@ contract FuzzMutations is Test, FuzzExecutor {
         order.parameters.offer[firstNon721OfferItem].startAmount = 0;
         order.parameters.offer[firstNon721OfferItem].endAmount = 0;
 
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else if (context.executionState.caller != order.parameters.offerer) {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
-        }
+        _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
     }
@@ -2907,18 +2902,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                 );
         }
 
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else if (context.executionState.caller != order.parameters.offerer) {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
-        }
+        _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
     }
@@ -2965,20 +2949,7 @@ contract FuzzMutations is Test, FuzzExecutor {
                 }
             }
 
-            if (
-                context.advancedOrdersSpace.orders[i].signatureMethod ==
-                SignatureMethod.VALIDATE
-            ) {
-                order.inscribeOrderStatusValidated(true, context.seaport);
-            } else if (
-                context.executionState.caller != order.parameters.offerer
-            ) {
-                AdvancedOrdersSpaceGenerator._signOrders(
-                    context.advancedOrdersSpace,
-                    context.executionState.orders,
-                    context.generatorContext
-                );
-            }
+            _signOrValidateMutatedOrder(context, i);
         }
 
         exec(context);
@@ -3016,19 +2987,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
-        // Re-sign order
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else if (context.executionState.caller != order.parameters.offerer) {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
-        }
+        _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
     }
@@ -3070,19 +3029,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
-        // Re-sign order
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else if (context.executionState.caller != order.parameters.offerer) {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
-        }
+        _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
     }
@@ -3126,19 +3073,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
-        // Re-sign order
-        if (
-            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
-            SignatureMethod.VALIDATE
-        ) {
-            order.inscribeOrderStatusValidated(true, context.seaport);
-        } else if (context.executionState.caller != order.parameters.offerer) {
-            AdvancedOrdersSpaceGenerator._signOrders(
-                context.advancedOrdersSpace,
-                context.executionState.orders,
-                context.generatorContext
-            );
-        }
+        _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
     }
@@ -3236,21 +3171,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             order.parameters.consideration = new ConsiderationItem[](0);
             order.parameters.totalOriginalConsiderationItems = 0;
 
-            // Re-sign order
-            if (
-                context.advancedOrdersSpace.orders[i].signatureMethod ==
-                SignatureMethod.VALIDATE
-            ) {
-                order.inscribeOrderStatusValidated(true, context.seaport);
-            } else if (
-                context.executionState.caller != order.parameters.offerer
-            ) {
-                AdvancedOrdersSpaceGenerator._signOrders(
-                    context.advancedOrdersSpace,
-                    context.executionState.orders,
-                    context.generatorContext
-                );
-            }
+            _signOrValidateMutatedOrder(context, i);
         }
         context.executionState.offerFulfillments = new FulfillmentComponent[][](
             0
@@ -3260,5 +3181,26 @@ contract FuzzMutations is Test, FuzzExecutor {
             .considerationFulfillments = new FulfillmentComponent[][](0);
 
         exec(context);
+    }
+
+    function _signOrValidateMutatedOrder(
+        FuzzTestContext memory context,
+        uint256 orderIndex
+    ) private {
+        AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // Re-sign order
+        if (
+            context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
+            SignatureMethod.VALIDATE
+        ) {
+            order.inscribeOrderStatusValidated(true, context.seaport);
+        } else if (context.executionState.caller != order.parameters.offerer) {
+            AdvancedOrdersSpaceGenerator._signOrders(
+                context.advancedOrdersSpace,
+                context.executionState.orders,
+                context.generatorContext
+            );
+        }
     }
 }
