@@ -51,6 +51,7 @@ import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 contract FuzzEngineTest is FuzzEngine {
     using AdvancedOrderLib for AdvancedOrder;
+    using AdvancedOrderLib for AdvancedOrder[];
     using ConsiderationItemLib for ConsiderationItem;
     using ConsiderationItemLib for ConsiderationItem[];
     using FulfillmentComponentLib for FulfillmentComponent;
@@ -1190,12 +1191,18 @@ contract FuzzEngineTest is FuzzEngine {
 
         Fulfillment[] memory fulfillments;
 
+        SeaportInterface seaport = getSeaport();
+
         {
             CriteriaResolver[] memory resolvers;
+            bytes32[] memory orderHashes = orders.getOrderHashes(
+                address(seaport)
+            );
 
             (fulfillments, , ) = matcher.getMatchedFulfillments(
                 orders,
-                resolvers
+                resolvers,
+                orderHashes
             );
         }
 
@@ -1203,11 +1210,7 @@ contract FuzzEngineTest is FuzzEngine {
         checks[0] = this.check_executionsPresent.selector;
 
         FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: offerer1.addr
-            })
+            .from({ orders: orders, seaport: seaport, caller: offerer1.addr })
             .withFuzzParams(
                 FuzzParams({
                     seed: 2,
@@ -1317,11 +1320,18 @@ contract FuzzEngineTest is FuzzEngine {
 
         Fulfillment[] memory fulfillments;
 
+        SeaportInterface seaport = getSeaport();
+
         {
+            bytes32[] memory orderHashes = advancedOrders.getOrderHashes(
+                address(seaport)
+            );
+
             CriteriaResolver[] memory resolvers;
             (fulfillments, , ) = matcher.getMatchedFulfillments(
                 advancedOrders,
-                resolvers
+                resolvers,
+                orderHashes
             );
         }
 
@@ -1331,7 +1341,7 @@ contract FuzzEngineTest is FuzzEngine {
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
                 orders: advancedOrders,
-                seaport: getSeaport(),
+                seaport: seaport,
                 caller: offerer1.addr
             })
             .withFuzzParams(

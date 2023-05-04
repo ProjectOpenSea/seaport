@@ -742,7 +742,8 @@ library AdvancedOrderLib {
 
     function getOrderDetails(
         AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers
+        CriteriaResolver[] memory criteriaResolvers,
+        bytes32[] memory orderHashes
     ) internal view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](
             advancedOrders.length
@@ -752,7 +753,8 @@ library AdvancedOrderLib {
             orderDetails[i] = toOrderDetails(
                 advancedOrders[i],
                 i,
-                criteriaResolvers
+                criteriaResolvers,
+                orderHashes[i]
             );
         }
 
@@ -762,7 +764,8 @@ library AdvancedOrderLib {
     function toOrderDetails(
         AdvancedOrder memory order,
         uint256 orderIndex,
-        CriteriaResolver[] memory resolvers
+        CriteriaResolver[] memory resolvers,
+        bytes32 orderHash
     ) internal view returns (OrderDetails memory) {
         (SpentItem[] memory offer, ReceivedItem[] memory consideration) = order
             .parameters
@@ -779,7 +782,8 @@ library AdvancedOrderLib {
                 conduitKey: order.parameters.conduitKey,
                 offer: offer,
                 consideration: consideration,
-                isContract: order.parameters.orderType == OrderType.CONTRACT
+                isContract: order.parameters.orderType == OrderType.CONTRACT,
+                orderHash: orderHash
             });
     }
 }

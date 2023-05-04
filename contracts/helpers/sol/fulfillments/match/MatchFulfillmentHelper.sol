@@ -39,7 +39,8 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
      * @return fulfillments
      */
     function getMatchedFulfillments(
-        Order[] memory orders
+        Order[] memory orders,
+        bytes32[] memory orderHashes
     )
         public
         returns (
@@ -48,7 +49,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        OrderDetails[] memory orderDetails = toOrderDetails(orders);
+        OrderDetails[] memory orderDetails = toOrderDetails(orders, orderHashes);
 
         return getMatchedFulfillments(orderDetails);
     }
@@ -63,7 +64,8 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
      */
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders,
-        CriteriaResolver[] memory resolvers
+        CriteriaResolver[] memory resolvers,
+        bytes32[] memory orderHashes
     )
         public
         returns (
@@ -72,7 +74,7 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        OrderDetails[] memory details = toOrderDetails(orders, resolvers);
+        OrderDetails[] memory details = toOrderDetails(orders, resolvers, orderHashes);
         return getMatchedFulfillments(details);
     }
 

@@ -198,7 +198,10 @@ library FuzzDerivers {
         OrderDetails[] memory orderDetails = context
             .executionState
             .previewedOrders
-            .getOrderDetails(context.executionState.criteriaResolvers);
+            .getOrderDetails(
+                context.executionState.criteriaResolvers,
+                context.executionState.orderHashes
+            );
 
         context.executionState.orderDetails = orderDetails;
 

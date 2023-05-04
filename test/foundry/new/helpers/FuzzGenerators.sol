@@ -348,7 +348,6 @@ library TestStateGenerator {
             );
 
             // TODO: fuzz on FulfillAvailableStrategy && MatchStrategy
-
         }
 
         return
@@ -478,7 +477,8 @@ library TestStateGenerator {
                 recipient: FulfillmentRecipient.ZERO,
                 conduit: ConduitChoice.NONE,
                 caller: Caller.TEST_CONTRACT,
-                strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+                strategy: FulfillmentGeneratorLib
+                    .getDefaultFulfillmentStrategy()
             });
     }
 }
@@ -516,6 +516,8 @@ library AdvancedOrdersSpaceGenerator {
     ) internal returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
+        // Instatiate early to avoid out of bounds errors.
+        context.orderHashes = new bytes32[](orders.length);
 
         // Build orders.
         _buildOrders(orders, space, context);
@@ -789,7 +791,10 @@ library AdvancedOrdersSpaceGenerator {
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
-            OrderDetails[] memory details = orders.getOrderDetails(resolvers);
+            OrderDetails[] memory details = orders.getOrderDetails(
+                resolvers,
+                context.orderHashes
+            );
             // Get the remainders.
             (, , remainders) = details.getMatchedFulfillments();
         }
@@ -942,7 +947,10 @@ library AdvancedOrdersSpaceGenerator {
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
-            OrderDetails[] memory details = orders.getOrderDetails(resolvers);
+            OrderDetails[] memory details = orders.getOrderDetails(
+                resolvers,
+                context.orderHashes
+            );
             // Get the remainders.
             (, , remainders) = details.getMatchedFulfillments();
 

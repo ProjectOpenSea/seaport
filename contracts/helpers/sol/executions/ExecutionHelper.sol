@@ -1165,7 +1165,8 @@ library ExecutionHelper {
                 conduitKey: order.conduitKey,
                 offer: order.offer.copy(),
                 consideration: order.consideration.copy(),
-                isContract: order.isContract
+                isContract: order.isContract,
+                orderHash: order.orderHash
             });
         }
     }
