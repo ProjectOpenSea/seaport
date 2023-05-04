@@ -238,11 +238,6 @@ library FulfillmentGeneratorLib {
         FulfillmentStrategy memory strategy
     ) internal pure {
         // TODO: add more strategies here as support is added for them.
-        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
-        if (aggregationStrategy == AggregationStrategy.RANDOM) {
-            revert("FulfillmentGeneratorLib: unsupported aggregation strategy");
-        }
-
         FulfillAvailableStrategy fulfillAvailableStrategy = (
             strategy.fulfillAvailableStrategy
         );
@@ -384,7 +379,7 @@ library FulfillmentGeneratorLib {
     function getMatchFulfillments(
         MatchDetails memory matchDetails,
         FulfillmentStrategy memory strategy,
-        uint256 /* seed */
+        uint256 seed
     )
         internal
         pure
@@ -394,32 +389,44 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
-        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
         MatchStrategy matchStrategy = strategy.matchStrategy;
 
-        if (
-            aggregationStrategy == AggregationStrategy.MAXIMUM &&
-            matchStrategy == MatchStrategy.MAX_INCLUSION
-        ) {
+        if (matchStrategy == MatchStrategy.MAX_INCLUSION) {
             (
                 fulfillments,
                 unspentOfferComponents,
                 unmetConsiderationComponents
-            ) = getMaxInclusionMatchFulfillments(matchDetails);
-        } else if (
-            aggregationStrategy == AggregationStrategy.MINIMUM &&
-            matchStrategy == MatchStrategy.MAX_INCLUSION
-        ) {
-            (
-                fulfillments,
-                unspentOfferComponents,
-                unmetConsiderationComponents
-            ) = getMaxInclusionMinimumAggregationMatchFulfillments(
-                matchDetails
+            ) = getMatchFulfillmentsUsingConsumeMethod(
+                matchDetails,
+                getMaxInclusionConsumeMethod(strategy.aggregationStrategy),
+                seed
             );
         } else {
+            revert("FulfillmentGeneratorLib: unsupported match strategy");
+        }
+    }
+
+    function getMaxInclusionConsumeMethod(
+        AggregationStrategy aggregationStrategy
+    )
+        internal
+        pure
+        returns (
+            function(FulfillmentItems memory, FulfillmentItems memory, uint256)
+                internal
+                pure
+                returns (Fulfillment memory)
+        )
+    {
+        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
+            return consumeMaximumItemsAndGetFulfillment;
+        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
+            return consumeMinimumItemsAndGetFulfillment;
+        } else if (aggregationStrategy == AggregationStrategy.RANDOM) {
+            return consumeRandomItemsAndGetFulfillment;
+        } else {
             revert(
-                "FulfillmentGeneratorLib: only MAXIMUM+MAX_INCLUSION supported"
+                "FulfillmentGeneratorLib: unknown match aggregation strategy"
             );
         }
     }
@@ -586,9 +593,13 @@ library FulfillmentGeneratorLib {
         }
     }
 
-    // NOTE: this function will "consume" the match details provided to it.
-    function getMaxInclusionMinimumAggregationMatchFulfillments(
-        MatchDetails memory matchDetails
+    function getMatchFulfillmentsUsingConsumeMethod(
+        MatchDetails memory matchDetails,
+        function(FulfillmentItems memory, FulfillmentItems memory, uint256)
+            internal
+            pure
+            returns (Fulfillment memory) consumeMethod,
+        uint256 seed
     )
         internal
         pure
@@ -620,67 +631,10 @@ library FulfillmentGeneratorLib {
             // This is actually a "while" loop, but bound it as a sanity check.
             bool allProcessed = false;
             for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
-                Fulfillment
-                    memory fulfillment = consumeMinimumItemsAndGetFulfillment(
-                        matchDetails.items[i]
-                    );
-
-                // Exit the inner loop if no fulfillment was located.
-                if (fulfillment.offerComponents.length == 0) {
-                    allProcessed = true;
-                    break;
-                }
-
-                // append the located fulfillment and continue searching.
-                fulfillments[currentFulfillment++] = fulfillment;
-            }
-            if (!allProcessed) {
-                revert("FulfillmentGeneratorLib: did not complete processing");
-            }
-        }
-
-        // Resize the fulfillments array based on number of elements assigned.
-        assembly {
-            mstore(fulfillments, currentFulfillment)
-        }
-    }
-
-    // NOTE: this function will "consume" the match details provided to it.
-    function getMaxInclusionMatchFulfillments(
-        MatchDetails memory matchDetails
-    )
-        internal
-        pure
-        returns (
-            Fulfillment[] memory fulfillments,
-            MatchComponent[] memory unspentOfferComponents,
-            MatchComponent[] memory unmetConsiderationComponents
-        )
-    {
-        if (matchDetails.totalItems == 0) {
-            return (
-                fulfillments,
-                unspentOfferComponents,
-                unmetConsiderationComponents
-            );
-        }
-
-        (
-            unspentOfferComponents,
-            unmetConsiderationComponents
-        ) = getUncoveredComponents(matchDetails);
-
-        // Allocate based on max possible fulfillments; reduce after assignment.
-        fulfillments = new Fulfillment[](matchDetails.totalItems - 1);
-        uint256 currentFulfillment = 0;
-
-        // The outer loop processes each matchable group.
-        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
-            // This is actually a "while" loop, but bound it as a sanity check.
-            bool allProcessed = false;
-            for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
-                Fulfillment memory fulfillment = consumeItemsAndGetFulfillment(
-                    matchDetails.items[i]
+                Fulfillment memory fulfillment = consumeItems(
+                    matchDetails.items[i],
+                    consumeMethod,
+                    seed
                 );
 
                 // Exit the inner loop if no fulfillment was located.
@@ -704,8 +658,13 @@ library FulfillmentGeneratorLib {
     }
 
     // NOTE: this does not currently minimize the number of fulfillments.
-    function consumeMinimumItemsAndGetFulfillment(
-        DualFulfillmentItems memory matchItems
+    function consumeItems(
+        DualFulfillmentItems memory matchItems,
+        function(FulfillmentItems memory, FulfillmentItems memory, uint256)
+            internal
+            pure
+            returns (Fulfillment memory) consumeMethod,
+        uint256 seed
     ) internal pure returns (Fulfillment memory) {
         // Search for something that can be offered.
         for (uint256 i = 0; i < matchItems.offer.length; ++i) {
@@ -719,39 +678,7 @@ library FulfillmentGeneratorLib {
 
                     if (considerationItems.totalAmount != 0) {
                         return
-                            consumeMinimumItemsAndGetFulfillment(
-                                offerItems,
-                                considerationItems
-                            );
-                    }
-                }
-            }
-        }
-
-        // If none were found, return an empty fulfillment.
-        return emptyFulfillment();
-    }
-
-    // NOTE: this does not currently minimize the number of fulfillments.
-    function consumeItemsAndGetFulfillment(
-        DualFulfillmentItems memory matchItems
-    ) internal pure returns (Fulfillment memory) {
-        // Search for something that can be offered.
-        for (uint256 i = 0; i < matchItems.offer.length; ++i) {
-            FulfillmentItems memory offerItems = matchItems.offer[i];
-            if (offerItems.totalAmount != 0) {
-                // Search for something it can be matched against.
-                for (uint256 j = 0; j < matchItems.consideration.length; ++j) {
-                    FulfillmentItems memory considerationItems = (
-                        matchItems.consideration[j]
-                    );
-
-                    if (considerationItems.totalAmount != 0) {
-                        return
-                            consumeItemsAndGetFulfillment(
-                                offerItems,
-                                considerationItems
-                            );
+                            consumeMethod(offerItems, considerationItems, seed);
                     }
                 }
             }
@@ -763,7 +690,8 @@ library FulfillmentGeneratorLib {
 
     function consumeMinimumItemsAndGetFulfillment(
         FulfillmentItems memory offerItems,
-        FulfillmentItems memory considerationItems
+        FulfillmentItems memory considerationItems,
+        uint256 /* seed */
     ) internal pure returns (Fulfillment memory) {
         if (
             offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
@@ -819,9 +747,10 @@ library FulfillmentGeneratorLib {
             });
     }
 
-    function consumeItemsAndGetFulfillment(
+    function consumeMaximumItemsAndGetFulfillment(
         FulfillmentItems memory offerItems,
-        FulfillmentItems memory considerationItems
+        FulfillmentItems memory considerationItems,
+        uint256 /* seed */
     ) internal pure returns (Fulfillment memory) {
         if (
             offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
@@ -955,6 +884,148 @@ library FulfillmentGeneratorLib {
             });
     }
 
+    function consumeRandomItemsAndGetFulfillment(
+        FulfillmentItems memory offerItems,
+        FulfillmentItems memory considerationItems,
+        uint256 seed
+    ) internal pure returns (Fulfillment memory) {
+        if (
+            offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
+        ) {
+            revert("FulfillmentGeneratorLib: missing item amounts to consume");
+        }
+
+        // Allocate fulfillment component arrays using total items; reduce
+        // length after based on the total number of elements assigned to each.
+        FulfillmentComponent[] memory offerComponents = (
+            new FulfillmentComponent[](offerItems.items.length)
+        );
+
+        FulfillmentComponent[] memory considerationComponents = (
+            new FulfillmentComponent[](considerationItems.items.length)
+        );
+
+        uint256[] memory consumableOfferIndices = new uint256[](
+            offerItems.items.length
+        );
+        uint256[] memory consumableConsiderationIndices = new uint256[](
+            considerationItems.items.length
+        );
+
+        {
+            uint256 assignmentIndex = 0;
+
+            for (uint256 i = 0; i < offerItems.items.length; ++i) {
+                FulfillmentItem memory item = offerItems.items[i];
+                if (item.amount != 0) {
+                    consumableOfferIndices[assignmentIndex++] = i;
+                }
+            }
+
+            assembly {
+                mstore(consumableOfferIndices, assignmentIndex)
+            }
+
+            assignmentIndex = 0;
+
+            for (uint256 i = 0; i < considerationItems.items.length; ++i) {
+                FulfillmentItem memory item = considerationItems.items[i];
+                if (item.amount != 0) {
+                    consumableConsiderationIndices[assignmentIndex++] = i;
+                }
+            }
+
+            assembly {
+                mstore(consumableConsiderationIndices, assignmentIndex)
+            }
+
+            // Sanity check
+            if (
+                consumableOfferIndices.length == 0 ||
+                consumableConsiderationIndices.length == 0
+            ) {
+                revert(
+                    "FulfillmentGeneratorLib: did not find consumable items"
+                );
+            }
+
+            LibPRNG.PRNG memory prng;
+            prng.seed(seed ^ 0xdd);
+
+            prng.shuffle(consumableOfferIndices);
+            prng.shuffle(consumableConsiderationIndices);
+
+            assignmentIndex = prng.uniform(consumableOfferIndices.length) + 1;
+            assembly {
+                mstore(offerComponents, assignmentIndex)
+                mstore(consumableOfferIndices, assignmentIndex)
+            }
+
+            assignmentIndex =
+                prng.uniform(consumableConsiderationIndices.length) +
+                1;
+            assembly {
+                mstore(considerationComponents, assignmentIndex)
+                mstore(consumableConsiderationIndices, assignmentIndex)
+            }
+        }
+
+        uint256 totalOfferAmount = 0;
+        uint256 totalConsiderationAmount = 0;
+
+        for (uint256 i = 0; i < consumableOfferIndices.length; ++i) {
+            FulfillmentItem memory item = offerItems.items[
+                consumableOfferIndices[i]
+            ];
+
+            offerComponents[i] = getFulfillmentComponent(item);
+
+            totalOfferAmount += item.amount;
+            item.amount = 0;
+        }
+
+        for (uint256 i = 0; i < consumableConsiderationIndices.length; ++i) {
+            FulfillmentItem memory item = considerationItems.items[
+                consumableConsiderationIndices[i]
+            ];
+
+            considerationComponents[i] = getFulfillmentComponent(item);
+
+            totalConsiderationAmount += item.amount;
+            item.amount = 0;
+        }
+
+        if (totalOfferAmount > totalConsiderationAmount) {
+            uint256 remainingAmount = (totalOfferAmount -
+                totalConsiderationAmount);
+
+            // add back excess to first offer item
+            offerItems.items[consumableOfferIndices[0]].amount += (
+                remainingAmount
+            );
+
+            offerItems.totalAmount -= totalConsiderationAmount;
+            considerationItems.totalAmount -= totalConsiderationAmount;
+        } else {
+            uint256 remainingAmount = (totalConsiderationAmount -
+                totalOfferAmount);
+
+            // add back excess to first consideration item
+            considerationItems
+                .items[consumableConsiderationIndices[0]]
+                .amount += remainingAmount;
+
+            offerItems.totalAmount -= totalOfferAmount;
+            considerationItems.totalAmount -= totalOfferAmount;
+        }
+
+        return
+            Fulfillment({
+                offerComponents: offerComponents,
+                considerationComponents: considerationComponents
+            });
+    }
+
     function emptyFulfillment() internal pure returns (Fulfillment memory) {
         FulfillmentComponent[] memory components;
         return
@@ -967,7 +1038,7 @@ library FulfillmentGeneratorLib {
     function getFulfillAvailableFulfillments(
         FulfillAvailableDetails memory fulfillAvailableDetails,
         FulfillmentStrategy memory strategy,
-        uint256 /* seed */
+        uint256 seed
     )
         internal
         pure
@@ -976,38 +1047,76 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory considerationFulfillments
         )
     {
-        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
+        (
+            offerFulfillments,
+            considerationFulfillments
+        ) = getFulfillmentComponentsUsingMethod(
+            fulfillAvailableDetails,
+            getFulfillmentMethod(strategy.aggregationStrategy),
+            seed
+        );
+
         FulfillAvailableStrategy fulfillAvailableStrategy = (
             strategy.fulfillAvailableStrategy
         );
-
-        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
-            offerFulfillments = getMaxFulfillmentComponents(
-                fulfillAvailableDetails.items.offer
-            );
-
-            considerationFulfillments = getMaxFulfillmentComponents(
-                fulfillAvailableDetails.items.consideration
-            );
-        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
-            offerFulfillments = getMinFulfillmentComponents(
-                fulfillAvailableDetails.items.offer
-            );
-
-            considerationFulfillments = getMinFulfillmentComponents(
-                fulfillAvailableDetails.items.consideration
-            );
-        } else {
-            revert("FulfillmentGeneratorLib: only MAXIMUM supported for now");
-        }
 
         if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
             revert("FulfillmentGeneratorLib: only KEEP_ALL supported for now");
         }
     }
 
+    function getFulfillmentMethod(
+        AggregationStrategy aggregationStrategy
+    )
+        internal
+        pure
+        returns (
+            function(FulfillmentItems[] memory, uint256)
+                internal
+                pure
+                returns (FulfillmentComponent[][] memory)
+        )
+    {
+        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
+            return getMaxFulfillmentComponents;
+        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
+            return getMinFulfillmentComponents;
+        } else if (aggregationStrategy == AggregationStrategy.RANDOM) {
+            return getRandomFulfillmentComponents;
+        } else {
+            revert("FulfillmentGeneratorLib: unknown aggregation strategy");
+        }
+    }
+
+    function getFulfillmentComponentsUsingMethod(
+        FulfillAvailableDetails memory fulfillAvailableDetails,
+        function(FulfillmentItems[] memory, uint256)
+            internal
+            pure
+            returns (FulfillmentComponent[][] memory) fulfillmentMethod,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        )
+    {
+        offerFulfillments = fulfillmentMethod(
+            fulfillAvailableDetails.items.offer,
+            seed
+        );
+
+        considerationFulfillments = fulfillmentMethod(
+            fulfillAvailableDetails.items.consideration,
+            seed
+        );
+    }
+
     function getMaxFulfillmentComponents(
-        FulfillmentItems[] memory fulfillmentItems
+        FulfillmentItems[] memory fulfillmentItems,
+        uint256 /* seed */
     ) internal pure returns (FulfillmentComponent[][] memory) {
         FulfillmentComponent[][] memory fulfillments = (
             new FulfillmentComponent[][](fulfillmentItems.length)
@@ -1022,8 +1131,108 @@ library FulfillmentGeneratorLib {
         return fulfillments;
     }
 
+    function getRandomFulfillmentComponents(
+        FulfillmentItems[] memory fulfillmentItems,
+        uint256 seed
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        uint256 fulfillmentCount = 0;
+
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            fulfillmentCount += fulfillmentItems[i].items.length;
+        }
+
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](fulfillmentCount)
+        );
+
+        LibPRNG.PRNG memory prng;
+        prng.seed(seed ^ 0xcc);
+
+        fulfillmentCount = 0;
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            FulfillmentItem[] memory items = fulfillmentItems[i].items;
+
+            for (uint256 j = 0; j < items.length; ++j) {
+                FulfillmentComponent[] memory fulfillment = (
+                    consumeRandomFulfillmentItems(items, prng)
+                );
+
+                if (fulfillment.length == 0) {
+                    break;
+                }
+
+                fulfillments[fulfillmentCount++] = fulfillment;
+            }
+        }
+
+        assembly {
+            mstore(fulfillments, fulfillmentCount)
+        }
+
+        uint256[] memory componentIndices = new uint256[](fulfillments.length);
+        for (uint256 i = 0; i < fulfillments.length; ++i) {
+            componentIndices[i] = i;
+        }
+
+        prng.shuffle(componentIndices);
+
+        FulfillmentComponent[][] memory shuffledFulfillments = (
+            new FulfillmentComponent[][](fulfillments.length)
+        );
+
+        for (uint256 i = 0; i < fulfillments.length; ++i) {
+            shuffledFulfillments[i] = fulfillments[componentIndices[i]];
+        }
+
+        return shuffledFulfillments;
+    }
+
+    function consumeRandomFulfillmentItems(
+        FulfillmentItem[] memory items,
+        LibPRNG.PRNG memory prng
+    ) internal pure returns (FulfillmentComponent[] memory) {
+        uint256[] memory consumableItemIndices = new uint256[](items.length);
+        uint256 assignmentIndex = 0;
+        for (uint256 i = 0; i < items.length; ++i) {
+            if (items[i].amount != 0) {
+                consumableItemIndices[assignmentIndex++] = i;
+            }
+        }
+
+        if (assignmentIndex == 0) {
+            return new FulfillmentComponent[](0);
+        }
+
+        assembly {
+            mstore(consumableItemIndices, assignmentIndex)
+        }
+
+        prng.shuffle(consumableItemIndices);
+
+        assignmentIndex = prng.uniform(assignmentIndex) + 1;
+
+        assembly {
+            mstore(consumableItemIndices, assignmentIndex)
+        }
+
+        FulfillmentComponent[] memory fulfillment = new FulfillmentComponent[](
+            consumableItemIndices.length
+        );
+
+        for (uint256 i = 0; i < consumableItemIndices.length; ++i) {
+            FulfillmentItem memory item = items[consumableItemIndices[i]];
+
+            fulfillment[i] = getFulfillmentComponent(item);
+
+            item.amount = 0;
+        }
+
+        return fulfillment;
+    }
+
     function getMinFulfillmentComponents(
-        FulfillmentItems[] memory fulfillmentItems
+        FulfillmentItems[] memory fulfillmentItems,
+        uint256 /* seed */
     ) internal pure returns (FulfillmentComponent[][] memory) {
         uint256 fulfillmentCount = 0;
 

@@ -342,9 +342,8 @@ library TestStateGenerator {
         );
 
         {
-            // TODO: fuzz on AggregationStrategy.RANDOM (index 2) as well
             strategy.aggregationStrategy = AggregationStrategy(
-                context.randEnum(0, 1)
+                context.randEnum(0, 2)
             );
 
             // TODO: fuzz on FulfillAvailableStrategy && MatchStrategy
