@@ -185,13 +185,13 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      */
     function setUpZoneParameters(FuzzTestContext memory context) public view {
         UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
-            context.executionState.orders.length
+            context.advancedOrdersSpace.orders.length
         );
 
-        for (uint256 i; i < context.executionState.orders.length; ++i) {
+        for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
             unavailableReasons[i] = context
-                .advancedOrdersSpace
-                .orders[i]
+                .executionState
+                .orderDetails[i]
                 .unavailableReason;
         }
 

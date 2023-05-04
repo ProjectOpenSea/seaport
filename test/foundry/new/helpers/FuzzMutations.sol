@@ -293,10 +293,13 @@ library MutationFilters {
 
         for (
             uint256 i = 0;
-            i < context.expectations.expectedAvailableOrders.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            if (context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 remainingFulfillable -= 1;
             }
 

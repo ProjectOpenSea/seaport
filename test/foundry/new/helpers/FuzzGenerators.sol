@@ -159,7 +159,10 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 5))
+                    // Don't fuzz 5 (maxfulfilled satisfied), since it's a more
+                    // of a consequence (to be handled in derivers) than a
+                    // target.
+                    : UnavailableReason(context.choice(Solarray.uint256s(1, 2, 3, 4, 6)))
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -206,7 +209,7 @@ library TestStateGenerator {
                     UnavailableReason.CANCELLED
                 ) {
                     components[i].unavailableReason = UnavailableReason(
-                        context.choice(Solarray.uint256s(1, 2, 5))
+                        context.choice(Solarray.uint256s(1, 2, 6))
                     );
                 }
 
@@ -753,6 +756,8 @@ library AdvancedOrdersSpaceGenerator {
         // UnavailableReason.CANCELLED => state will be conformed in amend phase
         // UnavailableReason.ALREADY_FULFILLED => state will be conformed in
         //                                        amend phase
+        // UnavailableReason.MAX_FULFILLED_SATISFIED => should never hit this
+        // UnavailableReason.GENERATE_ORDER_FAILURE => handled downstream
         if (reason == UnavailableReason.EXPIRED) {
             parameters = parameters.withGeneratedTime(
                 Time(context.randEnum(3, 4)),
@@ -763,8 +768,6 @@ library AdvancedOrdersSpaceGenerator {
                 Time.STARTS_IN_FUTURE,
                 context
             );
-        } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
-            // NOTE: this is handled downstream
         }
     }
 
