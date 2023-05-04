@@ -10,6 +10,7 @@ import {
     OfferIssue,
     SignatureIssue,
     TimeIssue,
+    NativeIssue,
     IssueParser
 } from "./SeaportValidatorTypes.sol";
 
@@ -27,6 +28,7 @@ library ErrorsAndWarningsLib {
     using IssueParser for OfferIssue;
     using IssueParser for SignatureIssue;
     using IssueParser for TimeIssue;
+    using IssueParser for NativeIssue;
 
     function concat(
         ErrorsAndWarnings memory ew1,
@@ -186,6 +188,13 @@ library ErrorsAndWarningsLib {
     function addWarning(
         ErrorsAndWarnings memory ew,
         TimeIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        NativeIssue warn
     ) internal pure returns (ErrorsAndWarnings memory) {
         return addWarning(ew, warn.parseInt());
     }
