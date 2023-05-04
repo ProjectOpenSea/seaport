@@ -99,8 +99,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             )
         });
 
+        bytes32[] memory orderHashes = new bytes32[](1);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 1);
         assertEq(fulfillments[0], expectedFulfillment, "fulfillments[0]");
@@ -185,8 +190,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order, otherOrder),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 2);
         assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
@@ -290,8 +300,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(otherOrder, order),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -396,8 +411,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(otherOrder, order),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -502,8 +522,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(otherOrder, order),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -610,12 +635,15 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (
             Fulfillment[] memory fulfillments,
             MatchComponent[] memory leftoverOffer,
             MatchComponent[] memory leftoverConsideration
         ) = matcher.getMatchedFulfillments(
-                SeaportArrays.Orders(otherOrder, order)
+                SeaportArrays.Orders(otherOrder, order),
+                orderHashes
             );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
@@ -726,8 +754,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(otherOrder, order));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(otherOrder, order),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -848,8 +881,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order, otherOrder),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -972,8 +1010,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order, otherOrder),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1101,8 +1144,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             })
         );
 
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order, otherOrder),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1230,8 +1278,14 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
             })
         );
+
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order, otherOrder),
+                orderHashes
+            );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1511,6 +1565,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             );
         }
 
+        bytes32[] memory orderHashes = new bytes32[](4);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(
@@ -1518,7 +1574,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                     otherOrderOne,
                     orderTwo,
                     otherOrderTwo
-                )
+                ),
+                orderHashes
             );
 
         if (!useDifferentConduitsBetweenOrderPairs) {
@@ -1680,8 +1737,14 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
             })
         );
+
+        bytes32[] memory orderHashes = new bytes32[](2);
+
         (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(SeaportArrays.Orders(order, otherOrder));
+            .getMatchedFulfillments(
+                SeaportArrays.Orders(order, otherOrder),
+                orderHashes
+            );
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
         assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
@@ -1730,11 +1793,16 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         // Note: there's no order 2.
 
+        bytes32[] memory orderHashes = new bytes32[](1);
+
         (
             ,
             MatchComponent[] memory remainingOffer,
             MatchComponent[] memory remainingConsideration
-        ) = matcher.getMatchedFulfillments(SeaportArrays.Orders(order1));
+        ) = matcher.getMatchedFulfillments(
+                SeaportArrays.Orders(order1),
+                orderHashes
+            );
 
         assertEq(remainingOffer.length, 2, "remainingOffer.length");
         assertEq(
@@ -1831,11 +1899,16 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         // Note: there's no order 2.
 
+        bytes32[] memory orderHashes = new bytes32[](1);
+
         (
             ,
             MatchComponent[] memory remainingOffer,
             MatchComponent[] memory remainingConsideration
-        ) = matcher.getMatchedFulfillments(SeaportArrays.Orders(order1));
+        ) = matcher.getMatchedFulfillments(
+                SeaportArrays.Orders(order1),
+                orderHashes
+            );
 
         assertEq(remainingOffer.length, 0);
         assertEq(remainingConsideration.length, 0);

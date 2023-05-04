@@ -330,7 +330,9 @@ library MutationFilters {
 
         OffererZoneFailureReason failureReason = HashCalldataContractOfferer(
             payable(order.parameters.offerer)
-        ).failureReasons(context.executionState.orderHashes[orderIndex]);
+        ).failureReasons(
+                context.executionState.orderDetails[orderIndex].orderHash
+            );
 
         return (failureReason ==
             OffererZoneFailureReason.ContractOfferer_generateReverts);
@@ -413,7 +415,7 @@ library MutationFilters {
         }
 
         (bool isValidated, , , ) = context.seaport.getOrderStatus(
-            context.executionState.orderHashes[orderIndex]
+            context.executionState.orderDetails[orderIndex].orderHash
         );
 
         if (isValidated) {
@@ -1581,7 +1583,7 @@ library MutationFilters {
 
         (, , uint256 totalFilled, uint256 totalSize) = (
             context.seaport.getOrderStatus(
-                context.executionState.orderHashes[orderIndex]
+                context.executionState.orderDetails[orderIndex].orderHash
             )
         );
 
@@ -2818,9 +2820,12 @@ contract FuzzMutations is Test, FuzzExecutor {
                                 Side.OFFER,
                                 fulfillmentComponent.itemIndex,
                                 0,
-                                context.executionState.orderHashes[
-                                    fulfillmentComponent.orderIndex
-                                ]
+                                context
+                                    .executionState
+                                    .orderDetails[
+                                        fulfillmentComponent.orderIndex
+                                    ]
+                                    .orderHash
                             );
                     }
 

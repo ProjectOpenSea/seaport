@@ -74,6 +74,7 @@ struct OrderDetails {
     SpentItem[] offer;
     ReceivedItem[] consideration;
     bool isContract;
+    bytes32 orderHash;
 }
 
 /**

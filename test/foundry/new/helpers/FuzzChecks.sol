@@ -141,7 +141,10 @@ abstract contract FuzzChecks is Test {
                     .expectations
                     .expectedZoneCalldataHash[i];
 
-                bytes32 orderHash = context.executionState.orderHashes[i];
+                bytes32 orderHash = context
+                    .executionState
+                    .orderDetails[i]
+                    .orderHash;
 
                 // Use order hash to get the expected calldata hash from zone.
                 // TODO: fix this in cases where contract orders are part of
@@ -177,7 +180,10 @@ abstract contract FuzzChecks is Test {
             AdvancedOrder memory order = context.executionState.orders[i];
 
             if (order.parameters.orderType == OrderType.CONTRACT) {
-                bytes32 orderHash = context.executionState.orderHashes[i];
+                bytes32 orderHash = context
+                    .executionState
+                    .orderDetails[i]
+                    .orderHash;
 
                 bytes32 expectedGenerateOrderCalldataHash = expectedCalldataHashes[
                         i
@@ -327,7 +333,10 @@ abstract contract FuzzChecks is Test {
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
 
-            bytes32 orderHash = context.executionState.orderHashes[i];
+            bytes32 orderHash = context
+                .executionState
+                .orderDetails[i]
+                .orderHash;
 
             (, , uint256 totalFilled, uint256 totalSize) = context
                 .seaport
@@ -451,7 +460,10 @@ abstract contract FuzzChecks is Test {
                 context.executionState.preExecOrderStatuses[i] ==
                 OrderStatusEnum.VALIDATED
             ) {
-                bytes32 orderHash = context.executionState.orderHashes[i];
+                bytes32 orderHash = context
+                    .executionState
+                    .orderDetails[i]
+                    .orderHash;
                 (bool isValid, , , ) = context.seaport.getOrderStatus(
                     orderHash
                 );

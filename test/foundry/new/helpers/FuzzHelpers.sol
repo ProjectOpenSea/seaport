@@ -770,7 +770,10 @@ library FuzzHelpers {
             if (!context.expectations.expectedAvailableOrders[i]) {
                 orderHashes[i] = bytes32(0);
             } else {
-                orderHashes[i] = context.executionState.orderHashes[i];
+                orderHashes[i] = context
+                    .executionState
+                    .orderDetails[i]
+                    .orderHash;
             }
         }
 

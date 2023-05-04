@@ -34,6 +34,7 @@ import { OrderParametersLib } from "./OrderParametersLib.sol";
 import { StructCopier } from "./StructCopier.sol";
 
 import { AmountDeriverHelper } from "./fulfillment/AmountDeriverHelper.sol";
+
 import { OrderDetails } from "../fulfillments/lib/Structs.sol";
 
 interface FailingContractOfferer {
@@ -183,9 +184,16 @@ library ZoneParametersLib {
         ZoneDetails memory details,
         ZoneParametersStruct memory zoneParametersStruct
     ) internal view {
+        bytes32[] memory orderHashes = details.advancedOrders.getOrderHashes(
+            zoneParametersStruct.seaport
+        );
+
         details.orderDetails = zoneParametersStruct
             .advancedOrders
-            .getOrderDetails(zoneParametersStruct.criteriaResolvers);
+            .getOrderDetails(
+                zoneParametersStruct.criteriaResolvers,
+                orderHashes
+            );
     }
 
     function _applyOrderHashes(

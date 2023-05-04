@@ -648,7 +648,7 @@ library MutationContextDeriverLib {
             mutationState.selectedOrderIndex = orderIndex;
             mutationState.selectedOrderHash = context
                 .executionState
-                .orderHashes[orderIndex];
+                .orderDetails[orderIndex].orderHash;
             mutationState.side = Side(context.generatorContext.randEnum(0, 1));
             mutationState.selectedArbitraryAddress = address(
                 uint160(

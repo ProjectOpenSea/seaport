@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { SeaportInterface } from "../../../../interfaces/SeaportInterface.sol";
 import { AmountDeriver } from "../../../../lib/AmountDeriver.sol";
 import {
+    AdvancedOrder,
+    ConsiderationItem,
+    CriteriaResolver,
     OfferItem,
     Order,
-    ConsiderationItem,
+    OrderComponents,
     OrderParameters,
-    AdvancedOrder,
-    SpentItem,
+    OrderType,
     ReceivedItem,
-    CriteriaResolver,
-    OrderType
+    SpentItem
 } from "../../../../lib/ConsiderationStructs.sol";
 import { Side, ItemType } from "../../../../lib/ConsiderationEnums.sol";
 import { OfferItemLib } from "../OfferItemLib.sol";
@@ -26,6 +28,12 @@ contract AmountDeriverHelper is AmountDeriver {
     using OfferItemLib for OfferItem[];
     using ConsiderationItemLib for ConsiderationItem[];
     using OrderParametersLib for OrderParameters;
+
+    struct ContractNonceDetails {
+        bool set;
+        address offerer;
+        uint256 currentNonce;
+    }
 
     function getSpentAndReceivedItems(
         Order calldata order
@@ -88,7 +96,8 @@ contract AmountDeriverHelper is AmountDeriver {
     }
 
     function toOrderDetails(
-        OrderParameters memory order
+        OrderParameters memory order,
+        bytes32 orderHash
     ) internal view returns (OrderDetails memory) {
         (SpentItem[] memory offer, ReceivedItem[] memory consideration) = this
             .getSpentAndReceivedItems(order);
@@ -98,27 +107,38 @@ contract AmountDeriverHelper is AmountDeriver {
                 conduitKey: order.conduitKey,
                 offer: offer,
                 consideration: consideration,
-                isContract: order.orderType == OrderType.CONTRACT
+                isContract: order.orderType == OrderType.CONTRACT,
+                orderHash: orderHash
             });
     }
 
     function toOrderDetails(
-        Order[] memory order
+        Order[] memory order,
+        bytes32[] memory orderHashes
     ) public view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](order.length);
         for (uint256 i = 0; i < order.length; i++) {
-            orderDetails[i] = toOrderDetails(order[i].parameters);
+            orderDetails[i] = toOrderDetails(
+                order[i].parameters,
+                orderHashes[i]
+            );
         }
         return orderDetails;
     }
 
     function toOrderDetails(
         AdvancedOrder[] memory orders,
-        CriteriaResolver[] memory resolvers
+        CriteriaResolver[] memory resolvers,
+        bytes32[] memory orderHashes
     ) public view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
-            orderDetails[i] = toOrderDetails(orders[i], i, resolvers);
+            orderDetails[i] = toOrderDetails(
+                orders[i],
+                i,
+                resolvers,
+                orderHashes[i]
+            );
         }
         return orderDetails;
     }
@@ -126,17 +146,20 @@ contract AmountDeriverHelper is AmountDeriver {
     function toOrderDetails(
         AdvancedOrder memory order,
         uint256 orderIndex,
-        CriteriaResolver[] memory resolvers
+        CriteriaResolver[] memory resolvers,
+        bytes32 orderHash
     ) internal view returns (OrderDetails memory) {
         (SpentItem[] memory offer, ReceivedItem[] memory consideration) = this
             .getSpentAndReceivedItems(order, orderIndex, resolvers);
+
         return
             OrderDetails({
                 offerer: order.parameters.offerer,
                 conduitKey: order.parameters.conduitKey,
                 offer: offer,
                 consideration: consideration,
-                isContract: order.parameters.orderType == OrderType.CONTRACT
+                isContract: order.parameters.orderType == OrderType.CONTRACT,
+                orderHash: orderHash
             });
     }
 

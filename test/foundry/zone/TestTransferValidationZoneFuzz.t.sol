@@ -1372,9 +1372,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             );
         }
 
+        bytes32[] memory orderHashes = new bytes32[](
+            context.matchArgs.orderPairCount * 2
+        );
+
         // Build fulfillments.
         (infra.fulfillments, , ) = matchFulfillmentHelper
-            .getMatchedFulfillments(infra.orders);
+            .getMatchedFulfillments(
+                infra.orders,
+                orderHashes
+            );
 
         return (infra.orders, infra.fulfillments);
     }

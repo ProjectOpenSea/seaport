@@ -1128,7 +1128,7 @@ library FailureDetailsLib {
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.orderHashes[mutationState.selectedOrderIndex]
+            context.executionState.orderDetails[mutationState.selectedOrderIndex].orderHash
         );
     }
 

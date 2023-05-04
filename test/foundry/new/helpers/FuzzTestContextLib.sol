@@ -520,7 +520,8 @@ library FuzzTestContextLib {
         return context;
     }
 
-    // NOTE: expects context.executionState.orders and context.seaport to already be set
+    // NOTE: expects context.executionState.orders and context.seaport to
+    //       already be set.
     function withOrderHashes(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {

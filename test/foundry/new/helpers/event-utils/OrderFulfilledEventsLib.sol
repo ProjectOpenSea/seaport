@@ -101,7 +101,7 @@ library OrderFulfilledEventsLib {
                 orderParams.zone.toBytes32(), // topic2 - zone
                 keccak256(
                     abi.encode(
-                        context.executionState.orderHashes[orderIndex],
+                        details.orderHash,
                         context.executionState.recipient == address(0)
                             ? context.executionState.caller
                             : context.executionState.recipient,
