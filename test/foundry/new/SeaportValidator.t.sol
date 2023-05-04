@@ -65,6 +65,7 @@ contract SeaportValidatorTest is BaseOrderTest {
     string constant SINGLE_ERC20 = "SINGLE_ERC20";
     string constant SINGLE_ERC1155 = "SINGLE_ERC1155";
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
+    string constant SINGLE_ERC721_SINGLE_ERC721 = "SINGLE_ERC721_SINGLE_ERC721";
 
     address internal noTokens = makeAddr("no tokens/approvals");
 
@@ -135,6 +136,24 @@ contract SeaportValidatorTest is BaseOrderTest {
             .withTotalOriginalConsiderationItems(1);
         OrderLib.empty().withParameters(parameters).saveDefault(
             SINGLE_ERC721_SINGLE_ERC20
+        );
+
+        // Set up and store order with single ERC721 offer item
+        // and single ERC721 consideration item
+        _consideration = new ConsiderationItem[](1);
+        _consideration[0] = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(2)
+            .withAmount(1)
+            .withRecipient(offerer1.addr);
+        parameters = OrderParametersLib
+            .fromDefault(SINGLE_ERC721)
+            .withConsideration(_consideration)
+            .withTotalOriginalConsiderationItems(1);
+        OrderLib.empty().withParameters(parameters).saveDefault(
+            SINGLE_ERC721_SINGLE_ERC721
         );
     }
 
@@ -307,6 +326,29 @@ contract SeaportValidatorTest is BaseOrderTest {
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(TimeIssue.ShortOrder)
             .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_erc721_identifierDNE() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721_SINGLE_ERC721);
+        order.parameters.consideration[0].identifierOrCriteria = type(uint256)
+            .max;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC721Issue.NotOwner)
+            .addError(ERC721Issue.NotApproved)
+            .addError(ERC721Issue.IdentifierDNE)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.OffererNotReceivingAtLeastOneItem);
 
         assertEq(actual, expected);
     }
