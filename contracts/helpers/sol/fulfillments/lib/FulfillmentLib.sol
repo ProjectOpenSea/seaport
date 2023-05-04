@@ -238,11 +238,6 @@ library FulfillmentGeneratorLib {
         FulfillmentStrategy memory strategy
     ) internal pure {
         // TODO: add more strategies here as support is added for them.
-        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
-        if (aggregationStrategy == AggregationStrategy.RANDOM) {
-            revert("FulfillmentGeneratorLib: unsupported aggregation strategy");
-        }
-
         FulfillAvailableStrategy fulfillAvailableStrategy = (
             strategy.fulfillAvailableStrategy
         );
@@ -1174,17 +1169,22 @@ library FulfillmentGeneratorLib {
             mstore(fulfillments, fulfillmentCount)
         }
 
-        prng.shuffle(_cast(fulfillments));
-
-        return fulfillments;
-    }
-
-    function _cast(
-        FulfillmentComponent[][] memory arrIn
-    ) internal pure returns (uint256[] memory arrOut) {
-        assembly {
-            arrOut := arrIn
+        uint256[] memory componentIndices = new uint256[](fulfillments.length);
+        for (uint256 i = 0; i < fulfillments.length; ++i) {
+            componentIndices[i] = i;
         }
+
+        prng.shuffle(componentIndices);
+
+        FulfillmentComponent[][] memory shuffledFulfillments = (
+            new FulfillmentComponent[][](fulfillments.length)
+        );
+
+        for (uint256 i = 0; i < fulfillments.length; ++i) {
+            shuffledFulfillments[i] = fulfillments[componentIndices[i]];
+        }
+
+        return shuffledFulfillments;
     }
 
     function consumeRandomFulfillmentItems(
@@ -1197,6 +1197,10 @@ library FulfillmentGeneratorLib {
             if (items[i].amount != 0) {
                 consumableItemIndices[assignmentIndex++] = i;
             }
+        }
+
+        if (assignmentIndex == 0) {
+            return new FulfillmentComponent[](0);
         }
 
         assembly {
