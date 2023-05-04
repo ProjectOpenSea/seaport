@@ -1023,6 +1023,9 @@ library FulfillmentGeneratorLib {
             LibPRNG.PRNG memory prng;
             prng.seed(seed ^ 0xdd);
 
+            prng.shuffle(consumableOfferIndices);
+            prng.shuffle(consumableConsiderationIndices);
+
             assignmentIndex = prng.uniform(consumableOfferIndices.length) + 1;
             assembly {
                 mstore(offerComponents, assignmentIndex)
@@ -1036,9 +1039,6 @@ library FulfillmentGeneratorLib {
                 mstore(considerationComponents, assignmentIndex)
                 mstore(consumableConsiderationIndices, assignmentIndex)
             }
-
-            prng.shuffle(consumableOfferIndices);
-            prng.shuffle(consumableConsiderationIndices);
         }
 
         uint256 totalOfferAmount = 0;
@@ -1162,6 +1162,96 @@ library FulfillmentGeneratorLib {
         }
 
         return fulfillments;
+    }
+
+    function getRandomFulfillmentComponents(
+        FulfillmentItems[] memory fulfillmentItems,
+        uint256 seed
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        uint256 fulfillmentCount = 0;
+
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            fulfillmentCount += fulfillmentItems[i].items.length;
+        }
+
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](fulfillmentCount)
+        );
+
+        LibPRNG.PRNG memory prng;
+        prng.seed(seed ^ 0xcc);
+
+        fulfillmentCount = 0;
+        for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
+            FulfillmentItem[] memory items = fulfillmentItems[i].items;
+
+            for (uint256 j = 0; j < items.length; ++j) {
+                FulfillmentComponent[] memory fulfillment = (
+                    consumeRandomFulfillmentItems(items, prng)
+                );
+
+                if (fulfillment.length == 0) {
+                    break;
+                }
+
+                fulfillments[fulfillmentCount++] = fulfillment;
+            }
+        }
+
+        assembly {
+            mstore(fulfillments, fulfillmentCount)
+        }
+
+        prng.shuffle(_cast(fulfillments));
+
+        return fulfillments;
+    }
+
+    function _cast(
+        FulfillmentComponent[][] memory arrIn
+    ) internal pure returns (uint256[] memory arrOut) {
+        assembly {
+            arrOut := arrIn
+        }
+    }
+
+    function consumeRandomFulfillmentItems(
+        FulfillmentItem[] memory items,
+        LibPRNG.PRNG memory prng
+    ) internal pure returns (FulfillmentComponent[] memory) {
+        uint256[] memory consumableItemIndices = new uint256[](items.length);
+        uint256 assignmentIndex = 0;
+        for (uint256 i = 0; i < items.length; ++i) {
+            if (items[i].amount != 0) {
+                consumableItemIndices[assignmentIndex++] = i;
+            }
+        }
+
+        assembly {
+            mstore(consumableItemIndices, assignmentIndex)
+        }
+
+        prng.shuffle(consumableItemIndices);
+
+        assignmentIndex = prng.uniform(assignmentIndex) + 1;
+
+        assembly {
+            mstore(consumableItemIndices, assignmentIndex)
+        }
+
+        FulfillmentComponent[] memory fulfillment = new FulfillmentComponent[](
+            consumableItemIndices.length
+        );
+
+        for (uint256 i = 0; i < consumableItemIndices.length; ++i) {
+            FulfillmentItem memory item = items[consumableItemIndices[i]];
+
+            fulfillment[i] = getFulfillmentComponent(item);
+
+            item.amount = 0;
+        }
+
+        return fulfillment;
     }
 
     function getMinFulfillmentComponents(
