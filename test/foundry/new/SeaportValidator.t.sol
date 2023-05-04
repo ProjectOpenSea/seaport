@@ -17,6 +17,7 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
+    ConsiderationItemLib,
     OfferItemLib,
     OrderParametersLib,
     OrderComponentsLib,
@@ -26,6 +27,7 @@ import {
 } from "seaport-sol/SeaportSol.sol";
 
 import {
+    ConsiderationItem,
     OfferItem,
     OrderParameters,
     OrderComponents,
@@ -36,6 +38,7 @@ import {
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 contract SeaportValidatorTest is BaseOrderTest {
+    using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
     using OrderParametersLib for OrderParameters;
     using OrderComponentsLib for OrderComponents;
@@ -56,6 +59,7 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     string constant SINGLE_ERC20 = "SINGLE_ERC20";
     string constant SINGLE_ERC1155 = "SINGLE_ERC1155";
+    string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
 
     address internal noTokens = makeAddr("no tokens/approvals");
 
@@ -95,6 +99,7 @@ contract SeaportValidatorTest is BaseOrderTest {
             .fromDefault(STANDARD)
             .toOrderParameters()
             .withOffer(offer);
+        parameters.saveDefault(SINGLE_ERC721);
         OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC721);
 
         // Set up and store order with single ERC1155 offer item
@@ -110,6 +115,22 @@ contract SeaportValidatorTest is BaseOrderTest {
             .toOrderParameters()
             .withOffer(offer);
         OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC1155);
+
+        // Set up and store order with single ERC721 offer item
+        // and single ERC20 consideration item
+        ConsiderationItem[] memory _consideration = new ConsiderationItem[](1);
+        _consideration[0] = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withAmount(1);
+        parameters = OrderParametersLib
+            .fromDefault(SINGLE_ERC721)
+            .withConsideration(_consideration)
+            .withTotalOriginalConsiderationItems(1);
+        OrderLib.empty().withParameters(parameters).saveDefault(
+            SINGLE_ERC721_SINGLE_ERC20
+        );
     }
 
     function test_empty_isValidOrder() public {
@@ -162,7 +183,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc20_identifierNonZero() public {
+    function test_isValidOrder_erc20_identifierNonZero() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
         order.parameters.offer[0].identifierOrCriteria = 1;
 
@@ -182,7 +203,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc20_invalidToken() public {
+    function test_isValidOrder_erc20_invalidToken() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
         order.parameters.offer[0].token = address(0);
 
@@ -202,7 +223,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc20_insufficientBalance() public {
+    function test_isValidOrder_erc20_insufficientBalance() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
         order.parameters.offerer = noTokens;
 
@@ -223,9 +244,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc20_insufficientAllowance()
-        public
-    {
+    function test_isValidOrder_erc20_insufficientAllowance() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
         order.parameters.offerer = noTokens;
         erc20s[0].mint(noTokens, 1);
@@ -246,7 +265,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc721_amountNotOne() public {
+    function test_isValidOrder_erc721_amountNotOne() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.offer[0].startAmount = 3;
         order.parameters.offer[0].endAmount = 3;
@@ -267,7 +286,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc721_invalidToken() public {
+    function test_isValidOrder_erc721_invalidToken() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.offer[0].token = address(0);
 
@@ -287,7 +306,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc721_notOwner() public {
+    function test_isValidOrder_erc721_notOwner() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.offerer = noTokens;
 
@@ -308,7 +327,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc721_notApproved() public {
+    function test_isValidOrder_erc721_notApproved() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.offerer = noTokens;
         erc721s[0].mint(noTokens, 1);
@@ -329,7 +348,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc1155_invalidToken() public {
+    function test_isValidOrder_erc1155_invalidToken() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC1155);
         order.parameters.offer[0].token = address(0);
 
@@ -349,9 +368,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc1155_insufficientBalance()
-        public
-    {
+    function test_isValidOrder_erc1155_insufficientBalance() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC1155);
         order.parameters.offerer = noTokens;
 
@@ -372,7 +389,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_erc1155_notApproved() public {
+    function test_isValidOrder_erc1155_notApproved() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC1155);
         order.parameters.offerer = noTokens;
         erc1155s[0].mint(noTokens, 1, 1);
@@ -393,9 +410,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_timeIssue_endTimeBeforeStartTime()
-        public
-    {
+    function test_isValidOrder_timeIssue_endTimeBeforeStartTime() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.startTime = block.timestamp;
         order.parameters.endTime = block.timestamp - 1;
@@ -417,7 +432,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_timeIssue_expired() public {
+    function test_isValidOrder_timeIssue_expired() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         vm.warp(block.timestamp + 2);
         order.parameters.startTime = block.timestamp - 2;
@@ -440,9 +455,7 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrder_timeIssue_distantExpiration()
-        public
-    {
+    function test_isValidOrder_timeIssue_distantExpiration() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.startTime = block.timestamp;
         order.parameters.endTime = type(uint256).max;
