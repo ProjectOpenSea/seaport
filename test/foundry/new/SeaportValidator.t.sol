@@ -393,6 +393,77 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
+    function test_default_full_isValidOrder_timeIssue_endTimeBeforeStartTime()
+        public
+    {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.startTime = block.timestamp;
+        order.parameters.endTime = block.timestamp - 1;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(TimeIssue.EndTimeBeforeStartTime)
+            .addError(ERC721Issue.NotOwner)
+            .addError(ERC721Issue.NotApproved)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_default_full_isValidOrder_timeIssue_expired() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        vm.warp(block.timestamp + 2);
+        order.parameters.startTime = block.timestamp - 2;
+        order.parameters.endTime = block.timestamp - 1;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(TimeIssue.Expired)
+            .addError(ERC721Issue.NotOwner)
+            .addError(ERC721Issue.NotApproved)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_default_full_isValidOrder_timeIssue_distantExpiration()
+        public
+    {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.startTime = block.timestamp;
+        order.parameters.endTime = type(uint256).max;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC721Issue.NotOwner)
+            .addError(ERC721Issue.NotApproved)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.DistantExpiration)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
     function test_default_full_isValidOrderReadOnly() public {
         Order memory order = OrderLib.empty().withParameters(
             OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
