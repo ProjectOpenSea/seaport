@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {
+    ConduitIssue,
     ConsiderationIssue,
     ErrorsAndWarnings,
     ErrorsAndWarningsLib,
@@ -13,6 +14,7 @@ import {
     OfferIssue,
     SeaportValidator,
     SignatureIssue,
+    StatusIssue,
     TimeIssue
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
@@ -22,6 +24,7 @@ import {
     OrderParametersLib,
     OrderComponentsLib,
     OrderLib,
+    OrderType,
     AdvancedOrderLib,
     ItemType
 } from "seaport-sol/SeaportSol.sol";
@@ -45,12 +48,14 @@ contract SeaportValidatorTest is BaseOrderTest {
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
 
+    using IssueParser for ConduitIssue;
     using IssueParser for ConsiderationIssue;
     using IssueParser for ERC20Issue;
     using IssueParser for ERC721Issue;
     using IssueParser for GenericIssue;
     using IssueParser for OfferIssue;
     using IssueParser for SignatureIssue;
+    using IssueParser for StatusIssue;
     using IssueParser for TimeIssue;
 
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
@@ -410,6 +415,28 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
+    function test_isValidOrder_statusIssue_contractOrder() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.orderType = OrderType.CONTRACT;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC721Issue.NotOwner)
+            .addError(ERC721Issue.NotApproved)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(StatusIssue.ContractOrder)
+            .addWarning(ConsiderationIssue.ZeroItems)
+            .addWarning(SignatureIssue.ContractOrder);
+
+        assertEq(actual, expected);
+    }
+
     function test_isValidOrder_timeIssue_endTimeBeforeStartTime() public {
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
         order.parameters.startTime = block.timestamp;
@@ -476,6 +503,51 @@ contract SeaportValidatorTest is BaseOrderTest {
 
         assertEq(actual, expected);
     }
+
+    function test_isValidOrder_timeIssue_notActive() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.startTime = block.timestamp + 1;
+        order.parameters.endTime = block.timestamp + 2;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ERC721Issue.NotOwner)
+            .addError(ERC721Issue.NotApproved)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.NotActive)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_conduitIssue_keyInvalid() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.conduitKey = keccak256("invalid conduit key");
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(ConduitIssue.KeyInvalid)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    // TODO: MissingSeaportChannel
 
     function test_default_full_isValidOrderReadOnly() public {
         Order memory order = OrderLib.empty().withParameters(
