@@ -27,7 +27,7 @@ import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
@@ -195,12 +195,24 @@ library FuzzDerivers {
     function withDerivedOrderDetails(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
+        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
+            context.executionState.orders.length
+        );
+
+        for (uint256 i; i < context.executionState.orders.length; ++i) {
+            unavailableReasons[i] = context
+                .advancedOrdersSpace
+                .orders[i]
+                .unavailableReason;
+        }
+
         OrderDetails[] memory orderDetails = context
             .executionState
             .previewedOrders
             .getOrderDetails(
                 context.executionState.criteriaResolvers,
-                context.executionState.orderHashes
+                context.executionState.orderHashes,
+                unavailableReasons
             );
 
         context.executionState.orderDetails = orderDetails;

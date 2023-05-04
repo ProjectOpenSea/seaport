@@ -1166,7 +1166,8 @@ library ExecutionHelper {
                 offer: order.offer.copy(),
                 consideration: order.consideration.copy(),
                 isContract: order.isContract,
-                orderHash: order.orderHash
+                orderHash: order.orderHash,
+                unavailableReason: order.unavailableReason
             });
         }
     }

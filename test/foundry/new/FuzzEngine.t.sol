@@ -27,6 +27,8 @@ import {
     OrderType
 } from "seaport-sol/SeaportStructs.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import {
@@ -1202,7 +1204,8 @@ contract FuzzEngineTest is FuzzEngine {
             (fulfillments, , ) = matcher.getMatchedFulfillments(
                 orders,
                 resolvers,
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](orders.length)
             );
         }
 
@@ -1331,7 +1334,8 @@ contract FuzzEngineTest is FuzzEngine {
             (fulfillments, , ) = matcher.getMatchedFulfillments(
                 advancedOrders,
                 resolvers,
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](advancedOrders.length)
             );
         }
 
@@ -1724,7 +1728,8 @@ contract FuzzEngineTest is FuzzEngine {
                 address(getSeaport()),
                 address(this),
                 new CriteriaResolver[](0),
-                2
+                2,
+                new UnavailableReason[](advancedOrders.length)
             );
 
         run(context);

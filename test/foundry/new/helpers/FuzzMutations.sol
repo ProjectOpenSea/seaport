@@ -43,7 +43,10 @@ import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
 import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
-import { ContractOrderRebate } from "seaport-sol/SpaceEnums.sol";
+import {
+    ContractOrderRebate,
+    UnavailableReason
+} from "seaport-sol/SpaceEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -104,7 +107,9 @@ library MutationFilters {
         FuzzTestContext memory context,
         uint256 orderIndex
     ) internal pure returns (bool) {
-        return !context.expectations.expectedAvailableOrders[orderIndex];
+        return
+            context.executionState.orderDetails[orderIndex].unavailableReason !=
+            UnavailableReason.AVAILABLE;
     }
 
     function ineligibleWhenBasic(
@@ -1175,9 +1180,10 @@ library MutationFilters {
                     .itemType != ItemType.ERC721
             ) {
                 if (
-                    context.expectations.expectedAvailableOrders[
-                        fulfillmentComponent.orderIndex
-                    ]
+                    context
+                        .executionState
+                        .orderDetails[fulfillmentComponent.orderIndex]
+                        .unavailableReason == UnavailableReason.AVAILABLE
                 ) {
                     return false;
                 }
@@ -2800,9 +2806,10 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .itemType != ItemType.ERC721
             ) {
                 if (
-                    context.expectations.expectedAvailableOrders[
-                        fulfillmentComponent.orderIndex
-                    ]
+                    context
+                        .executionState
+                        .orderDetails[fulfillmentComponent.orderIndex]
+                        .unavailableReason == UnavailableReason.AVAILABLE
                 ) {
                     order
                         .parameters

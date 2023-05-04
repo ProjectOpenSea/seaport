@@ -18,6 +18,8 @@ import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
@@ -182,6 +184,17 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      * @param context The test context.
      */
     function setUpZoneParameters(FuzzTestContext memory context) public view {
+        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
+            context.executionState.orders.length
+        );
+
+        for (uint256 i; i < context.executionState.orders.length; ++i) {
+            unavailableReasons[i] = context
+                .advancedOrdersSpace
+                .orders[i]
+                .unavailableReason;
+        }
+
         // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context
             .executionState
@@ -190,7 +203,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 address(context.seaport),
                 context.executionState.caller,
                 context.executionState.criteriaResolvers,
-                context.executionState.maximumFulfilled
+                context.executionState.maximumFulfilled,
+                unavailableReasons
             );
 
         // Provision the expected zone calldata hash array.
