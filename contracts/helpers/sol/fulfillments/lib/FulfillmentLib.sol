@@ -384,7 +384,7 @@ library FulfillmentGeneratorLib {
     function getMatchFulfillments(
         MatchDetails memory matchDetails,
         FulfillmentStrategy memory strategy,
-        uint256 /* seed */
+        uint256 seed
     )
         internal
         pure
@@ -394,32 +394,44 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
-        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
         MatchStrategy matchStrategy = strategy.matchStrategy;
 
-        if (
-            aggregationStrategy == AggregationStrategy.MAXIMUM &&
-            matchStrategy == MatchStrategy.MAX_INCLUSION
-        ) {
+        if (matchStrategy == MatchStrategy.MAX_INCLUSION) {
             (
                 fulfillments,
                 unspentOfferComponents,
                 unmetConsiderationComponents
-            ) = getMaxInclusionMatchFulfillments(matchDetails);
-        } else if (
-            aggregationStrategy == AggregationStrategy.MINIMUM &&
-            matchStrategy == MatchStrategy.MAX_INCLUSION
-        ) {
-            (
-                fulfillments,
-                unspentOfferComponents,
-                unmetConsiderationComponents
-            ) = getMaxInclusionMinimumAggregationMatchFulfillments(
-                matchDetails
+            ) = getMatchFulfillmentsUsingConsumeMethod(
+                matchDetails,
+                getMaxInclusionConsumeMethod(strategy.aggregationStrategy),
+                seed
             );
         } else {
+            revert("FulfillmentGeneratorLib: unsupported match strategy");
+        }
+    }
+
+    function getMaxInclusionConsumeMethod(
+        AggregationStrategy aggregationStrategy
+    )
+        internal
+        pure
+        returns (
+            function(FulfillmentItems memory, FulfillmentItems memory, uint256)
+                internal
+                pure
+                returns (Fulfillment memory)
+        )
+    {
+        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
+            return consumeMaximumItemsAndGetFulfillment;
+        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
+            return consumeMinimumItemsAndGetFulfillment;
+        } else if (aggregationStrategy == AggregationStrategy.RANDOM) {
+            return consumeRandomItemsAndGetFulfillment;
+        } else {
             revert(
-                "FulfillmentGeneratorLib: only MAXIMUM+MAX_INCLUSION supported"
+                "FulfillmentGeneratorLib: unknown match aggregation strategy"
             );
         }
     }
@@ -586,9 +598,13 @@ library FulfillmentGeneratorLib {
         }
     }
 
-    // NOTE: this function will "consume" the match details provided to it.
-    function getMaxInclusionMinimumAggregationMatchFulfillments(
-        MatchDetails memory matchDetails
+    function getMatchFulfillmentsUsingConsumeMethod(
+        MatchDetails memory matchDetails,
+        function(FulfillmentItems memory, FulfillmentItems memory, uint256)
+            internal
+            pure
+            returns (Fulfillment memory) consumeMethod,
+        uint256 seed
     )
         internal
         pure
@@ -620,67 +636,10 @@ library FulfillmentGeneratorLib {
             // This is actually a "while" loop, but bound it as a sanity check.
             bool allProcessed = false;
             for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
-                Fulfillment
-                    memory fulfillment = consumeMinimumItemsAndGetFulfillment(
-                        matchDetails.items[i]
-                    );
-
-                // Exit the inner loop if no fulfillment was located.
-                if (fulfillment.offerComponents.length == 0) {
-                    allProcessed = true;
-                    break;
-                }
-
-                // append the located fulfillment and continue searching.
-                fulfillments[currentFulfillment++] = fulfillment;
-            }
-            if (!allProcessed) {
-                revert("FulfillmentGeneratorLib: did not complete processing");
-            }
-        }
-
-        // Resize the fulfillments array based on number of elements assigned.
-        assembly {
-            mstore(fulfillments, currentFulfillment)
-        }
-    }
-
-    // NOTE: this function will "consume" the match details provided to it.
-    function getMaxInclusionMatchFulfillments(
-        MatchDetails memory matchDetails
-    )
-        internal
-        pure
-        returns (
-            Fulfillment[] memory fulfillments,
-            MatchComponent[] memory unspentOfferComponents,
-            MatchComponent[] memory unmetConsiderationComponents
-        )
-    {
-        if (matchDetails.totalItems == 0) {
-            return (
-                fulfillments,
-                unspentOfferComponents,
-                unmetConsiderationComponents
-            );
-        }
-
-        (
-            unspentOfferComponents,
-            unmetConsiderationComponents
-        ) = getUncoveredComponents(matchDetails);
-
-        // Allocate based on max possible fulfillments; reduce after assignment.
-        fulfillments = new Fulfillment[](matchDetails.totalItems - 1);
-        uint256 currentFulfillment = 0;
-
-        // The outer loop processes each matchable group.
-        for (uint256 i = 0; i < matchDetails.items.length; ++i) {
-            // This is actually a "while" loop, but bound it as a sanity check.
-            bool allProcessed = false;
-            for (uint256 j = 0; j < matchDetails.totalItems; ++j) {
-                Fulfillment memory fulfillment = (
-                    consumeMaximumItemsAndGetFulfillment(matchDetails.items[i])
+                Fulfillment memory fulfillment = consumeItems(
+                    matchDetails.items[i],
+                    consumeMethod,
+                    seed
                 );
 
                 // Exit the inner loop if no fulfillment was located.
@@ -704,8 +663,13 @@ library FulfillmentGeneratorLib {
     }
 
     // NOTE: this does not currently minimize the number of fulfillments.
-    function consumeMinimumItemsAndGetFulfillment(
-        DualFulfillmentItems memory matchItems
+    function consumeItems(
+        DualFulfillmentItems memory matchItems,
+        function(FulfillmentItems memory, FulfillmentItems memory, uint256)
+            internal
+            pure
+            returns (Fulfillment memory) consumeMethod,
+        uint256 seed
     ) internal pure returns (Fulfillment memory) {
         // Search for something that can be offered.
         for (uint256 i = 0; i < matchItems.offer.length; ++i) {
@@ -719,39 +683,7 @@ library FulfillmentGeneratorLib {
 
                     if (considerationItems.totalAmount != 0) {
                         return
-                            consumeMinimumItemsAndGetFulfillment(
-                                offerItems,
-                                considerationItems
-                            );
-                    }
-                }
-            }
-        }
-
-        // If none were found, return an empty fulfillment.
-        return emptyFulfillment();
-    }
-
-    // NOTE: this does not currently minimize the number of fulfillments.
-    function consumeMaximumItemsAndGetFulfillment(
-        DualFulfillmentItems memory matchItems
-    ) internal pure returns (Fulfillment memory) {
-        // Search for something that can be offered.
-        for (uint256 i = 0; i < matchItems.offer.length; ++i) {
-            FulfillmentItems memory offerItems = matchItems.offer[i];
-            if (offerItems.totalAmount != 0) {
-                // Search for something it can be matched against.
-                for (uint256 j = 0; j < matchItems.consideration.length; ++j) {
-                    FulfillmentItems memory considerationItems = (
-                        matchItems.consideration[j]
-                    );
-
-                    if (considerationItems.totalAmount != 0) {
-                        return
-                            consumeMaximumItemsAndGetFulfillment(
-                                offerItems,
-                                considerationItems
-                            );
+                            consumeMethod(offerItems, considerationItems, seed);
                     }
                 }
             }
@@ -763,7 +695,8 @@ library FulfillmentGeneratorLib {
 
     function consumeMinimumItemsAndGetFulfillment(
         FulfillmentItems memory offerItems,
-        FulfillmentItems memory considerationItems
+        FulfillmentItems memory considerationItems,
+        uint256 /* seed */
     ) internal pure returns (Fulfillment memory) {
         if (
             offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
@@ -821,7 +754,8 @@ library FulfillmentGeneratorLib {
 
     function consumeMaximumItemsAndGetFulfillment(
         FulfillmentItems memory offerItems,
-        FulfillmentItems memory considerationItems
+        FulfillmentItems memory considerationItems,
+        uint256 /* seed */
     ) internal pure returns (Fulfillment memory) {
         if (
             offerItems.totalAmount == 0 || considerationItems.totalAmount == 0
@@ -1109,7 +1043,7 @@ library FulfillmentGeneratorLib {
     function getFulfillAvailableFulfillments(
         FulfillAvailableDetails memory fulfillAvailableDetails,
         FulfillmentStrategy memory strategy,
-        uint256 /* seed */
+        uint256 seed
     )
         internal
         pure
@@ -1118,38 +1052,76 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory considerationFulfillments
         )
     {
-        AggregationStrategy aggregationStrategy = strategy.aggregationStrategy;
+        (
+            offerFulfillments,
+            considerationFulfillments
+        ) = getFulfillmentComponentsUsingMethod(
+            fulfillAvailableDetails,
+            getFulfillmentMethod(strategy.aggregationStrategy),
+            seed
+        );
+
         FulfillAvailableStrategy fulfillAvailableStrategy = (
             strategy.fulfillAvailableStrategy
         );
-
-        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
-            offerFulfillments = getMaxFulfillmentComponents(
-                fulfillAvailableDetails.items.offer
-            );
-
-            considerationFulfillments = getMaxFulfillmentComponents(
-                fulfillAvailableDetails.items.consideration
-            );
-        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
-            offerFulfillments = getMinFulfillmentComponents(
-                fulfillAvailableDetails.items.offer
-            );
-
-            considerationFulfillments = getMinFulfillmentComponents(
-                fulfillAvailableDetails.items.consideration
-            );
-        } else {
-            revert("FulfillmentGeneratorLib: only MAXIMUM supported for now");
-        }
 
         if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
             revert("FulfillmentGeneratorLib: only KEEP_ALL supported for now");
         }
     }
 
+    function getFulfillmentMethod(
+        AggregationStrategy aggregationStrategy
+    )
+        internal
+        pure
+        returns (
+            function(FulfillmentItems[] memory, uint256)
+                internal
+                pure
+                returns (FulfillmentComponent[][] memory)
+        )
+    {
+        if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
+            return getMaxFulfillmentComponents;
+        } else if (aggregationStrategy == AggregationStrategy.MINIMUM) {
+            return getMinFulfillmentComponents;
+        } else if (aggregationStrategy == AggregationStrategy.RANDOM) {
+            return getRandomFulfillmentComponents;
+        } else {
+            revert("FulfillmentGeneratorLib: unknown aggregation strategy");
+        }
+    }
+
+    function getFulfillmentComponentsUsingMethod(
+        FulfillAvailableDetails memory fulfillAvailableDetails,
+        function(FulfillmentItems[] memory, uint256)
+            internal
+            pure
+            returns (FulfillmentComponent[][] memory) fulfillmentMethod,
+        uint256 seed
+    )
+        internal
+        pure
+        returns (
+            FulfillmentComponent[][] memory offerFulfillments,
+            FulfillmentComponent[][] memory considerationFulfillments
+        )
+    {
+        offerFulfillments = fulfillmentMethod(
+            fulfillAvailableDetails.items.offer,
+            seed
+        );
+
+        considerationFulfillments = fulfillmentMethod(
+            fulfillAvailableDetails.items.consideration,
+            seed
+        );
+    }
+
     function getMaxFulfillmentComponents(
-        FulfillmentItems[] memory fulfillmentItems
+        FulfillmentItems[] memory fulfillmentItems,
+        uint256 /* seed */
     ) internal pure returns (FulfillmentComponent[][] memory) {
         FulfillmentComponent[][] memory fulfillments = (
             new FulfillmentComponent[][](fulfillmentItems.length)
@@ -1255,7 +1227,8 @@ library FulfillmentGeneratorLib {
     }
 
     function getMinFulfillmentComponents(
-        FulfillmentItems[] memory fulfillmentItems
+        FulfillmentItems[] memory fulfillmentItems,
+        uint256 /* seed */
     ) internal pure returns (FulfillmentComponent[][] memory) {
         uint256 fulfillmentCount = 0;
 
