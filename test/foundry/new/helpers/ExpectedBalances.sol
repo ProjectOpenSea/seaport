@@ -520,6 +520,11 @@ contract ERC721Balances {
         if (!fromExists) {
             fromBalance = IERC721(token).balanceOf(from);
         }
+
+        if (fromBalance == 0) {
+            revert("ERC721Balances: sender does not have a balance");
+        }
+
         tokenData.accountBalances.set(from, fromBalance - 1);
 
         (bool toExists, uint256 toBalance) = tokenData.accountBalances.tryGet(
