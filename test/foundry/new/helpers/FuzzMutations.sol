@@ -857,7 +857,9 @@ library MutationFilters {
             return true;
         }
 
-        FulfillmentDetails memory details = context.toFulfillmentDetails();
+        FulfillmentDetails memory details = context.toFulfillmentDetails(
+            context.executionState.value
+        );
 
         // Note: We're speculatively applying the mutation here and slightly
         // breaking the rules. Make sure to undo this mutation.
@@ -869,8 +871,7 @@ library MutationFilters {
             Execution[] memory implicitExecutionsPost,
 
         ) = context.getExecutionsFromRegeneratedFulfillments(
-                details,
-                context.executionState.value
+                details
             );
 
         // Look for invalid executions in explicit executions
