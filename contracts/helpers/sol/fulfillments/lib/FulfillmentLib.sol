@@ -1429,22 +1429,21 @@ library FulfillmentPrepLib {
     using LibPRNG for LibPRNG.PRNG;
     using LibSort for uint256[];
     using ItemReferenceLib for OrderDetails[];
+    using HashCountLib for ItemReferenceLib.ItemReference[];
+    using ItemReferenceGroupLib for ItemReferenceLib.ItemReference[];
+    using ItemReferenceGroupLib for ItemReferenceGroupLib.ItemReferenceGroup[];
 
-    struct HashCount {
-        bytes32 hash;
-        uint256 count;
-    }
-
-    struct ItemReferenceGroup {
-        bytes32 fullHash;
-        ItemReferenceLib.ItemReference[] references;
-        uint256 assigned;
+    struct FulfillAvailableReferenceGroup {
+        ItemReferenceGroupLib.ItemReferenceGroup[] offerGroups;
+        ItemReferenceGroupLib.ItemReferenceGroup[] considerationGroups;
+        address recipient;
+        address caller;
     }
 
     struct MatchableItemReferenceGroup {
         bytes32 dataHash;
-        ItemReferenceGroup[] offerGroups;
-        ItemReferenceGroup[] considerationGroups;
+        ItemReferenceGroupLib.ItemReferenceGroup[] offerGroups;
+        ItemReferenceGroupLib.ItemReferenceGroup[] considerationGroups;
         uint256 offerAssigned;
         uint256 considerationAssigned;
     }
@@ -1472,24 +1471,15 @@ library FulfillmentPrepLib {
         pure
         returns (FulfillAvailableDetails memory, MatchDetails memory)
     {
-        ItemReferenceGroup[] memory groups = bundleByAggregatable(
-            itemReferences
-        );
-
-        (
-            ItemReferenceGroup[] memory offerGroups,
-            ItemReferenceGroup[] memory considerationGroups
-        ) = splitBySide(groups);
+        ItemReferenceGroupLib.ItemReferenceGroup[]
+            memory groups = itemReferences.bundleByAggregatable();
 
         return (
             getFulfillAvailableDetailsFromGroups(
-                offerGroups,
-                considerationGroups,
-                recipient,
-                caller
+                groups.splitBySide(recipient, caller)
             ),
             getMatchDetailsFromGroups(
-                bundleByMatchable(itemReferences, groups),
+                groups.bundleByMatchable(itemReferences),
                 recipient
             )
         );
@@ -1500,17 +1490,12 @@ library FulfillmentPrepLib {
         address recipient,
         address caller
     ) internal pure returns (FulfillAvailableDetails memory) {
-        (
-            ItemReferenceGroup[] memory offerGroups,
-            ItemReferenceGroup[] memory considerationGroups
-        ) = splitBySide(bundleByAggregatable(itemReferences));
-
         return
             getFulfillAvailableDetailsFromGroups(
-                offerGroups,
-                considerationGroups,
-                recipient,
-                caller
+                itemReferences.bundleByAggregatable().splitBySide(
+                    recipient,
+                    caller
+                )
             );
     }
 
@@ -1532,103 +1517,29 @@ library FulfillmentPrepLib {
     ) internal pure returns (MatchDetails memory) {
         return
             getMatchDetailsFromGroups(
-                bundleByMatchable(
-                    itemReferences,
-                    bundleByAggregatable(itemReferences)
+                itemReferences.bundleByAggregatable().bundleByMatchable(
+                    itemReferences
                 ),
                 recipient
             );
     }
 
-    function bundleByAggregatable(
-        ItemReferenceLib.ItemReference[] memory itemReferences
-    ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory groups = allocateItemReferenceGroup(
-            getUniqueFullHashes(itemReferences)
-        );
-
-        for (uint256 i = 0; i < itemReferences.length; ++i) {
-            ItemReferenceLib.ItemReference
-                memory itemReference = itemReferences[i];
-            for (uint256 j = 0; j < groups.length; ++j) {
-                ItemReferenceGroup memory group = groups[j];
-                if (group.fullHash == itemReference.fullHash) {
-                    group.references[group.assigned++] = itemReference;
-                    break;
-                }
-            }
-        }
-
-        // Sanity check: ensure at least one reference item on each group
-        for (uint256 i = 0; i < groups.length; ++i) {
-            if (groups[i].references.length == 0) {
-                revert("FulfillmentPrepLib: missing item reference in group");
-            }
-        }
-
-        return groups;
-    }
-
-    function splitBySide(
-        ItemReferenceGroup[] memory groups
-    )
-        internal
-        pure
-        returns (ItemReferenceGroup[] memory, ItemReferenceGroup[] memory)
-    {
-        // NOTE: lengths are overallocated; reduce after assignment.
-        ItemReferenceGroup[] memory offerGroups = (
-            new ItemReferenceGroup[](groups.length)
-        );
-        ItemReferenceGroup[] memory considerationGroups = (
-            new ItemReferenceGroup[](groups.length)
-        );
-        uint256 offerItems = 0;
-        uint256 considerationItems = 0;
-
-        for (uint256 i = 0; i < groups.length; ++i) {
-            ItemReferenceGroup memory group = groups[i];
-
-            if (group.references.length == 0) {
-                revert("FulfillmentPrepLib: no items in group");
-            }
-
-            Side side = group.references[0].side;
-
-            if (side == Side.OFFER) {
-                offerGroups[offerItems++] = group;
-            } else if (side == Side.CONSIDERATION) {
-                considerationGroups[considerationItems++] = group;
-            } else {
-                revert("FulfillmentPrepLib: invalid side located (split)");
-            }
-        }
-
-        // Reduce group lengths based on number of elements assigned.
-        assembly {
-            mstore(offerGroups, offerItems)
-            mstore(considerationGroups, considerationItems)
-        }
-
-        return (offerGroups, considerationGroups);
-    }
-
     function getFulfillAvailableDetailsFromGroups(
-        ItemReferenceGroup[] memory offerGroups,
-        ItemReferenceGroup[] memory considerationGroups,
-        address recipient,
-        address caller
+        FulfillAvailableReferenceGroup memory groups
     ) internal pure returns (FulfillAvailableDetails memory) {
         (
             DualFulfillmentItems memory items,
             uint256 totalItems
-        ) = getDualFulfillmentItems(offerGroups, considerationGroups);
+        ) = getDualFulfillmentItems(
+                groups.offerGroups,
+                groups.considerationGroups
+            );
 
         return
             FulfillAvailableDetails({
                 items: items,
-                caller: caller,
-                recipient: recipient,
+                caller: groups.caller,
+                recipient: groups.recipient,
                 totalItems: totalItems
             });
     }
@@ -1722,8 +1633,8 @@ library FulfillmentPrepLib {
     }
 
     function getDualFulfillmentItems(
-        ItemReferenceGroup[] memory offerGroups,
-        ItemReferenceGroup[] memory considerationGroups
+        ItemReferenceGroupLib.ItemReferenceGroup[] memory offerGroups,
+        ItemReferenceGroupLib.ItemReferenceGroup[] memory considerationGroups
     ) internal pure returns (DualFulfillmentItems memory, uint256 totalItems) {
         DualFulfillmentItems memory items = DualFulfillmentItems({
             offer: new FulfillmentItems[](offerGroups.length),
@@ -1733,7 +1644,6 @@ library FulfillmentPrepLib {
         uint256 currentItems;
 
         for (uint256 i = 0; i < offerGroups.length; ++i) {
-            // XYZ
             (items.offer[i], currentItems) = getFulfillmentItems(
                 offerGroups[i].references
             );
@@ -1786,16 +1696,113 @@ library FulfillmentPrepLib {
 
         return (fulfillmentItems, totalItems);
     }
+}
+
+library ItemReferenceGroupLib {
+    using HashCountLib for ItemReferenceLib.ItemReference[];
+    using HashAllocatorLib for HashCountLib.HashCount[];
+
+    struct ItemReferenceGroup {
+        bytes32 fullHash;
+        ItemReferenceLib.ItemReference[] references;
+        uint256 assigned;
+    }
+
+    function bundleByAggregatable(
+        ItemReferenceLib.ItemReference[] memory itemReferences
+    ) internal pure returns (ItemReferenceGroup[] memory) {
+        ItemReferenceGroup[] memory groups = itemReferences
+            .getUniqueFullHashes()
+            .allocateItemReferenceGroup();
+
+        for (uint256 i = 0; i < itemReferences.length; ++i) {
+            ItemReferenceLib.ItemReference
+                memory itemReference = itemReferences[i];
+            for (uint256 j = 0; j < groups.length; ++j) {
+                ItemReferenceGroup memory group = groups[j];
+                if (group.fullHash == itemReference.fullHash) {
+                    group.references[group.assigned++] = itemReference;
+                    break;
+                }
+            }
+        }
+
+        // Sanity check: ensure at least one reference item on each group
+        for (uint256 i = 0; i < groups.length; ++i) {
+            if (groups[i].references.length == 0) {
+                revert("FulfillmentPrepLib: missing item reference in group");
+            }
+        }
+
+        return groups;
+    }
+
+    function splitBySide(
+        ItemReferenceGroup[] memory groups,
+        address recipient,
+        address caller
+    )
+        internal
+        pure
+        returns (FulfillmentPrepLib.FulfillAvailableReferenceGroup memory)
+    {
+        // NOTE: lengths are overallocated; reduce after assignment.
+        ItemReferenceGroup[] memory offerGroups = (
+            new ItemReferenceGroup[](groups.length)
+        );
+        ItemReferenceGroup[] memory considerationGroups = (
+            new ItemReferenceGroup[](groups.length)
+        );
+        uint256 offerItems = 0;
+        uint256 considerationItems = 0;
+
+        for (uint256 i = 0; i < groups.length; ++i) {
+            ItemReferenceGroup memory group = groups[i];
+
+            if (group.references.length == 0) {
+                revert("FulfillmentPrepLib: no items in group");
+            }
+
+            Side side = group.references[0].side;
+
+            if (side == Side.OFFER) {
+                offerGroups[offerItems++] = group;
+            } else if (side == Side.CONSIDERATION) {
+                considerationGroups[considerationItems++] = group;
+            } else {
+                revert("FulfillmentPrepLib: invalid side located (split)");
+            }
+        }
+
+        // Reduce group lengths based on number of elements assigned.
+        assembly {
+            mstore(offerGroups, offerItems)
+            mstore(considerationGroups, considerationItems)
+        }
+
+        return
+            FulfillmentPrepLib.FulfillAvailableReferenceGroup({
+                offerGroups: offerGroups,
+                considerationGroups: considerationGroups,
+                recipient: recipient,
+                caller: caller
+            });
+    }
 
     function bundleByMatchable(
-        ItemReferenceLib.ItemReference[] memory itemReferences,
-        ItemReferenceGroup[] memory groups
-    ) internal pure returns (MatchableItemReferenceGroup[] memory) {
-        MatchableItemReferenceGroup[] memory matchableGroups = (
-            allocateMatchableItemReferenceGroup(
-                getUniqueDataHashes(itemReferences)
-            )
-        );
+        ItemReferenceGroup[] memory groups,
+        ItemReferenceLib.ItemReference[] memory itemReferences
+    )
+        internal
+        pure
+        returns (FulfillmentPrepLib.MatchableItemReferenceGroup[] memory)
+    {
+        FulfillmentPrepLib.MatchableItemReferenceGroup[]
+            memory matchableGroups = (
+                itemReferences
+                    .getUniqueDataHashes()
+                    .allocateMatchableItemReferenceGroup()
+            );
 
         for (uint256 i = 0; i < groups.length; ++i) {
             ItemReferenceGroup memory group = groups[i];
@@ -1809,9 +1816,8 @@ library FulfillmentPrepLib {
             ItemReferenceLib.ItemReference memory firstReference = group
                 .references[0];
             for (uint256 j = 0; j < matchableGroups.length; ++j) {
-                MatchableItemReferenceGroup memory matchableGroup = (
-                    matchableGroups[j]
-                );
+                FulfillmentPrepLib.MatchableItemReferenceGroup
+                    memory matchableGroup = (matchableGroups[j]);
 
                 if (matchableGroup.dataHash == firstReference.dataHash) {
                     if (firstReference.side == Side.OFFER) {
@@ -1835,7 +1841,8 @@ library FulfillmentPrepLib {
 
         // Reduce reference group array lengths based on assigned elements.
         for (uint256 i = 0; i < matchableGroups.length; ++i) {
-            MatchableItemReferenceGroup memory group = matchableGroups[i];
+            FulfillmentPrepLib.MatchableItemReferenceGroup
+                memory group = matchableGroups[i];
             uint256 offerAssigned = group.offerAssigned;
             uint256 considerationAssigned = group.considerationAssigned;
             ItemReferenceGroup[] memory offerGroups = (group.offerGroups);
@@ -1851,16 +1858,23 @@ library FulfillmentPrepLib {
 
         return matchableGroups;
     }
+}
 
+library HashAllocatorLib {
     function allocateItemReferenceGroup(
-        HashCount[] memory hashCount
-    ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory group = new ItemReferenceGroup[](
-            hashCount.length
-        );
+        HashCountLib.HashCount[] memory hashCount
+    )
+        internal
+        pure
+        returns (ItemReferenceGroupLib.ItemReferenceGroup[] memory)
+    {
+        ItemReferenceGroupLib.ItemReferenceGroup[]
+            memory group = new ItemReferenceGroupLib.ItemReferenceGroup[](
+                hashCount.length
+            );
 
         for (uint256 i = 0; i < hashCount.length; ++i) {
-            group[i] = ItemReferenceGroup({
+            group[i] = ItemReferenceGroupLib.ItemReferenceGroup({
                 fullHash: hashCount[i].hash,
                 references: new ItemReferenceLib.ItemReference[](
                     hashCount[i].count
@@ -1873,26 +1887,48 @@ library FulfillmentPrepLib {
     }
 
     function allocateMatchableItemReferenceGroup(
-        HashCount[] memory hashCount
-    ) internal pure returns (MatchableItemReferenceGroup[] memory) {
-        MatchableItemReferenceGroup[] memory group = (
-            new MatchableItemReferenceGroup[](hashCount.length)
+        HashCountLib.HashCount[] memory hashCount
+    )
+        internal
+        pure
+        returns (FulfillmentPrepLib.MatchableItemReferenceGroup[] memory)
+    {
+        FulfillmentPrepLib.MatchableItemReferenceGroup[] memory group = (
+            new FulfillmentPrepLib.MatchableItemReferenceGroup[](
+                hashCount.length
+            )
         );
 
         for (uint256 i = 0; i < hashCount.length; ++i) {
             // NOTE: reference group lengths are overallocated and will need to
             // be reduced once their respective elements have been assigned.
             uint256 count = hashCount[i].count;
-            group[i] = MatchableItemReferenceGroup({
+            group[i] = FulfillmentPrepLib.MatchableItemReferenceGroup({
                 dataHash: hashCount[i].hash,
-                offerGroups: new ItemReferenceGroup[](count),
-                considerationGroups: new ItemReferenceGroup[](count),
+                offerGroups: new ItemReferenceGroupLib.ItemReferenceGroup[](
+                    count
+                ),
+                considerationGroups: new ItemReferenceGroupLib.ItemReferenceGroup[](
+                    count
+                ),
                 offerAssigned: 0,
                 considerationAssigned: 0
             });
         }
 
         return group;
+    }
+}
+
+library HashCountLib {
+    using LibPRNG for LibPRNG.PRNG;
+    using LibSort for uint256[];
+    using ItemReferenceLib for OrderDetails[];
+    using ItemReferenceLib for ItemReferenceLib.ItemReference[];
+
+    struct HashCount {
+        bytes32 hash;
+        uint256 count;
     }
 
     function getUniqueFullHashes(
