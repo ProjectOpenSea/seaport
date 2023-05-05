@@ -108,8 +108,8 @@ struct MatchDetails {
 
 library FulfillmentGeneratorLib {
     using LibPRNG for LibPRNG.PRNG;
-    using FulfillmentPrepLib for OrderDetails[];
-    using FulfillmentPrepLib for FulfillmentPrepLib.ItemReference[];
+    using ItemReferenceLib for OrderDetails[];
+    using FulfillmentPrepLib for ItemReferenceLib.ItemReference[];
 
     function getDefaultFulfillmentStrategy()
         internal
@@ -171,14 +171,13 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
-        FulfillmentPrepLib.ItemReference[] memory itemReferences = orderDetails
+        ItemReferenceLib.ItemReference[] memory references = orderDetails
             .getItemReferences(seed);
 
-        FulfillAvailableDetails memory fulfillAvailableDetails = itemReferences
-            .getFulfillAvailableDetailsFromReferences(recipient, caller);
-
-        MatchDetails memory matchDetails = itemReferences
-            .getMatchDetailsFromReferences(recipient);
+        (
+            FulfillAvailableDetails memory fulfillAvailableDetails,
+            MatchDetails memory matchDetails
+        ) = references.getDetails(recipient, caller);
 
         return
             getFulfillmentsFromDetails(
@@ -1042,9 +1041,12 @@ library FulfillmentGeneratorLib {
             FulfillmentComponent[][] memory considerationFulfillments
         )
     {
+        ItemCategory[] memory offerCategories;
         (
             offerFulfillments,
-            considerationFulfillments
+            offerCategories,
+            considerationFulfillments,
+
         ) = getFulfillmentComponentsUsingMethod(
             fulfillAvailableDetails,
             getFulfillmentMethod(strategy.aggregationStrategy),
@@ -1060,7 +1062,10 @@ library FulfillmentGeneratorLib {
         }
 
         if (dropStrategy == FulfillAvailableStrategy.DROP_SINGLE_OFFER) {
-            return (dropSingle(offerFulfillments), considerationFulfillments);
+            return (
+                dropSingle(offerFulfillments, offerCategories),
+                considerationFulfillments
+            );
         }
 
         if (dropStrategy == FulfillAvailableStrategy.DROP_ALL_OFFER) {
@@ -1069,12 +1074,14 @@ library FulfillmentGeneratorLib {
 
         if (dropStrategy == FulfillAvailableStrategy.DROP_RANDOM_OFFER) {
             return (
-                dropRandom(offerFulfillments, seed),
+                dropRandom(offerFulfillments, offerCategories, seed),
                 considerationFulfillments
             );
         }
 
-        if (dropStrategy == FulfillAvailableStrategy.DROP_SINGLE_KEEP_FILTERED) {
+        if (
+            dropStrategy == FulfillAvailableStrategy.DROP_SINGLE_KEEP_FILTERED
+        ) {
             revert(
                 "FulfillmentGeneratorLib: DROP_SINGLE_KEEP_FILTERED unsupported"
             );
@@ -1098,7 +1105,8 @@ library FulfillmentGeneratorLib {
     }
 
     function dropSingle(
-        FulfillmentComponent[][] memory offerFulfillments
+        FulfillmentComponent[][] memory offerFulfillments,
+        ItemCategory[] memory offerCategories
     ) internal pure returns (FulfillmentComponent[][] memory) {
         FulfillmentComponent[][] memory fulfillments = (
             new FulfillmentComponent[][](offerFulfillments.length)
@@ -1108,7 +1116,10 @@ library FulfillmentGeneratorLib {
 
         for (uint256 i = 0; i < offerFulfillments.length; ++i) {
             FulfillmentComponent[] memory components = offerFulfillments[i];
-            if (components.length > 1) {
+            if (
+                offerCategories[i] == ItemCategory.ERC721 ||
+                components.length > 1
+            ) {
                 fulfillments[assignmentIndex++] = components;
             }
         }
@@ -1122,6 +1133,7 @@ library FulfillmentGeneratorLib {
 
     function dropRandom(
         FulfillmentComponent[][] memory offerFulfillments,
+        ItemCategory[] memory offerCategories,
         uint256 seed
     ) internal pure returns (FulfillmentComponent[][] memory) {
         LibPRNG.PRNG memory prng;
@@ -1135,7 +1147,10 @@ library FulfillmentGeneratorLib {
 
         for (uint256 i = 0; i < offerFulfillments.length; ++i) {
             FulfillmentComponent[] memory components = offerFulfillments[i];
-            if (prng.uniform(2) == 0) {
+            if (
+                offerCategories[i] == ItemCategory.ERC721 ||
+                prng.uniform(2) == 0
+            ) {
                 fulfillments[assignmentIndex++] = components;
             }
         }
@@ -1156,7 +1171,7 @@ library FulfillmentGeneratorLib {
             function(FulfillmentItems[] memory, uint256)
                 internal
                 pure
-                returns (FulfillmentComponent[][] memory)
+                returns (FulfillmentComponent[][] memory, ItemCategory[] memory)
         )
     {
         if (aggregationStrategy == AggregationStrategy.MAXIMUM) {
@@ -1175,22 +1190,30 @@ library FulfillmentGeneratorLib {
         function(FulfillmentItems[] memory, uint256)
             internal
             pure
-            returns (FulfillmentComponent[][] memory) fulfillmentMethod,
+            returns (
+                FulfillmentComponent[][] memory,
+                ItemCategory[] memory
+            ) fulfillmentMethod,
         uint256 seed
     )
         internal
         pure
         returns (
             FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments
+            ItemCategory[] memory offerCategories,
+            FulfillmentComponent[][] memory considerationFulfillments,
+            ItemCategory[] memory considerationCategories
         )
     {
-        offerFulfillments = fulfillmentMethod(
+        (offerFulfillments, offerCategories) = fulfillmentMethod(
             fulfillAvailableDetails.items.offer,
             seed
         );
 
-        considerationFulfillments = fulfillmentMethod(
+        (
+            considerationFulfillments,
+            considerationCategories
+        ) = fulfillmentMethod(
             fulfillAvailableDetails.items.consideration,
             seed
         );
@@ -1199,24 +1222,37 @@ library FulfillmentGeneratorLib {
     function getMaxFulfillmentComponents(
         FulfillmentItems[] memory fulfillmentItems,
         uint256 /* seed */
-    ) internal pure returns (FulfillmentComponent[][] memory) {
+    )
+        internal
+        pure
+        returns (FulfillmentComponent[][] memory, ItemCategory[] memory)
+    {
         FulfillmentComponent[][] memory fulfillments = (
             new FulfillmentComponent[][](fulfillmentItems.length)
+        );
+
+        ItemCategory[] memory categories = new ItemCategory[](
+            fulfillmentItems.length
         );
 
         for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
             fulfillments[i] = getFulfillmentComponents(
                 fulfillmentItems[i].items
             );
+            categories[i] = fulfillmentItems[i].itemCategory;
         }
 
-        return fulfillments;
+        return (fulfillments, categories);
     }
 
     function getRandomFulfillmentComponents(
         FulfillmentItems[] memory fulfillmentItems,
         uint256 seed
-    ) internal pure returns (FulfillmentComponent[][] memory) {
+    )
+        internal
+        pure
+        returns (FulfillmentComponent[][] memory, ItemCategory[] memory)
+    {
         uint256 fulfillmentCount = 0;
 
         for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
@@ -1226,6 +1262,8 @@ library FulfillmentGeneratorLib {
         FulfillmentComponent[][] memory fulfillments = (
             new FulfillmentComponent[][](fulfillmentCount)
         );
+
+        ItemCategory[] memory categories = new ItemCategory[](fulfillmentCount);
 
         LibPRNG.PRNG memory prng;
         prng.seed(seed ^ 0xcc);
@@ -1243,12 +1281,14 @@ library FulfillmentGeneratorLib {
                     break;
                 }
 
+                categories[fulfillmentCount] = fulfillmentItems[i].itemCategory;
                 fulfillments[fulfillmentCount++] = fulfillment;
             }
         }
 
         assembly {
             mstore(fulfillments, fulfillmentCount)
+            mstore(categories, fulfillmentCount)
         }
 
         uint256[] memory componentIndices = new uint256[](fulfillments.length);
@@ -1262,11 +1302,17 @@ library FulfillmentGeneratorLib {
             new FulfillmentComponent[][](fulfillments.length)
         );
 
+        ItemCategory[] memory shuffledCategories = (
+            new ItemCategory[](fulfillments.length)
+        );
+
         for (uint256 i = 0; i < fulfillments.length; ++i) {
-            shuffledFulfillments[i] = fulfillments[componentIndices[i]];
+            uint256 priorIndex = componentIndices[i];
+            shuffledFulfillments[i] = fulfillments[priorIndex];
+            shuffledCategories[i] = categories[priorIndex];
         }
 
-        return shuffledFulfillments;
+        return (shuffledFulfillments, shuffledCategories);
     }
 
     function consumeRandomFulfillmentItems(
@@ -1315,7 +1361,11 @@ library FulfillmentGeneratorLib {
     function getMinFulfillmentComponents(
         FulfillmentItems[] memory fulfillmentItems,
         uint256 /* seed */
-    ) internal pure returns (FulfillmentComponent[][] memory) {
+    )
+        internal
+        pure
+        returns (FulfillmentComponent[][] memory, ItemCategory[] memory)
+    {
         uint256 fulfillmentCount = 0;
 
         for (uint256 i = 0; i < fulfillmentItems.length; ++i) {
@@ -1324,6 +1374,10 @@ library FulfillmentGeneratorLib {
 
         FulfillmentComponent[][] memory fulfillments = (
             new FulfillmentComponent[][](fulfillmentCount)
+        );
+
+        ItemCategory[] memory categories = (
+            new ItemCategory[](fulfillmentCount)
         );
 
         fulfillmentCount = 0;
@@ -1335,11 +1389,12 @@ library FulfillmentGeneratorLib {
                     new FulfillmentComponent[](1)
                 );
                 fulfillment[0] = getFulfillmentComponent(items[j]);
+                categories[fulfillmentCount] = fulfillmentItems[i].itemCategory;
                 fulfillments[fulfillmentCount++] = fulfillment;
             }
         }
 
-        return fulfillments;
+        return (fulfillments, categories);
     }
 
     function getFulfillmentComponents(
@@ -1425,38 +1480,11 @@ library FulfillmentGeneratorLib {
 }
 
 library FulfillmentPrepLib {
-    using LibPRNG for LibPRNG.PRNG;
-    using LibSort for uint256[];
-
-    struct ItemReference {
-        uint256 orderIndex;
-        uint256 itemIndex;
-        Side side;
-        bytes32 dataHash; // itemType ++ token ++ identifier
-        bytes32 fullHash; // dataHash ++ [offerer ++ conduitKey || recipient]
-        uint256 amount;
-        ItemCategory itemCategory;
-        address account;
-    }
-
-    struct HashCount {
-        bytes32 hash;
-        uint256 count;
-    }
-
-    struct ItemReferenceGroup {
-        bytes32 fullHash;
-        ItemReference[] references;
-        uint256 assigned;
-    }
-
-    struct MatchableItemReferenceGroup {
-        bytes32 dataHash;
-        ItemReferenceGroup[] offerGroups;
-        ItemReferenceGroup[] considerationGroups;
-        uint256 offerAssigned;
-        uint256 considerationAssigned;
-    }
+    using ItemReferenceLib for OrderDetails[];
+    using ItemReferenceGroupLib for ItemReferenceLib.ItemReference[];
+    using ItemReferenceGroupLib for ItemReferenceGroupLib.ItemReferenceGroup[];
+    using MatchableItemReferenceGroupLib for MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[];
+    using FulfillAvailableReferenceGroupLib for FulfillAvailableReferenceGroupLib.FulfillAvailableReferenceGroup;
 
     function getFulfillAvailableDetails(
         OrderDetails[] memory orderDetails,
@@ -1466,29 +1494,40 @@ library FulfillmentPrepLib {
     ) internal pure returns (FulfillAvailableDetails memory) {
         return
             getFulfillAvailableDetailsFromReferences(
-                getItemReferences(orderDetails, seed),
+                orderDetails.getItemReferences(seed),
                 recipient,
                 caller
             );
     }
 
+    function getDetails(
+        ItemReferenceLib.ItemReference[] memory itemReferences,
+        address recipient,
+        address caller
+    )
+        internal
+        pure
+        returns (FulfillAvailableDetails memory, MatchDetails memory)
+    {
+        ItemReferenceGroupLib.ItemReferenceGroup[]
+            memory groups = itemReferences.bundleByAggregatable();
+
+        return (
+            groups.splitBySide(recipient, caller).getFulfillAvailableDetails(),
+            groups.bundleByMatchable(itemReferences).getMatchDetails(recipient)
+        );
+    }
+
     function getFulfillAvailableDetailsFromReferences(
-        ItemReference[] memory itemReferences,
+        ItemReferenceLib.ItemReference[] memory itemReferences,
         address recipient,
         address caller
     ) internal pure returns (FulfillAvailableDetails memory) {
-        (
-            ItemReferenceGroup[] memory offerGroups,
-            ItemReferenceGroup[] memory considerationGroups
-        ) = splitBySide(bundleByAggregatable(itemReferences));
-
         return
-            getFulfillAvailableDetailsFromGroups(
-                offerGroups,
-                considerationGroups,
-                recipient,
-                caller
-            );
+            itemReferences
+                .bundleByAggregatable()
+                .splitBySide(recipient, caller)
+                .getFulfillAvailableDetails();
     }
 
     function getMatchDetails(
@@ -1498,197 +1537,20 @@ library FulfillmentPrepLib {
     ) internal pure returns (MatchDetails memory) {
         return
             getMatchDetailsFromReferences(
-                getItemReferences(orderDetails, seed),
+                orderDetails.getItemReferences(seed),
                 recipient
             );
     }
 
     function getMatchDetailsFromReferences(
-        ItemReference[] memory itemReferences,
+        ItemReferenceLib.ItemReference[] memory itemReferences,
         address recipient
     ) internal pure returns (MatchDetails memory) {
         return
-            getMatchDetailsFromGroups(
-                bundleByMatchable(
-                    itemReferences,
-                    bundleByAggregatable(itemReferences)
-                ),
-                recipient
-            );
-    }
-
-    function getItemReferences(
-        OrderDetails[] memory orderDetails,
-        uint256 seed
-    ) internal pure returns (ItemReference[] memory) {
-        ItemReference[] memory itemReferences = new ItemReference[](
-            getTotalItems(orderDetails)
-        );
-
-        uint256 itemReferenceIndex = 0;
-
-        for (
-            uint256 orderIndex = 0;
-            orderIndex < orderDetails.length;
-            ++orderIndex
-        ) {
-            OrderDetails memory order = orderDetails[orderIndex];
-            for (
-                uint256 itemIndex = 0;
-                itemIndex < order.offer.length;
-                ++itemIndex
-            ) {
-                itemReferences[itemReferenceIndex++] = getItemReference(
-                    orderIndex,
-                    itemIndex,
-                    order.offerer,
-                    order.conduitKey,
-                    order.offer[itemIndex]
-                );
-            }
-            for (
-                uint256 itemIndex = 0;
-                itemIndex < order.consideration.length;
-                ++itemIndex
-            ) {
-                itemReferences[itemReferenceIndex++] = getItemReference(
-                    orderIndex,
-                    itemIndex,
-                    order.consideration[itemIndex]
-                );
-            }
-        }
-
-        if (seed == 0) {
-            return itemReferences;
-        }
-
-        return shuffleItemReferences(itemReferences, seed);
-    }
-
-    function bundleByAggregatable(
-        ItemReference[] memory itemReferences
-    ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory groups = allocateItemReferenceGroup(
-            getUniqueFullHashes(itemReferences)
-        );
-
-        for (uint256 i = 0; i < itemReferences.length; ++i) {
-            ItemReference memory itemReference = itemReferences[i];
-            for (uint256 j = 0; j < groups.length; ++j) {
-                ItemReferenceGroup memory group = groups[j];
-                if (group.fullHash == itemReference.fullHash) {
-                    group.references[group.assigned++] = itemReference;
-                    break;
-                }
-            }
-        }
-
-        // Sanity check: ensure at least one reference item on each group
-        for (uint256 i = 0; i < groups.length; ++i) {
-            if (groups[i].references.length == 0) {
-                revert("FulfillmentPrepLib: missing item reference in group");
-            }
-        }
-
-        return groups;
-    }
-
-    function splitBySide(
-        ItemReferenceGroup[] memory groups
-    )
-        internal
-        pure
-        returns (ItemReferenceGroup[] memory, ItemReferenceGroup[] memory)
-    {
-        // NOTE: lengths are overallocated; reduce after assignment.
-        ItemReferenceGroup[] memory offerGroups = (
-            new ItemReferenceGroup[](groups.length)
-        );
-        ItemReferenceGroup[] memory considerationGroups = (
-            new ItemReferenceGroup[](groups.length)
-        );
-        uint256 offerItems = 0;
-        uint256 considerationItems = 0;
-
-        for (uint256 i = 0; i < groups.length; ++i) {
-            ItemReferenceGroup memory group = groups[i];
-
-            if (group.references.length == 0) {
-                revert("FulfillmentPrepLib: no items in group");
-            }
-
-            Side side = group.references[0].side;
-
-            if (side == Side.OFFER) {
-                offerGroups[offerItems++] = copy(group);
-            } else if (side == Side.CONSIDERATION) {
-                considerationGroups[considerationItems++] = copy(group);
-            } else {
-                revert("FulfillmentPrepLib: invalid side located (split)");
-            }
-        }
-
-        // Reduce group lengths based on number of elements assigned.
-        assembly {
-            mstore(offerGroups, offerItems)
-            mstore(considerationGroups, considerationItems)
-        }
-
-        return (offerGroups, considerationGroups);
-    }
-
-    function getFulfillAvailableDetailsFromGroups(
-        ItemReferenceGroup[] memory offerGroups,
-        ItemReferenceGroup[] memory considerationGroups,
-        address recipient,
-        address caller
-    ) internal pure returns (FulfillAvailableDetails memory) {
-        (
-            DualFulfillmentItems memory items,
-            uint256 totalItems
-        ) = getDualFulfillmentItems(offerGroups, considerationGroups);
-
-        return
-            FulfillAvailableDetails({
-                items: items,
-                caller: caller,
-                recipient: recipient,
-                totalItems: totalItems
-            });
-    }
-
-    function getMatchDetailsFromGroups(
-        MatchableItemReferenceGroup[] memory matchableGroups,
-        address recipient
-    ) internal pure returns (MatchDetails memory) {
-        DualFulfillmentItems[] memory items = new DualFulfillmentItems[](
-            matchableGroups.length
-        );
-
-        uint256 totalItems = 0;
-        uint256 itemsInGroup = 0;
-
-        for (uint256 i = 0; i < matchableGroups.length; ++i) {
-            MatchableItemReferenceGroup memory matchableGroup = (
-                matchableGroups[i]
-            );
-
-            (items[i], itemsInGroup) = getDualFulfillmentItems(
-                matchableGroup.offerGroups,
-                matchableGroup.considerationGroups
-            );
-
-            totalItems += itemsInGroup;
-        }
-
-        return
-            MatchDetails({
-                items: items,
-                context: getFulfillmentMatchContext(items),
-                recipient: recipient,
-                totalItems: totalItems
-            });
+            itemReferences
+                .bundleByAggregatable()
+                .bundleByMatchable(itemReferences)
+                .getMatchDetails(recipient);
     }
 
     function getFulfillmentMatchContext(
@@ -1711,9 +1573,7 @@ library FulfillmentPrepLib {
                 if (!itemCategorySet) {
                     itemCategory = items.itemCategory;
                 } else if (itemCategory != items.itemCategory) {
-                    revert(
-                        "FulfillmentGeneratorLib: mismatched item categories"
-                    );
+                    revert("FulfillmentPrepLib: mismatched item categories");
                 }
 
                 totalOfferAmount += items.totalAmount;
@@ -1728,9 +1588,7 @@ library FulfillmentPrepLib {
                 if (!itemCategorySet) {
                     itemCategory = items.itemCategory;
                 } else if (itemCategory != items.itemCategory) {
-                    revert(
-                        "FulfillmentGeneratorLib: mismatched item categories"
-                    );
+                    revert("FulfillmentPrepLib: mismatched item categories");
                 }
 
                 totalConsiderationAmount += items.totalAmount;
@@ -1747,8 +1605,8 @@ library FulfillmentPrepLib {
     }
 
     function getDualFulfillmentItems(
-        ItemReferenceGroup[] memory offerGroups,
-        ItemReferenceGroup[] memory considerationGroups
+        ItemReferenceGroupLib.ItemReferenceGroup[] memory offerGroups,
+        ItemReferenceGroupLib.ItemReferenceGroup[] memory considerationGroups
     ) internal pure returns (DualFulfillmentItems memory, uint256 totalItems) {
         DualFulfillmentItems memory items = DualFulfillmentItems({
             offer: new FulfillmentItems[](offerGroups.length),
@@ -1758,7 +1616,6 @@ library FulfillmentPrepLib {
         uint256 currentItems;
 
         for (uint256 i = 0; i < offerGroups.length; ++i) {
-            // XYZ
             (items.offer[i], currentItems) = getFulfillmentItems(
                 offerGroups[i].references
             );
@@ -1778,14 +1635,16 @@ library FulfillmentPrepLib {
     }
 
     function getFulfillmentItems(
-        ItemReference[] memory itemReferences
+        ItemReferenceLib.ItemReference[] memory itemReferences
     ) internal pure returns (FulfillmentItems memory, uint256 totalItems) {
         // Sanity check: ensure there's at least one reference
         if (itemReferences.length == 0) {
             revert("FulfillmentPrepLib: empty item references supplied");
         }
 
-        ItemReference memory firstReference = itemReferences[0];
+        ItemReferenceLib.ItemReference memory firstReference = itemReferences[
+            0
+        ];
         FulfillmentItems memory fulfillmentItems = FulfillmentItems({
             itemCategory: firstReference.itemCategory,
             totalAmount: 0,
@@ -1793,7 +1652,8 @@ library FulfillmentPrepLib {
         });
 
         for (uint256 i = 0; i < itemReferences.length; ++i) {
-            ItemReference memory itemReference = itemReferences[i];
+            ItemReferenceLib.ItemReference
+                memory itemReference = itemReferences[i];
             uint256 amount = itemReference.amount;
             fulfillmentItems.totalAmount += amount;
             fulfillmentItems.items[i] = FulfillmentItem({
@@ -1808,44 +1668,221 @@ library FulfillmentPrepLib {
 
         return (fulfillmentItems, totalItems);
     }
+}
+
+library FulfillAvailableReferenceGroupLib {
+    struct FulfillAvailableReferenceGroup {
+        ItemReferenceGroupLib.ItemReferenceGroup[] offerGroups;
+        ItemReferenceGroupLib.ItemReferenceGroup[] considerationGroups;
+        address recipient;
+        address caller;
+    }
+
+    function getFulfillAvailableDetails(
+        FulfillAvailableReferenceGroup memory group
+    ) internal pure returns (FulfillAvailableDetails memory) {
+        (
+            DualFulfillmentItems memory items,
+            uint256 totalItems
+        ) = FulfillmentPrepLib.getDualFulfillmentItems(
+                group.offerGroups,
+                group.considerationGroups
+            );
+
+        return
+            FulfillAvailableDetails({
+                items: items,
+                caller: group.caller,
+                recipient: group.recipient,
+                totalItems: totalItems
+            });
+    }
+}
+
+library MatchableItemReferenceGroupLib {
+    struct MatchableItemReferenceGroup {
+        bytes32 dataHash;
+        ItemReferenceGroupLib.ItemReferenceGroup[] offerGroups;
+        ItemReferenceGroupLib.ItemReferenceGroup[] considerationGroups;
+        uint256 offerAssigned;
+        uint256 considerationAssigned;
+    }
+
+    function getMatchDetails(
+        MatchableItemReferenceGroup[] memory matchableGroups,
+        address recipient
+    ) internal pure returns (MatchDetails memory) {
+        DualFulfillmentItems[] memory items = new DualFulfillmentItems[](
+            matchableGroups.length
+        );
+
+        uint256 totalItems = 0;
+        uint256 itemsInGroup = 0;
+
+        for (uint256 i = 0; i < matchableGroups.length; ++i) {
+            MatchableItemReferenceGroup memory matchableGroup = (
+                matchableGroups[i]
+            );
+
+            (items[i], itemsInGroup) = FulfillmentPrepLib
+                .getDualFulfillmentItems(
+                    matchableGroup.offerGroups,
+                    matchableGroup.considerationGroups
+                );
+
+            totalItems += itemsInGroup;
+        }
+
+        return
+            MatchDetails({
+                items: items,
+                context: FulfillmentPrepLib.getFulfillmentMatchContext(items),
+                recipient: recipient,
+                totalItems: totalItems
+            });
+    }
+}
+
+library ItemReferenceGroupLib {
+    using HashCountLib for ItemReferenceLib.ItemReference[];
+    using HashAllocatorLib for HashCountLib.HashCount[];
+
+    struct ItemReferenceGroup {
+        bytes32 fullHash;
+        ItemReferenceLib.ItemReference[] references;
+        uint256 assigned;
+    }
+
+    function bundleByAggregatable(
+        ItemReferenceLib.ItemReference[] memory itemReferences
+    ) internal pure returns (ItemReferenceGroup[] memory) {
+        ItemReferenceGroup[] memory groups = itemReferences
+            .getUniqueFullHashes()
+            .allocateItemReferenceGroup();
+
+        for (uint256 i = 0; i < itemReferences.length; ++i) {
+            ItemReferenceLib.ItemReference
+                memory itemReference = itemReferences[i];
+            for (uint256 j = 0; j < groups.length; ++j) {
+                ItemReferenceGroup memory group = groups[j];
+                if (group.fullHash == itemReference.fullHash) {
+                    group.references[group.assigned++] = itemReference;
+                    break;
+                }
+            }
+        }
+
+        // Sanity check: ensure at least one reference item on each group
+        for (uint256 i = 0; i < groups.length; ++i) {
+            if (groups[i].references.length == 0) {
+                revert(
+                    "ItemReferenceGroupLib: missing item reference in group"
+                );
+            }
+        }
+
+        return groups;
+    }
+
+    function splitBySide(
+        ItemReferenceGroup[] memory groups,
+        address recipient,
+        address caller
+    )
+        internal
+        pure
+        returns (
+            FulfillAvailableReferenceGroupLib.FulfillAvailableReferenceGroup
+                memory
+        )
+    {
+        // NOTE: lengths are overallocated; reduce after assignment.
+        ItemReferenceGroup[] memory offerGroups = (
+            new ItemReferenceGroup[](groups.length)
+        );
+        ItemReferenceGroup[] memory considerationGroups = (
+            new ItemReferenceGroup[](groups.length)
+        );
+        uint256 offerItems = 0;
+        uint256 considerationItems = 0;
+
+        for (uint256 i = 0; i < groups.length; ++i) {
+            ItemReferenceGroup memory group = groups[i];
+
+            if (group.references.length == 0) {
+                revert("ItemReferenceGroupLib: no items in group");
+            }
+
+            Side side = group.references[0].side;
+
+            if (side == Side.OFFER) {
+                offerGroups[offerItems++] = group;
+            } else if (side == Side.CONSIDERATION) {
+                considerationGroups[considerationItems++] = group;
+            } else {
+                revert("ItemReferenceGroupLib: invalid side located (split)");
+            }
+        }
+
+        // Reduce group lengths based on number of elements assigned.
+        assembly {
+            mstore(offerGroups, offerItems)
+            mstore(considerationGroups, considerationItems)
+        }
+
+        return
+            FulfillAvailableReferenceGroupLib.FulfillAvailableReferenceGroup({
+                offerGroups: offerGroups,
+                considerationGroups: considerationGroups,
+                recipient: recipient,
+                caller: caller
+            });
+    }
 
     function bundleByMatchable(
-        ItemReference[] memory itemReferences,
-        ItemReferenceGroup[] memory groups
-    ) internal pure returns (MatchableItemReferenceGroup[] memory) {
-        MatchableItemReferenceGroup[] memory matchableGroups = (
-            allocateMatchableItemReferenceGroup(
-                getUniqueDataHashes(itemReferences)
-            )
-        );
+        ItemReferenceGroup[] memory groups,
+        ItemReferenceLib.ItemReference[] memory itemReferences
+    )
+        internal
+        pure
+        returns (
+            MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[] memory
+        )
+    {
+        MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[]
+            memory matchableGroups = (
+                itemReferences
+                    .getUniqueDataHashes()
+                    .allocateMatchableItemReferenceGroup()
+            );
 
         for (uint256 i = 0; i < groups.length; ++i) {
             ItemReferenceGroup memory group = groups[i];
 
             if (group.references.length == 0) {
                 revert(
-                    "FulfillmentPrepLib: empty item reference group supplied"
+                    "ItemReferenceGroupLib: empty item reference group supplied"
                 );
             }
 
-            ItemReference memory firstReference = group.references[0];
+            ItemReferenceLib.ItemReference memory firstReference = group
+                .references[0];
             for (uint256 j = 0; j < matchableGroups.length; ++j) {
-                MatchableItemReferenceGroup memory matchableGroup = (
-                    matchableGroups[j]
-                );
+                MatchableItemReferenceGroupLib.MatchableItemReferenceGroup
+                    memory matchableGroup = (matchableGroups[j]);
 
                 if (matchableGroup.dataHash == firstReference.dataHash) {
                     if (firstReference.side == Side.OFFER) {
                         matchableGroup.offerGroups[
                             matchableGroup.offerAssigned++
-                        ] = copy(group);
+                        ] = group;
                     } else if (firstReference.side == Side.CONSIDERATION) {
                         matchableGroup.considerationGroups[
                             matchableGroup.considerationAssigned++
-                        ] = copy(group);
+                        ] = group;
                     } else {
                         revert(
-                            "FulfillmentPrepLib: invalid side located (match)"
+                            "ItemReferenceGroupLib: invalid match side located"
                         );
                     }
 
@@ -1856,7 +1893,8 @@ library FulfillmentPrepLib {
 
         // Reduce reference group array lengths based on assigned elements.
         for (uint256 i = 0; i < matchableGroups.length; ++i) {
-            MatchableItemReferenceGroup memory group = matchableGroups[i];
+            MatchableItemReferenceGroupLib.MatchableItemReferenceGroup
+                memory group = matchableGroups[i];
             uint256 offerAssigned = group.offerAssigned;
             uint256 considerationAssigned = group.considerationAssigned;
             ItemReferenceGroup[] memory offerGroups = (group.offerGroups);
@@ -1872,18 +1910,27 @@ library FulfillmentPrepLib {
 
         return matchableGroups;
     }
+}
 
+library HashAllocatorLib {
     function allocateItemReferenceGroup(
-        HashCount[] memory hashCount
-    ) internal pure returns (ItemReferenceGroup[] memory) {
-        ItemReferenceGroup[] memory group = new ItemReferenceGroup[](
-            hashCount.length
-        );
+        HashCountLib.HashCount[] memory hashCount
+    )
+        internal
+        pure
+        returns (ItemReferenceGroupLib.ItemReferenceGroup[] memory)
+    {
+        ItemReferenceGroupLib.ItemReferenceGroup[]
+            memory group = new ItemReferenceGroupLib.ItemReferenceGroup[](
+                hashCount.length
+            );
 
         for (uint256 i = 0; i < hashCount.length; ++i) {
-            group[i] = ItemReferenceGroup({
+            group[i] = ItemReferenceGroupLib.ItemReferenceGroup({
                 fullHash: hashCount[i].hash,
-                references: new ItemReference[](hashCount[i].count),
+                references: new ItemReferenceLib.ItemReference[](
+                    hashCount[i].count
+                ),
                 assigned: 0
             });
         }
@@ -1892,30 +1939,56 @@ library FulfillmentPrepLib {
     }
 
     function allocateMatchableItemReferenceGroup(
-        HashCount[] memory hashCount
-    ) internal pure returns (MatchableItemReferenceGroup[] memory) {
-        MatchableItemReferenceGroup[] memory group = (
-            new MatchableItemReferenceGroup[](hashCount.length)
-        );
+        HashCountLib.HashCount[] memory hashCount
+    )
+        internal
+        pure
+        returns (
+            MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[] memory
+        )
+    {
+        MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[]
+            memory group = (
+                new MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[](
+                    hashCount.length
+                )
+            );
 
         for (uint256 i = 0; i < hashCount.length; ++i) {
             // NOTE: reference group lengths are overallocated and will need to
             // be reduced once their respective elements have been assigned.
             uint256 count = hashCount[i].count;
-            group[i] = MatchableItemReferenceGroup({
-                dataHash: hashCount[i].hash,
-                offerGroups: new ItemReferenceGroup[](count),
-                considerationGroups: new ItemReferenceGroup[](count),
-                offerAssigned: 0,
-                considerationAssigned: 0
-            });
+            group[i] = MatchableItemReferenceGroupLib
+                .MatchableItemReferenceGroup({
+                    dataHash: hashCount[i].hash,
+                    offerGroups: new ItemReferenceGroupLib.ItemReferenceGroup[](
+                        count
+                    ),
+                    considerationGroups: (
+                        new ItemReferenceGroupLib.ItemReferenceGroup[](count)
+                    ),
+                    offerAssigned: 0,
+                    considerationAssigned: 0
+                });
         }
 
         return group;
     }
+}
+
+library HashCountLib {
+    using LibPRNG for LibPRNG.PRNG;
+    using LibSort for uint256[];
+    using ItemReferenceLib for OrderDetails[];
+    using ItemReferenceLib for ItemReferenceLib.ItemReference[];
+
+    struct HashCount {
+        bytes32 hash;
+        uint256 count;
+    }
 
     function getUniqueFullHashes(
-        ItemReference[] memory itemReferences
+        ItemReferenceLib.ItemReference[] memory itemReferences
     ) internal pure returns (HashCount[] memory) {
         uint256[] memory fullHashes = new uint256[](itemReferences.length);
 
@@ -1927,7 +2000,7 @@ library FulfillmentPrepLib {
     }
 
     function getUniqueDataHashes(
-        ItemReference[] memory itemReferences
+        ItemReferenceLib.ItemReference[] memory itemReferences
     ) internal pure returns (HashCount[] memory) {
         uint256[] memory dataHashes = new uint256[](itemReferences.length);
 
@@ -1971,31 +2044,102 @@ library FulfillmentPrepLib {
 
         return hashCount;
     }
+}
 
-    function getTotalItems(
-        OrderDetails[] memory orderDetails
-    ) internal pure returns (uint256) {
-        uint256 totalItems = 0;
+library ItemReferenceLib {
+    using LibPRNG for LibPRNG.PRNG;
+    using LibSort for uint256[];
 
-        for (uint256 i = 0; i < orderDetails.length; ++i) {
-            totalItems += getTotalItems(orderDetails[i]);
-        }
-
-        return totalItems;
+    struct ItemReference {
+        uint256 orderIndex;
+        uint256 itemIndex;
+        Side side;
+        bytes32 dataHash; // itemType ++ token ++ identifier
+        bytes32 fullHash; // dataHash ++ [offerer ++ conduitKey || recipient]
+        uint256 amount;
+        ItemCategory itemCategory;
+        address account;
     }
 
-    function getTotalItems(
-        OrderDetails memory order
-    ) internal pure returns (uint256) {
-        return (order.offer.length + order.consideration.length);
+    function getItemReferences(
+        OrderDetails[] memory orderDetails,
+        uint256 seed
+    ) internal pure returns (ItemReference[] memory) {
+        ItemReference[] memory itemReferences = new ItemReference[](
+            getTotalItems(orderDetails)
+        );
+
+        uint256 itemReferenceIndex = 0;
+
+        for (
+            uint256 orderIndex = 0;
+            orderIndex < orderDetails.length;
+            ++orderIndex
+        ) {
+            OrderDetails memory order = orderDetails[orderIndex];
+            for (
+                uint256 itemIndex = 0;
+                itemIndex < order.offer.length;
+                ++itemIndex
+            ) {
+                itemReferences[itemReferenceIndex++] = getItemReference(
+                    order.offer[itemIndex],
+                    orderIndex,
+                    itemIndex,
+                    order.offerer,
+                    order.conduitKey
+                );
+            }
+            for (
+                uint256 itemIndex = 0;
+                itemIndex < order.consideration.length;
+                ++itemIndex
+            ) {
+                itemReferences[itemReferenceIndex++] = getItemReference(
+                    order.consideration[itemIndex],
+                    orderIndex,
+                    itemIndex
+                );
+            }
+        }
+
+        if (seed == 0) {
+            return itemReferences;
+        }
+
+        return shuffle(itemReferences, seed);
+    }
+
+    function shuffle(
+        ItemReference[] memory itemReferences,
+        uint256 seed
+    ) internal pure returns (ItemReference[] memory) {
+        ItemReference[] memory shuffledItemReferences = new ItemReference[](
+            itemReferences.length
+        );
+
+        uint256[] memory indices = new uint256[](itemReferences.length);
+        for (uint256 i = 0; i < indices.length; ++i) {
+            indices[i] = i;
+        }
+
+        LibPRNG.PRNG memory prng;
+        prng.seed(seed ^ 0xee);
+        prng.shuffle(indices);
+
+        for (uint256 i = 0; i < indices.length; ++i) {
+            shuffledItemReferences[i] = itemReferences[indices[i]];
+        }
+
+        return shuffledItemReferences;
     }
 
     function getItemReference(
+        SpentItem memory item,
         uint256 orderIndex,
         uint256 itemIndex,
         address offerer,
-        bytes32 conduitKey,
-        SpentItem memory item
+        bytes32 conduitKey
     ) internal pure returns (ItemReference memory) {
         return
             getItemReference(
@@ -2012,9 +2156,9 @@ library FulfillmentPrepLib {
     }
 
     function getItemReference(
+        ReceivedItem memory item,
         uint256 orderIndex,
-        uint256 itemIndex,
-        ReceivedItem memory item
+        uint256 itemIndex
     ) internal pure returns (ItemReference memory) {
         return
             getItemReference(
@@ -2053,7 +2197,7 @@ library FulfillmentPrepLib {
         } else if (side == Side.CONSIDERATION) {
             fullHash = keccak256(abi.encodePacked(dataHash, account));
         } else {
-            revert("FulfillmentPrepLib: invalid side located (get reference)");
+            revert("ItemReferenceLib: invalid side located");
         }
 
         ItemCategory itemCategory;
@@ -2064,7 +2208,7 @@ library FulfillmentPrepLib {
         } else if (itemType == ItemType.ERC20 || itemType == ItemType.ERC1155) {
             itemCategory = ItemCategory.OTHER;
         } else {
-            revert("FulfillmentPrepLib: invalid item type located");
+            revert("ItemReferenceLib: invalid item type located");
         }
 
         return
@@ -2080,68 +2224,21 @@ library FulfillmentPrepLib {
             });
     }
 
-    function shuffleItemReferences(
-        ItemReference[] memory itemReferences,
-        uint256 seed
-    ) internal pure returns (ItemReference[] memory) {
-        ItemReference[] memory shuffledItemReferences = new ItemReference[](
-            itemReferences.length
-        );
+    function getTotalItems(
+        OrderDetails[] memory orderDetails
+    ) internal pure returns (uint256) {
+        uint256 totalItems = 0;
 
-        uint256[] memory indices = new uint256[](itemReferences.length);
-        for (uint256 i = 0; i < indices.length; ++i) {
-            indices[i] = i;
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            totalItems += getTotalItems(orderDetails[i]);
         }
 
-        LibPRNG.PRNG memory prng;
-        prng.seed(seed ^ 0xee);
-        prng.shuffle(indices);
-
-        for (uint256 i = 0; i < indices.length; ++i) {
-            shuffledItemReferences[i] = copy(itemReferences[indices[i]]);
-        }
-
-        return shuffledItemReferences;
+        return totalItems;
     }
 
-    function copy(
-        ItemReference memory itemReference
-    ) internal pure returns (ItemReference memory) {
-        return
-            ItemReference({
-                orderIndex: itemReference.orderIndex,
-                itemIndex: itemReference.itemIndex,
-                side: itemReference.side,
-                dataHash: itemReference.dataHash,
-                fullHash: itemReference.fullHash,
-                amount: itemReference.amount,
-                itemCategory: itemReference.itemCategory,
-                account: itemReference.account
-            });
-    }
-
-    function copy(
-        ItemReference[] memory itemReferences
-    ) internal pure returns (ItemReference[] memory) {
-        ItemReference[] memory copiedReferences = new ItemReference[](
-            itemReferences.length
-        );
-
-        for (uint256 i = 0; i < itemReferences.length; ++i) {
-            copiedReferences[i] = copy(itemReferences[i]);
-        }
-
-        return copiedReferences;
-    }
-
-    function copy(
-        ItemReferenceGroup memory group
-    ) internal pure returns (ItemReferenceGroup memory) {
-        return
-            ItemReferenceGroup({
-                fullHash: group.fullHash,
-                references: copy(group.references),
-                assigned: group.assigned
-            });
+    function getTotalItems(
+        OrderDetails memory order
+    ) internal pure returns (uint256) {
+        return (order.offer.length + order.consideration.length);
     }
 }
