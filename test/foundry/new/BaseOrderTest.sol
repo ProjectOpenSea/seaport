@@ -63,14 +63,6 @@ import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
 /**
- * @dev used to store address and key outputs from makeAddrAndKey(name)
- */
-struct Account {
-    address addr;
-    uint256 key;
-}
-
-/**
  * @dev This is a base test class for cases that depend on pre-deployed token
  *      contracts. Note that it is different from the BaseOrderTest in the
  *      legacy test suite.
@@ -284,15 +276,6 @@ contract BaseOrderTest is
         } catch (bytes memory reason) {
             assertPass(reason);
         }
-    }
-
-    /**
-     * @dev convenience wrapper for makeAddrAndKey
-     */
-    function makeAccount(string memory name) public returns (Account memory) {
-        (address addr, uint256 key) = makeAddrAndKey(name);
-        setLabel(addr, name);
-        return Account(addr, key);
     }
 
     /**

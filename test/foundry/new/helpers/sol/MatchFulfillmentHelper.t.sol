@@ -36,7 +36,7 @@ import {
     MatchComponentType
 } from "seaport-sol/lib/types/MatchComponentType.sol";
 
-import { Account, BaseOrderTest } from "../../BaseOrderTest.sol";
+import { BaseOrderTest } from "../../BaseOrderTest.sol";
 
 contract MatchFulfillmentHelperTest is BaseOrderTest {
     using Strings for uint256;

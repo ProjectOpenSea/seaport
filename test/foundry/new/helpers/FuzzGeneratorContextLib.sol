@@ -26,7 +26,7 @@ import {
     ConduitControllerInterface
 } from "seaport-sol/ConduitControllerInterface.sol";
 
-import { Account } from "../BaseOrderTest.sol";
+import { StdCheats } from "forge-std/StdCheats.sol";
 
 import { TestHelpers } from "./FuzzTestContextLib.sol";
 
@@ -72,12 +72,12 @@ struct FuzzGeneratorContext {
     TestERC1155[] erc1155s;
     address self;
     address caller;
-    Account alice;
-    Account bob;
-    Account carol;
-    Account dillon;
-    Account eve;
-    Account frank;
+    StdCheats.Account alice;
+    StdCheats.Account bob;
+    StdCheats.Account carol;
+    StdCheats.Account dillon;
+    StdCheats.Account eve;
+    StdCheats.Account frank;
     TestConduit[] conduits;
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;

@@ -44,8 +44,6 @@ import {
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { Account } from "../BaseOrderTest.sol";
-
 import { Result } from "./FuzzHelpers.sol";
 
 import { ExpectedBalances } from "./ExpectedBalances.sol";
@@ -63,6 +61,8 @@ import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import { FractionResults } from "./FractionUtil.sol";
 
+import { StdCheats } from "forge-std/StdCheats.sol";
+
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -75,7 +75,7 @@ interface TestHelpers {
 
     function makeAccount(
         string memory name
-    ) external view returns (Account memory);
+    ) external view returns (StdCheats.Account memory);
 
     function getNaiveFulfillmentComponents(
         OrderDetails[] memory orderDetails
