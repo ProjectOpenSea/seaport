@@ -774,10 +774,7 @@ library FuzzHelpers {
 
         bytes32[] memory orderHashes = new bytes32[](orders.length);
         for (uint256 i = 0; i < orderHashes.length; ++i) {
-            if (
-                context.executionState.orderDetails[i].unavailableReason !=
-                UnavailableReason.AVAILABLE
-            ) {
+            if (!context.expectations.expectedAvailableOrders[i]) {
                 orderHashes[i] = bytes32(0);
             } else {
                 orderHashes[i] = context

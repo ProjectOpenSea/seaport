@@ -415,10 +415,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) continue;
-
             OrderDetails memory order = context.executionState.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
+
+            if (order.unavailableReason != UnavailableReason.AVAILABLE) {
+                continue;
+            }
 
             address owner = context.executionState.caller;
             address approveTo = context.getApproveTo();
@@ -448,8 +450,14 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                             ++k
                         ) {
                             if (
-                                !context.expectations.expectedAvailableOrders[k]
-                            ) continue;
+                                context
+                                    .executionState
+                                    .orderDetails[k]
+                                    .unavailableReason !=
+                                UnavailableReason.AVAILABLE
+                            ) {
+                                continue;
+                            }
 
                             SpentItem[] memory spentItems = context
                                 .executionState

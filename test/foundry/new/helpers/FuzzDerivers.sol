@@ -196,10 +196,10 @@ library FuzzDerivers {
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
         UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
-            context.executionState.orders.length
+            context.advancedOrdersSpace.orders.length
         );
 
-        for (uint256 i; i < context.executionState.orders.length; ++i) {
+        for (uint256 i; i < context.advancedOrdersSpace.orders.length; ++i) {
             unavailableReasons[i] = context
                 .advancedOrdersSpace
                 .orders[i]
@@ -283,7 +283,6 @@ library FuzzDerivers {
                 } else {
                     totalAvailable += 1;
                 }
-
             } else if (context.expectations.expectedAvailableOrders[i]) {
                 // If the unavailableReason is not AVAILABLE, but the order is
                 // expected to be available, something went wrong.

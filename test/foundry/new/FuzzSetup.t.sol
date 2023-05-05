@@ -12,6 +12,12 @@ import {
     OrderParametersLib
 } from "seaport-sol/SeaportSol.sol";
 
+import { OrderComponentsSpace } from "seaport-sol/StructSpace.sol";
+
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import {
     AdvancedOrder,
     ConsiderationItem,
@@ -90,13 +96,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: address(this)
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -133,13 +151,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         vm.warp(block.timestamp + 500);
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: address(this)
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -176,13 +206,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         vm.warp(block.timestamp + 500);
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: address(this)
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -230,13 +272,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: address(this)
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -286,13 +340,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: address(this)
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -334,13 +400,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
 
         vm.warp(block.timestamp + 500);
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: address(this)
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -384,13 +462,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: charlie.addr
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpConsiderationItems(context);
 
@@ -437,13 +527,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: charlie.addr
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpConsiderationItems(context);
 
@@ -492,13 +594,25 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({
-                orders: orders,
-                seaport: getSeaport(),
-                caller: charlie.addr
-            })
-            .withDerivedOrderDetails();
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport(),
+            caller: charlie.addr
+        });
+
+        // Provision arrays to avoid index errors.
+        context.advancedOrdersSpace.orders = new OrderComponentsSpace[](1);
+        context.executionState.preExecOrderStatuses = new OrderStatusEnum[](1);
+
+        context = context.withDerivedOrderDetails();
+
+        // Do some surgery on the context so that the setup function thinks
+        // that the order is available and worth providing balance and approvals
+        // for.
+        context
+            .executionState
+            .orderDetails[0]
+            .unavailableReason = UnavailableReason.AVAILABLE;
 
         setUpConsiderationItems(context);
 
