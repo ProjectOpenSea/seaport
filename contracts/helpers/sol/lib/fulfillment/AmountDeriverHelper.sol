@@ -20,6 +20,7 @@ import { OfferItemLib } from "../OfferItemLib.sol";
 import { ConsiderationItemLib } from "../ConsiderationItemLib.sol";
 import { OrderParametersLib } from "../OrderParametersLib.sol";
 import { OrderDetails } from "../../fulfillments/lib/Structs.sol";
+import { UnavailableReason } from "../../SpaceEnums.sol";
 
 /**
  * @notice Note that this contract relies on current block.timestamp to determine amounts.
@@ -97,7 +98,8 @@ contract AmountDeriverHelper is AmountDeriver {
 
     function toOrderDetails(
         OrderParameters memory order,
-        bytes32 orderHash
+        bytes32 orderHash,
+        UnavailableReason unavailableReason
     ) internal view returns (OrderDetails memory) {
         (SpentItem[] memory offer, ReceivedItem[] memory consideration) = this
             .getSpentAndReceivedItems(order);
@@ -108,19 +110,22 @@ contract AmountDeriverHelper is AmountDeriver {
                 offer: offer,
                 consideration: consideration,
                 isContract: order.orderType == OrderType.CONTRACT,
-                orderHash: orderHash
+                orderHash: orderHash,
+                unavailableReason: unavailableReason
             });
     }
 
     function toOrderDetails(
         Order[] memory order,
-        bytes32[] memory orderHashes
+        bytes32[] memory orderHashes,
+        UnavailableReason[] memory unavailableReasons
     ) public view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](order.length);
         for (uint256 i = 0; i < order.length; i++) {
             orderDetails[i] = toOrderDetails(
                 order[i].parameters,
-                orderHashes[i]
+                orderHashes[i],
+                unavailableReasons[i]
             );
         }
         return orderDetails;
@@ -129,7 +134,8 @@ contract AmountDeriverHelper is AmountDeriver {
     function toOrderDetails(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers,
-        bytes32[] memory orderHashes
+        bytes32[] memory orderHashes,
+        UnavailableReason[] memory unavailableReasons
     ) public view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
@@ -137,7 +143,8 @@ contract AmountDeriverHelper is AmountDeriver {
                 orders[i],
                 i,
                 resolvers,
-                orderHashes[i]
+                orderHashes[i],
+                unavailableReasons[i]
             );
         }
         return orderDetails;
@@ -147,7 +154,8 @@ contract AmountDeriverHelper is AmountDeriver {
         AdvancedOrder memory order,
         uint256 orderIndex,
         CriteriaResolver[] memory resolvers,
-        bytes32 orderHash
+        bytes32 orderHash,
+        UnavailableReason unavailableReason
     ) internal view returns (OrderDetails memory) {
         (SpentItem[] memory offer, ReceivedItem[] memory consideration) = this
             .getSpentAndReceivedItems(order, orderIndex, resolvers);
@@ -159,7 +167,8 @@ contract AmountDeriverHelper is AmountDeriver {
                 offer: offer,
                 consideration: consideration,
                 isContract: order.parameters.orderType == OrderType.CONTRACT,
-                orderHash: orderHash
+                orderHash: orderHash,
+                unavailableReason: unavailableReason
             });
     }
 

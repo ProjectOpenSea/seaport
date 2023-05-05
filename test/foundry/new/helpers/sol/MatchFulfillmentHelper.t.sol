@@ -25,6 +25,8 @@ import {
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import {
     MatchFulfillmentHelper
 } from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
@@ -99,12 +101,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             )
         });
 
-        bytes32[] memory orderHashes = new bytes32[](1);
-
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order),
-                orderHashes
+                new bytes32[](1),
+                new UnavailableReason[](1)
             );
 
         assertEq(fulfillments.length, 1);
@@ -195,7 +196,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order, otherOrder),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 2);
@@ -305,7 +307,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(otherOrder, order),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
@@ -416,7 +419,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(otherOrder, order),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
@@ -527,7 +531,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(otherOrder, order),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
@@ -643,7 +648,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             MatchComponent[] memory leftoverConsideration
         ) = matcher.getMatchedFulfillments(
                 SeaportArrays.Orders(otherOrder, order),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
@@ -759,7 +765,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(otherOrder, order),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
@@ -886,7 +893,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order, otherOrder),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
@@ -1015,7 +1023,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order, otherOrder),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
@@ -1149,7 +1158,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order, otherOrder),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
@@ -1284,7 +1294,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order, otherOrder),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
@@ -1575,7 +1586,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                     orderTwo,
                     otherOrderTwo
                 ),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](4)
             );
 
         if (!useDifferentConduitsBetweenOrderPairs) {
@@ -1743,7 +1755,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         (Fulfillment[] memory fulfillments, , ) = matcher
             .getMatchedFulfillments(
                 SeaportArrays.Orders(order, otherOrder),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](2)
             );
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1801,7 +1814,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             MatchComponent[] memory remainingConsideration
         ) = matcher.getMatchedFulfillments(
                 SeaportArrays.Orders(order1),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](1)
             );
 
         assertEq(remainingOffer.length, 2, "remainingOffer.length");
@@ -1907,7 +1921,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             MatchComponent[] memory remainingConsideration
         ) = matcher.getMatchedFulfillments(
                 SeaportArrays.Orders(order1),
-                orderHashes
+                orderHashes,
+                new UnavailableReason[](1)
             );
 
         assertEq(remainingOffer.length, 0);

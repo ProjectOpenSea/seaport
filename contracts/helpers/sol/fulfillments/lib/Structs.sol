@@ -5,11 +5,14 @@ import {
     MatchComponent,
     MatchComponentType
 } from "../../lib/types/MatchComponentType.sol";
+
 import {
     FulfillmentComponent,
     SpentItem,
     ReceivedItem
 } from "../../SeaportStructs.sol";
+
+import { UnavailableReason } from "../../SpaceEnums.sol";
 
 struct FulfillmentHelperCounterLayout {
     uint256 fulfillmentCounter;
@@ -75,6 +78,7 @@ struct OrderDetails {
     ReceivedItem[] consideration;
     bool isContract;
     bytes32 orderHash;
+    UnavailableReason unavailableReason;
 }
 
 /**

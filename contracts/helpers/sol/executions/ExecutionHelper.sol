@@ -29,6 +29,8 @@ import {
     OrderDetails
 } from "../fulfillments/lib/Structs.sol";
 
+import { UnavailableReason } from "../SpaceEnums.sol";
+
 /**
  * @dev Helper contract for deriving explicit and executions from orders and
  *      fulfillment details
@@ -60,7 +62,7 @@ library ExecutionHelper {
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         uint256 nativeTokensSupplied,
-        bool[] memory availableOrders
+        OrderDetails[] memory orderDetails
     )
         public
         pure
@@ -72,6 +74,14 @@ library ExecutionHelper {
         )
     {
         FulfillmentDetails memory details = copy(fulfillmentDetails);
+
+        bool[] memory availableOrders = new bool[](orderDetails.length);
+
+        for (uint256 i = 0; i < orderDetails.length; ++i) {
+            availableOrders[i] =
+                orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE;
+        }
 
         implicitExecutionsPre = processImplicitPreOrderExecutions(
             details,
@@ -1166,7 +1176,8 @@ library ExecutionHelper {
                 offer: order.offer.copy(),
                 consideration: order.consideration.copy(),
                 isContract: order.isContract,
-                orderHash: order.orderHash
+                orderHash: order.orderHash,
+                unavailableReason: order.unavailableReason
             });
         }
     }

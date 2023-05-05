@@ -159,7 +159,10 @@ library TestStateGenerator {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
                     ? UnavailableReason.AVAILABLE
-                    : UnavailableReason(context.randEnum(1, 5))
+                    // Don't fuzz 5 (maxfulfilled satisfied), since it's a more
+                    // of a consequence (to be handled in derivers) than a
+                    // target.
+                    : UnavailableReason(context.choice(Solarray.uint256s(1, 2, 3, 4, 6)))
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -206,7 +209,7 @@ library TestStateGenerator {
                     UnavailableReason.CANCELLED
                 ) {
                     components[i].unavailableReason = UnavailableReason(
-                        context.choice(Solarray.uint256s(1, 2, 5))
+                        context.choice(Solarray.uint256s(1, 2, 6))
                     );
                 }
 
@@ -530,7 +533,7 @@ library AdvancedOrdersSpaceGenerator {
             _ensureAllAvailable(space);
             _handleInsertIfAllConsiderationEmpty(orders, context);
             _handleInsertIfAllMatchFilterable(orders, context);
-            _squareUpRemainders(orders, context);
+            _squareUpRemainders(orders, space, context);
             space.maximumFulfilled = orders.length;
         } else {
             if (len > 1) {
@@ -752,6 +755,8 @@ library AdvancedOrdersSpaceGenerator {
         // UnavailableReason.CANCELLED => state will be conformed in amend phase
         // UnavailableReason.ALREADY_FULFILLED => state will be conformed in
         //                                        amend phase
+        // UnavailableReason.MAX_FULFILLED_SATISFIED => should never hit this
+        // UnavailableReason.GENERATE_ORDER_FAILURE => handled downstream
         if (reason == UnavailableReason.EXPIRED) {
             parameters = parameters.withGeneratedTime(
                 Time(context.randEnum(3, 4)),
@@ -762,9 +767,16 @@ library AdvancedOrdersSpaceGenerator {
                 Time.STARTS_IN_FUTURE,
                 context
             );
-        } else if (reason == UnavailableReason.GENERATE_ORDER_FAILURE) {
-            // NOTE: this is handled downstream
         }
+    }
+
+    struct SquareUpRemaindersInfra {
+        MatchComponent[] remainders;
+        CriteriaResolver[] resolvers;
+        uint256 resolvedIdentifier;
+        ItemType resolvedItemType;
+        ConsiderationItem item;
+        uint256 amount;
     }
 
     /**
@@ -775,55 +787,60 @@ library AdvancedOrdersSpaceGenerator {
      */
     function _squareUpRemainders(
         AdvancedOrder[] memory orders,
+        AdvancedOrdersSpace memory space,
         FuzzGeneratorContext memory context
     ) internal {
+        // Toss a bunch of stuff into a struct to avoid stack too deep errors.
+        SquareUpRemaindersInfra memory infra;
+
         for (uint256 i = 0; i < orders.length; ++i) {
             AdvancedOrder memory order = orders[i];
             orders[i] = order.withCoercedAmountsForPartialFulfillment();
         }
 
-        MatchComponent[] memory remainders;
-        CriteriaResolver[] memory resolvers;
+        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
+            space.orders.length
+        );
+
+        for (uint256 i; i < space.orders.length; ++i) {
+            unavailableReasons[i] = space.orders[i].unavailableReason;
+        }
 
         {
-            resolvers = context
+            infra.resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
             OrderDetails[] memory details = orders.getOrderDetails(
-                resolvers,
-                context.orderHashes
+                infra.resolvers,
+                context.orderHashes,
+                unavailableReasons
             );
             // Get the remainders.
-            (, , remainders) = details.getMatchedFulfillments();
+            (, , infra.remainders) = details.getMatchedFulfillments();
         }
 
         // Iterate over the remainders and insert them into the orders.
-        for (uint256 i = 0; i < remainders.length; ++i) {
-            uint256 resolvedIdentifier;
-            ItemType resolvedItemType;
-            ConsiderationItem memory item;
-            uint256 amount;
-
+        for (uint256 i = 0; i < infra.remainders.length; ++i) {
             {
                 uint8 orderIndex;
                 uint8 itemIndex;
 
                 // Unpack the remainder from the MatchComponent into its
                 // constituent parts.
-                (amount, orderIndex, itemIndex) = remainders[i].unpack();
+                (infra.amount, orderIndex, itemIndex) = infra.remainders[i].unpack();
 
                 // Get the consideration item with the remainder.
-                item = orders[orderIndex].parameters.consideration[itemIndex];
+                infra.item = orders[orderIndex].parameters.consideration[itemIndex];
 
-                resolvedIdentifier = item.identifierOrCriteria;
-                resolvedItemType = item.itemType;
+                infra.resolvedIdentifier = infra.item.identifierOrCriteria;
+                infra.resolvedItemType = infra.item.itemType;
                 if (
-                    item.itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    item.itemType == ItemType.ERC1155_WITH_CRITERIA
+                    infra.item.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    infra.item.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    resolvedItemType = _convertCriteriaItemType(item.itemType);
-                    if (item.identifierOrCriteria == 0) {
+                    infra.resolvedItemType = _convertCriteriaItemType(infra.item.itemType);
+                    if (infra.item.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
                             abi.encodePacked(
                                 uint256(orderIndex),
@@ -831,16 +848,16 @@ library AdvancedOrdersSpaceGenerator {
                                 Side.CONSIDERATION
                             )
                         );
-                        resolvedIdentifier = context
+                        infra.resolvedIdentifier = context
                             .testHelpers
                             .criteriaResolverHelper()
                             .wildcardIdentifierForGivenItemHash(itemHash);
                     } else {
-                        resolvedIdentifier = context
+                        infra.resolvedIdentifier = context
                             .testHelpers
                             .criteriaResolverHelper()
                             .resolvableIdentifierForGivenCriteria(
-                                item.identifierOrCriteria
+                                infra.item.identifierOrCriteria
                             )
                             .resolvedIdentifier;
                     }
@@ -856,15 +873,15 @@ library AdvancedOrdersSpaceGenerator {
             OfferItem memory newItem;
             {
                 uint256 amountGivenPartial = _applyInverseAndRoundUp(
-                    amount,
+                    infra.amount,
                     uint256(orders[orderInsertionIndex].numerator),
                     uint256(orders[orderInsertionIndex].denominator)
                 );
 
                 newItem = OfferItem({
-                    itemType: resolvedItemType,
-                    token: item.token,
-                    identifierOrCriteria: resolvedIdentifier,
+                    itemType: infra.resolvedItemType,
+                    token: infra.item.token,
+                    identifierOrCriteria: infra.resolvedIdentifier,
                     startAmount: amountGivenPartial,
                     endAmount: amountGivenPartial
                 });
@@ -941,19 +958,20 @@ library AdvancedOrdersSpaceGenerator {
 
         // TODO: remove this check once high confidence in the mechanic has been
         // established (this just fails fast to rule out downstream issues)
-        if (remainders.length > 0) {
-            resolvers = context
+        if (infra.remainders.length > 0) {
+            infra.resolvers = context
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
             OrderDetails[] memory details = orders.getOrderDetails(
-                resolvers,
-                context.orderHashes
+                infra.resolvers,
+                context.orderHashes,
+                unavailableReasons
             );
             // Get the remainders.
-            (, , remainders) = details.getMatchedFulfillments();
+            (, , infra.remainders) = details.getMatchedFulfillments();
 
-            if (remainders.length > 0) {
+            if (infra.remainders.length > 0) {
                 // NOTE: this may be caused by inserting offer items into orders
                 // with partial fill fractions. The amount on the item that is
                 // inserted should be increased based on fraction in that case.
