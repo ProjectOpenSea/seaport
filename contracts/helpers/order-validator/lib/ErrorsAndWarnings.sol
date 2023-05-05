@@ -2,6 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {
+    ConduitIssue,
     ConsiderationIssue,
     ERC20Issue,
     ERC721Issue,
@@ -9,6 +10,7 @@ import {
     GenericIssue,
     OfferIssue,
     SignatureIssue,
+    StatusIssue,
     TimeIssue,
     IssueParser
 } from "./SeaportValidatorTypes.sol";
@@ -19,6 +21,7 @@ struct ErrorsAndWarnings {
 }
 
 library ErrorsAndWarningsLib {
+    using IssueParser for ConduitIssue;
     using IssueParser for ConsiderationIssue;
     using IssueParser for ERC20Issue;
     using IssueParser for ERC721Issue;
@@ -26,6 +29,7 @@ library ErrorsAndWarningsLib {
     using IssueParser for GenericIssue;
     using IssueParser for OfferIssue;
     using IssueParser for SignatureIssue;
+    using IssueParser for StatusIssue;
     using IssueParser for TimeIssue;
 
     function concat(
@@ -115,6 +119,20 @@ library ErrorsAndWarningsLib {
         return addError(ew, err.parseInt());
     }
 
+    function addError(
+        ErrorsAndWarnings memory ew,
+        ConduitIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
+    function addError(
+        ErrorsAndWarnings memory ew,
+        StatusIssue err
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addError(ew, err.parseInt());
+    }
+
     function addWarning(
         uint16 warn
     ) internal pure returns (ErrorsAndWarnings memory) {
@@ -186,6 +204,20 @@ library ErrorsAndWarningsLib {
     function addWarning(
         ErrorsAndWarnings memory ew,
         TimeIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        ConduitIssue warn
+    ) internal pure returns (ErrorsAndWarnings memory) {
+        return addWarning(ew, warn.parseInt());
+    }
+
+    function addWarning(
+        ErrorsAndWarnings memory ew,
+        StatusIssue warn
     ) internal pure returns (ErrorsAndWarnings memory) {
         return addWarning(ew, warn.parseInt());
     }
