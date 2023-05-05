@@ -18,6 +18,8 @@ import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
@@ -182,6 +184,17 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      * @param context The test context.
      */
     function setUpZoneParameters(FuzzTestContext memory context) public view {
+        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
+            context.advancedOrdersSpace.orders.length
+        );
+
+        for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
+            unavailableReasons[i] = context
+                .executionState
+                .orderDetails[i]
+                .unavailableReason;
+        }
+
         // Get the expected zone calldata hashes for each order.
         bytes32[] memory calldataHashes = context
             .executionState
@@ -190,7 +203,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 address(context.seaport),
                 context.executionState.caller,
                 context.executionState.criteriaResolvers,
-                context.executionState.maximumFulfilled
+                context.executionState.maximumFulfilled,
+                unavailableReasons
             );
 
         // Provision the expected zone calldata hash array.
@@ -209,7 +223,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .orders[i]
                 .parameters;
             if (
-                context.expectations.expectedAvailableOrders[i] &&
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE &&
                 (order.orderType == OrderType.FULL_RESTRICTED ||
                     order.orderType == OrderType.PARTIAL_RESTRICTED)
             ) {
@@ -246,7 +261,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .orders[i]
                 .parameters;
             if (
-                context.expectations.expectedAvailableOrders[i] &&
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE &&
                 order.orderType == OrderType.CONTRACT
             ) {
                 registerChecks = true;
@@ -283,9 +299,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) continue;
-
             OrderDetails memory order = context.executionState.orderDetails[i];
+
+            if (order.unavailableReason != UnavailableReason.AVAILABLE) {
+                continue;
+            }
+
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
             address approveTo = context.getApproveTo(order);
@@ -401,10 +420,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) continue;
-
             OrderDetails memory order = context.executionState.orderDetails[i];
             ReceivedItem[] memory items = order.consideration;
+
+            if (order.unavailableReason != UnavailableReason.AVAILABLE) {
+                continue;
+            }
 
             address owner = context.executionState.caller;
             address approveTo = context.getApproveTo();
@@ -434,8 +455,14 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                             ++k
                         ) {
                             if (
-                                !context.expectations.expectedAvailableOrders[k]
-                            ) continue;
+                                context
+                                    .executionState
+                                    .orderDetails[k]
+                                    .unavailableReason !=
+                                UnavailableReason.AVAILABLE
+                            ) {
+                                continue;
+                            }
 
                             SpentItem[] memory spentItems = context
                                 .executionState

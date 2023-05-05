@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "../../../lib/ConsiderationEnums.sol";
-
 import {
     AdditionalRecipient,
     AdvancedOrder,
@@ -18,7 +16,9 @@ import {
     SpentItem
 } from "../../../lib/ConsiderationStructs.sol";
 
-import { BasicOrderType } from "../../../lib/ConsiderationEnums.sol";
+import { BasicOrderType, ItemType } from "../../../lib/ConsiderationEnums.sol";
+
+import { UnavailableReason } from "../SpaceEnums.sol";
 
 import { OrderParametersLib } from "./OrderParametersLib.sol";
 
@@ -743,7 +743,8 @@ library AdvancedOrderLib {
     function getOrderDetails(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        bytes32[] memory orderHashes
+        bytes32[] memory orderHashes,
+        UnavailableReason[] memory unavailableReasons
     ) internal view returns (OrderDetails[] memory) {
         OrderDetails[] memory orderDetails = new OrderDetails[](
             advancedOrders.length
@@ -754,7 +755,8 @@ library AdvancedOrderLib {
                 advancedOrders[i],
                 i,
                 criteriaResolvers,
-                orderHashes[i]
+                orderHashes[i],
+                unavailableReasons[i]
             );
         }
 
@@ -765,7 +767,8 @@ library AdvancedOrderLib {
         AdvancedOrder memory order,
         uint256 orderIndex,
         CriteriaResolver[] memory resolvers,
-        bytes32 orderHash
+        bytes32 orderHash,
+        UnavailableReason unavailableReason
     ) internal view returns (OrderDetails memory) {
         (SpentItem[] memory offer, ReceivedItem[] memory consideration) = order
             .parameters
@@ -783,7 +786,8 @@ library AdvancedOrderLib {
                 offer: offer,
                 consideration: consideration,
                 isContract: order.parameters.orderType == OrderType.CONTRACT,
-                orderHash: orderHash
+                orderHash: orderHash,
+                unavailableReason: unavailableReason
             });
     }
 }

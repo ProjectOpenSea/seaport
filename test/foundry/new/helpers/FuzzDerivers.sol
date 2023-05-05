@@ -27,7 +27,7 @@ import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
@@ -195,15 +195,100 @@ library FuzzDerivers {
     function withDerivedOrderDetails(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
+        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
+            context.advancedOrdersSpace.orders.length
+        );
+
+        for (uint256 i; i < context.advancedOrdersSpace.orders.length; ++i) {
+            unavailableReasons[i] = context
+                .advancedOrdersSpace
+                .orders[i]
+                .unavailableReason;
+        }
+
         OrderDetails[] memory orderDetails = context
             .executionState
             .previewedOrders
             .getOrderDetails(
                 context.executionState.criteriaResolvers,
-                context.executionState.orderHashes
+                context.executionState.orderHashes,
+                unavailableReasons
             );
 
         context.executionState.orderDetails = orderDetails;
+
+        uint256 totalAvailable;
+
+        // If it's not actually available, but that fact isn't reflected in the
+        // unavailable reason in orderDetails, update orderDetails. This could
+        // probably be removed at some point.
+        for (uint256 i; i < context.executionState.orders.length; ++i) {
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
+            OrderStatusEnum status = context
+                .executionState
+                .preExecOrderStatuses[i];
+
+            // The only one of these that should get hit is the max fulfilled
+            // branch. The rest are just for safety for now and should be
+            // removed at some point.
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
+                if (!(block.timestamp < order.endTime)) {
+                    context
+                        .executionState
+                        .orderDetails[i]
+                        .unavailableReason = UnavailableReason.EXPIRED;
+                } else if (!(block.timestamp >= order.startTime)) {
+                    context
+                        .executionState
+                        .orderDetails[i]
+                        .unavailableReason = UnavailableReason.STARTS_IN_FUTURE;
+                } else if (
+                    status == OrderStatusEnum.CANCELLED_EXPLICIT ||
+                    status == OrderStatusEnum.CANCELLED_COUNTER
+                ) {
+                    context
+                        .executionState
+                        .orderDetails[i]
+                        .unavailableReason = UnavailableReason.CANCELLED;
+                } else if (status == OrderStatusEnum.FULFILLED) {
+                    context
+                        .executionState
+                        .orderDetails[i]
+                        .unavailableReason = UnavailableReason
+                        .ALREADY_FULFILLED;
+                } else if (status == OrderStatusEnum.REVERT) {
+                    context
+                        .executionState
+                        .orderDetails[i]
+                        .unavailableReason = UnavailableReason
+                        .GENERATE_ORDER_FAILURE;
+                } else if (
+                    !(totalAvailable < context.executionState.maximumFulfilled)
+                ) {
+                    context
+                        .executionState
+                        .orderDetails[i]
+                        .unavailableReason = UnavailableReason
+                        .MAX_FULFILLED_SATISFIED;
+                } else if (!context.expectations.expectedAvailableOrders[i]) {
+                    // If the unavailableReason is AVAILABLE, but the order is
+                    // expected to be not available, something went wrong.
+                    revert("Unexpectedly unavailable");
+                } else {
+                    totalAvailable += 1;
+                }
+            } else if (context.expectations.expectedAvailableOrders[i]) {
+                // If the unavailableReason is not AVAILABLE, but the order is
+                // expected to be available, something went wrong.
+                revert("Unexpectedly available");
+            }
+        }
 
         return context;
     }
@@ -316,8 +401,8 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = context
-                .toFulfillmentDetails()
-                .getStandardExecutions(nativeTokensSupplied);
+                .toFulfillmentDetails(nativeTokensSupplied)
+                .getStandardExecutions();
         } else if (
             action == context.seaport.fulfillBasicOrder.selector ||
             action ==
@@ -328,8 +413,8 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = context
-                .toFulfillmentDetails()
-                .getBasicExecutions(nativeTokensSupplied);
+                .toFulfillmentDetails(nativeTokensSupplied)
+                .getBasicExecutions();
         } else if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
@@ -341,11 +426,10 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = context.toFulfillmentDetails().getFulfillAvailableExecutions(
+            ) = context.toFulfillmentDetails(nativeTokensSupplied).getFulfillAvailableExecutions(
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
-                nativeTokensSupplied,
-                context.expectations.expectedAvailableOrders
+                context.executionState.orderDetails
             );
 
             // TEMP (TODO: handle upstream)
@@ -370,16 +454,14 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = context.toFulfillmentDetails().getMatchExecutions(
-                context.executionState.fulfillments,
-                nativeTokensSupplied
+            ) = context.toFulfillmentDetails(nativeTokensSupplied).getMatchExecutions(
+                context.executionState.fulfillments
             );
         }
     }
 
     function getDerivedExecutionsFromDirectInputs(
         FuzzTestContext memory context,
-        uint256 nativeTokensSupplied,
         FulfillmentDetails memory details,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
@@ -402,7 +484,7 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = details
-                .getStandardExecutions(nativeTokensSupplied);
+                .getStandardExecutions();
         } else if (
             context.action() == context.seaport.fulfillBasicOrder.selector ||
             context.action() ==
@@ -413,7 +495,7 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = details
-                .getBasicExecutions(nativeTokensSupplied);
+                .getBasicExecutions();
         } else if (
             context.action() ==
             context.seaport.fulfillAvailableOrders.selector ||
@@ -430,8 +512,7 @@ library FuzzDerivers {
             ) = details.getFulfillAvailableExecutions(
                 offerFulfillments,
                 considerationFulfillments,
-                nativeTokensSupplied,
-                context.expectations.expectedAvailableOrders
+                context.executionState.orderDetails
             );
 
             // TEMP (TODO: handle upstream)
@@ -456,7 +537,7 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = details.getMatchExecutions(fulfillments, nativeTokensSupplied);
+            ) = details.getMatchExecutions(fulfillments);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -472,8 +553,7 @@ library FuzzDerivers {
 
     function getExecutionsFromRegeneratedFulfillments(
         FuzzTestContext memory context,
-        FulfillmentDetails memory details,
-        uint256 nativeTokensSupplied
+        FulfillmentDetails memory details
     )
         internal
         returns (
@@ -494,7 +574,6 @@ library FuzzDerivers {
         return
             getDerivedExecutionsFromDirectInputs(
                 context,
-                nativeTokensSupplied,
                 details,
                 offerFulfillments,
                 considerationFulfillments,
@@ -561,7 +640,8 @@ library FulfillmentDetailsHelper {
     using AdvancedOrderLib for AdvancedOrder[];
 
     function toFulfillmentDetails(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        uint256 nativeTokensSupplied
     ) internal view returns (FulfillmentDetails memory fulfillmentDetails) {
         address caller = context.executionState.caller == address(0)
             ? address(this)
@@ -575,6 +655,7 @@ library FulfillmentDetailsHelper {
                 orders: context.executionState.orderDetails,
                 recipient: payable(recipient),
                 fulfiller: payable(caller),
+                nativeTokensSupplied: nativeTokensSupplied,
                 fulfillerConduitKey: context.executionState.fulfillerConduitKey,
                 seaport: address(context.seaport)
             });

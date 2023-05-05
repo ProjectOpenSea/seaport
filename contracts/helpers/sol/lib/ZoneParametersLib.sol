@@ -21,6 +21,8 @@ import { SeaportInterface } from "../SeaportInterface.sol";
 
 import { GettersAndDerivers } from "../../../lib/GettersAndDerivers.sol";
 
+import { UnavailableReason } from "../SpaceEnums.sol";
+
 import { AdvancedOrderLib } from "./AdvancedOrderLib.sol";
 
 import { ConsiderationItemLib } from "./ConsiderationItemLib.sol";
@@ -117,7 +119,8 @@ library ZoneParametersLib {
         address fulfiller,
         uint256 maximumFulfilled,
         address seaport,
-        CriteriaResolver[] memory criteriaResolvers
+        CriteriaResolver[] memory criteriaResolvers,
+        UnavailableReason[] memory unavailableReasons
     ) internal view returns (ZoneParameters[] memory) {
         return
             _getZoneParametersFromStruct(
@@ -127,7 +130,7 @@ library ZoneParametersLib {
                     maximumFulfilled,
                     seaport,
                     criteriaResolvers
-                )
+                ), unavailableReasons
             );
     }
 
@@ -149,13 +152,14 @@ library ZoneParametersLib {
     }
 
     function _getZoneParametersFromStruct(
-        ZoneParametersStruct memory zoneParametersStruct
+        ZoneParametersStruct memory zoneParametersStruct,
+        UnavailableReason[] memory unavailableReasons
     ) internal view returns (ZoneParameters[] memory) {
         // TODO: use testHelpers pattern to use single amount deriver helper
         ZoneDetails memory details = _getZoneDetails(zoneParametersStruct);
 
         // Convert offer + consideration to spent + received
-        _applyOrderDetails(details, zoneParametersStruct);
+        _applyOrderDetails(details, zoneParametersStruct, unavailableReasons);
 
         // Iterate over advanced orders to calculate orderHashes
         _applyOrderHashes(details, zoneParametersStruct.seaport);
@@ -182,7 +186,8 @@ library ZoneParametersLib {
 
     function _applyOrderDetails(
         ZoneDetails memory details,
-        ZoneParametersStruct memory zoneParametersStruct
+        ZoneParametersStruct memory zoneParametersStruct,
+        UnavailableReason[] memory unavailableReasons
     ) internal view {
         bytes32[] memory orderHashes = details.advancedOrders.getOrderHashes(
             zoneParametersStruct.seaport
@@ -192,7 +197,8 @@ library ZoneParametersLib {
             .advancedOrders
             .getOrderDetails(
                 zoneParametersStruct.criteriaResolvers,
-                orderHashes
+                orderHashes,
+                unavailableReasons
             );
     }
 

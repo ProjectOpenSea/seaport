@@ -36,6 +36,8 @@ import {
     Side
 } from "seaport-sol/SeaportEnums.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import {
     ContractOffererInterface
 } from "seaport-sol/ContractOffererInterface.sol";
@@ -724,10 +726,13 @@ library FuzzHelpers {
      * @dev Derive ZoneParameters from a given restricted order and return
      *      the expected calldata hash for the call to validateOrder.
      *
-     * @param orders           The restricted orders.
-     * @param seaport          The Seaport address.
-     * @param fulfiller        The fulfiller.
-     * @param maximumFulfilled The maximum number of orders to fulfill.
+     * @param orders             The restricted orders.
+     * @param seaport            The Seaport address.
+     * @param fulfiller          The fulfiller.
+     * @param maximumFulfilled   The maximum number of orders to fulfill.
+     * @param criteriaResolvers  The criteria resolvers.
+     * @param maximumFulfilled   The maximum number of orders to fulfill.
+     * @param unavailableReasons The availability status.
      *
      * @return calldataHashes The derived calldata hashes.
      */
@@ -736,7 +741,8 @@ library FuzzHelpers {
         address seaport,
         address fulfiller,
         CriteriaResolver[] memory criteriaResolvers,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        UnavailableReason[] memory unavailableReasons
     ) internal view returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
@@ -744,7 +750,8 @@ library FuzzHelpers {
             fulfiller,
             maximumFulfilled,
             seaport,
-            criteriaResolvers
+            criteriaResolvers,
+            unavailableReasons
         );
 
         for (uint256 i; i < zoneParameters.length; ++i) {
@@ -767,7 +774,10 @@ library FuzzHelpers {
 
         bytes32[] memory orderHashes = new bytes32[](orders.length);
         for (uint256 i = 0; i < orderHashes.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason !=
+                UnavailableReason.AVAILABLE
+            ) {
                 orderHashes[i] = bytes32(0);
             } else {
                 orderHashes[i] = context

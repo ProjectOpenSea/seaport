@@ -22,6 +22,7 @@ import {
     ReceivedItem,
     CriteriaResolver
 } from "../../SeaportStructs.sol";
+import { UnavailableReason } from "../../SpaceEnums.sol";
 import { MatchFulfillmentLib } from "./MatchFulfillmentLib.sol";
 import { MatchFulfillmentLayout } from "./MatchFulfillmentLayout.sol";
 
@@ -40,7 +41,8 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
      */
     function getMatchedFulfillments(
         Order[] memory orders,
-        bytes32[] memory orderHashes
+        bytes32[] memory orderHashes,
+        UnavailableReason[] memory unavailableReasons
     )
         public
         returns (
@@ -49,7 +51,11 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        OrderDetails[] memory orderDetails = toOrderDetails(orders, orderHashes);
+        OrderDetails[] memory orderDetails = toOrderDetails(
+            orders,
+            orderHashes,
+            unavailableReasons
+        );
 
         return getMatchedFulfillments(orderDetails);
     }
@@ -65,7 +71,8 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
     function getMatchedFulfillments(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory resolvers,
-        bytes32[] memory orderHashes
+        bytes32[] memory orderHashes,
+        UnavailableReason[] memory unavailableReasons
     )
         public
         returns (
@@ -74,7 +81,12 @@ contract MatchFulfillmentHelper is AmountDeriverHelper {
             MatchComponent[] memory remainingConsiderationComponents
         )
     {
-        OrderDetails[] memory details = toOrderDetails(orders, resolvers, orderHashes);
+        OrderDetails[] memory details = toOrderDetails(
+            orders,
+            resolvers,
+            orderHashes,
+            unavailableReasons
+        );
         return getMatchedFulfillments(details);
     }
 

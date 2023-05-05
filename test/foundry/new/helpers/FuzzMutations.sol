@@ -43,7 +43,10 @@ import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
 
 import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
-import { ContractOrderRebate } from "seaport-sol/SpaceEnums.sol";
+import {
+    ContractOrderRebate,
+    UnavailableReason
+} from "seaport-sol/SpaceEnums.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
@@ -104,7 +107,9 @@ library MutationFilters {
         FuzzTestContext memory context,
         uint256 orderIndex
     ) internal pure returns (bool) {
-        return !context.expectations.expectedAvailableOrders[orderIndex];
+        return
+            context.executionState.orderDetails[orderIndex].unavailableReason !=
+            UnavailableReason.AVAILABLE;
     }
 
     function ineligibleWhenBasic(
@@ -288,10 +293,13 @@ library MutationFilters {
 
         for (
             uint256 i = 0;
-            i < context.expectations.expectedAvailableOrders.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            if (context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 remainingFulfillable -= 1;
             }
 
@@ -857,7 +865,9 @@ library MutationFilters {
             return true;
         }
 
-        FulfillmentDetails memory details = context.toFulfillmentDetails();
+        FulfillmentDetails memory details = context.toFulfillmentDetails(
+            context.executionState.value
+        );
 
         // Note: We're speculatively applying the mutation here and slightly
         // breaking the rules. Make sure to undo this mutation.
@@ -868,10 +878,7 @@ library MutationFilters {
             ,
             Execution[] memory implicitExecutionsPost,
 
-        ) = context.getExecutionsFromRegeneratedFulfillments(
-                details,
-                context.executionState.value
-            );
+        ) = context.getExecutionsFromRegeneratedFulfillments(details);
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
@@ -1175,9 +1182,10 @@ library MutationFilters {
                     .itemType != ItemType.ERC721
             ) {
                 if (
-                    context.expectations.expectedAvailableOrders[
-                        fulfillmentComponent.orderIndex
-                    ]
+                    context
+                        .executionState
+                        .orderDetails[fulfillmentComponent.orderIndex]
+                        .unavailableReason == UnavailableReason.AVAILABLE
                 ) {
                     return false;
                 }
@@ -2800,9 +2808,10 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .itemType != ItemType.ERC721
             ) {
                 if (
-                    context.expectations.expectedAvailableOrders[
-                        fulfillmentComponent.orderIndex
-                    ]
+                    context
+                        .executionState
+                        .orderDetails[fulfillmentComponent.orderIndex]
+                        .unavailableReason == UnavailableReason.AVAILABLE
                 ) {
                     order
                         .parameters

@@ -508,8 +508,15 @@ library FuzzTestContextLib {
             context.expectations.expectedAvailableOrders = new bool[](
                 orders.length
             );
+            context.executionState.orderDetails = new OrderDetails[](
+                orders.length
+            );
             for (uint256 i = 0; i < orders.length; ++i) {
                 context.expectations.expectedAvailableOrders[i] = true;
+                context
+                    .executionState
+                    .orderDetails[i]
+                    .unavailableReason = UnavailableReason.AVAILABLE;
             }
         }
 
