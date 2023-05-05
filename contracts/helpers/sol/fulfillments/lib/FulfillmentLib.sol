@@ -238,10 +238,7 @@ library FulfillmentGeneratorLib {
         FulfillmentStrategy memory strategy
     ) internal pure {
         // TODO: add more strategies here as support is added for them.
-        FulfillAvailableStrategy fulfillAvailableStrategy = (
-            strategy.fulfillAvailableStrategy
-        );
-        if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
+        if (uint256(strategy.fulfillAvailableStrategy) > 3) {
             revert(
                 "FulfillmentGeneratorLib: unsupported fulfillAvailable strategy"
             );
@@ -304,11 +301,11 @@ library FulfillmentGeneratorLib {
             );
     }
 
-    // This allows for supplying strategies but applies no randomization and
-    // does not give a recipient & will not properly detect filtered executions.
+    // This does not give a recipient & so will not detect filtered executions.
     function getMatchedFulfillments(
         OrderDetails[] memory orderDetails,
-        FulfillmentStrategy memory strategy
+        FulfillmentStrategy memory strategy,
+        uint256 seed
     )
         internal
         pure
@@ -318,8 +315,6 @@ library FulfillmentGeneratorLib {
             MatchComponent[] memory unmetConsiderationComponents
         )
     {
-        uint256 seed = 0;
-
         return
             getMatchFulfillments(
                 orderDetails.getItemReferences(0).getMatchDetailsFromReferences(
@@ -1056,13 +1051,100 @@ library FulfillmentGeneratorLib {
             seed
         );
 
-        FulfillAvailableStrategy fulfillAvailableStrategy = (
+        FulfillAvailableStrategy dropStrategy = (
             strategy.fulfillAvailableStrategy
         );
 
-        if (fulfillAvailableStrategy != FulfillAvailableStrategy.KEEP_ALL) {
-            revert("FulfillmentGeneratorLib: only KEEP_ALL supported for now");
+        if (dropStrategy == FulfillAvailableStrategy.KEEP_ALL) {
+            return (offerFulfillments, considerationFulfillments);
         }
+
+        if (dropStrategy == FulfillAvailableStrategy.DROP_SINGLE_OFFER) {
+            return (dropSingle(offerFulfillments), considerationFulfillments);
+        }
+
+        if (dropStrategy == FulfillAvailableStrategy.DROP_ALL_OFFER) {
+            return (new FulfillmentComponent[][](0), considerationFulfillments);
+        }
+
+        if (dropStrategy == FulfillAvailableStrategy.DROP_RANDOM_OFFER) {
+            return (
+                dropRandom(offerFulfillments, seed),
+                considerationFulfillments
+            );
+        }
+
+        if (dropStrategy == FulfillAvailableStrategy.DROP_SINGLE_KEEP_FILTERED) {
+            revert(
+                "FulfillmentGeneratorLib: DROP_SINGLE_KEEP_FILTERED unsupported"
+            );
+        }
+
+        if (dropStrategy == FulfillAvailableStrategy.DROP_ALL_KEEP_FILTERED) {
+            revert(
+                "FulfillmentGeneratorLib: DROP_ALL_KEEP_FILTERED unsupported"
+            );
+        }
+
+        if (
+            dropStrategy == FulfillAvailableStrategy.DROP_RANDOM_KEEP_FILTERED
+        ) {
+            revert(
+                "FulfillmentGeneratorLib: DROP_RANDOM_KEEP_FILTERED unsupported"
+            );
+        }
+
+        revert("FulfillmentGeneratorLib: unknown fulfillAvailable strategy");
+    }
+
+    function dropSingle(
+        FulfillmentComponent[][] memory offerFulfillments
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](offerFulfillments.length)
+        );
+
+        uint256 assignmentIndex = 0;
+
+        for (uint256 i = 0; i < offerFulfillments.length; ++i) {
+            FulfillmentComponent[] memory components = offerFulfillments[i];
+            if (components.length > 1) {
+                fulfillments[assignmentIndex++] = components;
+            }
+        }
+
+        assembly {
+            mstore(fulfillments, assignmentIndex)
+        }
+
+        return fulfillments;
+    }
+
+    function dropRandom(
+        FulfillmentComponent[][] memory offerFulfillments,
+        uint256 seed
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        LibPRNG.PRNG memory prng;
+        prng.seed(seed ^ 0xbb);
+
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](offerFulfillments.length)
+        );
+
+        uint256 assignmentIndex = 0;
+
+        for (uint256 i = 0; i < offerFulfillments.length; ++i) {
+            FulfillmentComponent[] memory components = offerFulfillments[i];
+            if (prng.uniform(2) == 0) {
+                fulfillments[assignmentIndex++] = components;
+            }
+        }
+
+        assembly {
+            mstore(fulfillments, assignmentIndex)
+        }
+
+        return fulfillments;
     }
 
     function getFulfillmentMethod(

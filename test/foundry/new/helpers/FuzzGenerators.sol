@@ -349,7 +349,7 @@ library TestStateGenerator {
             );
 
             strategy.fulfillAvailableStrategy = FulfillAvailableStrategy(
-                context.randEnum(0, 0) // TODO: fuzz on more than KEEP_ALL
+                context.randEnum(0, 3) // TODO: fuzz on filterable as well
             );
 
             strategy.matchStrategy = MatchStrategy(
