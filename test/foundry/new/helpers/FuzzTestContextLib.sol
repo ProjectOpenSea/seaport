@@ -223,7 +223,6 @@ struct ExecutionState {
      * @dev An array of AdvancedOrders
      */
     AdvancedOrder[] orders;
-    bytes32[] orderHashes;
     OrderDetails[] orderDetails;
     /**
      * @dev A copy of the original orders array. Modify this when calling
@@ -428,7 +427,6 @@ library FuzzTestContextLib {
                     preExecOrderStatuses: new OrderStatusEnum[](0),
                     previewedOrders: orders,
                     orders: orders,
-                    orderHashes: new bytes32[](0),
                     orderDetails: new OrderDetails[](0),
                     criteriaResolvers: resolvers,
                     fulfillments: fulfillments,
@@ -532,10 +530,19 @@ library FuzzTestContextLib {
     function withOrderHashes(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
-        context.executionState.orderHashes = context
+        bytes32[] memory orderHashes = context
             .executionState
             .orders
             .getOrderHashes(address(context.seaport));
+
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            ++i
+        ) {
+            context.executionState.orderDetails[i].orderHash = orderHashes[i];
+        }
+
         return context;
     }
 

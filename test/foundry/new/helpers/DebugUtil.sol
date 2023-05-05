@@ -131,10 +131,18 @@ function dumpContext(
         );
     }
     if (outputSelection.orderHashes) {
+        bytes32[] memory orderHashes = new bytes32[](
+            context.executionState.orderDetails.length
+        );
+
+        for (uint256 i = 0; i < context.executionState.orderDetails.length; i++) {
+            orderHashes[i] = context.executionState.orderDetails[i].orderHash;
+        }
+
         jsonOut = Searializer.tojsonDynArrayBytes32(
             "root",
             "orderHashes",
-            context.executionState.orderHashes
+            orderHashes
         );
     }
     if (outputSelection.previewedOrders) {

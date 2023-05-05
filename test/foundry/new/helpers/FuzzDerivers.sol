@@ -206,12 +206,17 @@ library FuzzDerivers {
                 .unavailableReason;
         }
 
+        bytes32[] memory orderHashes = context
+            .executionState
+            .orders
+            .getOrderHashes(address(context.seaport));
+
         OrderDetails[] memory orderDetails = context
             .executionState
             .previewedOrders
             .getOrderDetails(
                 context.executionState.criteriaResolvers,
-                context.executionState.orderHashes,
+                orderHashes,
                 unavailableReasons
             );
 
@@ -426,11 +431,13 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = context.toFulfillmentDetails(nativeTokensSupplied).getFulfillAvailableExecutions(
-                context.executionState.offerFulfillments,
-                context.executionState.considerationFulfillments,
-                context.executionState.orderDetails
-            );
+            ) = context
+                .toFulfillmentDetails(nativeTokensSupplied)
+                .getFulfillAvailableExecutions(
+                    context.executionState.offerFulfillments,
+                    context.executionState.considerationFulfillments,
+                    context.executionState.orderDetails
+                );
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -454,9 +461,9 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = context.toFulfillmentDetails(nativeTokensSupplied).getMatchExecutions(
-                context.executionState.fulfillments
-            );
+            ) = context
+                .toFulfillmentDetails(nativeTokensSupplied)
+                .getMatchExecutions(context.executionState.fulfillments);
         }
     }
 

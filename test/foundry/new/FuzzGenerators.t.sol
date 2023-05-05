@@ -99,7 +99,6 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 starting721offerIndex: 1,
                 starting721considerationIndex: 1,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0),
                 conduits: new TestConduit[](2),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
