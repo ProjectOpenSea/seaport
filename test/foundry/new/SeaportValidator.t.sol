@@ -20,6 +20,10 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
+    SeaportValidatorHelper
+} from "../../../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
+
+import {
     ConsiderationItemLib,
     OfferItemLib,
     OrderParametersLib,
@@ -62,6 +66,7 @@ contract SeaportValidatorTest is BaseOrderTest {
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
 
     SeaportValidator internal validator;
+    SeaportValidatorHelper internal helper;
 
     string constant SINGLE_ERC20 = "SINGLE_ERC20";
     string constant SINGLE_ERC1155 = "SINGLE_ERC1155";
@@ -74,7 +79,11 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
-        validator = new SeaportValidator(address(conduitController));
+        helper = new SeaportValidatorHelper();
+        validator = new SeaportValidator(
+            address(helper),
+            address(conduitController)
+        );
 
         OrderLib
             .empty()
