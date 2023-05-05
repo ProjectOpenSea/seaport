@@ -5,26 +5,24 @@ import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 import { getEventHashWithTopics } from "./EventHashes.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 library OrdersMatchedEventsLib {
     event OrdersMatched(bytes32[] orderHashes);
 
     function getOrdersMatchedEventHash(
         FuzzTestContext memory context
     ) internal pure returns (bytes32 eventHash) {
-        if (
-            context.expectations.expectedAvailableOrders.length !=
-            context.executionState.orderHashes.length
-        ) {
-            revert("OrdersMatchedEventsLib: available array length != hashes");
-        }
-
         uint256 totalAvailableOrders = 0;
         for (
             uint256 i = 0;
-            i < context.expectations.expectedAvailableOrders.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            if (context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 ++totalAvailableOrders;
             }
         }
@@ -34,13 +32,17 @@ library OrdersMatchedEventsLib {
         totalAvailableOrders = 0;
         for (
             uint256 i = 0;
-            i < context.executionState.orderHashes.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            if (context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 orderHashes[totalAvailableOrders++] = context
                     .executionState
-                    .orderHashes[i];
+                    .orderDetails[i]
+                    .orderHash;
             }
         }
 

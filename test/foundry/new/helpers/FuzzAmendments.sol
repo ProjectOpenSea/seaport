@@ -99,7 +99,10 @@ abstract contract FuzzAmendments is Test {
                         )
                     );
 
-                    bytes32 orderHash = context.executionState.orderHashes[i];
+                    bytes32 orderHash = context
+                        .executionState
+                        .orderDetails[i]
+                        .orderHash;
 
                     if (rebate == ContractOrderRebate.MORE_OFFER_ITEMS) {
                         offerer.addExtraItemMutation(
@@ -383,7 +386,10 @@ abstract contract FuzzAmendments is Test {
                     .executionState
                     .orders[i]
                     .parameters;
-                bytes32 orderHash = context.executionState.orderHashes[i];
+                bytes32 orderHash = context
+                    .executionState
+                    .orderDetails[i]
+                    .orderHash;
                 if (orderParams.orderType != OrderType.CONTRACT) {
                     revert("FuzzAmendments: bad pre-exec order status");
                 }

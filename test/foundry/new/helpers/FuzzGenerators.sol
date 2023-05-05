@@ -518,8 +518,6 @@ library AdvancedOrdersSpaceGenerator {
     ) internal returns (AdvancedOrder[] memory) {
         uint256 len = bound(space.orders.length, 0, 10);
         AdvancedOrder[] memory orders = new AdvancedOrder[](len);
-        // Instatiate early to avoid out of bounds errors.
-        context.orderHashes = new bytes32[](orders.length);
 
         // Build orders.
         _buildOrders(orders, space, context);
@@ -811,9 +809,12 @@ library AdvancedOrdersSpaceGenerator {
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
+
+            bytes32[] memory orderHashes = orders.getOrderHashes(address(context.seaport));
+
             OrderDetails[] memory details = orders.getOrderDetails(
                 infra.resolvers,
-                context.orderHashes,
+                orderHashes,
                 unavailableReasons
             );
             // Get the remainders.
@@ -963,9 +964,10 @@ library AdvancedOrdersSpaceGenerator {
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
+            bytes32[] memory orderHashes = orders.getOrderHashes(address(context.seaport));
             OrderDetails[] memory details = orders.getOrderDetails(
                 infra.resolvers,
-                context.orderHashes,
+                orderHashes,
                 unavailableReasons
             );
             // Get the remainders.
@@ -1326,9 +1328,6 @@ library AdvancedOrdersSpaceGenerator {
         AdvancedOrder[] memory orders,
         FuzzGeneratorContext memory context
     ) internal {
-        // Reset the order hashes array to the correct length.
-        context.orderHashes = new bytes32[](orders.length);
-
         // Iterate over the orders and sign them.
         for (uint256 i = 0; i < orders.length; ++i) {
             // Set up variables.
@@ -1362,9 +1361,6 @@ library AdvancedOrdersSpaceGenerator {
                 context.seaport,
                 offererSpecificCounter
             );
-
-            // Set the order hash in the context.
-            context.orderHashes[i] = orderHash;
 
             // Replace the unsigned order with a signed order.
             orders[i] = order.withGeneratedSignature(
