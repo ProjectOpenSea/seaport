@@ -870,9 +870,7 @@ library MutationFilters {
             ,
             Execution[] memory implicitExecutionsPost,
 
-        ) = context.getExecutionsFromRegeneratedFulfillments(
-                details
-            );
+        ) = context.getExecutionsFromRegeneratedFulfillments(details);
 
         // Look for invalid executions in explicit executions
         bool locatedInvalidConduitExecution;
