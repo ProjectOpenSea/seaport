@@ -169,8 +169,9 @@ import { logMutation } from "./Metrics.sol";
 contract FuzzEngine is
     BaseOrderTest,
     FuzzAmendments,
+        FuzzSetup,
     FuzzChecks,
-    FuzzSetup,
+
     FuzzExecutor,
     FulfillAvailableHelper,
     MatchFulfillmentHelper

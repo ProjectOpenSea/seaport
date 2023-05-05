@@ -16,6 +16,8 @@ import {
     OrderType
 } from "../../../contracts/lib/ConsiderationStructs.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import {
     ConsiderationInterface
 } from "../../../contracts/interfaces/ConsiderationInterface.sol";
@@ -1376,11 +1378,16 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
             context.matchArgs.orderPairCount * 2
         );
 
+        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
+            context.matchArgs.orderPairCount * 2
+        );
+
         // Build fulfillments.
         (infra.fulfillments, , ) = matchFulfillmentHelper
             .getMatchedFulfillments(
                 infra.orders,
-                orderHashes
+                orderHashes,
+                unavailableReasons
             );
 
         return (infra.orders, infra.fulfillments);
