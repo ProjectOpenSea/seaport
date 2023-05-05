@@ -84,6 +84,8 @@ import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import {
     AggregationStrategy,
+    FulfillAvailableStrategy,
+    MatchStrategy,
     FulfillmentGeneratorLib,
     FulfillmentStrategy
 } from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
@@ -349,7 +351,13 @@ library TestStateGenerator {
                 context.randEnum(0, 2)
             );
 
-            // TODO: fuzz on FulfillAvailableStrategy && MatchStrategy
+            strategy.fulfillAvailableStrategy = FulfillAvailableStrategy(
+                context.randEnum(0, 3) // TODO: fuzz on filterable as well
+            );
+
+            strategy.matchStrategy = MatchStrategy(
+                context.randEnum(2, 2) // TODO: fuzz on more than MAX_INCLUSION
+            );
         }
 
         return
