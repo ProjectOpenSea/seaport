@@ -99,6 +99,7 @@ struct FulfillmentDetails {
     OrderDetails[] orders;
     address payable recipient;
     address payable fulfiller;
+    uint256 nativeTokensSupplied;
     bytes32 fulfillerConduitKey;
     address seaport;
 }

@@ -401,8 +401,8 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = context
-                .toFulfillmentDetails()
-                .getStandardExecutions(nativeTokensSupplied);
+                .toFulfillmentDetails(nativeTokensSupplied)
+                .getStandardExecutions();
         } else if (
             action == context.seaport.fulfillBasicOrder.selector ||
             action ==
@@ -413,8 +413,8 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = context
-                .toFulfillmentDetails()
-                .getBasicExecutions(nativeTokensSupplied);
+                .toFulfillmentDetails(nativeTokensSupplied)
+                .getBasicExecutions();
         } else if (
             action == context.seaport.fulfillAvailableOrders.selector ||
             action == context.seaport.fulfillAvailableAdvancedOrders.selector
@@ -426,10 +426,9 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = context.toFulfillmentDetails().getFulfillAvailableExecutions(
+            ) = context.toFulfillmentDetails(nativeTokensSupplied).getFulfillAvailableExecutions(
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
-                nativeTokensSupplied,
                 context.executionState.orderDetails
             );
 
@@ -455,16 +454,14 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = context.toFulfillmentDetails().getMatchExecutions(
-                context.executionState.fulfillments,
-                nativeTokensSupplied
+            ) = context.toFulfillmentDetails(nativeTokensSupplied).getMatchExecutions(
+                context.executionState.fulfillments
             );
         }
     }
 
     function getDerivedExecutionsFromDirectInputs(
         FuzzTestContext memory context,
-        uint256 nativeTokensSupplied,
         FulfillmentDetails memory details,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
@@ -487,7 +484,7 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = details
-                .getStandardExecutions(nativeTokensSupplied);
+                .getStandardExecutions();
         } else if (
             context.action() == context.seaport.fulfillBasicOrder.selector ||
             context.action() ==
@@ -498,7 +495,7 @@ library FuzzDerivers {
             // because the caller doesn't pass in fulfillments for these
             // functions.
             (implicitExecutionsPost, nativeTokensReturned) = details
-                .getBasicExecutions(nativeTokensSupplied);
+                .getBasicExecutions();
         } else if (
             context.action() ==
             context.seaport.fulfillAvailableOrders.selector ||
@@ -515,7 +512,6 @@ library FuzzDerivers {
             ) = details.getFulfillAvailableExecutions(
                 offerFulfillments,
                 considerationFulfillments,
-                nativeTokensSupplied,
                 context.executionState.orderDetails
             );
 
@@ -541,7 +537,7 @@ library FuzzDerivers {
                 implicitExecutionsPre,
                 implicitExecutionsPost,
                 nativeTokensReturned
-            ) = details.getMatchExecutions(fulfillments, nativeTokensSupplied);
+            ) = details.getMatchExecutions(fulfillments);
 
             // TEMP (TODO: handle upstream)
             assume(
@@ -557,8 +553,7 @@ library FuzzDerivers {
 
     function getExecutionsFromRegeneratedFulfillments(
         FuzzTestContext memory context,
-        FulfillmentDetails memory details,
-        uint256 nativeTokensSupplied
+        FulfillmentDetails memory details
     )
         internal
         returns (
@@ -579,7 +574,6 @@ library FuzzDerivers {
         return
             getDerivedExecutionsFromDirectInputs(
                 context,
-                nativeTokensSupplied,
                 details,
                 offerFulfillments,
                 considerationFulfillments,
@@ -646,7 +640,8 @@ library FulfillmentDetailsHelper {
     using AdvancedOrderLib for AdvancedOrder[];
 
     function toFulfillmentDetails(
-        FuzzTestContext memory context
+        FuzzTestContext memory context,
+        uint256 nativeTokensSupplied
     ) internal view returns (FulfillmentDetails memory fulfillmentDetails) {
         address caller = context.executionState.caller == address(0)
             ? address(this)
@@ -660,6 +655,7 @@ library FulfillmentDetailsHelper {
                 orders: context.executionState.orderDetails,
                 recipient: payable(recipient),
                 fulfiller: payable(caller),
+                nativeTokensSupplied: nativeTokensSupplied,
                 fulfillerConduitKey: context.executionState.fulfillerConduitKey,
                 seaport: address(context.seaport)
             });

@@ -48,8 +48,6 @@ library ExecutionHelper {
      * @param fulfillmentDetails        the fulfillment details
      * @param offerFulfillments         2d array of offer fulfillment components
      * @param considerationFulfillments 2d array of consideration fulfillment
-     * @param nativeTokensSupplied      the amount of native tokens supplied to
-     *                                  the fulfillAvailable call
      *
      * @return explicitExecutions the explicit executions
      * @return implicitExecutionsPre the implicit executions (unspecified offer
@@ -61,7 +59,6 @@ library ExecutionHelper {
         FulfillmentDetails memory fulfillmentDetails,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        uint256 nativeTokensSupplied,
         OrderDetails[] memory orderDetails
     )
         public
@@ -85,8 +82,7 @@ library ExecutionHelper {
 
         implicitExecutionsPre = processImplicitPreOrderExecutions(
             details,
-            availableOrders,
-            nativeTokensSupplied
+            availableOrders
         );
 
         explicitExecutions = processExplicitExecutionsFromAggregatedComponents(
@@ -115,7 +111,6 @@ library ExecutionHelper {
      *
      * @param fulfillmentDetails The fulfillment details.
      * @param fulfillments An array of fulfillments.
-     * @param nativeTokensSupplied the amount of native tokens supplied
      *
      * @return explicitExecutions The explicit executions
      * @return implicitExecutionsPre The implicit executions
@@ -123,8 +118,7 @@ library ExecutionHelper {
      */
     function getMatchExecutions(
         FulfillmentDetails memory fulfillmentDetails,
-        Fulfillment[] memory fulfillments,
-        uint256 nativeTokensSupplied
+        Fulfillment[] memory fulfillments
     )
         internal
         pure
@@ -149,8 +143,7 @@ library ExecutionHelper {
 
         implicitExecutionsPre = processImplicitPreOrderExecutions(
             details,
-            availableOrders,
-            nativeTokensSupplied
+            availableOrders
         );
 
         for (uint256 i = 0; i < fulfillments.length; i++) {
@@ -226,8 +219,7 @@ library ExecutionHelper {
     }
 
     function getStandardExecutions(
-        FulfillmentDetails memory details,
-        uint256 nativeTokensSupplied
+        FulfillmentDetails memory details
     )
         public
         pure
@@ -246,7 +238,7 @@ library ExecutionHelper {
                 details.fulfiller,
                 details.fulfillerConduitKey,
                 details.recipient,
-                nativeTokensSupplied,
+                details.nativeTokensSupplied,
                 details.seaport
             );
     }
@@ -388,8 +380,7 @@ library ExecutionHelper {
     }
 
     function getBasicExecutions(
-        FulfillmentDetails memory details,
-        uint256 nativeTokensSupplied
+        FulfillmentDetails memory details
     )
         public
         pure
@@ -407,7 +398,7 @@ library ExecutionHelper {
                 details.orders[0],
                 details.fulfiller,
                 details.fulfillerConduitKey,
-                nativeTokensSupplied,
+                details.nativeTokensSupplied,
                 details.seaport
             );
     }
@@ -899,8 +890,7 @@ library ExecutionHelper {
      */
     function processImplicitPreOrderExecutions(
         FulfillmentDetails memory fulfillmentDetails,
-        bool[] memory availableOrders,
-        uint256 nativeTokensSupplied
+        bool[] memory availableOrders
     ) internal pure returns (Execution[] memory implicitExecutions) {
         // Get the maximum possible number of implicit executions.
         uint256 maxPossible = 1;
@@ -912,7 +902,7 @@ library ExecutionHelper {
         implicitExecutions = new Execution[](maxPossible);
 
         uint256 executionIndex;
-        if (nativeTokensSupplied > 0) {
+        if (fulfillmentDetails.nativeTokensSupplied > 0) {
             implicitExecutions[executionIndex++] = Execution({
                 offerer: fulfillmentDetails.fulfiller,
                 conduitKey: bytes32(0),
@@ -920,7 +910,7 @@ library ExecutionHelper {
                     itemType: ItemType.NATIVE,
                     token: address(0),
                     identifier: uint256(0),
-                    amount: nativeTokensSupplied,
+                    amount: fulfillmentDetails.nativeTokensSupplied,
                     recipient: payable(fulfillmentDetails.seaport)
                 })
             });
@@ -1190,6 +1180,7 @@ library ExecutionHelper {
                 orders: copy(fulfillmentDetails.orders),
                 recipient: fulfillmentDetails.recipient,
                 fulfiller: fulfillmentDetails.fulfiller,
+                nativeTokensSupplied: fulfillmentDetails.nativeTokensSupplied,
                 fulfillerConduitKey: fulfillmentDetails.fulfillerConduitKey,
                 seaport: fulfillmentDetails.seaport
             });
