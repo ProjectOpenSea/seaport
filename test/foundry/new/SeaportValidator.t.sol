@@ -607,6 +607,103 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
+    function test_isValidOrder_offerIssue_duplicateItem() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offerer = address(this);
+
+        erc721s[0].mint(address(this), 1);
+        erc721s[0].setApprovalForAll(address(seaport), true);
+
+        OfferItem[] memory offer = new OfferItem[](2);
+        offer[0] = order.parameters.offer[0];
+        offer[1] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(OfferIssue.DuplicateItem)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.MoreThanOneItem)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_amountVelocityHigh() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withIdentifierOrCriteria(0)
+            .withStartAmount(1e16)
+            .withEndAmount(1e25);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(OfferIssue.AmountVelocityHigh)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_amountStepLarge() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
+        order.parameters.offerer = address(this);
+        order.parameters.startTime = block.timestamp;
+        order.parameters.endTime = block.timestamp + 60 * 60 * 24;
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withIdentifierOrCriteria(0)
+            .withStartAmount(1e10)
+            .withEndAmount(1e11);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(OfferIssue.AmountStepLarge)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
     function test_default_full_isValidOrderReadOnly() public {
         Order memory order = OrderLib.empty().withParameters(
             OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
