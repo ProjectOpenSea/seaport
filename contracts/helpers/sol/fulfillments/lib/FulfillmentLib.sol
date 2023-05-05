@@ -1481,17 +1481,10 @@ library FulfillmentGeneratorLib {
 
 library FulfillmentPrepLib {
     using ItemReferenceLib for OrderDetails[];
-    using HashCountLib for ItemReferenceLib.ItemReference[];
     using ItemReferenceGroupLib for ItemReferenceLib.ItemReference[];
     using ItemReferenceGroupLib for ItemReferenceGroupLib.ItemReferenceGroup[];
     using MatchableItemReferenceGroupLib for MatchableItemReferenceGroupLib.MatchableItemReferenceGroup[];
-
-    struct FulfillAvailableReferenceGroup {
-        ItemReferenceGroupLib.ItemReferenceGroup[] offerGroups;
-        ItemReferenceGroupLib.ItemReferenceGroup[] considerationGroups;
-        address recipient;
-        address caller;
-    }
+    using FulfillAvailableReferenceGroupLib for FulfillAvailableReferenceGroupLib.FulfillAvailableReferenceGroup;
 
     function getFulfillAvailableDetails(
         OrderDetails[] memory orderDetails,
@@ -1520,9 +1513,7 @@ library FulfillmentPrepLib {
             memory groups = itemReferences.bundleByAggregatable();
 
         return (
-            getFulfillAvailableDetailsFromGroups(
-                groups.splitBySide(recipient, caller)
-            ),
+            groups.splitBySide(recipient, caller).getFulfillAvailableDetails(),
             groups.bundleByMatchable(itemReferences).getMatchDetails(recipient)
         );
     }
@@ -1533,12 +1524,10 @@ library FulfillmentPrepLib {
         address caller
     ) internal pure returns (FulfillAvailableDetails memory) {
         return
-            getFulfillAvailableDetailsFromGroups(
-                itemReferences.bundleByAggregatable().splitBySide(
-                    recipient,
-                    caller
-                )
-            );
+            itemReferences
+                .bundleByAggregatable()
+                .splitBySide(recipient, caller)
+                .getFulfillAvailableDetails();
     }
 
     function getMatchDetails(
@@ -1564,26 +1553,6 @@ library FulfillmentPrepLib {
                 .getMatchDetails(recipient);
     }
 
-    function getFulfillAvailableDetailsFromGroups(
-        FulfillAvailableReferenceGroup memory group
-    ) internal pure returns (FulfillAvailableDetails memory) {
-        (
-            DualFulfillmentItems memory items,
-            uint256 totalItems
-        ) = getDualFulfillmentItems(
-                group.offerGroups,
-                group.considerationGroups
-            );
-
-        return
-            FulfillAvailableDetails({
-                items: items,
-                caller: group.caller,
-                recipient: group.recipient,
-                totalItems: totalItems
-            });
-    }
-
     function getFulfillmentMatchContext(
         DualFulfillmentItems[] memory matchItems
     ) internal pure returns (DualFulfillmentMatchContext[] memory) {
@@ -1604,9 +1573,7 @@ library FulfillmentPrepLib {
                 if (!itemCategorySet) {
                     itemCategory = items.itemCategory;
                 } else if (itemCategory != items.itemCategory) {
-                    revert(
-                        "FulfillmentGeneratorLib: mismatched item categories"
-                    );
+                    revert("FulfillmentPrepLib: mismatched item categories");
                 }
 
                 totalOfferAmount += items.totalAmount;
@@ -1621,9 +1588,7 @@ library FulfillmentPrepLib {
                 if (!itemCategorySet) {
                     itemCategory = items.itemCategory;
                 } else if (itemCategory != items.itemCategory) {
-                    revert(
-                        "FulfillmentGeneratorLib: mismatched item categories"
-                    );
+                    revert("FulfillmentPrepLib: mismatched item categories");
                 }
 
                 totalConsiderationAmount += items.totalAmount;
@@ -1705,6 +1670,35 @@ library FulfillmentPrepLib {
     }
 }
 
+library FulfillAvailableReferenceGroupLib {
+    struct FulfillAvailableReferenceGroup {
+        ItemReferenceGroupLib.ItemReferenceGroup[] offerGroups;
+        ItemReferenceGroupLib.ItemReferenceGroup[] considerationGroups;
+        address recipient;
+        address caller;
+    }
+
+    function getFulfillAvailableDetails(
+        FulfillAvailableReferenceGroup memory group
+    ) internal pure returns (FulfillAvailableDetails memory) {
+        (
+            DualFulfillmentItems memory items,
+            uint256 totalItems
+        ) = FulfillmentPrepLib.getDualFulfillmentItems(
+                group.offerGroups,
+                group.considerationGroups
+            );
+
+        return
+            FulfillAvailableDetails({
+                items: items,
+                caller: group.caller,
+                recipient: group.recipient,
+                totalItems: totalItems
+            });
+    }
+}
+
 library MatchableItemReferenceGroupLib {
     struct MatchableItemReferenceGroup {
         bytes32 dataHash;
@@ -1781,7 +1775,9 @@ library ItemReferenceGroupLib {
         // Sanity check: ensure at least one reference item on each group
         for (uint256 i = 0; i < groups.length; ++i) {
             if (groups[i].references.length == 0) {
-                revert("FulfillmentPrepLib: missing item reference in group");
+                revert(
+                    "ItemReferenceGroupLib: missing item reference in group"
+                );
             }
         }
 
@@ -1795,7 +1791,10 @@ library ItemReferenceGroupLib {
     )
         internal
         pure
-        returns (FulfillmentPrepLib.FulfillAvailableReferenceGroup memory)
+        returns (
+            FulfillAvailableReferenceGroupLib.FulfillAvailableReferenceGroup
+                memory
+        )
     {
         // NOTE: lengths are overallocated; reduce after assignment.
         ItemReferenceGroup[] memory offerGroups = (
@@ -1811,7 +1810,7 @@ library ItemReferenceGroupLib {
             ItemReferenceGroup memory group = groups[i];
 
             if (group.references.length == 0) {
-                revert("FulfillmentPrepLib: no items in group");
+                revert("ItemReferenceGroupLib: no items in group");
             }
 
             Side side = group.references[0].side;
@@ -1821,7 +1820,7 @@ library ItemReferenceGroupLib {
             } else if (side == Side.CONSIDERATION) {
                 considerationGroups[considerationItems++] = group;
             } else {
-                revert("FulfillmentPrepLib: invalid side located (split)");
+                revert("ItemReferenceGroupLib: invalid side located (split)");
             }
         }
 
@@ -1832,7 +1831,7 @@ library ItemReferenceGroupLib {
         }
 
         return
-            FulfillmentPrepLib.FulfillAvailableReferenceGroup({
+            FulfillAvailableReferenceGroupLib.FulfillAvailableReferenceGroup({
                 offerGroups: offerGroups,
                 considerationGroups: considerationGroups,
                 recipient: recipient,
@@ -1862,7 +1861,7 @@ library ItemReferenceGroupLib {
 
             if (group.references.length == 0) {
                 revert(
-                    "FulfillmentPrepLib: empty item reference group supplied"
+                    "ItemReferenceGroupLib: empty item reference group supplied"
                 );
             }
 
@@ -1883,7 +1882,7 @@ library ItemReferenceGroupLib {
                         ] = group;
                     } else {
                         revert(
-                            "FulfillmentPrepLib: invalid side located (match)"
+                            "ItemReferenceGroupLib: invalid match side located"
                         );
                     }
 
@@ -1965,8 +1964,8 @@ library HashAllocatorLib {
                     offerGroups: new ItemReferenceGroupLib.ItemReferenceGroup[](
                         count
                     ),
-                    considerationGroups: new ItemReferenceGroupLib.ItemReferenceGroup[](
-                        count
+                    considerationGroups: (
+                        new ItemReferenceGroupLib.ItemReferenceGroup[](count)
                     ),
                     offerAssigned: 0,
                     considerationAssigned: 0
