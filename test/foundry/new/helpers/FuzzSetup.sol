@@ -223,7 +223,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .orders[i]
                 .parameters;
             if (
-                context.expectations.expectedAvailableOrders[i] &&
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE &&
                 (order.orderType == OrderType.FULL_RESTRICTED ||
                     order.orderType == OrderType.PARTIAL_RESTRICTED)
             ) {
@@ -260,7 +261,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 .orders[i]
                 .parameters;
             if (
-                context.expectations.expectedAvailableOrders[i] &&
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE &&
                 order.orderType == OrderType.CONTRACT
             ) {
                 registerChecks = true;
@@ -297,9 +299,12 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
-            if (!context.expectations.expectedAvailableOrders[i]) continue;
-
             OrderDetails memory order = context.executionState.orderDetails[i];
+
+            if (order.unavailableReason != UnavailableReason.AVAILABLE) {
+                continue;
+            }
+
             SpentItem[] memory items = order.offer;
             address offerer = order.offerer;
             address approveTo = context.getApproveTo(order);

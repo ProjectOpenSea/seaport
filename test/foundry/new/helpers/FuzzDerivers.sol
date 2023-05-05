@@ -430,7 +430,7 @@ library FuzzDerivers {
                 context.executionState.offerFulfillments,
                 context.executionState.considerationFulfillments,
                 nativeTokensSupplied,
-                context.expectations.expectedAvailableOrders
+                context.executionState.orderDetails
             );
 
             // TEMP (TODO: handle upstream)
@@ -516,7 +516,7 @@ library FuzzDerivers {
                 offerFulfillments,
                 considerationFulfillments,
                 nativeTokensSupplied,
-                context.expectations.expectedAvailableOrders
+                context.executionState.orderDetails
             );
 
             // TEMP (TODO: handle upstream)

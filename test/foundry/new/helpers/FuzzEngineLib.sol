@@ -25,6 +25,8 @@ import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import {
     _locateCurrentAmount,
     Family,
@@ -121,10 +123,13 @@ library FuzzEngineLib {
             context.executionState.orders.length;
         for (
             uint256 i = 0;
-            i < context.expectations.expectedAvailableOrders.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            if (!context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason !=
+                UnavailableReason.AVAILABLE
+            ) {
                 hasUnavailable = true;
                 break;
             }
