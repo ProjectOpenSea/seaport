@@ -153,11 +153,11 @@ struct Expectations {
     Execution[] expectedImplicitPostExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
-    /**
-     * @dev Whether an order is available and will be fulfilled. Indexes
-     *      correspond to order indexes in the orders array.
-     */
-    bool[] expectedAvailableOrders;
+    // /**
+    //  * @dev Whether an order is available and will be fulfilled. Indexes
+    //  *      correspond to order indexes in the orders array.
+    //  */
+    // bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
@@ -407,7 +407,7 @@ library FuzzTestContextLib {
                     expectedExplicitExecutions: new Execution[](0),
                     allExpectedExecutions: new Execution[](0),
                     expectedResults: results,
-                    expectedAvailableOrders: new bool[](0),
+                    // expectedAvailableOrders: new bool[](0),
                     expectedTransferEventHashes: expectedTransferEventHashes,
                     expectedSeaportEventHashes: expectedSeaportEventHashes,
                     ineligibleOrders: new bool[](orders.length),
@@ -502,15 +502,11 @@ library FuzzTestContextLib {
         context.executionState.orders = orders.copy();
 
         // Bootstrap with all available to ease direct testing.
-        if (context.expectations.expectedAvailableOrders.length == 0) {
-            context.expectations.expectedAvailableOrders = new bool[](
-                orders.length
-            );
+        if (context.executionState.orderDetails.length == 0) {
             context.executionState.orderDetails = new OrderDetails[](
                 orders.length
             );
             for (uint256 i = 0; i < orders.length; ++i) {
-                context.expectations.expectedAvailableOrders[i] = true;
                 context
                     .executionState
                     .orderDetails[i]
