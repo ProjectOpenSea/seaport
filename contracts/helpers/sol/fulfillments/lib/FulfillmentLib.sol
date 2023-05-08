@@ -1069,7 +1069,10 @@ library FulfillmentGeneratorLib {
         }
 
         if (dropStrategy == FulfillAvailableStrategy.DROP_ALL_OFFER) {
-            return (new FulfillmentComponent[][](0), considerationFulfillments);
+            return (
+                dropAllNon721(offerFulfillments, offerCategories),
+                considerationFulfillments
+            );
         }
 
         if (dropStrategy == FulfillAvailableStrategy.DROP_RANDOM_OFFER) {
@@ -1120,6 +1123,30 @@ library FulfillmentGeneratorLib {
                 offerCategories[i] == ItemCategory.ERC721 ||
                 components.length > 1
             ) {
+                fulfillments[assignmentIndex++] = components;
+            }
+        }
+
+        assembly {
+            mstore(fulfillments, assignmentIndex)
+        }
+
+        return fulfillments;
+    }
+
+    function dropAllNon721(
+        FulfillmentComponent[][] memory offerFulfillments,
+        ItemCategory[] memory offerCategories
+    ) internal pure returns (FulfillmentComponent[][] memory) {
+        FulfillmentComponent[][] memory fulfillments = (
+            new FulfillmentComponent[][](offerFulfillments.length)
+        );
+
+        uint256 assignmentIndex = 0;
+
+        for (uint256 i = 0; i < offerFulfillments.length; ++i) {
+            FulfillmentComponent[] memory components = offerFulfillments[i];
+            if (offerCategories[i] == ItemCategory.ERC721) {
                 fulfillments[assignmentIndex++] = components;
             }
         }
