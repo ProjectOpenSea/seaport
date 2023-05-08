@@ -304,18 +304,6 @@ contract ReferenceOrderValidator is
             revert ConsiderationLengthNotEqualToTotalOriginal();
         }
 
-        {
-            // Increment contract nonce and use it to derive order hash. Note:
-            // nonce will be incremented even for skipped orders, and even if
-            // generateOrder's return data does not satisfy all the constraints.
-            uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
-            // Derive order hash from contract nonce and offerer address.
-            orderHash = bytes32(
-                contractNonce ^
-                    (uint256(uint160(orderParameters.offerer)) << 96)
-            );
-        }
-
         // Convert offer and consideration to spent and received items.
         (
             SpentItem[] memory originalOfferItems,
@@ -342,6 +330,21 @@ contract ReferenceOrderValidator is
                         context
                     )
                 );
+
+            {
+                // Increment contract nonce and use it to derive order hash.
+                // Note: nonce will be incremented even for skipped orders, and
+                // even if generateOrder's return data doesn't meet constraints.
+                uint256 contractNonce = (
+                    _contractNonces[orderParameters.offerer]++
+                );
+
+                // Derive order hash from contract nonce and offerer address.
+                orderHash = bytes32(
+                    contractNonce ^
+                        (uint256(uint160(orderParameters.offerer)) << 96)
+                );
+            }
 
             //  If call succeeds, try to decode offer and consideration items.
             if (success) {
