@@ -86,88 +86,6 @@ library FuzzDerivers {
     }
 
     /**
-     * @dev Determine which generated orders are available for fulfillment.
-     *
-     * @param context A Fuzz test context.
-     */
-    function withDerivedAvailableOrders(
-        FuzzTestContext memory context
-    ) internal returns (FuzzTestContext memory) {
-        // TODO: handle skipped orders due to generateOrder reverts
-        bool[] memory expectedAvailableOrders = new bool[](
-            context.executionState.orders.length
-        );
-
-        uint256 totalAvailable = 0;
-        for (uint256 i; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory order = context
-                .executionState
-                .orders[i]
-                .parameters;
-            OrderStatusEnum status = context
-                .executionState
-                .preExecOrderStatuses[i];
-
-            // SANITY CHECKS; these should be removed once confidence
-            // has been established in the soundness of the inputs or
-            // if statuses are being modified downstream
-            if (
-                status == OrderStatusEnum.FULFILLED ||
-                status == OrderStatusEnum.CANCELLED_EXPLICIT
-            ) {
-                bytes32 orderHash = context
-                    .executionState
-                    .orders[i]
-                    .getTipNeutralizedOrderHash(context.seaport);
-
-                (
-                    ,
-                    bool isCancelled,
-                    uint256 totalFilled,
-                    uint256 totalSize
-                ) = context.seaport.getOrderStatus(orderHash);
-
-                if (status == OrderStatusEnum.FULFILLED) {
-                    // TEMP (TODO: fix how these are set)
-                    require(
-                        totalFilled != 0 && totalFilled == totalSize,
-                        "FuzzDerivers: OrderStatus FULFILLED does not match order state"
-                    );
-                } else if (status == OrderStatusEnum.CANCELLED_EXPLICIT) {
-                    // TEMP (TODO: fix how these are set)
-                    require(
-                        isCancelled,
-                        "FuzzDerivers: OrderStatus CANCELLED_EXPLICIT does not match order state"
-                    );
-                }
-            }
-
-            // TEMP (TODO: handle upstream)
-            assume(
-                !(order.startTime == 0 && order.endTime == 0),
-                "zero_start_end_time"
-            );
-
-            bool isAvailable = (block.timestamp < order.endTime && // not expired
-                block.timestamp >= order.startTime && // started
-                status != OrderStatusEnum.CANCELLED_EXPLICIT && // not cancelled
-                status != OrderStatusEnum.FULFILLED && // not fully filled
-                status != OrderStatusEnum.REVERT && // bad contract order
-                totalAvailable < context.executionState.maximumFulfilled);
-
-            if (isAvailable) {
-                ++totalAvailable;
-            }
-
-            expectedAvailableOrders[i] = isAvailable;
-        }
-
-        context.expectations.expectedAvailableOrders = expectedAvailableOrders;
-
-        return context;
-    }
-
-    /**
      * @dev Calculate criteria resolvers for the generated orders.
      *
      * @param context A Fuzz test context.
@@ -281,17 +199,9 @@ library FuzzDerivers {
                         .orderDetails[i]
                         .unavailableReason = UnavailableReason
                         .MAX_FULFILLED_SATISFIED;
-                } else if (!context.expectations.expectedAvailableOrders[i]) {
-                    // If the unavailableReason is AVAILABLE, but the order is
-                    // expected to be not available, something went wrong.
-                    revert("Unexpectedly unavailable");
                 } else {
                     totalAvailable += 1;
                 }
-            } else if (context.expectations.expectedAvailableOrders[i]) {
-                // If the unavailableReason is not AVAILABLE, but the order is
-                // expected to be available, something went wrong.
-                revert("Unexpectedly available");
             }
         }
 

@@ -360,20 +360,18 @@ contract FuzzEngine is
      *      Each `withDerived` function calculates a value from the generated
      *      orders and adds it to the test context.
      *
-     *      1. withDerivedAvailableOrders: calculate which orders are available
-     *      2. withDerivedCriteriaResolvers: calculate criteria resolvers
-     *      3. withDerivedOrderDetails: calculate order details
-     *      4. withDetectedRemainders: detect and calculate remainders
-     *      5. withDerivedFulfillments: calculate expected fulfillments
-     *      6. withDerivedCallValue: calculate expected call value
-     *      7. withDerivedExecutions: expected implicit/explicit executions
-     *      8. withDerivedOrderDetails: calculate order details
+     *      1. withDerivedCriteriaResolvers: calculate criteria resolvers
+     *      2. withDerivedOrderDetails: calculate order details
+     *      3. withDetectedRemainders: detect and calculate remainders
+     *      4. withDerivedFulfillments: calculate expected fulfillments
+     *      5. withDerivedCallValue: calculate expected call value
+     *      6. withDerivedExecutions: expected implicit/explicit executions
+     *      7. withDerivedOrderDetails: calculate order details
      *
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
         context = context
-            .withDerivedAvailableOrders()
             .withDerivedCriteriaResolvers()
             .withDerivedOrderDetails()
             .withDetectedRemainders()
