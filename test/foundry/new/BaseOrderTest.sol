@@ -62,6 +62,11 @@ import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
+import {
+    SeaportValidatorHelper,
+    SeaportValidator
+} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
 /**
  * @dev used to store address and key outputs from makeAddrAndKey(name)
  */
@@ -112,6 +117,7 @@ contract BaseOrderTest is
         SeaportInterface seaport;
     }
 
+    SeaportValidator validator;
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
 
@@ -172,6 +178,11 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(address(this), type(uint128).max);
 
         _configureStructDefaults();
+
+        validator = new SeaportValidator(
+            address(new SeaportValidatorHelper()),
+            address(getConduitController())
+        );
 
         fulfill = new FulfillAvailableHelper();
         matcher = new MatchFulfillmentHelper();

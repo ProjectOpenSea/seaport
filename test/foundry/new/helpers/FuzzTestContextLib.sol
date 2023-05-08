@@ -63,6 +63,10 @@ import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import { FractionResults } from "./FractionUtil.sol";
 
+import {
+    SeaportValidatorInterface
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -303,6 +307,10 @@ struct FuzzTestContext {
      */
     ConduitControllerInterface conduitController;
     /**
+     * @dev A SeaportValidator interface.
+     */
+    SeaportValidatorInterface seaportValidator;
+    /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
      */
@@ -384,6 +392,7 @@ library FuzzTestContextLib {
                 actionSelected: false,
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
+                seaportValidator: SeaportValidatorInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -594,6 +603,24 @@ library FuzzTestContextLib {
         ConduitControllerInterface conduitController
     ) internal pure returns (FuzzTestContext memory) {
         context.conduitController = conduitController;
+        return context;
+    }
+
+    /**
+     * @dev Sets the SeaportValidatorInterface on a FuzzTestContext
+     *
+     * @param context           the FuzzTestContext to set the
+     *                          SeaportValidatorInterface of
+     * @param seaportValidator  the SeaportValidatorInterface to set
+     *
+     * @return _context the FuzzTestContext with the SeaportValidatorInterface
+     *                  set
+     */
+    function withSeaportValidator(
+        FuzzTestContext memory context,
+        SeaportValidatorInterface seaportValidator
+    ) internal pure returns (FuzzTestContext memory) {
+        context.seaportValidator = seaportValidator;
         return context;
     }
 
