@@ -24,6 +24,10 @@ import {
 } from "../../../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
 
 import {
+    IssueStringHelpers
+} from "../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+
+import {
     ConsiderationItemLib,
     OfferItemLib,
     OrderParametersLib,
@@ -63,6 +67,7 @@ contract SeaportValidatorTest is BaseOrderTest {
     using IssueParser for StatusIssue;
     using IssueParser for TimeIssue;
 
+    using IssueStringHelpers for uint16;
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
 
     SeaportValidator internal validator;
@@ -925,18 +930,26 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(
             left.errors.length,
             right.errors.length,
-            "unexpected number of errors"
+            "Unexpected number of errors"
         );
         assertEq(
             left.warnings.length,
             right.warnings.length,
-            "unexpected number of warnings"
+            "Unexpected number of warnings"
         );
         for (uint i = 0; i < left.errors.length; i++) {
-            assertEq(left.errors[i], right.errors[i], "unexpected error");
+            assertEq(
+                left.errors[i].toIssueString(),
+                right.errors[i].toIssueString(),
+                "Unexpected error"
+            );
         }
         for (uint i = 0; i < left.warnings.length; i++) {
-            assertEq(left.warnings[i], right.warnings[i], "unexpected warning");
+            assertEq(
+                left.warnings[i].toIssueString(),
+                right.warnings[i].toIssueString(),
+                "Unexpected warning"
+            );
         }
     }
 }
