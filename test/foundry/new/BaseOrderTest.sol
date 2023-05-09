@@ -180,6 +180,11 @@ contract BaseOrderTest is
 
         _configureStructDefaults();
 
+        // TODO: creator fee engine addresses are hardcoded by chainid in the
+        // SeaportValidatorHelper contract and stored as an immutable in the
+        // constructor. This kludge ensures the engine address is address(0),
+        // which will skip calls to the creator fee engine and fall back to
+        // creator fee checks using EIP-2981.
         uint256 chainId = block.chainid;
         vm.chainId(2);
         validatorHelper = new SeaportValidatorHelper();
