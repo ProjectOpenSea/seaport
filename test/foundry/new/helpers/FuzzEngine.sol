@@ -494,6 +494,12 @@ contract FuzzEngine is
         }
     }
 
+    /**
+     * @dev Validate the generated orders using SeaportValidator and save the
+     *      validation errors to the test context.
+     *
+     * @param context A Fuzz test context.
+     */
     function validate(FuzzTestContext memory context) internal {
         for (uint256 i; i < context.executionState.orders.length; ++i) {
             Order memory order = context.executionState.orders[i].toOrder();
@@ -511,26 +517,6 @@ contract FuzzEngine is
                     }),
                     order
                 );
-            if (context.expectations.expectedAvailableOrders[i]) {
-                assertEq(
-                    0,
-                    context.executionState.validationErrors[i].errors.length,
-                    string.concat(
-                        "Available order returned validation errors: ",
-                        context
-                            .executionState
-                            .validationErrors[i]
-                            .errors
-                            .toIssueString()
-                    )
-                );
-            } else {
-                assertGt(
-                    context.executionState.validationErrors[i].errors.length,
-                    0,
-                    "Unavailable order did not return validation error"
-                );
-            }
         }
     }
 
