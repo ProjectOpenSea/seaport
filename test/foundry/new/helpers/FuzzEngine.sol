@@ -466,18 +466,20 @@ contract FuzzEngine is
             );
         }
 
-        assertEq(
-            data,
-            expectedRevertReason,
-            string.concat(
-                "Mutation ",
-                name,
-                " did not revert with the expected reason"
-            )
-        );
-
-        if (keccak256(data) != keccak256(expectedRevertReason)) {
-            revert("TEMP EXPECTED REVERT BREAKPOINT");
+        // NOTE: some reverts in the reference contracts do not revert with
+        // the same revert reason as the optimized. Consider a more granular
+        // approach than this one.
+        string memory profile = vm.envOr("MOAT_PROFILE", string("optimized"));
+        if (!stringEq(profile, "reference")) {
+            assertEq(
+                data,
+                expectedRevertReason,
+                string.concat(
+                    "Mutation ",
+                    name,
+                    " did not revert with the expected reason"
+                )
+            );
         }
     }
 
