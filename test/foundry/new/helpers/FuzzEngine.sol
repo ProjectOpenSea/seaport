@@ -77,6 +77,15 @@ import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
 import { logMutation } from "./Metrics.sol";
 
+import {
+    ErrorsAndWarnings,
+    ValidationConfiguration
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    IssueStringHelpers
+} from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -169,9 +178,8 @@ import { logMutation } from "./Metrics.sol";
 contract FuzzEngine is
     BaseOrderTest,
     FuzzAmendments,
-        FuzzSetup,
+    FuzzSetup,
     FuzzChecks,
-
     FuzzExecutor,
     FulfillAvailableHelper,
     MatchFulfillmentHelper
@@ -191,6 +199,9 @@ contract FuzzEngine is
     using FuzzTestContextLib for FuzzTestContext;
     using FuzzDerivers for FuzzTestContext;
     using FuzzMutationSelectorLib for FuzzTestContext;
+
+    using IssueStringHelpers for uint16;
+    using IssueStringHelpers for uint16[];
 
     Vm.Log[] internal _logs;
     FuzzMutations internal mutations;
@@ -244,6 +255,7 @@ contract FuzzEngine is
         runDerivers(context);
         runSetup(context);
         runCheckRegistration(context);
+        validate(context);
         execFailure(context);
         execSuccess(context);
         checkAll(context);
@@ -306,15 +318,15 @@ contract FuzzEngine is
         FuzzTestContext memory context = FuzzTestContextLib
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)
+            .withSeaportValidator(validator)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
             .withPreExecOrderStatuses(space)
-            .withCounter(generatorContext.counter)
-            .withContractOffererNonce(generatorContext.contractOffererNonce);
+            .withCounter(generatorContext.counter);
 
-        // Generate and add a top-level fulfiller conduit key to the context.
         // This is on a separate line to avoid stack too deep.
         context = context
+            .withContractOffererNonce(generatorContext.contractOffererNonce)
             .withCaller(generatorContext.caller)
             .withFulfillerConduitKey(
                 AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
@@ -478,6 +490,32 @@ contract FuzzEngine is
 
         if (keccak256(data) != keccak256(expectedRevertReason)) {
             revert("TEMP EXPECTED REVERT BREAKPOINT");
+        }
+    }
+
+    /**
+     * @dev Validate the generated orders using SeaportValidator and save the
+     *      validation errors to the test context.
+     *
+     * @param context A Fuzz test context.
+     */
+    function validate(FuzzTestContext memory context) internal {
+        for (uint256 i; i < context.executionState.orders.length; ++i) {
+            Order memory order = context.executionState.orders[i].toOrder();
+            context.executionState.validationErrors[i] = context
+                .seaportValidator
+                .isValidOrderWithConfiguration(
+                    ValidationConfiguration({
+                        seaport: address(context.seaport),
+                        primaryFeeRecipient: address(0),
+                        primaryFeeBips: 0,
+                        checkCreatorFee: false,
+                        skipStrictValidation: true,
+                        shortOrderDuration: 30 minutes,
+                        distantOrderExpiration: 26 weeks
+                    }),
+                    order
+                );
         }
     }
 

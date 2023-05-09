@@ -63,6 +63,11 @@ import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import { FractionResults } from "./FractionUtil.sol";
 
+import {
+    ErrorsAndWarnings,
+    SeaportValidatorInterface
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -262,6 +267,10 @@ struct ExecutionState {
      */
     OrderStatusEnum[] preExecOrderStatuses;
     uint256 value;
+    /**
+     * @dev ErrorsAndWarnings returned from SeaportValidator.
+     */
+    ErrorsAndWarnings[] validationErrors;
 }
 
 /**
@@ -302,6 +311,10 @@ struct FuzzTestContext {
      * @dev A ConduitController interface.
      */
     ConduitControllerInterface conduitController;
+    /**
+     * @dev A SeaportValidator interface.
+     */
+    SeaportValidatorInterface seaportValidator;
     /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
@@ -384,6 +397,7 @@ library FuzzTestContextLib {
                 actionSelected: false,
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
+                seaportValidator: SeaportValidatorInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -435,7 +449,8 @@ library FuzzTestContextLib {
                     offerFulfillments: componentsArray,
                     considerationFulfillments: componentsArray,
                     maximumFulfilled: 0,
-                    value: 0
+                    value: 0,
+                    validationErrors: new ErrorsAndWarnings[](orders.length)
                 }),
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this)),
@@ -504,6 +519,9 @@ library FuzzTestContextLib {
         // Bootstrap with all available to ease direct testing.
         if (context.executionState.orderDetails.length == 0) {
             context.executionState.orderDetails = new OrderDetails[](
+                orders.length
+            );
+            context.executionState.validationErrors = new ErrorsAndWarnings[](
                 orders.length
             );
             for (uint256 i = 0; i < orders.length; ++i) {
@@ -590,6 +608,24 @@ library FuzzTestContextLib {
         ConduitControllerInterface conduitController
     ) internal pure returns (FuzzTestContext memory) {
         context.conduitController = conduitController;
+        return context;
+    }
+
+    /**
+     * @dev Sets the SeaportValidatorInterface on a FuzzTestContext
+     *
+     * @param context           the FuzzTestContext to set the
+     *                          SeaportValidatorInterface of
+     * @param seaportValidator  the SeaportValidatorInterface to set
+     *
+     * @return _context the FuzzTestContext with the SeaportValidatorInterface
+     *                  set
+     */
+    function withSeaportValidator(
+        FuzzTestContext memory context,
+        SeaportValidatorInterface seaportValidator
+    ) internal pure returns (FuzzTestContext memory) {
+        context.seaportValidator = seaportValidator;
         return context;
     }
 

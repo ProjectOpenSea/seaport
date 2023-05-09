@@ -70,9 +70,6 @@ contract SeaportValidatorTest is BaseOrderTest {
     using IssueStringHelpers for uint16;
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
 
-    SeaportValidator internal validator;
-    SeaportValidatorHelper internal helper;
-
     string constant SINGLE_ERC20 = "SINGLE_ERC20";
     string constant SINGLE_ERC1155 = "SINGLE_ERC1155";
     string constant SINGLE_NATIVE = "SINGLE_NATIVE";
@@ -84,11 +81,6 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
-        helper = new SeaportValidatorHelper();
-        validator = new SeaportValidator(
-            address(helper),
-            address(conduitController)
-        );
 
         OrderLib
             .empty()
