@@ -996,11 +996,13 @@ library Searializer {
         uint256 length = value.length;
         string memory out;
         for (uint256 i; i < length; i++) {
-            out = tojsonDynArrayValidationErrorMessages(
-                obj,
-                vm.toString(i),
-                value[i].errors
-            );
+            if (value[i].errors.length > 0) {
+                out = tojsonDynArrayValidationErrorMessages(
+                    obj,
+                    vm.toString(i),
+                    value[i].errors
+                );
+            }
         }
         return vm.serializeString(objectKey, valueKey, out);
     }

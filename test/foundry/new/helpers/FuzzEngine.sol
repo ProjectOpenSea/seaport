@@ -255,6 +255,7 @@ contract FuzzEngine is
         runDerivers(context);
         runSetup(context);
         runCheckRegistration(context);
+        validate(context);
         execFailure(context);
         execSuccess(context);
         checkAll(context);
@@ -526,7 +527,6 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function execSuccess(FuzzTestContext memory context) internal {
-        validate(context);
         ExpectedEventsUtil.startRecordingLogs();
         exec(context, true);
     }
