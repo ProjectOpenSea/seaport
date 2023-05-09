@@ -479,7 +479,7 @@ contract FuzzEngine is
         );
 
         if (keccak256(data) != keccak256(expectedRevertReason)) {
-            revert("TEMP EXPECTED REVERT BREAKPOINT");
+            revert("EXPECTED REVERT BREAKPOINT");
         }
     }
 
