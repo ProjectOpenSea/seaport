@@ -117,6 +117,7 @@ contract BaseOrderTest is
         SeaportInterface seaport;
     }
 
+    SeaportValidatorHelper validatorHelper;
     SeaportValidator validator;
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
@@ -179,8 +180,13 @@ contract BaseOrderTest is
 
         _configureStructDefaults();
 
+        uint256 chainId = block.chainid;
+        vm.chainId(2);
+        validatorHelper = new SeaportValidatorHelper();
+        vm.chainId(chainId);
+
         validator = new SeaportValidator(
-            address(new SeaportValidatorHelper()),
+            address(validatorHelper),
             address(getConduitController())
         );
 

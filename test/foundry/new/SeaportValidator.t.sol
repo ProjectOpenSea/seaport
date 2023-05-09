@@ -558,13 +558,13 @@ contract SeaportValidatorTest is BaseOrderTest {
 
         ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
             .empty()
-            .addError(ERC721Issue.NotOwner)
             .addError(ERC721Issue.NotApproved)
+            .addError(ERC721Issue.NotOwner)
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(TimeIssue.ShortOrder)
             .addWarning(StatusIssue.ContractOrder)
-            .addWarning(ConsiderationIssue.ZeroItems)
-            .addWarning(SignatureIssue.ContractOrder);
+            .addWarning(SignatureIssue.ContractOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
 
         assertEq(actual, expected);
     }

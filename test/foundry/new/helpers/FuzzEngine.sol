@@ -78,8 +78,13 @@ import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 import { logMutation } from "./Metrics.sol";
 
 import {
-    ErrorsAndWarnings
+    ErrorsAndWarnings,
+    ValidationConfiguration
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    IssueStringHelpers
+} from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
@@ -194,6 +199,9 @@ contract FuzzEngine is
     using FuzzTestContextLib for FuzzTestContext;
     using FuzzDerivers for FuzzTestContext;
     using FuzzMutationSelectorLib for FuzzTestContext;
+
+    using IssueStringHelpers for uint16;
+    using IssueStringHelpers for uint16[];
 
     Vm.Log[] internal _logs;
     FuzzMutations internal mutations;
@@ -486,31 +494,53 @@ contract FuzzEngine is
         }
     }
 
+    function validate(FuzzTestContext memory context) internal {
+        for (uint256 i; i < context.executionState.orders.length; ++i) {
+            Order memory order = context.executionState.orders[i].toOrder();
+            context.executionState.validationErrors[i] = context
+                .seaportValidator
+                .isValidOrderWithConfiguration(
+                    ValidationConfiguration({
+                        seaport: address(context.seaport),
+                        primaryFeeRecipient: address(0),
+                        primaryFeeBips: 0,
+                        checkCreatorFee: true,
+                        skipStrictValidation: true,
+                        shortOrderDuration: 30 minutes,
+                        distantOrderExpiration: 26 weeks
+                    }),
+                    order
+                );
+            if (context.expectations.expectedAvailableOrders[i]) {
+                assertEq(
+                    0,
+                    context.executionState.validationErrors[i].errors.length,
+                    string.concat(
+                        "Available order returned validation errors: ",
+                        context
+                            .executionState
+                            .validationErrors[i]
+                            .errors
+                            .toIssueString()
+                    )
+                );
+            } else {
+                assertGt(
+                    context.executionState.validationErrors[i].errors.length,
+                    0,
+                    "Unavailable order did not return validation error"
+                );
+            }
+        }
+    }
+
     /**
      * @dev Call a Seaport function with the generated order, expecting success.
      *
      * @param context A Fuzz test context.
      */
     function execSuccess(FuzzTestContext memory context) internal {
-        for (uint256 i; i < context.executionState.orders.length; ++i) {
-            AdvancedOrder memory order = context.executionState.orders[i];
-            ErrorsAndWarnings memory validationErrors = context
-                .seaportValidator
-                .isValidOrder(order.toOrder(), address(context.seaport));
-            if (context.expectations.expectedAvailableOrders[i]) {
-                assertEq(
-                    0,
-                    validationErrors.errors.length,
-                    "Available order returned validation error"
-                );
-            } else {
-                assertGt(
-                    validationErrors.errors.length,
-                    0,
-                    "Unavailable order did not return validation error"
-                );
-            }
-        }
+        validate(context);
         ExpectedEventsUtil.startRecordingLogs();
         exec(context, true);
     }

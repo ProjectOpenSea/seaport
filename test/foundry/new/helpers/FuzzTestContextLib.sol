@@ -64,6 +64,7 @@ import { Failure } from "./FuzzMutationSelectorLib.sol";
 import { FractionResults } from "./FractionUtil.sol";
 
 import {
+    ErrorsAndWarnings,
     SeaportValidatorInterface
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
@@ -266,6 +267,10 @@ struct ExecutionState {
      */
     OrderStatusEnum[] preExecOrderStatuses;
     uint256 value;
+    /**
+     * @dev ErrorsAndWarnings returned from SeaportValidator.
+     */
+    ErrorsAndWarnings[] validationErrors;
 }
 
 /**
@@ -444,7 +449,8 @@ library FuzzTestContextLib {
                     offerFulfillments: componentsArray,
                     considerationFulfillments: componentsArray,
                     maximumFulfilled: 0,
-                    value: 0
+                    value: 0,
+                    validationErrors: new ErrorsAndWarnings[](orders.length)
                 }),
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this)),
@@ -516,6 +522,9 @@ library FuzzTestContextLib {
                 orders.length
             );
             context.executionState.orderDetails = new OrderDetails[](
+                orders.length
+            );
+            context.executionState.validationErrors = new ErrorsAndWarnings[](
                 orders.length
             );
             for (uint256 i = 0; i < orders.length; ++i) {

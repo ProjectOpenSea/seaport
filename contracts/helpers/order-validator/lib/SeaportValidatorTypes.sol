@@ -493,4 +493,16 @@ library IssueStringHelpers {
             revert("IssueStringHelpers: Unknown issue code");
         }
     }
+
+    function toIssueString(
+        uint16[] memory issueCodes
+    ) internal pure returns (string memory issueString) {
+        for (uint256 i; i < issueCodes.length; i++) {
+            issueString = string.concat(
+                issueString,
+                "\n    ",
+                toIssueString(issueCodes[i])
+            );
+        }
+    }
 }
