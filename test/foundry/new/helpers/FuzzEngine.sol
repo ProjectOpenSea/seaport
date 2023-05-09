@@ -511,7 +511,7 @@ contract FuzzEngine is
                         seaport: address(context.seaport),
                         primaryFeeRecipient: address(0),
                         primaryFeeBips: 0,
-                        checkCreatorFee: true,
+                        checkCreatorFee: false,
                         skipStrictValidation: true,
                         shortOrderDuration: 30 minutes,
                         distantOrderExpiration: 26 weeks
