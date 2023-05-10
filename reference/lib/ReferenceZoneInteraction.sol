@@ -152,7 +152,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                     orderToExecute.receivedItems,
                     advancedOrder.extraData,
                     orderHashes,
-                    uint256(orderHash) ^ uint256(uint160(offerer)) << 96
+                    uint256(orderHash) ^ (uint256(uint160(offerer)) << 96)
                 ) != ContractOffererInterface.ratifyOrder.selector
             ) {
                 revert InvalidContractOrder(orderHash);
