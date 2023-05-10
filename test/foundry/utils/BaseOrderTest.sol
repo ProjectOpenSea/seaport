@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { stdStorage, StdStorage } from "forge-std/Test.sol";
+import {
+    FulfillAvailableHelper,
+    MatchFulfillmentHelper
+} from "seaport-sol/SeaportSol.sol";
+
+import {
+    AdditionalRecipient,
+    Fulfillment,
+    FulfillmentComponent,
+    Order,
+    OrderComponents,
+    OrderParameters
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     ConsiderationInterface
@@ -13,14 +25,6 @@ import {
     BasicOrder_additionalRecipients_data_cdPtr,
     TwoWords
 } from "../../../contracts/lib/ConsiderationConstants.sol";
-import {
-    AdditionalRecipient,
-    Fulfillment,
-    FulfillmentComponent,
-    Order,
-    OrderComponents,
-    OrderParameters
-} from "../../../contracts/lib/ConsiderationStructs.sol";
 
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 
@@ -30,12 +34,13 @@ import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is OrderBuilder, AmountDeriver {
-    using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
-    ///@dev used to store address and key outputs from makeAddrAndKey(name)
+    /**
+     * @dev used to store address and key outputs from makeAddrAndKey(name)
+     */
     struct Account {
         address addr;
         uint256 key;
@@ -57,6 +62,10 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     AdditionalRecipient[] additionalRecipients;
 
     Account offerer1;
+    Account offerer2;
+
+    FulfillAvailableHelper fulfill;
+    MatchFulfillmentHelper matcher;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -81,14 +90,18 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         _;
     }
 
-    /// @dev convenience wrapper for makeAddrAndKey
+    /**
+     * @dev convenience wrapper for makeAddrAndKey
+     */
     function makeAccount(string memory name) internal returns (Account memory) {
         (address addr, uint256 key) = makeAddrAndKey(name);
         return Account(addr, key);
     }
 
-    /// @dev convenience wrapper for makeAddrAndKey that also allocates tokens,
-    /// ether, and approvals
+    /**
+     * @dev convenience wrapper for makeAddrAndKey that also allocates tokens,
+     *      ether, and approvals
+     */
     function makeAndAllocateAccount(
         string memory name
     ) internal returns (Account memory) {
@@ -116,8 +129,13 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
         allocateTokensAndApprovals(offerer1.addr, uint128(MAX_INT));
+        allocateTokensAndApprovals(offerer2.addr, uint128(MAX_INT));
 
         offerer1 = makeAndAllocateAccount("offerer1");
+        offerer2 = makeAndAllocateAccount("offerer2");
+
+        fulfill = new FulfillAvailableHelper();
+        matcher = new MatchFulfillmentHelper();
     }
 
     function resetOfferComponents() internal {
@@ -275,8 +293,8 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         if (overwriteItemsLength) {
             // Get the array length from the calldata and
             // store the length - amtToSubtractFromItemsLength in the calldata
-            // so that the length value does _not_ accurately represent the actual
-            // total array length.
+            // so that the length value does _not_ accurately represent the
+            // actual total array length.
             _subtractAmountFromLengthInOrderCalldata(
                 fulfillOrderCalldata,
                 relativeOrderParametersOffset,
@@ -305,9 +323,9 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
             fulfillOrderCalldata
         );
 
-        // If overwriteItemsLength is True, the call should
-        // have failed (success should be False) and if overwriteItemsLength is False,
-        // the call should have succeeded (success should be True).
+        // If overwriteItemsLength is true, the call should
+        // have failed (success should be False) and if overwriteItemsLength is
+        // false, the call should have succeeded (success should be true).
         assertEq(success, !overwriteItemsLength);
     }
 
@@ -331,7 +349,8 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
     }
 
     /**
-     * @dev return OrderComponents for a given OrderParameters and offerer counter
+     * @dev return OrderComponents for a given OrderParameters and offerer
+     *      counter
      */
     function getOrderComponents(
         OrderParameters memory parameters,
@@ -393,7 +412,10 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
             );
     }
 
-    ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
+    /**
+     * @dev allow signing for this contract since it needs to be recipient of
+     *       basic order to reenter on receive
+     */
     function isValidSignature(
         bytes32,
         bytes memory

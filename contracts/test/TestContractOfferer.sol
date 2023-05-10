@@ -11,6 +11,8 @@ import {
     ContractOffererInterface
 } from "../interfaces/ContractOffererInterface.sol";
 
+import { ERC165 } from "../interfaces/ERC165.sol";
+
 import { ItemType } from "../lib/ConsiderationEnums.sol";
 
 import {
@@ -28,7 +30,7 @@ import {
  *         an order. The offered item is placed into this contract as part of
  *         deployment and the corresponding token approvals are set for Seaport.
  */
-contract TestContractOfferer is ContractOffererInterface {
+contract TestContractOfferer is ERC165, ContractOffererInterface {
     error OrderUnavailable();
 
     address private immutable _SEAPORT;
@@ -52,6 +54,20 @@ contract TestContractOfferer is ContractOffererInterface {
     }
 
     receive() external payable {}
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`

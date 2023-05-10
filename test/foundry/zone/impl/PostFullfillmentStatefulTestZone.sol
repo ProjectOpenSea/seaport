@@ -8,11 +8,13 @@ import {
 
 import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
 
+import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+
 import {
     ZoneInterface
 } from "../../../../contracts/interfaces/ZoneInterface.sol";
 
-contract PostFulfillmentStatefulTestZone is ZoneInterface {
+contract PostFulfillmentStatefulTestZone is ERC165, ZoneInterface {
     error IncorrectAmount(uint256 actual, uint256 expected);
     error IncorrectItemType(ItemType actual, ItemType expected);
     error IncorrectIdentifier(uint256 actual, uint256 expected);
@@ -38,7 +40,10 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
     ) external returns (bytes4 validOrderMagicValue) {
         // Check that the amount in the offer is correct.
         if (zoneParameters.offer[0].amount != amountToCheck) {
-            revert IncorrectAmount(zoneParameters.offer[0].amount, 50);
+            revert IncorrectAmount(
+                zoneParameters.offer[0].amount,
+                amountToCheck
+            );
         }
 
         // Check that the item type in the consideration is correct.
@@ -81,5 +86,13 @@ contract PostFulfillmentStatefulTestZone is ZoneInterface {
         schemas[0].metadata = new bytes(0);
 
         return ("PostFulfillmentStatefulTestZone", schemas);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

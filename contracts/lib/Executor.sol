@@ -243,8 +243,8 @@ contract Executor is Verifiers, TokenTransferrer {
      * @param token       The ERC721 token to transfer.
      * @param from        The originator of the transfer.
      * @param to          The recipient of the transfer.
-     * @param identifier  The tokenId to transfer (must be 1 for ERC721).
-     * @param amount      The amount to transfer.
+     * @param identifier  The tokenId to transfer.
+     * @param amount      The amount to transfer (must be 1 for ERC721).
      * @param conduitKey  A bytes32 value indicating what corresponding conduit,
      *                    if any, to source token approvals from. The zero hash
      *                    signifies that no conduit should be used, with direct
@@ -480,7 +480,8 @@ contract Executor is Verifiers, TokenTransferrer {
             _revertInvalidCallToConduit(conduit);
         }
 
-        // Ensure result was extracted and matches EIP-1271 magic value.
+        // Ensure result was extracted and matches the Conduit executor magic
+        // value.
         if (result != ConduitInterface.execute.selector) {
             _revertInvalidConduit(conduitKey, conduit);
         }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 

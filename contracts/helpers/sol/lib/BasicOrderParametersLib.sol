@@ -2,22 +2,24 @@
 pragma solidity ^0.8.17;
 
 import {
+    AdditionalRecipient,
     BasicOrderParameters,
-    OrderComponents,
-    OrderParameters,
-    ConsiderationItem,
-    OrderParameters,
-    OfferItem,
-    AdditionalRecipient
+    OrderParameters
 } from "../../../lib/ConsiderationStructs.sol";
-import {
-    OrderType,
-    ItemType,
-    BasicOrderType
-} from "../../../lib/ConsiderationEnums.sol";
+
+import { BasicOrderType } from "../../../lib/ConsiderationEnums.sol";
+
 import { StructCopier } from "./StructCopier.sol";
+
 import { AdditionalRecipientLib } from "./AdditionalRecipientLib.sol";
 
+/**
+ * @title BasicOrderParametersLib
+ * @author James Wenzel (emo.eth)
+ * @notice BasicOrderParametersLib is a library for managing
+ *         BasicOrderParameters structs and arrays. It allows chaining of
+ *         functions to make struct creation more readable.
+ */
 library BasicOrderParametersLib {
     using BasicOrderParametersLib for BasicOrderParameters;
     using AdditionalRecipientLib for AdditionalRecipient[];
@@ -26,7 +28,37 @@ library BasicOrderParametersLib {
         keccak256("seaport.BasicOrderParametersDefaults");
     bytes32 private constant BASIC_ORDER_PARAMETERS_ARRAY_MAP_POSITION =
         keccak256("seaport.BasicOrderParametersArrayDefaults");
+    bytes32 private constant EMPTY_BASIC_ORDER_PARAMETERS =
+        keccak256(
+            abi.encode(
+                BasicOrderParameters({
+                    considerationToken: address(0),
+                    considerationIdentifier: 0,
+                    considerationAmount: 0,
+                    offerer: payable(address(0)),
+                    zone: address(0),
+                    offerToken: address(0),
+                    offerIdentifier: 0,
+                    offerAmount: 0,
+                    basicOrderType: BasicOrderType(0),
+                    startTime: 0,
+                    endTime: 0,
+                    zoneHash: bytes32(0),
+                    salt: 0,
+                    offererConduitKey: bytes32(0),
+                    fulfillerConduitKey: bytes32(0),
+                    totalOriginalAdditionalRecipients: 0,
+                    additionalRecipients: new AdditionalRecipient[](0),
+                    signature: ""
+                })
+            )
+        );
 
+    /**
+     * @dev Clears a default BasicOrderParameters from storage.
+     *
+     * @param basicParameters the BasicOrderParameters to clear
+     */
     function clear(BasicOrderParameters storage basicParameters) internal {
         // uninitialized pointers take up no new memory (versus one word for initializing length-0)
         AdditionalRecipient[] memory additionalRecipients;
@@ -54,6 +86,11 @@ library BasicOrderParametersLib {
         basicParameters.signature = new bytes(0);
     }
 
+    /**
+     * @dev Clears an array of BasicOrderParameters from storage.
+     *
+     * @param basicParametersArray the name of the default to clear
+     */
     function clear(
         BasicOrderParameters[] storage basicParametersArray
     ) internal {
@@ -64,18 +101,24 @@ library BasicOrderParametersLib {
     }
 
     /**
-     * @notice clears a default BasicOrderParameters from storage
+     * @dev Clears a default BasicOrderParameters from storage.
+     *
      * @param defaultName the name of the default to clear
      */
     function clear(string memory defaultName) internal {
         mapping(string => BasicOrderParameters)
-            storage orderComponentsMap = _orderComponentsMap();
-        BasicOrderParameters storage basicParameters = orderComponentsMap[
+            storage orderParametersMap = _orderParametersMap();
+        BasicOrderParameters storage basicParameters = orderParametersMap[
             defaultName
         ];
         basicParameters.clear();
     }
 
+    /**
+     * @dev Creates an empty BasicOrderParameters.
+     *
+     * @return item the default BasicOrderParameters
+     */
     function empty() internal pure returns (BasicOrderParameters memory item) {
         AdditionalRecipient[] memory additionalRecipients;
         item = BasicOrderParameters({
@@ -101,59 +144,91 @@ library BasicOrderParametersLib {
     }
 
     /**
-     * @notice gets a default BasicOrderParameters from storage
+     * @dev Gets a default BasicOrderParameters from storage.
+     *
      * @param defaultName the name of the default for retrieval
+     *
+     * @return item the selected default BasicOrderParameters
      */
     function fromDefault(
         string memory defaultName
     ) internal view returns (BasicOrderParameters memory item) {
         mapping(string => BasicOrderParameters)
-            storage orderComponentsMap = _orderComponentsMap();
-        item = orderComponentsMap[defaultName];
+            storage orderParametersMap = _orderParametersMap();
+        item = orderParametersMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_BASIC_ORDER_PARAMETERS) {
+            revert("Empty BasicOrderParameters selected.");
+        }
     }
 
+    /**
+     * @dev Gets a default BasicOrderParameters array from storage.
+     *
+     * @param defaultName the name of the default array for retrieval
+     *
+     * @return items the selected default BasicOrderParameters array
+     */
     function fromDefaultMany(
         string memory defaultName
     ) internal view returns (BasicOrderParameters[] memory items) {
         mapping(string => BasicOrderParameters[])
-            storage orderComponentsArrayMap = _orderComponentsArrayMap();
-        items = orderComponentsArrayMap[defaultName];
+            storage orderParametersArrayMap = _orderParametersArrayMap();
+        items = orderParametersArrayMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty BasicOrderParameters array selected.");
+        }
     }
 
     /**
-     * @notice saves an BasicOrderParameters as a named default
-     * @param orderComponents the BasicOrderParameters to save as a default
-     * @param defaultName the name of the default for retrieval
+     * @dev Saves a BasicOrderParameters as a named default.
+     *
+     * @param orderParameters the BasicOrderParameters to save as a default
+     * @param defaultName     the name of the default for retrieval
+     *
+     * @return _orderParameters the saved BasicOrderParameters
      */
     function saveDefault(
-        BasicOrderParameters memory orderComponents,
+        BasicOrderParameters memory orderParameters,
         string memory defaultName
-    ) internal returns (BasicOrderParameters memory _orderComponents) {
+    ) internal returns (BasicOrderParameters memory _orderParameters) {
         mapping(string => BasicOrderParameters)
-            storage orderComponentsMap = _orderComponentsMap();
-        BasicOrderParameters storage destination = orderComponentsMap[
+            storage orderParametersMap = _orderParametersMap();
+        BasicOrderParameters storage destination = orderParametersMap[
             defaultName
         ];
-        StructCopier.setBasicOrderParameters(destination, orderComponents);
-        return orderComponents;
-    }
-
-    function saveDefaultMany(
-        BasicOrderParameters[] memory orderComponents,
-        string memory defaultName
-    ) internal returns (BasicOrderParameters[] memory _orderComponents) {
-        mapping(string => BasicOrderParameters[])
-            storage orderComponentsArrayMap = _orderComponentsArrayMap();
-        BasicOrderParameters[] storage destination = orderComponentsArrayMap[
-            defaultName
-        ];
-        StructCopier.setBasicOrderParameters(destination, orderComponents);
-        return orderComponents;
+        StructCopier.setBasicOrderParameters(destination, orderParameters);
+        return orderParameters;
     }
 
     /**
-     * @notice makes a copy of an BasicOrderParameters in-memory
+     * @dev Saves an BasicOrderParameters array as a named default.
+     *
+     * @param orderParameters the BasicOrderParameters array to save as a default
+     * @param defaultName     the name of the default array for retrieval
+     *
+     * @return _orderParameters the saved BasicOrderParameters array
+     */
+    function saveDefaultMany(
+        BasicOrderParameters[] memory orderParameters,
+        string memory defaultName
+    ) internal returns (BasicOrderParameters[] memory _orderParameters) {
+        mapping(string => BasicOrderParameters[])
+            storage orderParametersArrayMap = _orderParametersArrayMap();
+        BasicOrderParameters[] storage destination = orderParametersArrayMap[
+            defaultName
+        ];
+        StructCopier.setBasicOrderParameters(destination, orderParameters);
+        return orderParameters;
+    }
+
+    /**
+     * @dev Makes a copy of an BasicOrderParameters in-memory.
+     *
      * @param item the BasicOrderParameters to make a copy of in-memory
+     *
+     * @return copy the copied BasicOrderParameters
      */
     function copy(
         BasicOrderParameters memory item
@@ -183,38 +258,60 @@ library BasicOrderParametersLib {
     }
 
     /**
-     * @notice gets the storage position of the default BasicOrderParameters map
+     * @dev Gets the storage position of the default BasicOrderParameters map.
+     *
+     * @return orderParametersMap the storage position of the default
+     *                            BasicOrderParameters map
      */
-    function _orderComponentsMap()
+    function _orderParametersMap()
         private
         pure
         returns (
-            mapping(string => BasicOrderParameters) storage orderComponentsMap
+            mapping(string => BasicOrderParameters) storage orderParametersMap
         )
     {
         bytes32 position = BASIC_ORDER_PARAMETERS_MAP_POSITION;
         assembly {
-            orderComponentsMap.slot := position
+            orderParametersMap.slot := position
         }
     }
 
-    function _orderComponentsArrayMap()
+    /**
+     * @dev Gets the storage position of the default BasicOrderParameters array
+     *      map.
+     *
+     * @return orderParametersArrayMap the storage position of the default
+     *                                 BasicOrderParameters array map
+     */
+    function _orderParametersArrayMap()
         private
         pure
         returns (
             mapping(string => BasicOrderParameters[])
-                storage orderComponentsArrayMap
+                storage orderParametersArrayMap
         )
     {
         bytes32 position = BASIC_ORDER_PARAMETERS_ARRAY_MAP_POSITION;
         assembly {
-            orderComponentsArrayMap.slot := position
+            orderParametersArrayMap.slot := position
         }
     }
 
-    // methods for configuring a single of each of an in-memory BasicOrderParameters's fields, which modifies the
-    // BasicOrderParameters in-memory and returns it
+    // Methods for configuring a single of each of an in-memory
+    // BasicOrderParameters's fields, which modify the BasicOrderParameters
+    // struct in-memory and return it.
 
+    /**
+     * @dev Sets the considerationToken field of a BasicOrderParameters
+     *      in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the considerationToken field
+     *              of in-memory.
+     * @param value the value to set the considerationToken field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withConsiderationToken(
         BasicOrderParameters memory item,
         address value
@@ -223,6 +320,17 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the considerationIdentifier field of a BasicOrderParameters
+     *     in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the considerationIdentifier
+     *              field of in-memory.
+     * @param value the value to set the considerationIdentifier field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withConsiderationIdentifier(
         BasicOrderParameters memory item,
         uint256 value
@@ -231,6 +339,17 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the considerationAmount field of a BasicOrderParameters
+     *      in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the considerationAmount field
+     *              of in-memory.
+     * @param value the value to set the considerationAmount field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withConsiderationAmount(
         BasicOrderParameters memory item,
         uint256 value
@@ -239,6 +358,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the offerer field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the offerer field of
+     *              in-memory.
+     * @param value the value to set the offerer field of the BasicOrderParameters
+     *              to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withOfferer(
         BasicOrderParameters memory item,
         address value
@@ -247,6 +376,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the zone field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the zone field of
+     *              in-memory.
+     * @param value the value to set the zone field of the BasicOrderParameters
+     *              to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withZone(
         BasicOrderParameters memory item,
         address value
@@ -255,6 +394,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the offerToken field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the offerToken field of
+     *              in-memory.
+     * @param value the value to set the offerToken field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withOfferToken(
         BasicOrderParameters memory item,
         address value
@@ -263,6 +412,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the offerIdentifier field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the offerIdentifier field of
+     *              in-memory.
+     * @param value the value to set the offerIdentifier field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withOfferIdentifier(
         BasicOrderParameters memory item,
         uint256 value
@@ -271,6 +430,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the offerAmount field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the offerAmount field of
+     *              in-memory.
+     * @param value the value to set the offerAmount field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withOfferAmount(
         BasicOrderParameters memory item,
         uint256 value
@@ -279,6 +448,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the basicOrderType field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the basicOrderType field of
+     *              in-memory.
+     * @param value the value to set the basicOrderType field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withBasicOrderType(
         BasicOrderParameters memory item,
         BasicOrderType value
@@ -287,6 +466,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the startTime field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the startTime field of
+     *              in-memory.
+     * @param value the value to set the startTime field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withStartTime(
         BasicOrderParameters memory item,
         uint256 value
@@ -295,6 +484,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the endTime field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the endTime field of
+     *              in-memory.
+     * @param value the value to set the endTime field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withEndTime(
         BasicOrderParameters memory item,
         uint256 value
@@ -303,6 +502,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the zoneHash field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the zoneHash field of
+     *              in-memory.
+     * @param value the value to set the zoneHash field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withZoneHash(
         BasicOrderParameters memory item,
         bytes32 value
@@ -311,6 +520,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the salt field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the salt field of
+     *              in-memory.
+     * @param value the value to set the salt field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withSalt(
         BasicOrderParameters memory item,
         uint256 value
@@ -319,6 +538,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the offererConduitKey field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the offererConduitKey field of
+     *              in-memory.
+     * @param value the value to set the offererConduitKey field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withOffererConduitKey(
         BasicOrderParameters memory item,
         bytes32 value
@@ -327,6 +556,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the fulfillerConduitKey field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the fulfillerConduitKey field of
+     *              in-memory.
+     * @param value the value to set the fulfillerConduitKey field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withFulfillerConduitKey(
         BasicOrderParameters memory item,
         bytes32 value
@@ -335,6 +574,17 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the totalOriginalAdditionalRecipients field of a
+     *      BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the
+     *              totalOriginalAdditionalRecipients field of in-memory.
+     * @param value the value to set the totalOriginalAdditionalRecipients field
+     *              of the BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withTotalOriginalAdditionalRecipients(
         BasicOrderParameters memory item,
         uint256 value
@@ -343,6 +593,17 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the additionalRecipients field of a BasicOrderParameters
+     *      in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the additionalRecipients
+     *              field of in-memory.
+     * @param value the value to set the additionalRecipients field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withAdditionalRecipients(
         BasicOrderParameters memory item,
         AdditionalRecipient[] memory value
@@ -351,6 +612,16 @@ library BasicOrderParametersLib {
         return item;
     }
 
+    /**
+     * @dev Sets the signature field of a BasicOrderParameters in-memory.
+     *
+     * @param item  the BasicOrderParameters to set the signature field of
+     *              in-memory.
+     * @param value the value to set the signature field of the
+     *              BasicOrderParameters to set in-memory.
+     *
+     * @custom:return item the modified BasicOrderParameters
+     */
     function withSignature(
         BasicOrderParameters memory item,
         bytes memory value

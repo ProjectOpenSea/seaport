@@ -36,6 +36,12 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
             return false;
         }
 
+        uint256 allowed = allowance[from][msg.sender];
+
+        if (amount > allowed) {
+            revert("NOT_AUTHORIZED");
+        }
+
         super.transferFrom(from, to, amount);
 
         if (noReturnData) {
@@ -45,5 +51,18 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
         }
 
         ok = true;
+    }
+
+    function increaseAllowance(
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
+        uint256 current = allowance[msg.sender][spender];
+        uint256 remaining = type(uint256).max - current;
+        if (amount > remaining) {
+            amount = remaining;
+        }
+        approve(spender, current + amount);
+        return true;
     }
 }

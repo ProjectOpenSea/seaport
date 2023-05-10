@@ -40,6 +40,14 @@ contract AdvancedOrderLibTest is BaseTest {
         assertEq(advancedOrder, defaultAdvancedOrder);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty AdvancedOrder selected.");
+        AdvancedOrderLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty AdvancedOrder array selected.");
+        AdvancedOrderLib.fromDefaultMany("nonexistent");
+    }
+
     function testComposeEmpty(
         uint120 numerator,
         uint120 denominator,

@@ -240,7 +240,7 @@ contract PausableZoneController is
 
     /**
      * @notice Initiate Zone ownership transfer by assigning a new potential
-     *         owner this contract. Once set, the new potential owner
+     *         owner of this contract. Once set, the new potential owner
      *         may call `acceptOwnership` to claim ownership.
      *         Only the owner in question may call this function.
      *
@@ -360,7 +360,7 @@ contract PausableZoneController is
     }
 
     /**
-     * @notice An external view function that return the potential owner.
+     * @notice An external view function that returns the potential owner.
      *
      * @return The address of the potential owner.
      */

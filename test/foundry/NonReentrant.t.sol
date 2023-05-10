@@ -116,10 +116,10 @@ contract NonReentrantTest is BaseOrderTest {
             if (!reentering) {
                 shouldReenter = true;
                 vm.expectEmit(
+                    false,
+                    false,
+                    false,
                     true,
-                    false,
-                    false,
-                    false,
                     address(address(this))
                 );
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
@@ -132,10 +132,10 @@ contract NonReentrantTest is BaseOrderTest {
             if (!reentering) {
                 shouldReenter = true;
                 vm.expectEmit(
+                    false,
+                    false,
+                    false,
                     true,
-                    false,
-                    false,
-                    false,
                     address(address(this))
                 );
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
@@ -151,7 +151,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 value
             ) = prepareOrder(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, true, address(this));
+                vm.expectEmit(false, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.fulfillOrder{ value: value }(
@@ -166,7 +166,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 value
             ) = prepareAdvancedOrder(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, true, address(this));
+                vm.expectEmit(false, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.fulfillAdvancedOrder{ value: value }(
@@ -184,7 +184,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 maximumFulfilled
             ) = prepareAvailableOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, true, address(this));
+                vm.expectEmit(false, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             vm.prank(alice);
@@ -205,7 +205,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 maximumFulfilled
             ) = prepareFulfillAvailableAdvancedOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, true, address(this));
+                vm.expectEmit(false, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             vm.prank(alice);
@@ -224,7 +224,7 @@ contract NonReentrantTest is BaseOrderTest {
                 Fulfillment[] memory _fulfillments
             ) = prepareMatchOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, true, address(this));
+                vm.expectEmit(false, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.matchOrders{ value: 1 }(
@@ -238,7 +238,7 @@ contract NonReentrantTest is BaseOrderTest {
                 Fulfillment[] memory _fulfillments
             ) = prepareMatchAdvancedOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, true, address(this));
+                vm.expectEmit(false, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.matchAdvancedOrders{ value: 1 }(

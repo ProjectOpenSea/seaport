@@ -7,6 +7,8 @@ import {
     PausableZoneEventsAndErrors
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
+import { ERC165 } from "../interfaces/ERC165.sol";
+
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
 import {
@@ -31,6 +33,7 @@ import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
  *         cannot execute orders that return native tokens to the fulfiller.
  */
 contract PausableZone is
+    ERC165,
     PausableZoneEventsAndErrors,
     ZoneInterface,
     PausableZoneInterface
@@ -251,5 +254,13 @@ contract PausableZone is
         schemas[0].metadata = new bytes(0);
 
         return ("PausableZone", schemas);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

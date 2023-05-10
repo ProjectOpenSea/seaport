@@ -24,11 +24,19 @@ contract SpentItemLibTest is BaseTest {
             ItemType(itemType),
             token,
             identifier,
-            amount
+            amount == 0 ? 1 : amount
         );
         SpentItemLib.saveDefault(spentItem, "default");
         SpentItem memory defaultSpentItem = SpentItemLib.fromDefault("default");
         assertEq(spentItem, defaultSpentItem);
+    }
+
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty SpentItem selected.");
+        SpentItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty SpentItem array selected.");
+        SpentItemLib.fromDefaultMany("nonexistent");
     }
 
     function testComposeEmpty(

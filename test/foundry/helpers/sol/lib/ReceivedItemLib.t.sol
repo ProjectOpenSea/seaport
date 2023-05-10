@@ -25,7 +25,7 @@ contract ReceivedItemLibTest is BaseTest {
             ItemType(itemType),
             token,
             identifier,
-            amount,
+            amount == 0 ? 1 : amount,
             recipient
         );
         ReceivedItemLib.saveDefault(receivedItem, "default");
@@ -33,6 +33,14 @@ contract ReceivedItemLibTest is BaseTest {
             "default"
         );
         assertEq(receivedItem, defaultReceivedItem);
+    }
+
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty ReceivedItem selected.");
+        ReceivedItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty ReceivedItem array selected.");
+        ReceivedItemLib.fromDefaultMany("nonexistent");
     }
 
     function testComposeEmpty(

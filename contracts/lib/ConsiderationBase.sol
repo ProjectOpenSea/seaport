@@ -43,13 +43,13 @@ import {
     NameLengthPtr,
     NameWithLength,
     OneWord,
-    OneWordShift,
     Slot0x80,
     ThreeWords,
     ZeroSlot
 } from "./ConsiderationConstants.sol";
 
 import { ConsiderationDecoder } from "./ConsiderationDecoder.sol";
+
 import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
 
 /**
@@ -224,7 +224,7 @@ contract ConsiderationBase is
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1.4"));
+        versionHash = keccak256(bytes("1.5"));
 
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = bytes(

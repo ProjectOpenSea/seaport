@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
+import { ERC165 } from "../interfaces/ERC165.sol";
+
 import { ERC721Interface } from "../interfaces/AbridgedTokenInterfaces.sol";
 
 import { ItemType } from "../lib/ConsiderationEnums.sol";
@@ -13,7 +15,7 @@ import {
     ZoneParameters
 } from "../lib/ConsiderationStructs.sol";
 
-contract TestPostExecution is ZoneInterface {
+contract TestPostExecution is ERC165, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external view override returns (bytes4 validOrderMagicValue) {
@@ -67,5 +69,13 @@ contract TestPostExecution is ZoneInterface {
         schemas[0].metadata = new bytes(0);
 
         return ("TestPostExecution", schemas);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
