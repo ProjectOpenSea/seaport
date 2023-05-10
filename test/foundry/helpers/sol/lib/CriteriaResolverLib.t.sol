@@ -21,7 +21,7 @@ contract CriteriaResolverLibTest is BaseTest {
         bytes32[] memory criteriaProof
     ) public {
         CriteriaResolver memory criteriaResolver = CriteriaResolver({
-            orderIndex: orderIndex,
+            orderIndex: orderIndex == 0 ? 1 : orderIndex,
             side: Side(side ? 1 : 0),
             index: index,
             identifier: identifier,
@@ -31,6 +31,14 @@ contract CriteriaResolverLibTest is BaseTest {
         CriteriaResolver memory defaultCriteriaResolver = CriteriaResolverLib
             .fromDefault("default");
         assertEq(criteriaResolver, defaultCriteriaResolver);
+    }
+
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty CriteriaResolver selected.");
+        CriteriaResolverLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty CriteriaResolver array selected.");
+        CriteriaResolverLib.fromDefaultMany("nonexistent");
     }
 
     function testComposeEmpty(

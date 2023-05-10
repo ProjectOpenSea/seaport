@@ -74,6 +74,12 @@ library CalldataPointerLib {
         }
     }
 
+    function isNull(CalldataPointer a) internal pure returns (bool b) {
+        assembly {
+            b := iszero(a)
+        }
+    }
+
     /// @dev Resolves an offset stored at `cdPtr + headOffset` to a calldata.
     ///      pointer `cdPtr` must point to some parent object with a dynamic
     ///      type's head stored at `cdPtr + headOffset`.
@@ -152,6 +158,12 @@ library ReturndataPointerLib {
     ) internal pure returns (bool c) {
         assembly {
             c := eq(a, b)
+        }
+    }
+
+    function isNull(ReturndataPointer a) internal pure returns (bool b) {
+        assembly {
+            b := iszero(a)
         }
     }
 
@@ -256,6 +268,21 @@ library MemoryPointerLib {
         }
     }
 
+    function isNull(MemoryPointer a) internal pure returns (bool b) {
+        assembly {
+            b := iszero(a)
+        }
+    }
+
+    function hash(
+        MemoryPointer ptr,
+        uint256 length
+    ) internal pure returns (bytes32 _hash) {
+        assembly {
+            _hash := keccak256(ptr, length)
+        }
+    }
+
     /// @dev Returns the memory pointer one word after `mPtr`.
     function next(
         MemoryPointer mPtr
@@ -275,7 +302,7 @@ library MemoryPointerLib {
         }
     }
 
-    /// @dev Resolves a pointer pointer at `mPtr + headOffset` to a memory
+    /// @dev Resolves a pointer at `mPtr + headOffset` to a memory
     ///    pointer. `mPtr` must point to some parent object with a dynamic
     ///    type's pointer stored at `mPtr + headOffset`.
     function pptr(
@@ -285,7 +312,7 @@ library MemoryPointerLib {
         mPtrChild = mPtr.offset(headOffset).readMemoryPointer();
     }
 
-    /// @dev Resolves a pointer pointer stored at `mPtr` to a memory pointer.
+    /// @dev Resolves a pointer stored at `mPtr` to a memory pointer.
     ///    `mPtr` must point to some parent object with a dynamic type as its
     ///    first member, e.g. `struct { bytes data; }`
     function pptr(

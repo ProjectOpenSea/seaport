@@ -1331,21 +1331,28 @@ contract ConsiderationDecoder {
     }
 
     /**
-     * @dev Converts an offer item into a received item, applying a given
-     *      recipient.
+     * @dev Caches the endAmount in an offer item and replaces it with
+     * a given recipient so that its memory may be reused as a temporary
+     * ReceivedItem.
      *
      * @param offerItem The offer item.
      * @param recipient The recipient.
      *
-     * @return receivedItem The received item.
+     * @return originalEndAmount The original end amount.
      */
-    function _fromOfferItemToReceivedItemWithRecipient(
+    function _replaceEndAmountWithRecipient(
         OfferItem memory offerItem,
         address recipient
-    ) internal pure returns (ReceivedItem memory receivedItem) {
+    ) internal pure returns (uint256 originalEndAmount) {
         assembly {
-            receivedItem := offerItem
-            mstore(add(receivedItem, ReceivedItem_recipient_offset), recipient)
+            // Derive the pointer to the end amount on the offer item.
+            let endAmountPtr := add(offerItem, ReceivedItem_recipient_offset)
+
+            // Retrieve the value of the end amount on the offer item.
+            originalEndAmount := mload(endAmountPtr)
+
+            // Write recipient to received item at the offer end amount pointer.
+            mstore(endAmountPtr, recipient)
         }
     }
 }

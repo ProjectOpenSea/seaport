@@ -54,6 +54,14 @@ contract OrderParametersLibTest is BaseTest {
         assertEq(orderParameters, defaultOrderParameters);
     }
 
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty OrderParameters selected.");
+        OrderParametersLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty OrderParameters array selected.");
+        OrderParametersLib.fromDefaultMany("nonexistent");
+    }
+
     function testCopy() public {
         OrderParameters memory orderParameters = OrderParametersLib.empty();
         orderParameters = orderParameters.withOfferer(address(1));

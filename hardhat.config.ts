@@ -109,13 +109,23 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      "contracts/helper/TransferHelper.sol": {
+      "contracts/helpers/TransferHelper.sol": {
         version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
             enabled: true,
             runs: 1000000,
+          },
+        },
+      },
+      "contracts/helpers/order-validator": {
+        version: "0.8.17",
+        settings: {
+          viaIR: false,
+          optimizer: {
+            enabled: true,
+            runs: 1,
           },
         },
       },

@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { OfferItem, SpentItem } from "../../../lib/ConsiderationStructs.sol";
+import {
+    ConsiderationItem,
+    OfferItem,
+    SpentItem
+} from "../../../lib/ConsiderationStructs.sol";
 
 import { ItemType } from "../../../lib/ConsiderationEnums.sol";
 
@@ -18,6 +22,18 @@ library OfferItemLib {
         keccak256("seaport.OfferItemDefaults");
     bytes32 private constant OFFER_ITEMS_MAP_POSITION =
         keccak256("seaport.OfferItemsDefaults");
+    bytes32 private constant EMPTY_OFFER_ITEM =
+        keccak256(
+            abi.encode(
+                OfferItem({
+                    itemType: ItemType(0),
+                    token: address(0),
+                    identifierOrCriteria: 0,
+                    startAmount: 0,
+                    endAmount: 0
+                })
+            )
+        );
 
     /**
      * @dev Clears an OfferItem from storage.
@@ -70,6 +86,10 @@ library OfferItemLib {
     ) internal view returns (OfferItem memory item) {
         mapping(string => OfferItem) storage offerItemMap = _offerItemMap();
         item = offerItemMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_OFFER_ITEM) {
+            revert("Empty OfferItem selected.");
+        }
     }
 
     /**
@@ -84,6 +104,10 @@ library OfferItemLib {
     ) internal view returns (OfferItem[] memory items) {
         mapping(string => OfferItem[]) storage offerItemsMap = _offerItemsMap();
         items = offerItemsMap[defaultsName];
+
+        if (items.length == 0) {
+            revert("Empty OfferItem array selected.");
+        }
     }
 
     /**
@@ -291,6 +315,23 @@ library OfferItemLib {
     }
 
     /**
+     * @dev Sets the startAmount and endAmount of an OfferItem.
+     *
+     * @param item the OfferItem to modify
+     * @param amount the amount to set for the start and end amounts
+     *
+     * @custom:return _offerItem the modified OfferItem
+     */
+    function withAmount(
+        OfferItem memory item,
+        uint256 amount
+    ) internal pure returns (OfferItem memory) {
+        item.startAmount = amount;
+        item.endAmount = amount;
+        return item;
+    }
+
+    /**
      * @dev Converts an OfferItem to a SpentItem.
      *
      * @param item the OfferItem to convert
@@ -306,6 +347,46 @@ library OfferItemLib {
                 token: item.token,
                 identifier: item.identifierOrCriteria,
                 amount: item.startAmount
+            });
+    }
+
+    /**
+     * @dev Converts an OfferItem[] to a SpentItem[].
+     *
+     * @param items the OfferItem[] to convert
+     *
+     * @custom:return spentItems the converted SpentItem[]
+     */
+    function toSpentItemArray(
+        OfferItem[] memory items
+    ) internal pure returns (SpentItem[] memory) {
+        SpentItem[] memory spentItems = new SpentItem[](items.length);
+        for (uint256 i = 0; i < items.length; i++) {
+            spentItems[i] = toSpentItem(items[i]);
+        }
+
+        return spentItems;
+    }
+
+    /**
+     * @dev Converts an OfferItem to a ConsiderationItem.
+     *
+     * @param item the OfferItem to convert
+     *
+     * @custom:return considerationItem the converted ConsiderationItem
+     */
+    function toConsiderationItem(
+        OfferItem memory item,
+        address recipient
+    ) internal pure returns (ConsiderationItem memory) {
+        return
+            ConsiderationItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifierOrCriteria: item.identifierOrCriteria,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                recipient: payable(recipient)
             });
     }
 }

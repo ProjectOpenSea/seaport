@@ -36,13 +36,28 @@ interface ERC20Interface {
     ) external returns (bool success);
 
     /**
-     * @dev Returns the amount of tokens owned by `account`.
+     * @dev Returns the balance of a user.
      *
-     * @param account The address of the account to check the balance of.
+     * @param account The address of the user.
      *
-     * @return balance The amount of tokens owned by `account`.
+     * @return balance The balance of the user.
      */
     function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Returns the amount which spender is still allowed to withdraw
+     *      from owner.
+     *
+     * @param owner   The address of the owner.
+     * @param spender The address of the spender.
+     *
+     * @return remaining The amount of tokens that the spender is allowed to
+     *                   transfer on behalf of the owner.
+     */
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256 remaining);
 }
 
 /**
@@ -67,6 +82,31 @@ interface ERC721Interface {
      * @param approved Whether the operator is approved.
      */
     function setApprovalForAll(address to, bool approved) external;
+
+    /**
+     * @dev Returns the account approved for tokenId token
+     *
+     * @param tokenId The tokenId to query the approval of.
+     *
+     * @return operator The approved account of the tokenId.
+     */
+    function getApproved(
+        uint256 tokenId
+    ) external view returns (address operator);
+
+    /**
+     * @dev Returns whether an operator is allowed to manage all of
+     *      the assets of owner.
+     *
+     * @param owner    The address of the owner.
+     * @param operator The address of the operator.
+     *
+     * @return approved True if the operator is approved by the owner.
+     */
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) external view returns (bool);
 
     /**
      * @dev Returns the owner of a given token ID.
@@ -127,15 +167,29 @@ interface ERC1155Interface {
     function setApprovalForAll(address to, bool approved) external;
 
     /**
-     * @dev Returns the owner of a given token ID.
+     * @dev Returns the amount of token type id owned by account.
      *
-     * @param account The address of the account to check the balance of.
-     * @param id      The token ID.
+     * @param account The address of the account.
+     * @param id      The id of the token.
      *
-     * @return balance The balance of the token.
+     * @return balance The amount of tokens of type id owned by account.
      */
     function balanceOf(
         address account,
         uint256 id
     ) external view returns (uint256);
+
+    /**
+     * @dev Returns true if operator is approved to transfer account's tokens.
+     *
+     * @param account  The address of the account.
+     * @param operator The address of the operator.
+     *
+     * @return approved True if the operator is approved to transfer account's
+     *                  tokens.
+     */
+    function isApprovedForAll(
+        address account,
+        address operator
+    ) external view returns (bool);
 }

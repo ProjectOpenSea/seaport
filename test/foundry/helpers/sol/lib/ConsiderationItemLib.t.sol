@@ -27,13 +27,21 @@ contract ConsiderationItemLibTest is BaseTest {
             token: token,
             identifierOrCriteria: identifier,
             startAmount: startAmount,
-            endAmount: endAmount,
+            endAmount: endAmount == 0 ? 1 : endAmount,
             recipient: recipient
         });
         ConsiderationItemLib.saveDefault(considerationItem, "default");
         ConsiderationItem memory defaultConsiderationItem = ConsiderationItemLib
             .fromDefault("default");
         assertEq(considerationItem, defaultConsiderationItem);
+    }
+
+    function testRetrieveNonexistentDefault() public {
+        vm.expectRevert("Empty ConsiderationItem selected.");
+        ConsiderationItemLib.fromDefault("nonexistent");
+
+        vm.expectRevert("Empty ConsiderationItem array selected.");
+        ConsiderationItemLib.fromDefaultMany("nonexistent");
     }
 
     function testComposeEmpty(

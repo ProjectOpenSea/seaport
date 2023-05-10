@@ -17,6 +17,15 @@ library AdditionalRecipientLib {
         keccak256("seaport.AdditionalRecipientDefaults");
     bytes32 private constant ADDITIONAL_RECIPIENTS_MAP_POSITION =
         keccak256("seaport.AdditionalRecipientsDefaults");
+    bytes32 private constant EMPTY_ADDITIONAL_RECIPIENT =
+        keccak256(
+            abi.encode(
+                AdditionalRecipient({
+                    amount: 0,
+                    recipient: payable(address(0))
+                })
+            )
+        );
 
     /**
      * @dev Clears a default AdditionalRecipient from storage.
@@ -66,6 +75,10 @@ library AdditionalRecipientLib {
         mapping(string => AdditionalRecipient)
             storage additionalRecipientMap = _additionalRecipientMap();
         item = additionalRecipientMap[defaultName];
+
+        if (keccak256(abi.encode(item)) == EMPTY_ADDITIONAL_RECIPIENT) {
+            revert("Empty AdditionalRecipient selected.");
+        }
     }
 
     /**
@@ -81,6 +94,10 @@ library AdditionalRecipientLib {
         mapping(string => AdditionalRecipient[])
             storage additionalRecipientsMap = _additionalRecipientsMap();
         items = additionalRecipientsMap[defaultName];
+
+        if (items.length == 0) {
+            revert("Empty AdditionalRecipient array selected.");
+        }
     }
 
     /**

@@ -18,6 +18,12 @@ import { Execution } from "../lib/ConsiderationStructs.sol";
  */
 interface SeaportRouterInterface {
     /**
+     * @dev Revert with an error when attempting to fulfill any number of
+     *      available orders when none are fulfillable.
+     */
+    error NoSpecifiedOrdersAvailable();
+
+    /**
      * @dev Advanced order parameters for use through the
      *      FulfillAvailableAdvancedOrdersParams struct.
      */

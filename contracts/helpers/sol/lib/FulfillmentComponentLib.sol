@@ -63,14 +63,14 @@ library FulfillmentComponentLib {
      *
      * @param defaultName the name of the default for retrieval
      *
-     * @return component the FulfillmentComponent retrieved from storage
+     * @return item the FulfillmentComponent retrieved from storage
      */
     function fromDefault(
         string memory defaultName
-    ) internal view returns (FulfillmentComponent memory component) {
+    ) internal view returns (FulfillmentComponent memory item) {
         mapping(string => FulfillmentComponent)
             storage fulfillmentComponentMap = _fulfillmentComponentMap();
-        component = fulfillmentComponentMap[defaultName];
+        item = fulfillmentComponentMap[defaultName];
     }
 
     /**
@@ -78,14 +78,14 @@ library FulfillmentComponentLib {
      *
      * @param defaultName the name of the default for retrieval
      *
-     * @return components the FulfillmentComponents retrieved from storage
+     * @return items the FulfillmentComponents retrieved from storage
      */
     function fromDefaultMany(
         string memory defaultName
-    ) internal view returns (FulfillmentComponent[] memory components) {
+    ) internal view returns (FulfillmentComponent[] memory items) {
         mapping(string => FulfillmentComponent[])
             storage fulfillmentComponentMap = _fulfillmentComponentsMap();
-        components = fulfillmentComponentMap[defaultName];
+        items = fulfillmentComponentMap[defaultName];
     }
 
     /**
