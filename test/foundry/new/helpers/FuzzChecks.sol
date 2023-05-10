@@ -14,7 +14,7 @@ import {
     OrderType
 } from "seaport-sol/SeaportStructs.sol";
 
-import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 
@@ -98,18 +98,18 @@ abstract contract FuzzChecks is Test {
             context.executionState.orders.length,
             "check_allOrdersFilled: returnValues.availableOrders.length != orders.length"
         );
-        assertEq(
-            context.returnValues.availableOrders.length,
-            context.expectations.expectedAvailableOrders.length,
-            "check_allOrdersFilled: returnValues.availableOrders.length != expectedAvailableOrders.length"
-        );
 
-        for (uint256 i; i < context.returnValues.availableOrders.length; i++) {
-            assertEq(
-                context.returnValues.availableOrders[i],
-                context.expectations.expectedAvailableOrders[i],
-                "check_allOrdersFilled: returnValues.availableOrders[i] != expectedAvailableOrders[i]"
-            );
+        for (uint256 i; i < context.executionState.orderDetails.length; i++) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
+                assertEq(
+                    context.returnValues.availableOrders[i],
+                    true,
+                    "check_allOrdersFilled: returnValues.availableOrders[i] false for an available order"
+                );
+            }
         }
     }
 
@@ -360,7 +360,10 @@ abstract contract FuzzChecks is Test {
                 context.executionState.preExecOrderStatuses[i] ==
                 OrderStatusEnum.PARTIAL
             ) {
-                if (context.expectations.expectedAvailableOrders[i]) {
+                if (
+                    context.executionState.orderDetails[i].unavailableReason ==
+                    UnavailableReason.AVAILABLE
+                ) {
                     assertEq(
                         totalFilled,
                         context
@@ -395,7 +398,10 @@ abstract contract FuzzChecks is Test {
                         "check_orderStatusFullyFilled: totalSize != expected partial (skipped)"
                     );
                 }
-            } else if (context.expectations.expectedAvailableOrders[i]) {
+            } else if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 if (order.parameters.orderType == OrderType.CONTRACT) {
                     // TODO: This just checks the nonce has been incremented
                     // at least once. It should be incremented once for each

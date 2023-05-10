@@ -88,8 +88,11 @@ contract SeaportValidator is
 
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
-    constructor(address conduitControllerAddress) {
-        _helper = new SeaportValidatorHelper();
+    constructor(
+        address seaportValidatorHelperAddress,
+        address conduitControllerAddress
+    ) {
+        _helper = SeaportValidatorHelper(seaportValidatorHelperAddress);
         _conduitController = ConduitControllerInterface(
             conduitControllerAddress
         );

@@ -28,6 +28,8 @@ import {
 
 import { StdCheats } from "forge-std/StdCheats.sol";
 
+import { StdCheatsSafe } from "forge-std/StdCheats.sol";
+
 import { TestHelpers } from "./FuzzTestContextLib.sol";
 
 import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
@@ -72,17 +74,16 @@ struct FuzzGeneratorContext {
     TestERC1155[] erc1155s;
     address self;
     address caller;
-    StdCheats.Account alice;
-    StdCheats.Account bob;
-    StdCheats.Account carol;
-    StdCheats.Account dillon;
-    StdCheats.Account eve;
-    StdCheats.Account frank;
+    StdCheatsSafe.Account alice;
+    StdCheatsSafe.Account bob;
+    StdCheatsSafe.Account carol;
+    StdCheatsSafe.Account dillon;
+    StdCheatsSafe.Account eve;
+    StdCheatsSafe.Account frank;
     TestConduit[] conduits;
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
-    bytes32[] orderHashes;
     BasicOrderCategory basicOrderCategory;
     OfferItemSpace basicOfferSpace;
     uint256 counter;
@@ -130,7 +131,6 @@ library FuzzGeneratorContextLib {
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
@@ -210,7 +210,6 @@ library FuzzGeneratorContextLib {
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,

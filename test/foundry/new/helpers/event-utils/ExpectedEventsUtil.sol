@@ -10,6 +10,8 @@ import {
 
 import { Execution } from "seaport-sol/SeaportStructs.sol";
 
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 import { FuzzEngineLib } from "../FuzzEngineLib.sol";
@@ -132,13 +134,6 @@ library ExpectedEventsUtil {
     function setExpectedSeaportEventHashes(
         FuzzTestContext memory context
     ) internal {
-        if (
-            context.expectations.expectedAvailableOrders.length !=
-            context.executionState.orders.length
-        ) {
-            revert("ExpectedEventsUtil: available array length != orders");
-        }
-
         bool isMatch = context.action() ==
             context.seaport.matchAdvancedOrders.selector ||
             context.action() == context.seaport.matchOrders.selector;
@@ -146,10 +141,13 @@ library ExpectedEventsUtil {
         uint256 totalExpectedEventHashes = isMatch ? 1 : 0;
         for (
             uint256 i = 0;
-            i < context.expectations.expectedAvailableOrders.length;
+            i < context.executionState.orderDetails.length;
             ++i
         ) {
-            if (context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 ++totalExpectedEventHashes;
             }
         }
@@ -160,7 +158,10 @@ library ExpectedEventsUtil {
 
         totalExpectedEventHashes = 0;
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            if (context.expectations.expectedAvailableOrders[i]) {
+            if (
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE
+            ) {
                 context.expectations.expectedSeaportEventHashes[
                     totalExpectedEventHashes++
                 ] = context.getOrderFulfilledEventHash(i);

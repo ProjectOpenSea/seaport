@@ -3,6 +3,10 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { StdCheats } from "forge-std/StdCheats.sol";
+
+import { StdCheatsSafe } from "forge-std/StdCheats.sol";
+
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
@@ -61,7 +65,10 @@ import { Failure } from "./FuzzMutationSelectorLib.sol";
 
 import { FractionResults } from "./FractionUtil.sol";
 
-import { StdCheats } from "forge-std/StdCheats.sol";
+import {
+    ErrorsAndWarnings,
+    SeaportValidatorInterface
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
@@ -75,7 +82,7 @@ interface TestHelpers {
 
     function makeAccount(
         string memory name
-    ) external view returns (StdCheats.Account memory);
+    ) external view returns (StdCheatsSafe.Account memory);
 
     function getNaiveFulfillmentComponents(
         OrderDetails[] memory orderDetails
@@ -153,11 +160,11 @@ struct Expectations {
     Execution[] expectedImplicitPostExecutions;
     Execution[] expectedExplicitExecutions;
     Execution[] allExpectedExecutions;
-    /**
-     * @dev Whether an order is available and will be fulfilled. Indexes
-     *      correspond to order indexes in the orders array.
-     */
-    bool[] expectedAvailableOrders;
+    // /**
+    //  * @dev Whether an order is available and will be fulfilled. Indexes
+    //  *      correspond to order indexes in the orders array.
+    //  */
+    // bool[] expectedAvailableOrders;
     /**
      * @dev Expected event hashes. Encompasses all events that match watched
      *      topic0s.
@@ -223,7 +230,6 @@ struct ExecutionState {
      * @dev An array of AdvancedOrders
      */
     AdvancedOrder[] orders;
-    bytes32[] orderHashes;
     OrderDetails[] orderDetails;
     /**
      * @dev A copy of the original orders array. Modify this when calling
@@ -263,6 +269,10 @@ struct ExecutionState {
      */
     OrderStatusEnum[] preExecOrderStatuses;
     uint256 value;
+    /**
+     * @dev ErrorsAndWarnings returned from SeaportValidator.
+     */
+    ErrorsAndWarnings[] validationErrors;
 }
 
 /**
@@ -303,6 +313,10 @@ struct FuzzTestContext {
      * @dev A ConduitController interface.
      */
     ConduitControllerInterface conduitController;
+    /**
+     * @dev A SeaportValidator interface.
+     */
+    SeaportValidatorInterface seaportValidator;
     /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
@@ -385,6 +399,7 @@ library FuzzTestContextLib {
                 actionSelected: false,
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
+                seaportValidator: SeaportValidatorInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -408,7 +423,7 @@ library FuzzTestContextLib {
                     expectedExplicitExecutions: new Execution[](0),
                     allExpectedExecutions: new Execution[](0),
                     expectedResults: results,
-                    expectedAvailableOrders: new bool[](0),
+                    // expectedAvailableOrders: new bool[](0),
                     expectedTransferEventHashes: expectedTransferEventHashes,
                     expectedSeaportEventHashes: expectedSeaportEventHashes,
                     ineligibleOrders: new bool[](orders.length),
@@ -428,7 +443,6 @@ library FuzzTestContextLib {
                     preExecOrderStatuses: new OrderStatusEnum[](0),
                     previewedOrders: orders,
                     orders: orders,
-                    orderHashes: new bytes32[](0),
                     orderDetails: new OrderDetails[](0),
                     criteriaResolvers: resolvers,
                     fulfillments: fulfillments,
@@ -437,7 +451,8 @@ library FuzzTestContextLib {
                     offerFulfillments: componentsArray,
                     considerationFulfillments: componentsArray,
                     maximumFulfilled: 0,
-                    value: 0
+                    value: 0,
+                    validationErrors: new ErrorsAndWarnings[](orders.length)
                 }),
                 actualEvents: actualEvents,
                 testHelpers: TestHelpers(address(this)),
@@ -504,15 +519,14 @@ library FuzzTestContextLib {
         context.executionState.orders = orders.copy();
 
         // Bootstrap with all available to ease direct testing.
-        if (context.expectations.expectedAvailableOrders.length == 0) {
-            context.expectations.expectedAvailableOrders = new bool[](
-                orders.length
-            );
+        if (context.executionState.orderDetails.length == 0) {
             context.executionState.orderDetails = new OrderDetails[](
                 orders.length
             );
+            context.executionState.validationErrors = new ErrorsAndWarnings[](
+                orders.length
+            );
             for (uint256 i = 0; i < orders.length; ++i) {
-                context.expectations.expectedAvailableOrders[i] = true;
                 context
                     .executionState
                     .orderDetails[i]
@@ -532,10 +546,19 @@ library FuzzTestContextLib {
     function withOrderHashes(
         FuzzTestContext memory context
     ) internal view returns (FuzzTestContext memory) {
-        context.executionState.orderHashes = context
+        bytes32[] memory orderHashes = context
             .executionState
             .orders
             .getOrderHashes(address(context.seaport));
+
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            ++i
+        ) {
+            context.executionState.orderDetails[i].orderHash = orderHashes[i];
+        }
+
         return context;
     }
 
@@ -587,6 +610,24 @@ library FuzzTestContextLib {
         ConduitControllerInterface conduitController
     ) internal pure returns (FuzzTestContext memory) {
         context.conduitController = conduitController;
+        return context;
+    }
+
+    /**
+     * @dev Sets the SeaportValidatorInterface on a FuzzTestContext
+     *
+     * @param context           the FuzzTestContext to set the
+     *                          SeaportValidatorInterface of
+     * @param seaportValidator  the SeaportValidatorInterface to set
+     *
+     * @return _context the FuzzTestContext with the SeaportValidatorInterface
+     *                  set
+     */
+    function withSeaportValidator(
+        FuzzTestContext memory context,
+        SeaportValidatorInterface seaportValidator
+    ) internal pure returns (FuzzTestContext memory) {
+        context.seaportValidator = seaportValidator;
         return context;
     }
 

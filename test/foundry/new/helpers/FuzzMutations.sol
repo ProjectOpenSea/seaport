@@ -2,33 +2,21 @@
 pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
-import { FuzzExecutor } from "./FuzzExecutor.sol";
-import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
-import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import {
-    MutationEligibilityLib,
-    MutationHelpersLib
-} from "./FuzzMutationHelpers.sol";
-
-import {
-    Fulfillment,
     AdvancedOrder,
     ConsiderationItem,
     CriteriaResolver,
     Execution,
+    Fulfillment,
     FulfillmentComponent,
     OfferItem,
-    OrderComponents,
     OrderParameters,
     ReceivedItem,
     SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
-import {
-    FulfillmentDetails,
-    OrderDetails
-} from "seaport-sol/fulfillments/lib/Structs.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     AdvancedOrderLib,
@@ -39,33 +27,44 @@ import {
     ConsiderationItemLib
 } from "seaport-sol/SeaportSol.sol";
 
-import { EOASignature, SignatureMethod, Offerer } from "./FuzzGenerators.sol";
-
-import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import {
+    FulfillmentDetails,
+    OrderDetails
+} from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     ContractOrderRebate,
     UnavailableReason
 } from "seaport-sol/SpaceEnums.sol";
 
-import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
+import { FractionStatus, FractionUtil } from "./FractionUtil.sol";
+
+import {
+    AdvancedOrdersSpaceGenerator,
+    Offerer,
+    SignatureMethod
+} from "./FuzzGenerators.sol";
+
+import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
+
+import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { FuzzInscribers } from "./FuzzInscribers.sol";
-import { AdvancedOrdersSpaceGenerator } from "./FuzzGenerators.sol";
 
-import { EIP1271Offerer } from "./EIP1271Offerer.sol";
-
-import { FuzzDerivers, FulfillmentDetailsHelper } from "./FuzzDerivers.sol";
-
-import { FuzzHelpers } from "./FuzzHelpers.sol";
+import { FulfillmentDetailsHelper, FuzzDerivers } from "./FuzzDerivers.sol";
 
 import { CheckHelpers } from "./FuzzSetup.sol";
 
-import {
-    TestERC20 as TestERC20Strange
-} from "../../../../contracts/test/TestERC20.sol";
+import { FuzzExecutor } from "./FuzzExecutor.sol";
 
-import { ConduitChoice } from "seaport-sol/StructSpace.sol";
+import { FuzzHelpers } from "./FuzzHelpers.sol";
+
+import {
+    MutationEligibilityLib,
+    MutationHelpersLib
+} from "./FuzzMutationHelpers.sol";
+
+import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import {
     HashCalldataContractOfferer
@@ -79,8 +78,6 @@ import {
     OffererZoneFailureReason
 } from "../../../../contracts/test/OffererZoneFailureReason.sol";
 
-import { FractionStatus, FractionUtil } from "./FractionUtil.sol";
-
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;
 }
@@ -90,12 +87,12 @@ interface TestNFT {
 }
 
 library MutationFilters {
+    using AdvancedOrderLib for AdvancedOrder;
+    using FulfillmentDetailsHelper for FuzzTestContext;
+    using FuzzDerivers for FuzzTestContext;
     using FuzzEngineLib for FuzzTestContext;
     using FuzzHelpers for AdvancedOrder;
-    using AdvancedOrderLib for AdvancedOrder;
-    using FuzzDerivers for FuzzTestContext;
     using MutationHelpersLib for FuzzTestContext;
-    using FulfillmentDetailsHelper for FuzzTestContext;
 
     // The following functions are ineligibility helpers. They're prefixed with
     // `ineligibleWhen` and then have a description of what they check for. They
@@ -187,7 +184,7 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleWhenNotAdvancedOrUnavailable(
+    function ineligibleWhenUnavailableOrNotAdvanced(
         FuzzTestContext memory context,
         uint256 orderIndex
     ) internal view returns (bool) {
@@ -473,7 +470,7 @@ library MutationFilters {
 
     // The following functions are ineligibility filters.  These should
     // encapsulate the logic for determining whether an order is ineligible
-    // for a given mutation.  These functions are wired up with their
+    // for a given mutation. These functions are wired up with their
     // corresponding mutation in `FuzzMutationSelectorLib.sol`.
 
     function ineligibleForOfferItemMissingApproval(
@@ -481,10 +478,17 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
+        // The target failure can't be triggered if the order isn't available.
+        // Seaport only checks for approval when the order is available and
+        // therefore items might actually be transferred.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
+        // The target failure can't be triggered if the order doesn't have an
+        // offer item that is non-native and non-filtered. Native tokens don't
+        // have the approval concept and filtered items are not transferred so
+        // they don't get checked.
         bool locatedEligibleOfferItem;
         for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
             OfferItem memory item = order.parameters.offer[i];
@@ -512,17 +516,23 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // The caller does not provide any items during match actions.
+        // The target failure can't be triggerer when calling the match
+        // functions because the caller does not provide any items during match
+        // actions.
         if (ineligibleWhenMatch(context)) {
             return true;
         }
 
+        // The target failure can't be triggered if the order isn't available.
+        // Approval is not required for items on unavailable orders as their
+        // associated transfers are not attempted.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
-        // On basic orders, the caller does not need ERC20 approvals when
-        // accepting bids (as the offerer provides the ERC20 tokens).
+        // The target failure can't be triggered on some basic order routes; the
+        // caller does not need ERC20 approvals when accepting bids (as the
+        // offerer provides the ERC20 tokens).
         uint256 eligibleItemTotal = order.parameters.consideration.length;
         if (ineligibleWhenBasic(context)) {
             if (order.parameters.offer[0].itemType == ItemType.ERC20) {
@@ -530,16 +540,20 @@ library MutationFilters {
             }
         }
 
-        bool locatedEligibleOfferItem;
+        // The target failure can't be triggered if the order doesn't have a
+        // consideration item that is non-native and non-filtered. Native tokens
+        // don't have the approval concept and filtered items are not
+        // transferred so approvals are not required.
+        bool locatedEligibleConsiderationItem;
         for (uint256 i = 0; i < eligibleItemTotal; ++i) {
             ConsiderationItem memory item = order.parameters.consideration[i];
             if (!context.isFilteredOrNative(item)) {
-                locatedEligibleOfferItem = true;
+                locatedEligibleConsiderationItem = true;
                 break;
             }
         }
 
-        if (!locatedEligibleOfferItem) {
+        if (!locatedEligibleConsiderationItem) {
             return true;
         }
 
@@ -549,6 +563,9 @@ library MutationFilters {
     function ineligibleForInvalidMsgValue(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be triggered when calling a non-basic
+        // function because only the BasicOrderFiller checks the msg.value and
+        // enforces payable and non-payable routes. Exception: reentrancy.
         bytes4 action = context.action();
         if (
             action != context.seaport.fulfillBasicOrder.selector &&
@@ -564,10 +581,34 @@ library MutationFilters {
     function ineligibleForInsufficientNativeTokens(
         FuzzTestContext memory context
     ) internal pure returns (bool) {
+        // The target failure can't be triggered unless the context produces at
+        // least one native token transfer.
         if (context.expectations.expectedImpliedNativeExecutions != 0) {
             return true;
         }
 
+        // The target failure cannot be triggered unless some amount of native
+        // tokens are actually required.
+        uint256 minimumRequired = context.expectations.minimumValue;
+
+        if (minimumRequired == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function ineligibleForNativeTokenTransferGenericFailure(
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
+        // The target failure can't be triggered unless the context produces at
+        // least one native token transfer.
+        if (context.expectations.expectedImpliedNativeExecutions == 0) {
+            return true;
+        }
+
+        // The target failure cannot be triggered unless some amount of native
+        // tokens are actually required.
         uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
@@ -580,10 +621,15 @@ library MutationFilters {
     function ineligibleForCriteriaNotEnabledForItem(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is an
+        // advanced type. Non-advanced functions don't have the criteria concept
+        // and the test framework doesn't pass them in.
         if (ineligibleWhenNotAdvanced(context)) {
             return true;
         }
 
+        // The target failure can't be triggered if there is no order that is
+        // available and has items.
         bool locatedItem;
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             if (ineligibleWhenUnavailable(context, i)) {
@@ -608,29 +654,17 @@ library MutationFilters {
         return false;
     }
 
-    function ineligibleForNativeTokenTransferGenericFailure(
-        FuzzTestContext memory context
-    ) internal pure returns (bool) {
-        if (context.expectations.expectedImpliedNativeExecutions == 0) {
-            return true;
-        }
-
-        uint256 minimumRequired = context.expectations.minimumValue;
-
-        if (minimumRequired == 0) {
-            return true;
-        }
-
-        return false;
-    }
-
     function ineligibleForInvalidProof_Merkle(
         CriteriaResolver memory criteriaResolver,
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is an
+        // advanced type. Non-advanced functions don't have the criteria concept
+        // and the test framework doesn't pass them in. Further, the criteria
+        // resolver must point to an available order.
         if (
-            ineligibleWhenNotAdvancedOrUnavailable(
+            ineligibleWhenUnavailableOrNotAdvanced(
                 context,
                 criteriaResolver.orderIndex
             )
@@ -638,6 +672,9 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure can't be triggered if there is no criteria proof.
+        // The presence of a criteria proof serves as a proxy for non-wildcard
+        // criteria.
         if (criteriaResolver.criteriaProof.length == 0) {
             return true;
         }
@@ -650,8 +687,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is an
+        // advanced type. Non-advanced functions don't have the criteria concept
+        // and the test framework doesn't pass them in. Further, the criteria
+        // resolver must point to an available order.
         if (
-            ineligibleWhenNotAdvancedOrUnavailable(
+            ineligibleWhenUnavailableOrNotAdvanced(
                 context,
                 criteriaResolver.orderIndex
             )
@@ -659,6 +700,9 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure can't be triggered if there are one or criteria
+        // proofs. The presence of a criteria proof serves as a proxy for
+        // non-wildcard criteria.
         if (criteriaResolver.criteriaProof.length != 0) {
             return true;
         }
@@ -671,8 +715,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is an
+        // advanced type. Non-advanced functions don't have the criteria concept
+        // and the test framework doesn't pass them in. Further, the criteria
+        // resolver must point to an available order.
         if (
-            ineligibleWhenNotAdvancedOrUnavailable(
+            ineligibleWhenUnavailableOrNotAdvanced(
                 context,
                 criteriaResolver.orderIndex
             )
@@ -680,6 +728,9 @@ library MutationFilters {
             return true;
         }
 
+        // This filter handles the offer side. The next one handles the
+        // consideration side. They're split out because the mutations need to
+        // be done differently.
         if (criteriaResolver.side != Side.OFFER) {
             return true;
         }
@@ -692,8 +743,12 @@ library MutationFilters {
         uint256 /* criteriaResolverIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is an
+        // advanced type. Non-advanced functions don't have the criteria concept
+        // and the test framework doesn't pass them in. Further, the criteria
+        // resolver must point to an available order.
         if (
-            ineligibleWhenNotAdvancedOrUnavailable(
+            ineligibleWhenUnavailableOrNotAdvanced(
                 context,
                 criteriaResolver.orderIndex
             )
@@ -701,40 +756,9 @@ library MutationFilters {
             return true;
         }
 
+        // This one handles the consideration side.  The previous one handles
+        // the offer side.
         if (criteriaResolver.side != Side.CONSIDERATION) {
-            return true;
-        }
-
-        return false;
-    }
-
-    function ineligibleForBadContractSignature(
-        AdvancedOrder memory order,
-        uint256 orderIndex,
-        FuzzTestContext memory context
-    ) internal view returns (bool) {
-        if (
-            ineligibleWhenAnySignatureFailureRequired(
-                order,
-                orderIndex,
-                context
-            )
-        ) {
-            return true;
-        }
-
-        if (order.parameters.offerer.code.length == 0) {
-            return true;
-        }
-
-        // TODO: this is overly restrictive but gets us to missing magic
-        try EIP1271Offerer(payable(order.parameters.offerer)).is1271() returns (
-            bool ok
-        ) {
-            if (!ok) {
-                return true;
-            }
-        } catch {
             return true;
         }
 
@@ -746,14 +770,29 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
+        // The target failure can't be triggered if the order isn't available.
+        // Seaport only compares the consideration length to the total original
+        // length if the order is not skipped.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
+        // TODO: This is slightly overly restrictive. It's possible to trigger
+        // this by calling validate directly, which is not something the test
+        // framework does yet.
+        //
+        // The target failure can't be triggered if the order is not a contract
+        // order. Seaport only compares the consideration length to the total
+        // original length in `_getGeneratedOrder`, which is contract order
+        // specific (except in validate, as described in the TODO above).
         if (order.parameters.orderType != OrderType.CONTRACT) {
             return true;
         }
 
+        // The target failure can't be triggered if the consideration length is
+        // 0. TODO: this is a limitation of the current mutation; support cases
+        // where 0-length consideration can still trigger this error by
+        // increasing totalOriginalConsiderationItems rather than decreasing it.
         if (ineligibleWhenNoConsiderationLength(order)) {
             return true;
         }
@@ -766,15 +805,45 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
+        // The target failure can't be triggered if the order isn't available.
+        // Seaport only checks for missing original consideration items if the
+        // order is not skipped.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
+        // The target failure can't be triggered if the order is a contract
+        // order because this check lies on a branch taken only by non-contract
+        // orders.
         if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
-        if (ineligibleWhenNoConsiderationLength(order)) {
+        return false;
+    }
+
+    function ineligibleForBadContractSignature(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        // The target failure can't be triggered if tampering with the signature
+        // has no effect, e.g. when the order is validated on chain or when the
+        // offerer is the caller.
+        if (
+            ineligibleWhenAnySignatureFailureRequired(
+                order,
+                orderIndex,
+                context
+            )
+        ) {
+            return true;
+        }
+
+        // The target failure can't be triggered if the offerer is not a
+        // contract. Seaport only checks 1271 signatures if the offerer is a
+        // contract.
+        if (order.parameters.offerer.code.length == 0) {
             return true;
         }
 
@@ -788,12 +857,25 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be triggered if tampering with an EOA
+        // signature has no effect, e.g. when the order is validated on chain or
+        // when the offerer is the caller. If an order is already validated on
+        // chain, the signature that gets passed in isn't checked.  If the
+        // caller is the offerer, that is an ad-hoc signature. The target
+        // failure can't be triggered if the offerer is a 1271 contract, because
+        // Seaport provides a different error message in that case
+        // (BadContractSignature).
         if (
             ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)
         ) {
             return true;
         }
 
+        // NOTE: it is possible to hit the target failure with other signature
+        // lengths, but this test specifically targets ECDSA signatures.
+        //
+        // The target failure can't be triggered if the signature isn't a
+        // normal ECDSA signature or a compact 2098 signature.
         if (order.signature.length != 64 && order.signature.length != 65) {
             return true;
         }
@@ -806,16 +888,16 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be triggered if tampering with an EOA
+        // signature has no effect, e.g. when the order is validated on chain or
+        // when the offerer is the caller. If an order is already validated on
+        // chain, the signature that gets passed in isn't checked. The target
+        // failure can't be triggered if the offerer is a 1271 contract, because
+        // Seaport provides a different error message in that case
+        // (BadContractSignature).
         if (
             ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)
         ) {
-            return true;
-        }
-
-        bool validLength = order.signature.length < 837 &&
-            order.signature.length > 63 &&
-            ((order.signature.length - 35) % 32) < 2;
-        if (!validLength) {
             return true;
         }
 
@@ -827,12 +909,22 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be triggered if tampering with an EOA
+        // signature has no effect, e.g. when the order is validated on chain or
+        // when the offerer is the caller. If an order is already validated on
+        // chain, the signature that gets passed in isn't checked. The target
+        // failure can't be triggered if the offerer is a 1271 contract, because
+        // Seaport provides a different error message in that case
+        // (BadContractSignature).
         if (
             ineligibleWhenEOASignatureFailureRequire(order, orderIndex, context)
         ) {
             return true;
         }
 
+        // The target failure can't be triggered if the signature is a normal
+        // ECDSA signature because the v value is only checked if the signature
+        // is 65 bytes long.
         if (order.signature.length != 65) {
             return true;
         }
@@ -845,6 +937,8 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be triggered if the function call allows
+        // the order to be skipped.
         if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
@@ -857,14 +951,23 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal returns (bool) {
+        // The target failure can't be triggered if the function call allows
+        // the order to be skipped.
         if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
+        // This is just an optimization that allows the filter to bail out early
+        // and avoid a costly set of checks.
         if (order.parameters.conduitKey == bytes32(0)) {
             return true;
         }
 
+        // The target failure can't be triggered if the conduit key on the order
+        // isn't used in an execution on a non-native item. Counduit validity is
+        // only checked when there's an execution.
+
+        // Get the fulfillment details.
         FulfillmentDetails memory details = context.toFulfillmentDetails(
             context.executionState.value
         );
@@ -922,12 +1025,10 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        bytes4 action = context.action();
-
-        if (
-            ineligibleWhenNotAdvanced(context) ||
-            action == context.seaport.fulfillOrder.selector
-        ) {
+        // The target failure can't be reached unless the function call is an
+        // advanced type. Non-advanced functions don't have the fraction concept
+        // and the test framework doesn't pass them in.
+        if (ineligibleWhenNotAdvanced(context)) {
             return true;
         }
 
@@ -949,8 +1050,10 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is
+        // fulfillAvailableAdvancedOrders, which would just skip the order.
+        // Otherwise the eligibility is the same as ineligibleForBadFraction.
         bytes4 action = context.action();
-
         if (action == context.seaport.fulfillAvailableAdvancedOrders.selector) {
             return true;
         }
@@ -963,6 +1066,9 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is
+        // cancelOrder. Note that the testing framework doesn't currently call
+        // cancelOrder.
         bytes4 action = context.action();
 
         if (action != context.seaport.cancel.selector) {
@@ -977,10 +1083,16 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached if the function call is one of
+        // the fulfillAvailable functions, because the order will be skipped
+        // without triggering the failure.
         if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
+        // The target failure can't be triggered if the order is a contract
+        // order because all instances where the target failure can be hit are
+        // on non-contract order paths.
         if (ineligibleWhenContractOrder(order)) {
             return true;
         }
@@ -993,14 +1105,26 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        if (ineligibleWhenContractOrder(order)) {
-            return true;
-        }
-
+        // The target failure can't be reached if the function call is one of
+        // the fulfillAvailable functions, because the order will be skipped
+        // without triggering the failure.
+        //
+        // It might be possible to remove ineligibleWhenBasic and instead
+        // differentiate between partially filled and non-filled orders, but it
+        // is probably a heavy lift in the test framework as it currently is. As
+        // of right now, it's not possible to consistently hit the target
+        // failure on a partially filled order when calling a basic function.
         if (
             ineligibleWhenFulfillAvailable(context) ||
             ineligibleWhenBasic(context)
         ) {
+            return true;
+        }
+
+        // The target failure can't be triggered if the order is a contract
+        // order because all instances where the target failure can be hit are
+        // on non-contract order paths.
+        if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
@@ -1012,11 +1136,15 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the order is a contract
+        // order. The target failure here is the one in the
+        // `_validateOrderAndUpdateStatus` function, inside the `if
+        // (orderParameters.orderType == OrderType.CONTRACT) {` block.
         if (order.parameters.orderType != OrderType.CONTRACT) {
             return true;
         }
 
-        if (ineligibleWhenNotAdvancedOrUnavailable(context, orderIndex)) {
+        if (ineligibleWhenUnavailableOrNotAdvanced(context, orderIndex)) {
             return true;
         }
 
@@ -1026,6 +1154,14 @@ library MutationFilters {
     function ineligibleForInvalidFulfillmentComponentData(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // TODO: This filter can be relaxed and probably the others below that
+        //       are similar. These failures should be triggerable with both
+        //       functions that accept Fulfillment[] and functions that accept
+        //       FulfillmentComponent[]. All of these fulfillment failure tests
+        //       should be revisited.
+        //
+        // The target failure can't be reached unless the function call is
+        // a type that accepts fulfillment arguments.
         if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
@@ -1036,6 +1172,8 @@ library MutationFilters {
     function ineligibleForMissingFulfillmentComponentOnAggregation(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is
+        // a type that accepts fulfillment arguments.
         if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
@@ -1050,6 +1188,8 @@ library MutationFilters {
     function ineligibleForOfferAndConsiderationRequiredOnFulfillment(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The target failure can't be reached unless the function call is
+        // a type that accepts fulfillment arguments.
         if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
@@ -1068,18 +1208,33 @@ library MutationFilters {
     function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // This revert lies on a path in `_applyFulfillment`, which is only
+        // called by `_matchAdvancedOrders`, which is only called by the match*
+        // functions.
         if (ineligibleWhenNotMatch(context)) {
             return true;
         }
 
+        // The context needs to have at least one existing fulfillment, because
+        // the failure test checks the case where a fulfillment is modified.
         if (context.executionState.fulfillments.length < 1) {
             return true;
         }
 
+        // Grab the offer components from the first fulfillment. The first isn't
+        // special, but it's the only one that needs to be checked, because it's
+        // the only one that will be modified in the mutation. This is just a
+        // simplification/convenience.
         FulfillmentComponent[] memory firstOfferComponents = (
             context.executionState.fulfillments[0].offerComponents
         );
 
+        // Iterate over the offer components and check if any of them have an
+        // item index that is out of bounds for the order. The mutation modifies
+        // the token of the offer item at the given index, so the index needs to
+        // be within range. This can happen when contract orders modify their
+        // offer or consideration lengths, or in the case of erroneous input for
+        // fulfillments.
         for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
             FulfillmentComponent memory component = (firstOfferComponents[i]);
             if (
@@ -1100,22 +1255,36 @@ library MutationFilters {
     function ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // This revert lies on a path in `_applyFulfillment`, which is only
+        // called by `_matchAdvancedOrders`, which is only called by the match*
+        // functions.
         if (ineligibleWhenNotMatch(context)) {
             return true;
         }
 
+        // The context needs to have at least two existing fulfillments, because
+        // this failure test checks the case where fulfillments are swapped.
         if (context.executionState.fulfillments.length < 2) {
             return true;
         }
 
+        // Grab the first offer components from the first fulfillment. There's
+        // nothing special about the first fulfillment or the first offer
+        // components, but they're the only ones that need to be checked,
+        // because they're the only ones that will be modified in the mutation.
         FulfillmentComponent memory firstOfferComponent = (
             context.executionState.fulfillments[0].offerComponents[0]
         );
 
+        // Get the item pointed to by the first offer component.
         SpentItem memory item = context
             .executionState
             .orderDetails[firstOfferComponent.orderIndex]
             .offer[firstOfferComponent.itemIndex];
+
+        // Iterate over the remaining fulfillments and check that the offer item
+        // can be paired with a consideration item that's incompatible with it
+        // in such a way that the target failure can be triggered.
         for (
             uint256 i = 1;
             i < context.executionState.fulfillments.length;
@@ -1146,6 +1315,8 @@ library MutationFilters {
     function ineligibleForMissingItemAmount_OfferItem_FulfillAvailable(
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // There are three flavors of this mutation. This one is for the
+        // fulfillAvailable functions.
         bytes4 action = context.action();
         if (
             action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
@@ -1154,15 +1325,20 @@ library MutationFilters {
             return true;
         }
 
+        // Iterate over offer fulfillments.
         for (
             uint256 i;
             i < context.executionState.offerFulfillments.length;
             i++
         ) {
+            // Get the first fulfillment component from the current offer
+            // fulfillment.
             FulfillmentComponent memory fulfillmentComponent = context
                 .executionState
                 .offerFulfillments[i][0];
 
+            // If the item index is out of bounds, then the mutation can't be
+            // applied.
             if (
                 context
                     .executionState
@@ -1174,6 +1350,12 @@ library MutationFilters {
                 return true;
             }
 
+            // If the fulfillmentComponent's item type is not ERC721 and the
+            // order is available, then the mutation can be applied. 721s are
+            // ruled out because the mutation needs to change the start and end
+            // amounts to 0, which triggers a different revert for 721s. The
+            // order being unavailable is ruled out because the order needs to
+            // be processed for the target failure to be hit.
             if (
                 context
                     .executionState
@@ -1198,6 +1380,7 @@ library MutationFilters {
     function ineligibleForMissingItemAmount_OfferItem_Match(
         FuzzTestContext memory /* context */
     ) internal pure returns (bool) {
+        // TODO: finish this filter and write a corresponding mutation.
         return true;
     }
 
@@ -1206,6 +1389,9 @@ library MutationFilters {
         uint256 /* orderIndex */,
         FuzzTestContext memory context
     ) internal view returns (bool) {
+        // The fulfillAvailable functions are ruled out because they're handled
+        // separately. Match functions are ruled out because they need to be
+        // handled separately, too (but are not yet).
         if (
             ineligibleWhenFulfillAvailable(context) ||
             ineligibleWhenMatch(context)
@@ -1213,34 +1399,28 @@ library MutationFilters {
             return true;
         }
 
-        if (ineligibleWhenBasic(context)) {
-            if (
+        // Only a subset of basic orders are eligible for this mutation. This
+        // portion of the filter prevents an Arithmetic over/underflow — as bids
+        // are paid from the offerer, setting the offer amount to zero will
+        // result in an underflow when attempting to reduce that offer amount as
+        // part of paying out additional recipient items.
+        if (
+            ineligibleWhenBasic(context) &&
+            order.parameters.consideration.length > 1 && (
                 order.parameters.consideration[0].itemType == ItemType.ERC721 ||
                 order.parameters.consideration[0].itemType == ItemType.ERC1155
-            ) {
-                uint256 totalConsiderationAmount;
-                for (
-                    uint256 i = 1;
-                    i < order.parameters.consideration.length;
-                    ++i
-                ) {
-                    totalConsiderationAmount += order
-                        .parameters
-                        .consideration[i]
-                        .startAmount;
-                }
-
-                if (totalConsiderationAmount > 0) {
-                    return true;
-                }
-            }
+            )
+        ) {
+            return true;
         }
 
+        // There needs to be one or more offer items to tamper with.
         if (order.parameters.offer.length == 0) {
             return true;
         }
 
-        // At least one offer item must be native, ERC20, or ERC1155
+        // At least one offer item must be native, ERC20, or ERC1155. 721s
+        // with amounts of 0 trigger a different revert.
         bool hasValidItem;
         for (uint256 i; i < order.parameters.offer.length; i++) {
             OfferItem memory item = order.parameters.offer[i];
@@ -1256,7 +1436,9 @@ library MutationFilters {
             return true;
         }
 
-        // Offerer must not also be consideration recipient for all items
+        // Offerer must not also be consideration recipient for all items,
+        // otherwise the check that triggers the target failure will not be hit
+        // and the function call will not revert.
         bool offererIsNotRecipient;
         for (uint256 i; i < order.parameters.consideration.length; i++) {
             ConsiderationItem memory item = order.parameters.consideration[i];
@@ -1277,7 +1459,8 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal pure returns (bool) {
-        // Order must be available
+        // This filter works basically the same as the OfferItem bookend to it.
+        // Order must be available.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
@@ -1330,12 +1513,16 @@ library MutationFilters {
     function ineligibleForNoContract(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // Can't be one of the fulfillAvailable actions.
+        // Can't be one of the fulfillAvailable actions, or else the orders will
+        // just be skipped and the target failure will not be hit. It'll pass or
+        // revert with NoSpecifiedOrdersAvailable or something instead.
         if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
-        // One non-native execution is necessary.
+        // One non-native execution is necessary to trigger the target failure.
+        // Seaport will only check for a contract if there the context results
+        // in an execution that is not native.
         for (
             uint256 i;
             i < context.expectations.expectedExplicitExecutions.length;
@@ -1357,7 +1544,10 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
+        // The target failure cannot be triggered in the fulfillAvailable cases
+        // because it gets skipped instead.  And the match cases cause a
+        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
+        // instead.
         if (
             ineligibleWhenFulfillAvailable(context) ||
             ineligibleWhenMatch(context)
@@ -1365,10 +1555,17 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure is not eligible when rebates are present that may
+        // strip out the unused item parameters. TODO: take a more granular and
+        // precise approach here; only reduced total offer items is actually a
+        // problem, and even those only if all eligible offer items are removed.
         if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
 
+        // The order must have at least one native item to tamper with. It can't
+        // be a 20, 721, or 1155, because only native items get checked for the
+        // existence of an unused contract address parameter.
         for (uint256 i; i < order.parameters.offer.length; i++) {
             OfferItem memory item = order.parameters.offer[i];
             if (item.itemType == ItemType.NATIVE) {
@@ -1390,7 +1587,10 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // Reverts with MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
+        // The target failure cannot be triggered in the fulfillAvailable cases
+        // because it gets skipped instead.  And the match cases cause a
+        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
+        // instead.
         if (
             ineligibleWhenFulfillAvailable(context) ||
             ineligibleWhenMatch(context)
@@ -1398,10 +1598,18 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure is not eligible when rebates are present that may
+        // strip out the unused item parameters. TODO: take a more granular and
+        // precise approach here; only reduced total offer items is actually a
+        // problem, and even those only if all eligible offer items are removed.
         if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
 
+        // The order must have at least one native or ERC20 consideration
+        // item to tamper with. It can't be a 721 or 1155, because only native
+        // and ERC20 items get checked for the existence of an unused
+        // identifier parameter.
         for (uint256 i; i < order.parameters.consideration.length; i++) {
             ConsiderationItem memory item = order.parameters.consideration[i];
             if (
@@ -1431,14 +1639,23 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure can't be triggered if the order isn't available.
+        // Seaport only checks for an invalid 721 transfer amount if the
+        // item is actually about to be transferred, which means it needs to be
+        // on an available order.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
+        // The target failure is not eligible when rebates are present that may
+        // strip out the unused item parameters. TODO: take a more granular and
+        // precise approach here; only modified item amounts are actually a
+        // problem, and even those only if there is only one eligible item.
         if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
 
+        // The order must have at least one 721 item to tamper with.
         for (uint256 i; i < order.parameters.offer.length; i++) {
             OfferItem memory item = order.parameters.offer[i];
             if (
@@ -1467,7 +1684,9 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // Method must be fulfill or match
+        // The target failure can't be triggered on paths other than those
+        // enumerated below, because the revert lies on code paths that are
+        // only reached by those top level function calls.
         bytes4 action = context.action();
         if (
             action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
@@ -1478,22 +1697,28 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: Probably overfiltering
+        // TODO: This check is overly restrictive and is here as a simplifying
+        // assumption. Explore removing it.
         if (order.numerator != order.denominator) {
             return true;
         }
 
-        // Must not be a contract order
+        // The target failure can't be triggered if the order is a contract
+        // order because this check lies on a branch taken only by non-contract
+        // orders.
         if (ineligibleWhenContractOrder(order)) {
             return true;
         }
 
-        // Order must be available
+        // The target failure can't be triggered if the order isn't available.
+        // Seaport only checks for proper consideration if the order is not
+        // skipped.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
-        // Order must have at least one consideration item
+        // The target failure can't be triggered if the order doesn't require
+        // any consideration.
         if (ineligibleWhenNoConsiderationLength(order)) {
             return true;
         }
@@ -1506,16 +1731,14 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // Exclude methods that don't support partial fills
-        bytes4 action = context.action();
-        if (
-            action == context.seaport.fulfillOrder.selector ||
-            ineligibleWhenNotAdvanced(context)
-        ) {
+        // Exclude methods that don't support partial fills.
+        if (ineligibleWhenNotAdvanced(context)) {
             return true;
         }
 
-        // Exclude partial and contract orders
+        // Exclude partial and contract orders. It's not possible to trigger
+        // the target failure on an order that supports partial fills. Contract
+        // orders give a different revert.
         if (
             order.parameters.orderType == OrderType.PARTIAL_OPEN ||
             order.parameters.orderType == OrderType.PARTIAL_RESTRICTED ||
@@ -1524,7 +1747,9 @@ library MutationFilters {
             return true;
         }
 
-        // Order must be available
+        // The target failure can't be triggered if the order isn't available.
+        // Seaport only checks whether partial fills are enabled if the order
+        // is not skipped.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
@@ -1608,7 +1833,9 @@ library MutationFilters {
     function ineligibleForNoSpecifiedOrdersAvailable(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // Must be a fulfill available method
+        // The target failure can't be triggered by top level function calls
+        // other than those enumerated below because it lies on
+        // fulfillAvaialable*-specific code paths.
         bytes4 action = context.action();
         if (
             action != context.seaport.fulfillAvailableAdvancedOrders.selector &&
@@ -1814,7 +2041,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             OffererZoneFailureReason.ContractOfferer_IncorrectMinimumReceived
         );
 
-        // TODO: operate on a fuzzed item (this always operates on the last item)
+        // TODO: operate on a fuzzed item (this always operates on last item)
         offerer.addDropItemMutation(
             Side.OFFER,
             order.parameters.offer.length - 1,
@@ -2536,27 +2763,6 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
-    function mutation_invalidMerkleProof(
-        FuzzTestContext memory context,
-        MutationState memory mutationState
-    ) external {
-        uint256 criteriaResolverIndex = mutationState
-            .selectedCriteriaResolverIndex;
-        CriteriaResolver memory resolver = context
-            .executionState
-            .criteriaResolvers[criteriaResolverIndex];
-
-        // This mutation triggers a revert by modifying the first proof element
-        // in a criteria resolver's proof array. Seaport will reject a criteria
-        // resolver if the the identifiers, criteria, and proof do not
-        // harmonize.
-
-        bytes32 firstProofElement = resolver.criteriaProof[0];
-        resolver.criteriaProof[0] = bytes32(uint256(firstProofElement) ^ 1);
-
-        exec(context);
-    }
-
     function mutation_offerAndConsiderationRequiredOnFulfillment(
         FuzzTestContext memory context
     ) external {
@@ -2618,29 +2824,49 @@ contract FuzzMutations is Test, FuzzExecutor {
     function mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped(
         FuzzTestContext memory context
     ) external {
+        // This mutation triggers a revert by shuffling around the offer
+        // components in such a way that an item with an incorrect type,
+        // address, or identifier is attempted to be paired up with a
+        // consideration component that expects the pre-suhffle type, address,
+        // or identifier. A fulfillment's offer and condieration components must
+        // harmonize.
+
+        // Store a reference to the first fulfillment's offer components for
+        // later use.
         FulfillmentComponent[] memory firstOfferComponents = (
             context.executionState.fulfillments[0].offerComponents
         );
 
+        // Get the first fulfillment's first offer component.
         FulfillmentComponent memory firstOfferComponent = (
             firstOfferComponents[0]
         );
 
+        // Use the indexes in the first offer component to get the item.
         SpentItem memory item = context
             .executionState
             .orderDetails[firstOfferComponent.orderIndex]
             .offer[firstOfferComponent.itemIndex];
+
+        // Start iterating at the second fulfillment, since the first is the one
+        // that gets mutated.
         uint256 i = 1;
         for (; i < context.executionState.fulfillments.length; ++i) {
+            // Get the first consideration component of the current fulfillment.
             FulfillmentComponent memory considerationComponent = (
                 context.executionState.fulfillments[i].considerationComponents[
                     0
                 ]
             );
+
+            // Use the indexes in the first consideration component to get the
+            // item that needs to be compared against.
             ReceivedItem memory compareItem = context
                 .executionState
                 .orderDetails[considerationComponent.orderIndex]
                 .consideration[considerationComponent.itemIndex];
+
+            // If it's not a match, then it works for the mutation, so break.
             if (
                 item.itemType != compareItem.itemType ||
                 item.token != compareItem.token ||
@@ -2650,22 +2876,33 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
-        // swap offer components
+        // Swap offer components of the first and current fulfillments.
         FulfillmentComponent[] memory swappedOfferComponents = (
             context.executionState.fulfillments[i].offerComponents
         );
 
+        // Set up a pointer that will be used temporarily in the shuffle.
         bytes32 swappedPointer;
+
         assembly {
+            // Store the pointer to the swapped offer components.
             swappedPointer := swappedOfferComponents
+            // Set the swapped offer components to the first offer components.
             swappedOfferComponents := firstOfferComponents
+            // Set the first offer components to non-compatible offer
+            // components.
             firstOfferComponents := swappedPointer
         }
 
+        // Set the offer components of the first fulfillment to the mutated
+        // firstOfferComponents.
         context
             .executionState
             .fulfillments[0]
             .offerComponents = firstOfferComponents;
+
+        // Set the offer components of the current fulfillment to the offer
+        // components that were originally in the first fulfillment.
         context
             .executionState
             .fulfillments[i]
@@ -2684,8 +2921,34 @@ contract FuzzMutations is Test, FuzzExecutor {
             .executionState
             .criteriaResolvers[criteriaResolverIndex];
 
+        // This mutation works by jamming in a proof for the selected criteria
+        // resolver, but only operates on criteria resolvers that aren't
+        // expected to have proofs at all, see
+        // ineligibleForInvalidProof_Wildcard.
+
         bytes32[] memory criteriaProof = new bytes32[](1);
         resolver.criteriaProof = criteriaProof;
+
+        exec(context);
+    }
+
+    function mutation_invalidMerkleProof(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        uint256 criteriaResolverIndex = mutationState
+            .selectedCriteriaResolverIndex;
+        CriteriaResolver memory resolver = context
+            .executionState
+            .criteriaResolvers[criteriaResolverIndex];
+
+        // This mutation triggers a revert by modifying the first proof element
+        // in a criteria resolver's proof array. Seaport will reject a criteria
+        // resolver if the the identifiers, criteria, and proof do not
+        // harmonize.
+
+        bytes32 firstProofElement = resolver.criteriaProof[0];
+        resolver.criteriaProof[0] = bytes32(uint256(firstProofElement) ^ 1);
 
         exec(context);
     }
@@ -2694,6 +2957,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
+        // This mutation works by adding an extra criteria resolver with an
+        // order index that's out of range. The order index on a criteria
+        // resolver must be within the range of the orders array.
+
         CriteriaResolver[] memory oldResolvers = context
             .executionState
             .criteriaResolvers;
@@ -2721,6 +2988,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by mutating an existing criteria resolver to have
+        // an item index that's out of range. The item index on a criteria
+        // resolver must be within the range of the order's offer array if the
+        // criteria resolver's side is OFFER, as is the case for this mutation.
+
         uint256 criteriaResolverIndex = mutationState
             .selectedCriteriaResolverIndex;
         CriteriaResolver memory resolver = context
@@ -2739,6 +3011,12 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by mutating an existing criteria resolver to have
+        // an item index that's out of range. The item index on a criteria
+        // resolver must be within the range of the order's consideration
+        // array if the criteria resolver's side is CONSIDERATION, as is the
+        // case for this mutation.
+
         uint256 criteriaResolverIndex = mutationState
             .selectedCriteriaResolverIndex;
         CriteriaResolver memory resolver = context
@@ -2757,6 +3035,12 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by copying over all the criteria resolvers except
+        // for the selected one, which is left empty. Without a criteria
+        // resolver, the item with a *WITH_CRITERIA type will be left unresolved
+        // by the end of the _applyCriteriaResolvers* functions, which is not
+        // permitted.
+
         uint256 criteriaResolverIndex = mutationState
             .selectedCriteriaResolverIndex;
 
@@ -2766,10 +3050,15 @@ contract FuzzMutations is Test, FuzzExecutor {
         CriteriaResolver[] memory newResolvers = new CriteriaResolver[](
             oldResolvers.length - 1
         );
+
+        // Iterate from 0 to the selected criteria resolver index and copy
+        // resolvers.
         for (uint256 i = 0; i < criteriaResolverIndex; ++i) {
             newResolvers[i] = oldResolvers[i];
         }
 
+        // Iterate from the selected criteria resolver index + 1 to the end and
+        // copy resolvers.
         for (
             uint256 i = criteriaResolverIndex + 1;
             i < oldResolvers.length;
@@ -2787,6 +3076,13 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
+        // This mutation works by setting the amount of the first eligible item
+        // in an offer to 0. Items cannot have 0 amounts.
+
+        // Iterate over all the offer fulfillments. This mutation needs to be
+        // applied to a an item that won't be filtered. The presence of a
+        // fulfillment that points to the item serves as a proxy that the item's
+        // transfer won't be filtered.
         for (
             uint256 i;
             i < context.executionState.offerFulfillments.length;
@@ -2800,6 +3096,8 @@ contract FuzzMutations is Test, FuzzExecutor {
                 fulfillmentComponent.orderIndex
             ];
 
+            // The item cannot be a 721, because setting the amount of a 721 to
+            // 0 triggers a different revert.
             if (
                 context
                     .executionState
@@ -2807,12 +3105,14 @@ contract FuzzMutations is Test, FuzzExecutor {
                     .offer[fulfillmentComponent.itemIndex]
                     .itemType != ItemType.ERC721
             ) {
+                // The order must be available.
                 if (
                     context
                         .executionState
                         .orderDetails[fulfillmentComponent.orderIndex]
                         .unavailableReason == UnavailableReason.AVAILABLE
                 ) {
+                    // For all orders, set the start and end amounts to 0.
                     order
                         .parameters
                         .offer[fulfillmentComponent.itemIndex]
@@ -2822,6 +3122,8 @@ contract FuzzMutations is Test, FuzzExecutor {
                         .offer[fulfillmentComponent.itemIndex]
                         .endAmount = 0;
 
+                    // For contract orders, tell the test contract about the
+                    // mutation so that it knows to give back bad amounts.
                     if (order.parameters.orderType == OrderType.CONTRACT) {
                         HashCalldataContractOfferer(
                             payable(order.parameters.offerer)
@@ -2855,6 +3157,9 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by setting the amount of the first eligible item
+        // in an offer to 0. Items cannot have 0 amounts.
+
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
@@ -2882,6 +3187,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works in the same way as
+        // mutation_missingItemAmount_OfferItem_FulfillAvailable aboce, except
+        // that it targets consideration items instead of offer items.  Items
+        // cannot have 0 amounts.
+
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
@@ -2925,8 +3235,15 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by changing the contract address of token from
+        // an actual token address to a non-contract address. The token address
+        // has to be swapped throughout all orders to avoid hitting earlier
+        // reverts, such as aggregation reverts or mismatch reverts.  Seaport
+        // rejects calls to non-contract addresses.
+
         address targetContract;
 
+        // Iterate over expectedExplicitExecutions to find a token address.
         for (
             uint256 i;
             i < context.expectations.expectedExplicitExecutions.length;
@@ -2944,6 +3261,8 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
+        // Iterate over orders and replace all instances of the target contract
+        // address with the selected arbitrary address.
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
 
@@ -2973,6 +3292,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by setting the token address of the first
+        // eligible item in an offer to a nonzero address. An item with
+        // ItemType.NATIVE cannot have a nonzero token address.
+
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
@@ -3010,6 +3333,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by setting the identifier of the first eligible
+        // item in an offer to a nonzero value. An item with ItemType.NATIVE
+        // or ItemType.ERC20 cannot have a nonzero identifier.
+
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
@@ -3052,6 +3379,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
+        // This mutation works by setting the amount of the first eligible
+        // item in an offer to an invalid value. An item with ItemType.ERC721
+        // or ItemType.ERC721_WITH_CRITERIA must have an amount of 1.
+
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
@@ -3099,6 +3430,13 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation works by adding a new consideration item to the order.
+        // An attempt to fill an order must include all the consideration items
+        // that the order specifies. Since the test framework supplies exactly
+        // the right number of native tokens to fill the order (before this
+        // mutation), adding a new consideration item will cause the order to
+        // fail.
+
         ConsiderationItem[] memory newConsideration = new ConsiderationItem[](
             order.parameters.consideration.length + 1
         );
@@ -3123,21 +3461,33 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation works by setting the demoninator of the fraction to a
+        // value that does not nicely divide. Remainders are not permissible.
+
+        // Get an item's start amount.
         uint256 itemAmount = order.parameters.offer.length == 0
             ? order.parameters.consideration[0].startAmount
             : order.parameters.offer[0].startAmount;
 
+        // If the item's start amount is 0, get an item's end amount.
         if (itemAmount == 0) {
             itemAmount = order.parameters.offer.length == 0
                 ? order.parameters.consideration[0].endAmount
                 : order.parameters.offer[0].endAmount;
         }
 
-        // This isn't perfect, but odds of hitting it are slim to none
+        // If the item amount is huge, set it to a value that's very large but
+        // less than type(uint120).max.
+        // This isn't perfect, but odds of hitting it are slim to none.
+        // type(uint120).max is 1329227995784915872903807060280344575.
+        // The hardcoded value below is just above type(uint120).max / 2.
+        // 664613997892457936451903530140172392 - (type(uint120).max / 2) = 0x69
         if (itemAmount > type(uint120).max - 1) {
             itemAmount = 664613997892457936451903530140172392;
         }
 
+        // Set the order's numerator to 1 and denominator to the item amount
+        // plus 1. This will result in a division that produces a remainder.
         order.numerator = 1;
         order.denominator = uint120(itemAmount) + 1;
 
@@ -3150,6 +3500,13 @@ contract FuzzMutations is Test, FuzzExecutor {
     ) external {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
+
+        // This mutation works by setting the demoninator of the order to a
+        // value and the on chain denominator to values that, when summed
+        // together, trigger a panic. The EVM doesn't like overflows.
+
+        // (664613997892457936451903530140172393 +
+        // 664613997892457936451903530140172297) > type(uint120).max
 
         order.numerator = 1;
         order.denominator = 664613997892457936451903530140172393;
@@ -3170,6 +3527,11 @@ contract FuzzMutations is Test, FuzzExecutor {
         uint256 orderIndex = mutationState.selectedOrderIndex;
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
+        // This mutation works by mutating the order to ask for a partial fill
+        // on functions that don't support partial fills. Seaport will reject a
+        // denominator that is not 1 for functions that don't support partial
+        // fills.
+
         order.numerator = 1;
         order.denominator = 10;
 
@@ -3180,6 +3542,10 @@ contract FuzzMutations is Test, FuzzExecutor {
         FuzzTestContext memory context,
         MutationState memory /* mutationState */
     ) external {
+        // This mutation works by wiping out all the orders. Seaport reverts if
+        // `_executeAvailableFulfillments` finishes its loop and produces no
+        // executions.
+
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
             order.parameters.consideration = new ConsiderationItem[](0);
@@ -3197,19 +3563,31 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    /**
+     * @dev Helper function to sign or validate a mutated order, depending on
+     *      which is necessary.
+     *
+     * @param context    The fuzz test context.
+     * @param orderIndex The index of the order to sign or validate.
+     */
     function _signOrValidateMutatedOrder(
         FuzzTestContext memory context,
         uint256 orderIndex
     ) private {
         AdvancedOrder memory order = context.executionState.orders[orderIndex];
 
-        // Re-sign order
+        // If an order has been validated, then the mutated order should be
+        // validated too so that we're conforming the failure paths as closely
+        // as possible to the success paths.
         if (
             context.advancedOrdersSpace.orders[orderIndex].signatureMethod ==
             SignatureMethod.VALIDATE
         ) {
             order.inscribeOrderStatusValidated(true, context.seaport);
         } else if (context.executionState.caller != order.parameters.offerer) {
+            // It's not necessary to sign an order if the caller is the offerer.
+            // But if the caller is not the offerer, then sign the order using
+            // the function from the order generator.
             AdvancedOrdersSpaceGenerator._signOrders(
                 context.advancedOrdersSpace,
                 context.executionState.orders,
