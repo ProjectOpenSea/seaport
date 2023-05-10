@@ -13,7 +13,7 @@ import { console2 } from "forge-std/console2.sol";
 
 import { ArrayHelpers, MemoryPointer } from "seaport-sol/../ArrayHelpers.sol";
 
-import { OrderStatusEnum } from "seaport-sol/SpaceEnums.sol";
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { ForgeEventsLib } from "./event-utils/ForgeEventsLib.sol";
 
@@ -57,6 +57,7 @@ struct ContextOutputSelection {
     bool erc721ExpectedBalances;
     bool erc1155ExpectedBalances;
     bool preExecOrderStatuses;
+    bool validationErrors;
 }
 
 using ForgeEventsLib for Vm.Log;
@@ -135,7 +136,11 @@ function dumpContext(
             context.executionState.orderDetails.length
         );
 
-        for (uint256 i = 0; i < context.executionState.orderDetails.length; i++) {
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            i++
+        ) {
             orderHashes[i] = context.executionState.orderDetails[i].orderHash;
         }
 
@@ -289,10 +294,24 @@ function dumpContext(
         );
     }
     if (outputSelection.expectedAvailableOrders) {
+        bool[] memory expectedAvailableOrders = new bool[](
+            context.executionState.orderDetails.length
+        );
+
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            i++
+        ) {
+            expectedAvailableOrders[i] =
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE;
+        }
+
         jsonOut = Searializer.tojsonDynArrayBool(
             "root",
             "expectedAvailableOrders",
-            context.expectations.expectedAvailableOrders
+            expectedAvailableOrders
         );
     }
     // =====================================================================//
@@ -354,6 +373,13 @@ function dumpContext(
     //         balanceChecker.dumpERC1155Balances()
     //     );
     // }
+    if (outputSelection.validationErrors) {
+        jsonOut = Searializer.tojsonDynArrayValidationErrorsAndWarnings(
+            "root",
+            "validationErrors",
+            context.executionState.validationErrors
+        );
+    }
     vm.writeJson(jsonOut, "./fuzz_debug.json");
 }
 
@@ -416,6 +442,7 @@ function dumpExecutions(FuzzTestContext memory context) view {
     selection.executionsFilter = ItemType.ERC1155_WITH_CRITERIA; // no filter
     selection.orders = true;
     selection.preExecOrderStatuses = true;
+    selection.validationErrors = true;
     pureDumpContext()(context, selection);
     console2.log("Dumped executions and balances to ./fuzz_debug.json");
 }

@@ -30,6 +30,8 @@ import {
     ReferenceGenerateOrderReturndataDecoder
 } from "./ReferenceGenerateOrderReturndataDecoder.sol";
 
+import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+
 /**
  * @title OrderValidator
  * @author 0age
@@ -119,7 +121,8 @@ contract ReferenceOrderValidator is
         returns (
             bytes32 orderHash,
             uint256 newNumerator,
-            uint256 newDenominator
+            uint256 newDenominator,
+            OrderToExecute memory orderToExecute
         )
     {
         // Retrieve the parameters for the order.
@@ -134,7 +137,12 @@ contract ReferenceOrderValidator is
             )
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
-            return (bytes32(0), 0, 0);
+            return (
+                bytes32(0),
+                0,
+                0,
+                _convertAdvancedToOrder(orderParameters, 0)
+            );
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -187,7 +195,12 @@ contract ReferenceOrderValidator is
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return (orderHash, 0, 0);
+            return (
+                orderHash,
+                0,
+                0,
+                _convertAdvancedToOrder(orderParameters, 0)
+            );
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -265,7 +278,30 @@ contract ReferenceOrderValidator is
         }
 
         // Return order hash, new numerator and denominator.
-        return (orderHash, uint120(numerator), uint120(denominator));
+        return (
+            orderHash,
+            uint120(numerator),
+            uint120(denominator),
+            _convertAdvancedToOrder(orderParameters, uint120(numerator))
+        );
+    }
+
+    function _callGenerateOrder(
+        OrderParameters memory orderParameters,
+        bytes memory context,
+        SpentItem[] memory originalOfferItems,
+        SpentItem[] memory originalConsiderationItems
+    ) internal returns (bool success, bytes memory returnData) {
+        return
+            orderParameters.offerer.call(
+                abi.encodeWithSelector(
+                    ContractOffererInterface.generateOrder.selector,
+                    msg.sender,
+                    originalOfferItems,
+                    originalConsiderationItems,
+                    context
+                )
+            );
     }
 
     /**
@@ -293,7 +329,12 @@ contract ReferenceOrderValidator is
         bool revertOnInvalid
     )
         internal
-        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator,
+            OrderToExecute memory orderToExecute
+        )
     {
         // Ensure that consideration array length is equal to the total original
         // consideration items value.
@@ -302,18 +343,6 @@ contract ReferenceOrderValidator is
             orderParameters.totalOriginalConsiderationItems
         ) {
             revert ConsiderationLengthNotEqualToTotalOriginal();
-        }
-
-        {
-            // Increment contract nonce and use it to derive order hash. Note:
-            // nonce will be incremented even for skipped orders, and even if
-            // generateOrder's return data does not satisfy all the constraints.
-            uint256 contractNonce = _contractNonces[orderParameters.offerer]++;
-            // Derive order hash from contract nonce and offerer address.
-            orderHash = bytes32(
-                contractNonce ^
-                    (uint256(uint160(orderParameters.offerer)) << 96)
-            );
         }
 
         // Convert offer and consideration to spent and received items.
@@ -331,17 +360,27 @@ contract ReferenceOrderValidator is
 
         {
             // Do a low-level call to get success status and any return data.
-            (bool success, bytes memory returnData) = orderParameters
-                .offerer
-                .call(
-                    abi.encodeWithSelector(
-                        ContractOffererInterface.generateOrder.selector,
-                        msg.sender,
-                        originalOfferItems,
-                        originalConsiderationItems,
-                        context
-                    )
+            (bool success, bytes memory returnData) = _callGenerateOrder(
+                orderParameters,
+                context,
+                originalOfferItems,
+                originalConsiderationItems
+            );
+
+            {
+                // Increment contract nonce and use it to derive order hash.
+                // Note: nonce will be incremented even for skipped orders, and
+                // even if generateOrder's return data doesn't meet constraints.
+                uint256 contractNonce = (
+                    _contractNonces[orderParameters.offerer]++
                 );
+
+                // Derive order hash from contract nonce and offerer address.
+                orderHash = bytes32(
+                    contractNonce ^
+                        (uint256(uint160(orderParameters.offerer)) << 96)
+                );
+            }
 
             //  If call succeeds, try to decode offer and consideration items.
             if (success) {
@@ -367,6 +406,8 @@ contract ReferenceOrderValidator is
         }
 
         {
+            orderToExecute = _convertAdvancedToOrder(orderParameters, 1);
+
             // Designate lengths.
             uint256 originalOfferLength = orderParameters.offer.length;
             uint256 newOfferLength = offer.length;
@@ -375,16 +416,42 @@ contract ReferenceOrderValidator is
             if (originalOfferLength > newOfferLength) {
                 revert InvalidContractOrder(orderHash);
             } else if (newOfferLength > originalOfferLength) {
-                // If new offer items are added, extend the original offer.
-                OfferItem[] memory extendedOffer = new OfferItem[](
-                    newOfferLength
-                );
-                // Copy original offer items to new array.
-                for (uint256 i = 0; i < originalOfferLength; ++i) {
-                    extendedOffer[i] = orderParameters.offer[i];
+                {
+                    // If new offer items are added, extend the original offer.
+                    OfferItem[] memory extendedOffer = new OfferItem[](
+                        newOfferLength
+                    );
+                    // Copy original offer items to new array.
+                    for (uint256 i = 0; i < originalOfferLength; ++i) {
+                        extendedOffer[i] = orderParameters.offer[i];
+                    }
+                    // Update order parameters with extended offer.
+                    orderParameters.offer = extendedOffer;
                 }
-                // Update order parameters with extended offer.
-                orderParameters.offer = extendedOffer;
+                {
+                    // Do the same for ordersToExecute arrays.
+                    SpentItem[] memory extendedSpent = new SpentItem[](
+                        newOfferLength
+                    );
+                    uint256[]
+                        memory extendedSpentItemOriginalAmounts = new uint256[](
+                            newOfferLength
+                        );
+
+                    // Copy original spent items to new array.
+                    for (uint256 i = 0; i < originalOfferLength; ++i) {
+                        extendedSpent[i] = orderToExecute.spentItems[i];
+                        extendedSpentItemOriginalAmounts[i] = orderToExecute
+                            .spentItemOriginalAmounts[i];
+                    }
+
+                    // Update order to execute with extended items.
+                    orderToExecute.spentItems = extendedSpent;
+                    orderToExecute
+                        .spentItemOriginalAmounts = extendedSpentItemOriginalAmounts;
+                }
+
+                {}
             }
 
             // Loop through each new offer and ensure the new amounts are at
@@ -424,6 +491,8 @@ contract ReferenceOrderValidator is
                 // Update the original amounts to use the generated amounts.
                 originalOffer.startAmount = newOffer.amount;
                 originalOffer.endAmount = newOffer.amount;
+                orderToExecute.spentItems[i].amount = newOffer.amount;
+                orderToExecute.spentItemOriginalAmounts[i] = newOffer.amount;
             }
 
             // Add new offer items if there are more than original.
@@ -436,6 +505,12 @@ contract ReferenceOrderValidator is
                 originalOffer.identifierOrCriteria = newOffer.identifier;
                 originalOffer.startAmount = newOffer.amount;
                 originalOffer.endAmount = newOffer.amount;
+
+                orderToExecute.spentItems[i].itemType = newOffer.itemType;
+                orderToExecute.spentItems[i].token = newOffer.token;
+                orderToExecute.spentItems[i].identifier = newOffer.identifier;
+                orderToExecute.spentItems[i].amount = newOffer.amount;
+                orderToExecute.spentItemOriginalAmounts[i] = newOffer.amount;
             }
         }
 
@@ -471,7 +546,7 @@ contract ReferenceOrderValidator is
 
                 // All fields must match the originally supplied fields except
                 // for the amount (which may be reduced by the contract offerer)
-                // and the recipient if not provided by the recipient.
+                // and the recipient if some non-zero address has been provided.
                 if (
                     originalConsideration.startAmount !=
                     originalConsideration.endAmount ||
@@ -492,24 +567,61 @@ contract ReferenceOrderValidator is
                 originalConsideration.startAmount = newConsideration.amount;
                 originalConsideration.endAmount = newConsideration.amount;
                 originalConsideration.recipient = newConsideration.recipient;
+
+                orderToExecute.receivedItems[i].amount = newConsideration
+                    .amount;
+                orderToExecute.receivedItems[i].recipient = newConsideration
+                    .recipient;
+                orderToExecute.receivedItemOriginalAmounts[i] = newConsideration
+                    .amount;
             }
 
-            // Shorten original consideration array if longer than new array.
-            ConsiderationItem[] memory shortenedConsiderationArray = (
-                new ConsiderationItem[](newConsiderationLength)
-            );
+            {
+                // Shorten original consideration array if longer than new array.
+                ConsiderationItem[] memory shortenedConsiderationArray = (
+                    new ConsiderationItem[](newConsiderationLength)
+                );
+
+                // Iterate over original consideration array and copy to new.
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    shortenedConsiderationArray[i] = originalConsiderationArray[
+                        i
+                    ];
+                }
+
+                // Replace original consideration array with new shortend array.
+                orderParameters.consideration = shortenedConsiderationArray;
+            }
+
+            {
+                ReceivedItem[] memory shortenedReceivedItems = (
+                    new ReceivedItem[](newConsiderationLength)
+                );
+
+                // Iterate over original consideration array and copy to new.
+                for (uint256 i = 0; i < newConsiderationLength; ++i) {
+                    shortenedReceivedItems[i] = orderToExecute.receivedItems[i];
+                }
+
+                orderToExecute.receivedItems = shortenedReceivedItems;
+            }
+            uint256[]
+                memory shortenedReceivedItemOriginalAmounts = new uint256[](
+                    newConsiderationLength
+                );
 
             // Iterate over original consideration array and copy to new.
             for (uint256 i = 0; i < newConsiderationLength; ++i) {
-                shortenedConsiderationArray[i] = originalConsiderationArray[i];
+                shortenedReceivedItemOriginalAmounts[i] = orderToExecute
+                    .receivedItemOriginalAmounts[i];
             }
 
-            // Replace original consideration array with new shortend array.
-            orderParameters.consideration = shortenedConsiderationArray;
+            orderToExecute
+                .receivedItemOriginalAmounts = shortenedReceivedItemOriginalAmounts;
         }
 
         // Return the order hash, the numerator, and the denominator.
-        return (orderHash, 1, 1);
+        return (orderHash, 1, 1, orderToExecute);
     }
 
     /**
@@ -719,13 +831,18 @@ contract ReferenceOrderValidator is
     )
         internal
         pure
-        returns (bytes32 orderHash, uint256 numerator, uint256 denominator)
+        returns (
+            bytes32 orderHash,
+            uint256 numerator,
+            uint256 denominator,
+            OrderToExecute memory emptyOrder
+        )
     {
         // If invalid input should not revert...
         if (!revertOnInvalid) {
             // Return the contract order hash and zero values for the numerator
             // and denominator.
-            return (contractOrderHash, 0, 0);
+            return (contractOrderHash, 0, 0, emptyOrder);
         }
 
         // Otherwise, revert.
@@ -831,5 +948,122 @@ contract ReferenceOrderValidator is
     ) internal pure returns (bool isFullOrder) {
         // The "full" order types are even, while "partial" order types are odd.
         isFullOrder = uint256(orderType) & 1 == 0;
+    }
+
+    /**
+     * @dev Internal pure function to convert an advanced order to an order
+     *      to execute.
+     *
+     * @param orderParameters The order to convert.
+     *
+     * @return orderToExecute The new order to execute.
+     */
+    function _convertAdvancedToOrder(
+        OrderParameters memory orderParameters,
+        uint120 numerator
+    ) internal pure returns (OrderToExecute memory orderToExecute) {
+        // Retrieve the advanced orders offers.
+        OfferItem[] memory offer = orderParameters.offer;
+
+        // Create an array of spent items equal to the offer length.
+        SpentItem[] memory spentItems = new SpentItem[](offer.length);
+        uint256[] memory spentItemOriginalAmounts = new uint256[](offer.length);
+
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < offer.length; ++i) {
+            // Retrieve the offer item.
+            OfferItem memory offerItem = offer[i];
+
+            // Create spent item for event based on the offer item.
+            SpentItem memory spentItem = SpentItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount
+            );
+
+            // Add to array of spent items.
+            spentItems[i] = spentItem;
+            spentItemOriginalAmounts[i] = offerItem.startAmount;
+        }
+
+        // Retrieve the consideration array from the advanced order.
+        ConsiderationItem[] memory consideration = orderParameters
+            .consideration;
+
+        // Create an array of received items equal to the consideration length.
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
+        // Create an array of uint256 values equal in length to the
+        // consideration length containing the amounts of each item.
+        uint256[] memory receivedItemOriginalAmounts = new uint256[](
+            consideration.length
+        );
+
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            // Retrieve the consideration item.
+            ConsiderationItem memory considerationItem = (consideration[i]);
+
+            // Create received item for event based on the consideration item.
+            ReceivedItem memory receivedItem = ReceivedItem(
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount,
+                considerationItem.recipient
+            );
+
+            // Add to array of received items.
+            receivedItems[i] = receivedItem;
+
+            // Add to array of received item amounts.
+            receivedItemOriginalAmounts[i] = considerationItem.startAmount;
+        }
+
+        // Create the order to execute from the advanced order data.
+        orderToExecute = OrderToExecute(
+            orderParameters.offerer,
+            spentItems,
+            receivedItems,
+            orderParameters.conduitKey,
+            numerator,
+            spentItemOriginalAmounts,
+            receivedItemOriginalAmounts
+        );
+
+        // Return the order.
+        return orderToExecute;
+    }
+
+    /**
+     * @dev Internal pure function to convert an array of advanced orders to
+     *      an array of orders to execute.
+     *
+     * @param advancedOrders The advanced orders to convert.
+     *
+     * @return ordersToExecute The new array of orders.
+     */
+    function _convertAdvancedToOrdersToExecute(
+        AdvancedOrder[] memory advancedOrders
+    ) internal pure returns (OrderToExecute[] memory ordersToExecute) {
+        // Read the number of orders from memory and place on the stack.
+        uint256 totalOrders = advancedOrders.length;
+
+        // Allocate new empty array for each advanced order in memory.
+        ordersToExecute = new OrderToExecute[](totalOrders);
+
+        // Iterate over the given orders.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Convert and update array.
+            ordersToExecute[i] = _convertAdvancedToOrder(
+                advancedOrders[i].parameters,
+                advancedOrders[i].numerator
+            );
+        }
+
+        // Return the array of orders to execute
+        return ordersToExecute;
     }
 }

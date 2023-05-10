@@ -423,6 +423,24 @@ Not deployed
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://moonriver.moonscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
+
+<tr><td>Canto</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://evm.explorer.canto.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
+
+</td><td>
+
+[0x00000000000001ad428e4906aE43D8F9852d0dD6](https://evm.explorer.canto.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6)
+
+</td><td>
+
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://evm.explorer.canto.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://evm.explorer.canto.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
 </table>
 
 To be deployed on other EVM chains, such as:
