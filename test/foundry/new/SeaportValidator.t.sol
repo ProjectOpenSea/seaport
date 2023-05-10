@@ -15,8 +15,17 @@ import {
     SeaportValidator,
     SignatureIssue,
     StatusIssue,
-    TimeIssue
+    TimeIssue,
+    NativeIssue
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    SeaportValidatorHelper
+} from "../../../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
+
+import {
+    IssueStringHelpers
+} from "../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 import {
     ConsiderationItemLib,
@@ -58,20 +67,20 @@ contract SeaportValidatorTest is BaseOrderTest {
     using IssueParser for StatusIssue;
     using IssueParser for TimeIssue;
 
+    using IssueStringHelpers for uint16;
     using ErrorsAndWarningsLib for ErrorsAndWarnings;
-
-    SeaportValidator internal validator;
 
     string constant SINGLE_ERC20 = "SINGLE_ERC20";
     string constant SINGLE_ERC1155 = "SINGLE_ERC1155";
+    string constant SINGLE_NATIVE = "SINGLE_NATIVE";
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
+    string constant SINGLE_ERC721_SINGLE_NATIVE = "SINGLE_ERC721_SINGLE_NATIVE";
     string constant SINGLE_ERC721_SINGLE_ERC721 = "SINGLE_ERC721_SINGLE_ERC721";
 
     address internal noTokens = makeAddr("no tokens/approvals");
 
     function setUp() public override {
         super.setUp();
-        validator = new SeaportValidator(address(conduitController));
 
         OrderLib
             .empty()
@@ -122,9 +131,38 @@ contract SeaportValidatorTest is BaseOrderTest {
             .withOffer(offer);
         OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC1155);
 
+        // Set up and store order with single native offer item
+        offer = new OfferItem[](1);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.NATIVE)
+            .withToken(address(0))
+            .withIdentifierOrCriteria(0)
+            .withAmount(1);
+        parameters = OrderComponentsLib
+            .fromDefault(STANDARD)
+            .toOrderParameters()
+            .withOffer(offer);
+        OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_NATIVE);
+
+        // Set up and store order with single ERC721 offer item
+        // and single native consideration item
+        ConsiderationItem[] memory _consideration = new ConsiderationItem[](1);
+        _consideration[0] = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.NATIVE)
+            .withToken(address(0))
+            .withAmount(1);
+        parameters = OrderParametersLib
+            .fromDefault(SINGLE_ERC721)
+            .withConsideration(_consideration)
+            .withTotalOriginalConsiderationItems(1);
+        OrderLib.empty().withParameters(parameters).saveDefault(
+            SINGLE_ERC721_SINGLE_NATIVE
+        );
+
         // Set up and store order with single ERC721 offer item
         // and single ERC20 consideration item
-        ConsiderationItem[] memory _consideration = new ConsiderationItem[](1);
         _consideration[0] = ConsiderationItemLib
             .empty()
             .withItemType(ItemType.ERC20)
@@ -663,6 +701,201 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
+    function test_isValidOrder_offerIssue_zeroItems() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offer = new OfferItem[](0);
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.ZeroItems)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_moreThanOneItem() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offerer = address(this);
+
+        erc721s[0].mint(address(this), 1);
+        erc721s[0].mint(address(this), 2);
+        erc721s[0].setApprovalForAll(address(seaport), true);
+
+        OfferItem[] memory offer = new OfferItem[](2);
+        offer[0] = order.parameters.offer[0];
+        offer[1] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(2)
+            .withAmount(1);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.MoreThanOneItem)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_amountZero() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offer[0].startAmount = 0;
+        order.parameters.offer[0].endAmount = 0;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(OfferIssue.AmountZero)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_nativeItem() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_NATIVE);
+        order.parameters.offerer = address(this);
+
+        vm.deal(address(this), 1 ether);
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.NativeItem)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_duplicateItem() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721);
+        order.parameters.offerer = address(this);
+
+        erc721s[0].mint(address(this), 1);
+        erc721s[0].setApprovalForAll(address(seaport), true);
+
+        OfferItem[] memory offer = new OfferItem[](2);
+        offer[0] = order.parameters.offer[0];
+        offer[1] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withToken(address(erc721s[0]))
+            .withIdentifierOrCriteria(1)
+            .withAmount(1);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(OfferIssue.DuplicateItem)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(OfferIssue.MoreThanOneItem)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_amountVelocityHigh() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withIdentifierOrCriteria(0)
+            .withStartAmount(1e16)
+            .withEndAmount(1e25);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(OfferIssue.AmountVelocityHigh)
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(TimeIssue.ShortOrder)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
+    function test_isValidOrder_offerIssue_amountStepLarge() public {
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC20);
+        order.parameters.offerer = address(this);
+        order.parameters.startTime = block.timestamp;
+        order.parameters.endTime = block.timestamp + 60 * 60 * 24;
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
+            .withIdentifierOrCriteria(0)
+            .withStartAmount(1e10)
+            .withEndAmount(1e11);
+
+        order.parameters.offer = offer;
+
+        ErrorsAndWarnings memory actual = validator.isValidOrder(
+            order,
+            address(seaport)
+        );
+
+        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
+            .empty()
+            .addError(SignatureIssue.Invalid)
+            .addError(GenericIssue.InvalidOrderFormat)
+            .addWarning(OfferIssue.AmountStepLarge)
+            .addWarning(ConsiderationIssue.ZeroItems);
+
+        assertEq(actual, expected);
+    }
+
     function test_default_full_isValidOrderReadOnly() public {
         Order memory order = OrderLib.empty().withParameters(
             OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
@@ -689,18 +922,26 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(
             left.errors.length,
             right.errors.length,
-            "unexpected number of errors"
+            "Unexpected number of errors"
         );
         assertEq(
             left.warnings.length,
             right.warnings.length,
-            "unexpected number of warnings"
+            "Unexpected number of warnings"
         );
         for (uint i = 0; i < left.errors.length; i++) {
-            assertEq(left.errors[i], right.errors[i], "unexpected error");
+            assertEq(
+                left.errors[i].toIssueString(),
+                right.errors[i].toIssueString(),
+                "Unexpected error"
+            );
         }
         for (uint i = 0; i < left.warnings.length; i++) {
-            assertEq(left.warnings[i], right.warnings[i], "unexpected warning");
+            assertEq(
+                left.warnings[i].toIssueString(),
+                right.warnings[i].toIssueString(),
+                "Unexpected warning"
+            );
         }
     }
 }

@@ -82,7 +82,6 @@ struct FuzzGeneratorContext {
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
     uint256[] potential1155TokenIds;
-    bytes32[] orderHashes;
     BasicOrderCategory basicOrderCategory;
     OfferItemSpace basicOfferSpace;
     uint256 counter;
@@ -130,7 +129,6 @@ library FuzzGeneratorContextLib {
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,
@@ -210,7 +208,6 @@ library FuzzGeneratorContextLib {
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
                 potential1155TokenIds: potential1155TokenIds,
-                orderHashes: new bytes32[](0),
                 basicOrderCategory: BasicOrderCategory.NONE,
                 basicOfferSpace: OfferItemSpace(
                     ItemType.NATIVE,

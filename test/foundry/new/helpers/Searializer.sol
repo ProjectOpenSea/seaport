@@ -43,6 +43,14 @@ import {
 
 import { withLabel } from "./Labeler.sol";
 
+import {
+    ErrorsAndWarnings
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    IssueStringHelpers
+} from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+
 /**
  * @notice A helper library to seralize test data as JSON.
  */
@@ -977,5 +985,38 @@ library Searializer {
             value.erc1155
         );
         return vm.serializeString(objectKey, valueKey, finalJson);
+    }
+
+    function tojsonDynArrayValidationErrorsAndWarnings(
+        string memory objectKey,
+        string memory valueKey,
+        ErrorsAndWarnings[] memory value
+    ) internal returns (string memory) {
+        string memory obj = string.concat(objectKey, valueKey);
+        uint256 length = value.length;
+        string memory out;
+        for (uint256 i; i < length; i++) {
+            if (value[i].errors.length > 0) {
+                out = tojsonDynArrayValidationErrorMessages(
+                    obj,
+                    vm.toString(i),
+                    value[i].errors
+                );
+            }
+        }
+        return vm.serializeString(objectKey, valueKey, out);
+    }
+
+    function tojsonDynArrayValidationErrorMessages(
+        string memory objectKey,
+        string memory valueKey,
+        uint16[] memory value
+    ) internal returns (string memory) {
+        uint256 length = value.length;
+        string[] memory out = new string[](length);
+        for (uint256 i; i < length; i++) {
+            out[i] = IssueStringHelpers.toIssueString(value[i]);
+        }
+        return vm.serializeString(objectKey, valueKey, out);
     }
 }
