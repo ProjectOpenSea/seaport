@@ -517,20 +517,20 @@ library MutationFilters {
         FuzzTestContext memory context
     ) internal view returns (bool) {
         // The target failure can't be triggerer when calling the match
-        // functions because the  caller does not provide any items during match
+        // functions because the caller does not provide any items during match
         // actions.
         if (ineligibleWhenMatch(context)) {
             return true;
         }
 
         // The target failure can't be triggered if the order isn't available.
-        // Seaport only checks for approval when the order is available and
-        // therefore items might actually be transferred.
+        // Approval is not required for items on unavailable orders as their
+        // associated transfers are not attempted.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
             return true;
         }
 
-        // The target failure can't be triggered on basic orders, because the
+        // The target failure can't be triggered on some basic order routes; the
         // caller does not need ERC20 approvals when accepting bids (as the
         // offerer provides the ERC20 tokens).
         uint256 eligibleItemTotal = order.parameters.consideration.length;
@@ -543,7 +543,7 @@ library MutationFilters {
         // The target failure can't be triggered if the order doesn't have a
         // consideration item that is non-native and non-filtered. Native tokens
         // don't have the approval concept and filtered items are not
-        // transferred so they don't get checked.
+        // transferred so approvals are not required.
         bool locatedEligibleConsiderationItem;
         for (uint256 i = 0; i < eligibleItemTotal; ++i) {
             ConsiderationItem memory item = order.parameters.consideration[i];
@@ -587,7 +587,8 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: Comment on why this filter is necessary.
+        // The target failure cannot be triggered unless some amount of native
+        // tokens are actually required.
         uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
@@ -606,7 +607,8 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: Comment on why this filter is necessary.
+        // The target failure cannot be triggered unless some amount of native
+        // tokens are actually required.
         uint256 minimumRequired = context.expectations.minimumValue;
 
         if (minimumRequired == 0) {
@@ -788,8 +790,9 @@ library MutationFilters {
         }
 
         // The target failure can't be triggered if the consideration length is
-        // 0. TODO: explain why removing this causes a panic instead of the
-        // target failure.
+        // 0. TODO: this is a limitation of the current mutation; support cases
+        // where 0-length consideration can still trigger this error by
+        // increasing totalOriginalConsiderationItems rather than decreasing it.
         if (ineligibleWhenNoConsiderationLength(order)) {
             return true;
         }
@@ -868,10 +871,8 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: Double check that this is appropriately restrictive. From a
-        // strictly Seaport perspective, it should be possible to hit the target
-        // failure with other starting lengths. It might just be a quirk of the
-        // test framework.
+        // NOTE: it is possible to hit the target failure with other signature
+        // lengths, but this test specifically targets ECDSA signatures.
         //
         // The target failure can't be triggered if the signature isn't a
         // normal ECDSA signature or a compact 2098 signature.
@@ -1171,7 +1172,8 @@ library MutationFilters {
     function ineligibleForMissingFulfillmentComponentOnAggregation(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // TODO: Document after checking and refactoring.
+        // The target failure can't be reached unless the function call is
+        // a type that accepts fulfillment arguments.
         if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
@@ -1186,7 +1188,8 @@ library MutationFilters {
     function ineligibleForOfferAndConsiderationRequiredOnFulfillment(
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // TODO: Document after checking and refactoring.
+        // The target failure can't be reached unless the function call is
+        // a type that accepts fulfillment arguments.
         if (ineligibleWhenNotFulfillmentIngestingFunction(context)) {
             return true;
         }
@@ -1226,12 +1229,12 @@ library MutationFilters {
             context.executionState.fulfillments[0].offerComponents
         );
 
-        // TODO: Document why this ever happens at all.
-        //
         // Iterate over the offer components and check if any of them have an
         // item index that is out of bounds for the order. The mutation modifies
         // the token of the offer item at the given index, so the index needs to
-        // be within range.
+        // be within range. This can happen when contract orders modify their
+        // offer or consideration lengths, or in the case of erroneous input for
+        // fulfillments.
         for (uint256 i = 0; i < firstOfferComponents.length; ++i) {
             FulfillmentComponent memory component = (firstOfferComponents[i]);
             if (
@@ -1397,29 +1400,18 @@ library MutationFilters {
         }
 
         // Only a subset of basic orders are eligible for this mutation. This
-        // portion of the filter prevents an Arithmetic over/underflow. TODO:
-        // explain why.
-        if (ineligibleWhenBasic(context)) {
-            if (
+        // portion of the filter prevents an Arithmetic over/underflow — as bids
+        // are paid from the offerer, setting the offer amount to zero will
+        // result in an underflow when attempting to reduce that offer amount as
+        // part of paying out additional recipient items.
+        if (
+            ineligibleWhenBasic(context) &&
+            order.parameters.consideration.length > 1 && (
                 order.parameters.consideration[0].itemType == ItemType.ERC721 ||
                 order.parameters.consideration[0].itemType == ItemType.ERC1155
-            ) {
-                uint256 totalConsiderationAmount;
-                for (
-                    uint256 i = 1;
-                    i < order.parameters.consideration.length;
-                    ++i
-                ) {
-                    totalConsiderationAmount += order
-                        .parameters
-                        .consideration[i]
-                        .startAmount;
-                }
-
-                if (totalConsiderationAmount > 0) {
-                    return true;
-                }
-            }
+            )
+        ) {
+            return true;
         }
 
         // There needs to be one or more offer items to tamper with.
@@ -1563,7 +1555,10 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: document why orders with rebates don't revert.
+        // The target failure is not eligible when rebates are present that may
+        // strip out the unused item parameters. TODO: take a more granular and
+        // precise approach here; only reduced total offer items is actually a
+        // problem, and even those only if all eligible offer items are removed.
         if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
@@ -1603,7 +1598,10 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: document why orders with rebates don't revert.
+        // The target failure is not eligible when rebates are present that may
+        // strip out the unused item parameters. TODO: take a more granular and
+        // precise approach here; only reduced total offer items is actually a
+        // problem, and even those only if all eligible offer items are removed.
         if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
@@ -1649,7 +1647,10 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: document why orders with rebates don't revert.
+        // The target failure is not eligible when rebates are present that may
+        // strip out the unused item parameters. TODO: take a more granular and
+        // precise approach here; only modified item amounts are actually a
+        // problem, and even those only if there is only one eligible item.
         if (ineligibleWhenOrderHasRebates(order, orderIndex, context)) {
             return true;
         }
@@ -1696,7 +1697,8 @@ library MutationFilters {
             return true;
         }
 
-        // TODO: Probably overfiltering
+        // TODO: This check is overly restrictive and is here as a simplifying
+        // assumption. Explore removing it.
         if (order.numerator != order.denominator) {
             return true;
         }
@@ -2039,7 +2041,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             OffererZoneFailureReason.ContractOfferer_IncorrectMinimumReceived
         );
 
-        // TODO: operate on a fuzzed item (this always operates on the last item)
+        // TODO: operate on a fuzzed item (this always operates on last item)
         offerer.addDropItemMutation(
             Side.OFFER,
             order.parameters.offer.length - 1,
