@@ -44,6 +44,37 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         _SEAPORT = seaport;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
+    }
+
+    /**
+     * @dev Enable accepting ERC721 tokens via safeTransfer.
+     */
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external payable returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
+    /**
+     * @dev Enable accepting ERC1155 tokens via safeTransfer.
+     */
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external payable returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
     // TODO: Fix.
     function cleanup(address) external payable returns (bytes4) {
         return this.cleanup.selector;
@@ -90,7 +121,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         address _fulfiller = fulfiller;
-        
+
         // Revert if the maximumSpent array is not exactly 1 item long.
         if (maximumSpent.length != 1) {
             revert InvalidTotalMaximumSpentItems();
@@ -194,7 +225,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
         uint256 /* contractNonce */
     ) external override returns (bytes4 ratifyOrderMagicValue) {
         // Silence compiler warning.
-        ratifyOrderMagicValue = bytes4(0); 
+        ratifyOrderMagicValue = bytes4(0);
 
         // If the caller is not Seaport, revert.
         if (msg.sender != _SEAPORT) {
@@ -218,9 +249,7 @@ contract ReferenceFlashloanOfferer is ContractOffererInterface {
             );
             // TODO: Come back and figure this out.  I thought I had it but now
             // I'm confused as hell.
-            uint256 flashloanDataLengthRaw = uint256(
-                bytes32(context[36:40])
-            );
+            uint256 flashloanDataLengthRaw = uint256(bytes32(context[36:40]));
             uint256 flashloanDataLength = 5 * (2 ^ flashloanDataLengthRaw);
             uint256 flashloanDataInitialOffset = 21;
             uint256 startingIndex;

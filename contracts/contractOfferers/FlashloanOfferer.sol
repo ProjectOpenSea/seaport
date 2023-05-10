@@ -43,6 +43,42 @@ contract FlashloanOfferer is ContractOffererInterface {
         _SEAPORT = seaport;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
+    }
+
+    /**
+     * @dev Enable accepting ERC721 tokens via safeTransfer.
+     */
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external payable returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
+    /**
+     * @dev Enable accepting ERC1155 tokens via safeTransfer.
+     */
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external payable returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
+    // TODO: Fix.
+    function cleanup(address) external payable returns (bytes4) {
+        return this.cleanup.selector;
+    }
+
     /**
      * @dev Generates an order with the specified minimum and maximum spent
      *      items, and optional context (supplied as extraData).

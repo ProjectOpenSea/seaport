@@ -40,6 +40,43 @@ contract GenericAdapterTest is BaseOrderTest {
     TestERC1155 testERC1155;
     bool rejectReceive;
 
+    /**
+     * @dev Enable accepting ERC721 tokens via safeTransfer.
+     */
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) public pure override returns (bytes4) {
+        assembly {
+            mstore(0, 0x150b7a02)
+            return(0x1c, 0x04)
+        }
+    }
+
+    /**
+     * @dev Enable accepting ERC1155 tokens via safeTransfer.
+     */
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) public pure override returns (bytes4) {
+        assembly {
+            mstore(0, 0xf23a6e61)
+            return(0x1c, 0x04)
+        }
+    }
+
+    receive() external payable override {
+        if (rejectReceive) {
+            revert("rejectReceive");
+        }
+    }
+
     function setUp() public override {
         super.setUp();
 
@@ -100,12 +137,12 @@ contract GenericAdapterTest is BaseOrderTest {
         require(success);
         assertEq(address(context.flashloanOfferer).balance, 1 ether);
 
-        testERC1155.mint(address(context.flashloanOfferer), 1, 1);
-        testERC721.mint(address(this), 1);
+        // testERC1155.mint(address(context.flashloanOfferer), 1, 1);
+        testERC721.mint(address(this), 2);
         testERC721.safeTransferFrom(
             address(this),
             address(context.flashloanOfferer),
-            1
+            2
         );
     }
 }

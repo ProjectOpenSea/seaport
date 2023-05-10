@@ -53,6 +53,12 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
         emit SeaportCompatibleContractDeployed();
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
+    }
+
     /**
      * @dev Generates an order with the specified minimum and maximum spent
      *      items, and optional context (supplied as extraData).
@@ -371,10 +377,7 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
         uint256,
         bytes calldata
     ) external payable returns (bytes4) {
-        assembly {
-            mstore(0, 0x150b7a02)
-            return(0x1c, 0x04)
-        }
+        return this.onERC721Received.selector;
     }
 
     /**
@@ -387,10 +390,7 @@ contract GenericAdapter is ContractOffererInterface, TokenTransferrer {
         uint256,
         bytes calldata
     ) external payable returns (bytes4) {
-        assembly {
-            mstore(0, 0xf23a6e61)
-            return(0x1c, 0x04)
-        }
+        return this.onERC1155Received.selector;
     }
 
     /**

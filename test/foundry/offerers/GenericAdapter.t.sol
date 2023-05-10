@@ -42,6 +42,43 @@ contract GenericAdapterTest is BaseOrderTest {
     TestERC1155 testERC1155;
     bool rejectReceive;
 
+    /**
+     * @dev Enable accepting ERC721 tokens via safeTransfer.
+     */
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) public pure override returns (bytes4) {
+        assembly {
+            mstore(0, 0x150b7a02)
+            return(0x1c, 0x04)
+        }
+    }
+
+    /**
+     * @dev Enable accepting ERC1155 tokens via safeTransfer.
+     */
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) public pure override returns (bytes4) {
+        assembly {
+            mstore(0, 0xf23a6e61)
+            return(0x1c, 0x04)
+        }
+    }
+
+    receive() external payable override {
+        if (rejectReceive) {
+            revert("rejectReceive");
+        }
+    }
+
     function setUp() public override {
         super.setUp();
 

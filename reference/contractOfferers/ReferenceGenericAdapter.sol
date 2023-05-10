@@ -51,6 +51,12 @@ contract ReferenceGenericAdapter is ContractOffererInterface, TokenTransferrer {
         _FLASHLOAN_OFFERER = flashloanOfferer;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
+    }
+
     /**
      * @dev Generates an order with the specified minimum and maximum spent
      *      items, and optional context (supplied as extraData).
