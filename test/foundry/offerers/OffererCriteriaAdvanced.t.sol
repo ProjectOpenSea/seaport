@@ -20,14 +20,14 @@ import {
     OrderType,
     ItemType,
     Side
-} from "seaport-types/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationItem,
     OfferItem,
     AdvancedOrder,
     CriteriaResolver
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationEventsAndErrors

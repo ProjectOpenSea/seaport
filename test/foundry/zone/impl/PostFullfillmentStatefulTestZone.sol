@@ -4,9 +4,9 @@ pragma solidity ^0.8.17;
 import {
     ZoneParameters,
     Schema
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 

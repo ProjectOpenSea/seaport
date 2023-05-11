@@ -44,19 +44,19 @@ import {
     UnresolvedConsiderationCriteria_error_selector,
     UnresolvedOfferCriteria_error_selector,
     UnusedItemParameters_error_selector
-} from "seaport-types/lib/ConsiderationErrorConstants.sol";
+} from "seaport-types/src/lib/ConsiderationErrorConstants.sol";
 
 import {
     BadReturnValueFromERC20OnTransfer_error_selector,
     NoContract_error_selector,
     TokenTransferGenericFailure_error_selector
-} from "seaport-types/lib/TokenTransferrerConstants.sol";
+} from "seaport-types/src/lib/TokenTransferrerConstants.sol";
 
 import {
     generateOrder_selector,
     ratifyOrder_selector,
     validateOrder_selector
-} from "seaport-types/lib/ConsiderationConstants.sol";
+} from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 

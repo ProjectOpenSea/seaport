@@ -10,7 +10,7 @@ import {
 import {
     NonMatchSelector_MagicMask,
     NonMatchSelector_InvalidErrorValue
-} from "seaport-types/lib/ConsiderationConstants.sol";
+} from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 import { Test } from "forge-std/Test.sol";
 

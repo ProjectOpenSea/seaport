@@ -3,12 +3,12 @@ pragma solidity ^0.8.7;
 
 import { Test } from "forge-std/Test.sol";
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet

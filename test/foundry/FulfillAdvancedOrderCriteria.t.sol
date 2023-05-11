@@ -15,9 +15,9 @@ import {
     OfferItem,
     OrderComponents,
     AdvancedOrder
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ItemType, Side } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 contract FulfillAdvancedOrderCriteria is BaseOrderTest {
     Merkle merkle = new Merkle();

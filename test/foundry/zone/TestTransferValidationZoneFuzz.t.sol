@@ -14,7 +14,7 @@ import {
     Order,
     OrderComponents,
     OrderType
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 

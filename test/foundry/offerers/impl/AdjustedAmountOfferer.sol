@@ -15,7 +15,7 @@ import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract AdjustedAmountOfferer is ContractOffererInterface, ERC165 {
     int256 immutable offerAmountAdjust;

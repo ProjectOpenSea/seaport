@@ -6,7 +6,7 @@ import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { CustomERC721 } from "../token/CustomERC721.sol";
 

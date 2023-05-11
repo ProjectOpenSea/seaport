@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.17;
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { Order } from "seaport-types/lib/ConsiderationStructs.sol";
+import { Order } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationInterface
@@ -16,7 +16,7 @@ import {
     ConsiderationItem,
     CriteriaResolver,
     Fulfillment
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 

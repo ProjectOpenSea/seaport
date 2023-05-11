@@ -12,13 +12,13 @@ import {
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 interface ERC20Mintable {
     function mint(address to, uint256 amount) external;

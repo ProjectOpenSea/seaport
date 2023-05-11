@@ -21,9 +21,9 @@ import {
     CriteriaResolver,
     OrderComponents,
     FulfillmentComponent
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 contract StatefulOffererTest is BaseOrderTest {
     StatefulRatifierOfferer offerer;

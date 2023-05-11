@@ -16,7 +16,7 @@ import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract PassthroughOfferer is ERC165, ContractOffererInterface {
     constructor(

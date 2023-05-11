@@ -13,13 +13,13 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { OrderType, ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationItem,
     AdvancedOrder,
     CriteriaResolver
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationEventsAndErrors

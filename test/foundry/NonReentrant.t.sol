@@ -6,7 +6,7 @@ import {
     BasicOrderType,
     ItemType,
     Side
-} from "seaport-types/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
@@ -23,7 +23,7 @@ import {
     AdvancedOrder,
     BasicOrderParameters,
     Order
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 

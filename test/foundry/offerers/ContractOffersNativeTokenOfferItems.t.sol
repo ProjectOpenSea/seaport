@@ -16,9 +16,9 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { ItemType, OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -27,7 +27,7 @@ import {
     CriteriaResolver,
     SpentItem,
     ReceivedItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ContractOffererInterface

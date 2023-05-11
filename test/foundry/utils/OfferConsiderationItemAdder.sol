@@ -6,7 +6,7 @@ import {
     OfferItem,
     ItemType,
     SpentItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { TestTokenMinter } from "./TestTokenMinter.sol";
 

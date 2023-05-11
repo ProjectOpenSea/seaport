@@ -16,9 +16,9 @@ import {
     OrderComponents,
     OrderParameters,
     OrderType
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 contract BulkSignatureTest is BaseOrderTest {
     OrderComponents private _empty;

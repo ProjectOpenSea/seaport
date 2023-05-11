@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {
     OrderType,
     BasicOrderType
-} from "seaport-types/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
@@ -15,7 +15,7 @@ import {
     Order,
     OrderComponents,
     BasicOrderParameters
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 

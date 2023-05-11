@@ -19,12 +19,12 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     BasicOrder_additionalRecipients_data_cdPtr,
     TwoWords
-} from "seaport-types/lib/ConsiderationConstants.sol";
+} from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 

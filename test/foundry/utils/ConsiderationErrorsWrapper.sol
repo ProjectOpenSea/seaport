@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Side } from "seaport-types/lib/ConsiderationEnums.sol";
+import { Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     _revertBadFraction,
@@ -32,7 +32,7 @@ import {
     _revertUnresolvedConsiderationCriteria,
     _revertUnresolvedOfferCriteria,
     _revertUnusedItemParameters
-} from "seaport-types/lib/ConsiderationErrors.sol";
+} from "seaport-types/src/lib/ConsiderationErrors.sol";
 
 contract ConsiderationErrorsWrapper {
     /**

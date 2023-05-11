@@ -15,12 +15,12 @@ import {
     Fulfillment,
     FulfillmentComponent,
     AdvancedOrder
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     OrderType,
     BasicOrderType
-} from "seaport-types/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
