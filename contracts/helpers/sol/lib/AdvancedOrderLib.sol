@@ -763,6 +763,20 @@ library AdvancedOrderLib {
         return orderDetails;
     }
 
+    function getOrderDetails(
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        bytes32[] memory orderHashes
+    ) internal view returns (OrderDetails[] memory) {
+        return
+            getOrderDetails(
+                advancedOrders,
+                criteriaResolvers,
+                orderHashes,
+                new UnavailableReason[](advancedOrders.length)
+            );
+    }
+
     function toOrderDetails(
         AdvancedOrder memory order,
         uint256 orderIndex,
