@@ -4,12 +4,12 @@ pragma solidity ^0.8.17;
 import {
     ConduitTransfer,
     ConduitItemType
-} from "../../../contracts/conduit/lib/ConduitStructs.sol";
+} from "seaport-types/src/conduit/lib/ConduitStructs.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
-import { Conduit } from "../../../contracts/conduit/Conduit.sol";
+import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
 contract ConduitExecuteTest is BaseConduitTest {
     struct FuzzInputs {

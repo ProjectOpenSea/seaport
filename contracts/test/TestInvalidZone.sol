@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
+import {
+    ZoneParameters,
+    Schema
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ERC165 } from "../interfaces/ERC165.sol";
-
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract TestInvalidZone is ERC165, ZoneInterface {
     // Returns invalid magic value

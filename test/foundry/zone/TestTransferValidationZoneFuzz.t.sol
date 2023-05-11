@@ -14,13 +14,13 @@ import {
     Order,
     OrderComponents,
     OrderType
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     ConsiderationItemLib,
@@ -30,7 +30,7 @@ import {
     OrderComponentsLib,
     OrderLib,
     SeaportArrays
-} from "../../../contracts/helpers/sol/lib/SeaportStructLib.sol";
+} from "seaport-sol/lib/SeaportStructLib.sol";
 
 import {
     TestTransferValidationZoneOfferer
@@ -618,8 +618,8 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
             ) = fulfillAvailableFulfillmentHelper.getNaiveFulfillmentComponents(
-                infra.advancedOrders
-            );
+                    infra.advancedOrders
+                );
         }
 
         // If the fuzz args call for using the transfer validation zone, make

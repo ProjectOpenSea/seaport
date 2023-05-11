@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "forge-std/Script.sol";
 
-import { Seaport } from "contracts/Seaport.sol";
+import { Seaport } from "seaport-core/src/Seaport.sol";
 
 interface ImmutableCreate2Factory {
     function safeCreate2(

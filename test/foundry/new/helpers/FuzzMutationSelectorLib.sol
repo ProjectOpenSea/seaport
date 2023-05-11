@@ -28,31 +28,31 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
     SignatureVerificationErrors
-} from "../../../../contracts/interfaces/SignatureVerificationErrors.sol";
+} from "seaport-types/src/interfaces/SignatureVerificationErrors.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "../../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     FulfillmentApplicationErrors
-} from "../../../../contracts/interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport-types/src/interfaces/FulfillmentApplicationErrors.sol";
 
 import {
     CriteriaResolutionErrors
-} from "../../../../contracts/interfaces/CriteriaResolutionErrors.sol";
+} from "seaport-types/src/interfaces/CriteriaResolutionErrors.sol";
 
 import {
     TokenTransferrerErrors
-} from "../../../../contracts/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
 
 import {
     ZoneInteractionErrors
-} from "../../../../contracts/interfaces/ZoneInteractionErrors.sol";
+} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 import {
     AmountDerivationErrors
-} from "../../../../contracts/interfaces/AmountDerivationErrors.sol";
+} from "seaport-types/src/interfaces/AmountDerivationErrors.sol";
 
 import {
     HashCalldataContractOfferer
@@ -1128,7 +1128,10 @@ library FailureDetailsLib {
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context.executionState.orderDetails[mutationState.selectedOrderIndex].orderHash
+            context
+                .executionState
+                .orderDetails[mutationState.selectedOrderIndex]
+                .orderHash
         );
     }
 

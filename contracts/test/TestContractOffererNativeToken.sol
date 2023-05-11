@@ -4,21 +4,20 @@ pragma solidity ^0.8.13;
 import {
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ERC165 } from "../interfaces/ERC165.sol";
-
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * @title TestContractOffererNativeToken

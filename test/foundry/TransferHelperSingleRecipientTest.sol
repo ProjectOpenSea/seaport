@@ -5,16 +5,16 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import {
     ConduitInterface
-} from "../../contracts/interfaces/ConduitInterface.sol";
+} from "seaport-types/src/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
 import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
 import {
     TransferHelperItem,
     TransferHelperItemsWithRecipient
-} from "../../contracts/helpers/TransferHelperStructs.sol";
+} from "seaport-types/src/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
@@ -40,15 +40,13 @@ import {
 
 import {
     TokenTransferrerErrors
-} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
 
 import {
     TransferHelperErrors
-} from "../../contracts/interfaces/TransferHelperErrors.sol";
+} from "seaport-types/src/interfaces/TransferHelperErrors.sol";
 
-import {
-    IERC721Receiver
-} from "../../contracts/interfaces/IERC721Receiver.sol";
+import { IERC721Receiver } from "seaport-types/src/interfaces/IERC721Receiver.sol";
 
 import {
     ERC721ReceiverMock

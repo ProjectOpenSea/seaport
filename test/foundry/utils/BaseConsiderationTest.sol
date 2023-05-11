@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ConduitController
-} from "../../../contracts/conduit/ConduitController.sol";
+import { ConduitController } from "seaport-core/src/conduit/ConduitController.sol";
 
 import {
     ReferenceConduitController
@@ -11,26 +9,26 @@ import {
 
 import {
     ConduitControllerInterface
-} from "../../../contracts/interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     OfferItem,
     ConsiderationItem
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { DifferentialTest } from "./DifferentialTest.sol";
 
 import { StructCopier } from "./StructCopier.sol";
 
-import { Conduit } from "../../../contracts/conduit/Conduit.sol";
+import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
-import { Consideration } from "../../../contracts/lib/Consideration.sol";
+import { Consideration } from "seaport-core/src/lib/Consideration.sol";
 
 import {
     ReferenceConsideration

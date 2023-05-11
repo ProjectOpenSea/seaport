@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { SeaportInterface } from "../../interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -10,7 +12,7 @@ import {
     Fulfillment,
     Order,
     OrderComponents
-} from "../../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * @title  PausableZone

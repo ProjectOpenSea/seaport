@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import { ArrayHelpers, MemoryPointer } from "seaport-sol/../ArrayHelpers.sol";
+import { ArrayHelpers, MemoryPointer } from "seaport/helpers/ArrayHelpers.sol";
 
 import { Execution, ItemType } from "seaport-sol/SeaportStructs.sol";
 import { ExecutionLib } from "seaport-sol/lib/ExecutionLib.sol";

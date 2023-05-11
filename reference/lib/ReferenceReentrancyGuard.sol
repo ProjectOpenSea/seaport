@@ -3,17 +3,17 @@ pragma solidity ^0.8.13;
 
 import {
     ConsiderationEventsAndErrors
-} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     ReentrancyErrors
-} from "../../contracts/interfaces/ReentrancyErrors.sol";
+} from "seaport-types/src/interfaces/ReentrancyErrors.sol";
 
 import {
     _ENTERED_AND_ACCEPTING_NATIVE_TOKENS,
     _ENTERED,
     _NOT_ENTERED
-} from "../../contracts/lib/ConsiderationConstants.sol";
+} from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 /**
  * @title ReentrancyGuard

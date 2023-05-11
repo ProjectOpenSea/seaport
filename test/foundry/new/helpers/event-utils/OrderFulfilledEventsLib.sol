@@ -14,21 +14,15 @@ import {
     ReceivedItem
 } from "seaport-sol/SeaportStructs.sol";
 
-import {
-    OrderDetails
-} from "../../../../../contracts/helpers/sol/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 import { getEventHashWithTopics, getTopicsHash } from "./EventHashes.sol";
 
-import {
-    AdvancedOrderLib
-} from "../../../../../contracts/helpers/sol/lib/AdvancedOrderLib.sol";
+import { AdvancedOrderLib } from "seaport-sol/lib/AdvancedOrderLib.sol";
 
-import {
-    OrderParametersLib
-} from "../../../../../contracts/helpers/sol/lib/OrderParametersLib.sol";
+import { OrderParametersLib } from "seaport-sol/lib/OrderParametersLib.sol";
 
 import {
     OrderFulfilledEvent,

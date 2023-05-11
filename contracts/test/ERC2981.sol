@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.0;
 
-import "../interfaces/IERC2981.sol";
-import "../interfaces/ERC165.sol";
+import "@openzeppelin/contracts/interfaces/IERC2981.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
  * @dev Implementation of the NFT Royalty Standard, a standardized way to retrieve royalty payment information.

@@ -6,11 +6,11 @@ import {
     BasicOrderType,
     ItemType,
     Side
-} from "../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdditionalRecipient,
@@ -23,7 +23,7 @@ import {
     AdvancedOrder,
     BasicOrderParameters,
     Order
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 

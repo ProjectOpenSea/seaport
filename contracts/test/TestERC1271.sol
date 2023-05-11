@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import { IERC1271 } from "../interfaces/IERC1271.sol";
+import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 contract TestERC1271 is IERC1271 {
     address public immutable owner;

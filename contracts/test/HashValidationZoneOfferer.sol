@@ -5,22 +5,22 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem,
     ZoneParameters
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ItemType, Side } from "../lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 import { OffererZoneFailureReason } from "./OffererZoneFailureReason.sol";
 
 /**
