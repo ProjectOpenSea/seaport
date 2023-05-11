@@ -8,7 +8,7 @@ import {
     Order,
     AdvancedOrder,
     CriteriaResolver
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 struct FulfillBasicOrderParameters {
     BasicOrderParameters parameters;

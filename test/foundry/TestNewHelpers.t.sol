@@ -5,7 +5,7 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
 import {
     BasicOrderParameters,
@@ -14,9 +14,9 @@ import {
     Fulfillment,
     OrderParameters,
     FulfillmentComponent
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
-import { BasicOrderType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { BasicOrderType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 contract TestNewHelpersTest is BaseOrderTest {
     struct Context {

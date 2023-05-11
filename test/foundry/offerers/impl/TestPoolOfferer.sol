@@ -3,31 +3,27 @@ pragma solidity ^0.8.7;
 
 import {
     ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/interfaces/ContractOffererInterface.sol";
 
-import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet
-} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {
-    IERC721
-} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-import {
-    IERC20
-} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
     using EnumerableSet for EnumerableSet.UintSet;

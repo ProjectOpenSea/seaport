@@ -45,7 +45,7 @@ import {
 import { ConduitMock } from "../../contracts/test/ConduitMock.sol";
 import {
     ImmutableCreate2FactoryInterface
-} from "../../contracts/interfaces/ImmutableCreate2FactoryInterface.sol";
+} from "seaport-types/interfaces/ImmutableCreate2FactoryInterface.sol";
 
 import {
     TestTransferValidationZoneOfferer

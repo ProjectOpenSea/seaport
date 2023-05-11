@@ -2,21 +2,18 @@
 
 pragma solidity ^0.8.17;
 
-import {
-    OrderType,
-    ItemType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     Order,
     OrderParameters,
     OrderComponents,
     FulfillmentComponent
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 

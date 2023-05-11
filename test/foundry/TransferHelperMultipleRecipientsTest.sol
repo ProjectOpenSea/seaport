@@ -5,16 +5,16 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import {
     ConduitInterface
-} from "../../contracts/interfaces/ConduitInterface.sol";
+} from "seaport-types/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "seaport-types/conduit/lib/ConduitEnums.sol";
 
 import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
 import {
     TransferHelperItem,
     TransferHelperItemsWithRecipient
-} from "../../contracts/helpers/TransferHelperStructs.sol";
+} from "seaport-types/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
@@ -40,15 +40,13 @@ import {
 
 import {
     TokenTransferrerErrors
-} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/interfaces/TokenTransferrerErrors.sol";
 
 import {
     TransferHelperErrors
-} from "../../contracts/interfaces/TransferHelperErrors.sol";
+} from "seaport-types/interfaces/TransferHelperErrors.sol";
 
-import {
-    IERC721Receiver
-} from "../../contracts/interfaces/IERC721Receiver.sol";
+import { IERC721Receiver } from "seaport-types/interfaces/IERC721Receiver.sol";
 
 import {
     ERC721ReceiverMock
@@ -62,7 +60,7 @@ import { StubERC721 } from "./token/StubERC721.sol";
 
 import { StubERC1155 } from "./token/StubERC1155.sol";
 
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     using Strings for uint256;

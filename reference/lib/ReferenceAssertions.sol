@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderParameters } from "seaport-types/lib/ConsiderationStructs.sol";
 
 import { ReferenceGettersAndDerivers } from "./ReferenceGettersAndDerivers.sol";
 
 import {
     TokenTransferrerErrors
-} from "../../contracts/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/interfaces/TokenTransferrerErrors.sol";
 
 import { ReferenceCounterManager } from "./ReferenceCounterManager.sol";
 

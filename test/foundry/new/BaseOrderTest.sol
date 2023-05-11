@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
@@ -54,7 +54,7 @@ import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
 
 import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
 
-import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
+import { AmountDeriver } from "seaport-core/lib/AmountDeriver.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 

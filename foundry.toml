@@ -9,14 +9,13 @@ remappings = [
     'ds-test/=lib/ds-test/src/',
     'forge-std/=lib/forge-std/src/',
     'murky/=lib/murky/src/',
-    'openzeppelin-contracts/=lib/openzeppelin-contracts/',
-    'seaport-sol/=contracts/helpers/sol/',
-    'seaport-core/=contracts/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
     'solarray/=lib/solarray/src/',
     'solady/=lib/solady/',
     'seaport-sol/=lib/seaport-sol/src/',
     'seaport-types/=lib/seaport-types/src/',
     'seaport-core/=lib/seaport-core/src/',
+    'seaport/=contracts/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [

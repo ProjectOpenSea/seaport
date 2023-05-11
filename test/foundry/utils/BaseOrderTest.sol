@@ -17,20 +17,20 @@ import {
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
-import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     BasicOrder_additionalRecipients_data_cdPtr,
     TwoWords
-} from "../../../contracts/lib/ConsiderationConstants.sol";
+} from "seaport-types/lib/ConsiderationConstants.sol";
 
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 
 import { OrderBuilder } from "./OrderBuilder.sol";
 
-import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
+import { AmountDeriver } from "seaport-core/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is OrderBuilder, AmountDeriver {

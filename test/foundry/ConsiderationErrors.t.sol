@@ -7,7 +7,7 @@ import {
     ConsiderationErrorsWrapper
 } from "./utils/ConsiderationErrorsWrapper.sol";
 
-import { Side } from "../../contracts/lib/ConsiderationEnums.sol";
+import { Side } from "seaport-types/lib/ConsiderationEnums.sol";
 
 contract ConsiderationErrors is BaseOrderTest, ConsiderationErrorsWrapper {
     address someAddress;

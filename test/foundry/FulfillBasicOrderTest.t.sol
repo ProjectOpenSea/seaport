@@ -4,18 +4,18 @@ pragma solidity ^0.8.17;
 import {
     OrderType,
     BasicOrderType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
 import {
     AdditionalRecipient,
     Order,
     OrderComponents,
     BasicOrderParameters
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -33,7 +33,7 @@ import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     using ArithmeticUtil for uint128;

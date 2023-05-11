@@ -6,7 +6,7 @@ import {
     ConduitTransfer,
     ConduitItemType,
     ConduitBatch1155Transfer
-} from "../../../contracts/conduit/lib/ConduitStructs.sol";
+} from "seaport-types/conduit/lib/ConduitStructs.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";

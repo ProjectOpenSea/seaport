@@ -4,15 +4,13 @@ pragma solidity ^0.8.17;
 import {
     ZoneParameters,
     Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
-import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
-import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {
-    ZoneInterface
-} from "../../../../contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
 
 contract PostFulfillmentStatefulTestZone is ERC165, ZoneInterface {
     error IncorrectAmount(uint256 actual, uint256 expected);

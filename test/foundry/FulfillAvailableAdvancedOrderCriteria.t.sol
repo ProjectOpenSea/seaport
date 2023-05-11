@@ -8,7 +8,7 @@ import { Merkle } from "murky/Merkle.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
 import {
     CriteriaResolver,
@@ -16,9 +16,9 @@ import {
     OrderComponents,
     AdvancedOrder,
     FulfillmentComponent
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
-import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport-types/lib/ConsiderationEnums.sol";
 
 contract FulfillAdvancedOrderCriteria is BaseOrderTest {
     Merkle merkle = new Merkle();

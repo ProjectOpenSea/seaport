@@ -15,16 +15,16 @@ import {
     Fulfillment,
     FulfillmentComponent,
     AdvancedOrder
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 import {
     OrderType,
     BasicOrderType
-} from "../../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
 contract OrderBuilder is OfferConsiderationItemAdder {
     uint256 internal globalSalt;

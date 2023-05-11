@@ -3,19 +3,19 @@ pragma solidity ^0.8.13;
 
 import {
     ERC20Interface
-} from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/interfaces/ContractOffererInterface.sol";
 
-import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 contract AdjustedAmountOfferer is ContractOffererInterface, ERC165 {
     int256 immutable offerAmountAdjust;

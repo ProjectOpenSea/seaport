@@ -11,13 +11,11 @@ import { Test } from "forge-std/Test.sol";
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
-import {
-    OrderComponents
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+import { OrderComponents } from "seaport-types/lib/ConsiderationStructs.sol";
 
-import { Math } from "openzeppelin-contracts/contracts/utils/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky

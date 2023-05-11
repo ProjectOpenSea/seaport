@@ -34,7 +34,7 @@ import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "seaport-core/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
 
 contract SelfRestrictedContractOffererTest is BaseOrderTest {
     using AdvancedOrderLib for AdvancedOrder;

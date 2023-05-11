@@ -11,7 +11,7 @@ import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { console2 } from "forge-std/console2.sol";
 
-import { ArrayHelpers, MemoryPointer } from "seaport-sol/../ArrayHelpers.sol";
+import { ArrayHelpers, MemoryPointer } from "seaport/helpers/ArrayHelpers.sol";
 
 import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 

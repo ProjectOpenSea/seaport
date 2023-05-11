@@ -5,21 +5,20 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+} from "seaport-types/interfaces/ContractOffererInterface.sol";
 
-import { ERC165 } from "../interfaces/ERC165.sol";
-
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 contract TestInvalidContractOfferer165 {
     error OrderUnavailable();

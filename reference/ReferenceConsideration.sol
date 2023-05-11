@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import {
     ConsiderationInterface
-} from "../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/interfaces/ConsiderationInterface.sol";
 
-import { OrderType } from "../contracts/lib/ConsiderationEnums.sol";
+import { OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -17,7 +17,7 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 

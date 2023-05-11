@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneParameters, Schema } from "../lib/ConsiderationStructs.sol";
+import {
+    ZoneParameters,
+    Schema
+} from "seaport-types/lib/ConsiderationStructs.sol";
 
-import { IERC165 } from "../interfaces/IERC165.sol";
+import { IERC165 } from "seaport-types/interfaces/IERC165.sol";
 
 /**
  * @title  ZoneInterface
