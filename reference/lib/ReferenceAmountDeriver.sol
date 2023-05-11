@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {
     AmountDerivationErrors
-} from "seaport-types/interfaces/AmountDerivationErrors.sol";
+} from "seaport-types/src/interfaces/AmountDerivationErrors.sol";
 
 import { FractionData } from "./ReferenceConsiderationStructs.sol";
 

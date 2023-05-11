@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import {
     ConduitControllerInterface
-} from "seaport-types/interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     ReentrancyErrors
-} from "seaport-types/interfaces/ReentrancyErrors.sol";
+} from "seaport-types/src/interfaces/ReentrancyErrors.sol";
 
 /**
  * @title ConsiderationBase

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ItemType, Side } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     Execution,
     FulfillmentComponent,
     ReceivedItem,
     SpentItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationItemIndicesAndValidity,
@@ -17,11 +17,11 @@ import {
 
 import {
     FulfillmentApplicationErrors
-} from "seaport-types/interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport-types/src/interfaces/FulfillmentApplicationErrors.sol";
 
 import {
     TokenTransferrerErrors
-} from "seaport-types/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
 
 /**
  * @title FulfillmentApplier

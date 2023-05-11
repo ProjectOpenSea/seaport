@@ -5,7 +5,7 @@ import {
     ItemType,
     OrderType,
     Side
-} from "seaport-types/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -18,7 +18,7 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -31,7 +31,7 @@ import { ReferenceFulfillmentApplier } from "./ReferenceFulfillmentApplier.sol";
 
 import {
     SeaportInterface
-} from "seaport-types/interfaces/SeaportInterface.sol";
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 /**
  * @title OrderCombiner

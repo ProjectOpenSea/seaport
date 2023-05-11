@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {
     ReceivedItem,
     SpentItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract ReferenceGenerateOrderReturndataDecoder {
     function decode(

@@ -5,11 +5,11 @@ import { ReferenceConduit } from "./ReferenceConduit.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-types/interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
 import {
     ConduitInterface
-} from "seaport-types/interfaces/ConduitInterface.sol";
+} from "seaport-types/src/interfaces/ConduitInterface.sol";
 
 /**
  * @title ConduitController

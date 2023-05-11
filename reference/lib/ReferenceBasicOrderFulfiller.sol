@@ -6,7 +6,7 @@ import {
     BasicOrderType,
     ItemType,
     OrderType
-} from "seaport-types/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -15,7 +15,7 @@ import {
     OfferItem,
     ReceivedItem,
     SpentItem
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,

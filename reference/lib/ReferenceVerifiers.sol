@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { OrderStatus } from "seaport-types/lib/ConsiderationStructs.sol";
+import { OrderStatus } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { ReferenceAssertions } from "./ReferenceAssertions.sol";
 

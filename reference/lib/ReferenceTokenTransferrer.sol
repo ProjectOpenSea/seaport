@@ -5,11 +5,11 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     TokenTransferrerErrors
-} from "seaport-types/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
 
 contract ReferenceTokenTransferrer is TokenTransferrerErrors {
     /**
