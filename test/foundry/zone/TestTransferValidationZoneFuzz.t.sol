@@ -20,7 +20,7 @@ import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     ConsiderationItemLib,

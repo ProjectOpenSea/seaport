@@ -10,7 +10,7 @@ import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract PostFulfillmentStatefulTestZone is ERC165, ZoneInterface {
     error IncorrectAmount(uint256 actual, uint256 expected);

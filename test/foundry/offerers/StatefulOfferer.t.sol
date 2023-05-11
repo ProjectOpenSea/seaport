@@ -8,11 +8,11 @@ import { StatefulRatifierOfferer } from "./impl/StatefulRatifierOfferer.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     OfferItem,

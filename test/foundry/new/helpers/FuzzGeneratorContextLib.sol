@@ -44,7 +44,7 @@ import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
-import { Conduit } from "seaport-core/conduit/Conduit.sol";
+import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
 import {
     HashValidationZoneOfferer

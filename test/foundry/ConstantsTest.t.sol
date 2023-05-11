@@ -62,41 +62,41 @@ import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
 import {
     FulfillmentApplicationErrors
-} from "seaport-types/interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport-types/src/interfaces/FulfillmentApplicationErrors.sol";
 
 import {
     AmountDerivationErrors
-} from "seaport-types/interfaces/AmountDerivationErrors.sol";
+} from "seaport-types/src/interfaces/AmountDerivationErrors.sol";
 
 import {
     CriteriaResolutionErrors
-} from "seaport-types/interfaces/CriteriaResolutionErrors.sol";
+} from "seaport-types/src/interfaces/CriteriaResolutionErrors.sol";
 
 import {
     ZoneInteractionErrors
-} from "seaport-types/interfaces/ZoneInteractionErrors.sol";
+} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 import {
     SignatureVerificationErrors
-} from "seaport-types/interfaces/SignatureVerificationErrors.sol";
+} from "seaport-types/src/interfaces/SignatureVerificationErrors.sol";
 
 import {
     TokenTransferrerErrors
-} from "seaport-types/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
 
 import {
     ReentrancyErrors
-} from "seaport-types/interfaces/ReentrancyErrors.sol";
+} from "seaport-types/src/interfaces/ReentrancyErrors.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract ConstantsTest is BaseConsiderationTest {
     function _test(uint256 _constant, bytes4 selector) public {

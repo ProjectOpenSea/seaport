@@ -28,31 +28,31 @@ import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
     SignatureVerificationErrors
-} from "seaport-types/interfaces/SignatureVerificationErrors.sol";
+} from "seaport-types/src/interfaces/SignatureVerificationErrors.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     FulfillmentApplicationErrors
-} from "seaport-types/interfaces/FulfillmentApplicationErrors.sol";
+} from "seaport-types/src/interfaces/FulfillmentApplicationErrors.sol";
 
 import {
     CriteriaResolutionErrors
-} from "seaport-types/interfaces/CriteriaResolutionErrors.sol";
+} from "seaport-types/src/interfaces/CriteriaResolutionErrors.sol";
 
 import {
     TokenTransferrerErrors
-} from "seaport-types/interfaces/TokenTransferrerErrors.sol";
+} from "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
 
 import {
     ZoneInteractionErrors
-} from "seaport-types/interfaces/ZoneInteractionErrors.sol";
+} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 import {
     AmountDerivationErrors
-} from "seaport-types/interfaces/AmountDerivationErrors.sol";
+} from "seaport-types/src/interfaces/AmountDerivationErrors.sol";
 
 import {
     HashCalldataContractOfferer

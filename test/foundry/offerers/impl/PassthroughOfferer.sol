@@ -4,11 +4,11 @@ pragma solidity ^0.8.13;
 import {
     ERC20Interface,
     ERC721Interface
-} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 

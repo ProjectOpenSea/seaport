@@ -9,7 +9,7 @@ import {
     ConduitControllerInterface
 } from "seaport-sol/ConduitControllerInterface.sol";
 
-import { ConduitController } from "seaport-core/conduit/ConduitController.sol";
+import { ConduitController } from "seaport-core/src/conduit/ConduitController.sol";
 
 import {
     ReferenceConduitController
@@ -17,15 +17,15 @@ import {
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { Consideration } from "seaport-core/lib/Consideration.sol";
+import { Consideration } from "seaport-core/src/lib/Consideration.sol";
 
 import {
     ReferenceConsideration
 } from "../../../../reference/ReferenceConsideration.sol";
 
-import { Conduit } from "seaport-core/conduit/Conduit.sol";
+import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
 import { setLabel } from "./Labeler.sol";
 

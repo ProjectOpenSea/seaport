@@ -8,7 +8,7 @@ import {
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract TestZone is ERC165, ZoneInterface {
     // Called by Consideration whenever any extraData is provided by the caller.

@@ -8,7 +8,7 @@ import {
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdditionalRecipient,
@@ -33,7 +33,7 @@ import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
     using ArithmeticUtil for uint128;

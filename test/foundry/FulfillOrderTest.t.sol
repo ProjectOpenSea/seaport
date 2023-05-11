@@ -6,7 +6,7 @@ import { OrderType, ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     Order,

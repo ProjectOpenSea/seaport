@@ -24,7 +24,7 @@ import {
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 contract OrderBuilder is OfferConsiderationItemAdder {
     uint256 internal globalSalt;

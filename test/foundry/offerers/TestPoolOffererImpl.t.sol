@@ -20,7 +20,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 

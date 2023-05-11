@@ -17,7 +17,7 @@ import {
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
 
@@ -30,7 +30,7 @@ import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 
 import { OrderBuilder } from "./OrderBuilder.sol";
 
-import { AmountDeriver } from "seaport-core/lib/AmountDeriver.sol";
+import { AmountDeriver } from "seaport-core/src/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is OrderBuilder, AmountDeriver {

@@ -10,11 +10,11 @@ import { DifferentialTest } from "../utils/DifferentialTest.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { ItemType, OrderType } from "seaport-types/lib/ConsiderationEnums.sol";
 
@@ -31,7 +31,7 @@ import {
 
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import {
     TestContractOffererNativeToken

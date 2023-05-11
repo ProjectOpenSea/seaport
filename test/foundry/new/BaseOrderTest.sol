@@ -54,7 +54,7 @@ import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
 
 import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
 
-import { AmountDeriver } from "seaport-core/lib/AmountDeriver.sol";
+import { AmountDeriver } from "seaport-core/src/lib/AmountDeriver.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 

@@ -8,7 +8,7 @@ import { Merkle } from "murky/Merkle.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     CriteriaResolver,

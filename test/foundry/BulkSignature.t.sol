@@ -7,7 +7,7 @@ import { EIP712MerkleTree } from "./utils/EIP712MerkleTree.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     ConsiderationItem,

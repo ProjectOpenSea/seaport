@@ -5,7 +5,7 @@ pragma solidity ^0.8.17;
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     NonMatchSelector_MagicMask,

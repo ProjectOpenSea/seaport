@@ -7,11 +7,11 @@ import { AdjustedAmountOfferer } from "./impl/AdjustedAmountOfferer.sol";
 
 import {
     ERC20Interface
-} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { OrderType, ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
@@ -23,11 +23,11 @@ import {
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     ZoneInteractionErrors
-} from "seaport-types/interfaces/ZoneInteractionErrors.sol";
+} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 contract AdjustedAmountOffererTest is
     BaseOrderTest,

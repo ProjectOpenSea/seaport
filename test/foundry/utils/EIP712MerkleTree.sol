@@ -11,7 +11,7 @@ import { Test } from "forge-std/Test.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { OrderComponents } from "seaport-types/lib/ConsiderationStructs.sol";
 

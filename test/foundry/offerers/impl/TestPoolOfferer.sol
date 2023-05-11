@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 

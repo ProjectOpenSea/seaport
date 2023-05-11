@@ -12,9 +12,9 @@ import {
 
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);

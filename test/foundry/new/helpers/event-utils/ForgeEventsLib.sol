@@ -5,7 +5,7 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
-import { MemoryPointer } from "seaport-types/helpers/PointerLibraries.sol";
+import { MemoryPointer } from "seaport-types/src/helpers/PointerLibraries.sol";
 
 import { getEventHash, getTopicsHash } from "./EventHashes.sol";
 

@@ -6,7 +6,7 @@ import { OrderType, ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdvancedOrder,
@@ -19,7 +19,7 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "seaport-types/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
