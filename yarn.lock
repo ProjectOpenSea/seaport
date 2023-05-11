@@ -704,6 +704,11 @@
     table "^6.8.0"
     undici "^5.4.0"
 
+"@openzeppelin/contracts@^4.8.3":
+  version "4.8.3"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.3.tgz#cbef3146bfc570849405f59cba18235da95a252a"
+  integrity sha512-bQHV8R9Me8IaJoJ2vPG4rXcL7seB7YVuskr4f+f5RyOStSZetwzkWtoqDMl5erkBJy0lDRUnIR2WIkPiC0GJlg==
+
 "@rari-capital/solmate@^6.2.0":
   version "6.4.0"
   resolved "https://registry.npmjs.org/@rari-capital/solmate/-/solmate-6.4.0.tgz"
@@ -5310,6 +5315,13 @@ seaport-core@^0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-0.0.1.tgz#99db0b605d0fbbfd43ca7a4724e64374ce47f6d4"
   integrity sha512-fgdSIC0ru8xK+fdDfF4bgTFH8ssr6EwbPejC2g/JsWzxy+FvG7JfaX57yn/eIv6hoscgZL87Rm+kANncgwLH3A==
+  dependencies:
+    seaport-types "^0.0.1"
+
+seaport-core@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-0.0.3.tgz#491fd562b9abe7802c1bb66e6a88bfaad1a73351"
+  integrity sha512-ehly6wX1ARfrQhZGyNcZNZejnoL4ARL/rrncEqwBPzZiUTkXS0uqWaQ/HFn1UHLFDU18YUKPqimzKoV2ILZWAQ==
   dependencies:
     seaport-types "^0.0.1"
 

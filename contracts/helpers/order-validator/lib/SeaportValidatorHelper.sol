@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "seaport-types/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
@@ -10,28 +10,28 @@ import {
     ConsiderationItem,
     Schema,
     ZoneParameters
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 import { ConsiderationTypeHashes } from "./ConsiderationTypeHashes.sol";
 import {
     ConsiderationInterface
-} from "seaport-types/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 import {
     ConduitControllerInterface
-} from "seaport-types/interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 import {
     ContractOffererInterface
-} from "seaport-types/interfaces/ContractOffererInterface.sol";
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "seaport-core/lib/GettersAndDerivers.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
+import { GettersAndDerivers } from "seaport-core/src/lib/GettersAndDerivers.sol";
 import {
     SeaportValidatorInterface
 } from "../lib/SeaportValidatorInterface.sol";
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "seaport-types/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { IERC2981 } from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {
@@ -60,7 +60,7 @@ import {
     GenericIssue,
     ConsiderationItemConfiguration
 } from "./SeaportValidatorTypes.sol";
-import { Verifiers } from "seaport-core/lib/Verifiers.sol";
+import { Verifiers } from "seaport-core/src/lib/Verifiers.sol";
 
 /**
  * @title SeaportValidator

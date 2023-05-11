@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import {
     ConduitInterface
-} from "seaport-types/interfaces/ConduitInterface.sol";
+} from "seaport-types/src/interfaces/ConduitInterface.sol";
 
 import {
     ConduitBatch1155Transfer,
     ConduitTransfer
-} from "seaport-types/conduit/lib/ConduitStructs.sol";
+} from "seaport-types/src/conduit/lib/ConduitStructs.sol";
 
 contract ConduitMockRevertBytes is ConduitInterface {
     constructor() {}

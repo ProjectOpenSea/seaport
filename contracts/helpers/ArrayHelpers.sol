@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "seaport-types/helpers/PointerLibraries.sol";
+import "seaport-types/src/helpers/PointerLibraries.sol";
 
 /**
  * @author d1ll0n

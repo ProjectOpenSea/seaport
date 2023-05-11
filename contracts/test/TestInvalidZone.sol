@@ -4,10 +4,10 @@ pragma solidity ^0.8.17;
 import {
     ZoneParameters,
     Schema
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import { ZoneInterface } from "seaport-types/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract TestInvalidZone is ERC165, ZoneInterface {
     // Returns invalid magic value

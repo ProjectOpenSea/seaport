@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {
     SeaportInterface
-} from "seaport-types/interfaces/SeaportInterface.sol";
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -12,7 +12,7 @@ import {
     Fulfillment,
     Order,
     OrderComponents
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * @title  PausableZone

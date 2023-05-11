@@ -1,32 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { IERC721Receiver } from "seaport-types/interfaces/IERC721Receiver.sol";
+import { IERC721Receiver } from "seaport-types/src/interfaces/IERC721Receiver.sol";
 
 import {
     TransferHelperItem,
     TransferHelperItemsWithRecipient
-} from "seaport-types/helpers/TransferHelperStructs.sol";
+} from "seaport-types/src/helpers/TransferHelperStructs.sol";
 
-import { ConduitItemType } from "seaport-types/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
 import {
     ConduitInterface
-} from "seaport-types/interfaces/ConduitInterface.sol";
+} from "seaport-types/src/interfaces/ConduitInterface.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-types/interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
-import { ConduitTransfer } from "seaport-types/conduit/lib/ConduitStructs.sol";
+import { ConduitTransfer } from "seaport-types/src/conduit/lib/ConduitStructs.sol";
 
 import {
     TransferHelperInterface
-} from "seaport-types/interfaces/TransferHelperInterface.sol";
+} from "seaport-types/src/interfaces/TransferHelperInterface.sol";
 
 import {
     TransferHelperErrors
-} from "seaport-types/interfaces/TransferHelperErrors.sol";
+} from "seaport-types/src/interfaces/TransferHelperErrors.sol";
 
 /**
  * @title TransferHelper

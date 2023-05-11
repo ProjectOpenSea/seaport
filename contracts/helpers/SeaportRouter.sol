@@ -3,20 +3,20 @@ pragma solidity ^0.8.13;
 
 import {
     SeaportRouterInterface
-} from "seaport-types/interfaces/SeaportRouterInterface.sol";
+} from "seaport-types/src/interfaces/SeaportRouterInterface.sol";
 
 import {
     SeaportInterface
-} from "seaport-types/interfaces/SeaportInterface.sol";
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
-import { ReentrancyGuard } from "seaport-core/lib/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "seaport-core/src/lib/ReentrancyGuard.sol";
 
 import {
     AdvancedOrder,
     CriteriaResolver,
     Execution,
     FulfillmentComponent
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * @title  SeaportRouter

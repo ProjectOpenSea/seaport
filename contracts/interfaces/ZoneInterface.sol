@@ -4,9 +4,9 @@ pragma solidity ^0.8.13;
 import {
     ZoneParameters,
     Schema
-} from "seaport-types/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { IERC165 } from "seaport-types/interfaces/IERC165.sol";
+import { IERC165 } from "seaport-types/src/interfaces/IERC165.sol";
 
 /**
  * @title  ZoneInterface
