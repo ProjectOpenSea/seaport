@@ -31,7 +31,7 @@ import {
 
 import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
+import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 import {
     FuzzParams,
@@ -62,7 +62,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     using FuzzEngineLib for FuzzTestContext;
     using FuzzDerivers for FuzzTestContext;
 
-    Account charlie = makeAccount("charlie");
+    Account charlie = makeAccountWrapper("charlie");
 
     function test_setUpOfferItems_erc20() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);

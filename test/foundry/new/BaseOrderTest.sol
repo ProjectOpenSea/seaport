@@ -68,14 +68,6 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 /**
- * @dev used to store address and key outputs from makeAddrAndKey(name)
- */
-struct Account {
-    address addr;
-    uint256 key;
-}
-
-/**
  * @dev This is a base test class for cases that depend on pre-deployed token
  *      contracts. Note that it is different from the BaseOrderTest in the
  *      legacy test suite.
@@ -301,12 +293,14 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev convenience wrapper for makeAddrAndKey
+     * @dev Wrapper for forge-std's makeAccount that has public visibility
+     *      instead of internal visibility, so that we can access it in
+     *      libraries.
      */
-    function makeAccount(string memory name) public returns (Account memory) {
-        (address addr, uint256 key) = makeAddrAndKey(name);
-        setLabel(addr, name);
-        return Account(addr, key);
+    function makeAccountWrapper(
+        string memory name
+    ) public returns (Account memory) {
+        return makeAccount(name);
     }
 
     /**
@@ -316,7 +310,7 @@ contract BaseOrderTest is
     function makeAndAllocateAccount(
         string memory name
     ) internal returns (Account memory) {
-        Account memory account = makeAccount(name);
+        Account memory account = makeAccountWrapper(name);
         allocateTokensAndApprovals(account.addr, type(uint128).max);
         return account;
     }

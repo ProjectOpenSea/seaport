@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { StdCheats } from "forge-std/StdCheats.sol";
+
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
@@ -44,8 +46,6 @@ import {
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { Account } from "../BaseOrderTest.sol";
-
 import { Result } from "./FuzzHelpers.sol";
 
 import { ExpectedBalances } from "./ExpectedBalances.sol";
@@ -78,9 +78,9 @@ interface TestHelpers {
         view
         returns (CriteriaResolverHelper);
 
-    function makeAccount(
+    function makeAccountWrapper(
         string memory name
-    ) external view returns (Account memory);
+    ) external view returns (StdCheats.Account memory);
 
     function getNaiveFulfillmentComponents(
         OrderDetails[] memory orderDetails

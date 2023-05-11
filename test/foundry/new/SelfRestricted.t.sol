@@ -29,7 +29,7 @@ import {
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { Account, BaseOrderTest } from "./BaseOrderTest.sol";
+import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
 
