@@ -5,8 +5,6 @@ import { Vm } from "forge-std/Vm.sol";
 
 import { StdCheats } from "forge-std/StdCheats.sol";
 
-import { StdCheatsSafe } from "forge-std/StdCheats.sol";
-
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
@@ -80,9 +78,9 @@ interface TestHelpers {
         view
         returns (CriteriaResolverHelper);
 
-    function makeAccount(
+    function makeAccountWrapper(
         string memory name
-    ) external view returns (StdCheatsSafe.Account memory);
+    ) external view returns (StdCheats.Account memory);
 
     function getNaiveFulfillmentComponents(
         OrderDetails[] memory orderDetails
