@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { StdCheats } from "forge-std/StdCheats.sol";
+
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
@@ -66,8 +68,6 @@ import {
     SeaportValidatorInterface
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
-import { StdCheats } from "forge-std/StdCheats.sol";
-
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -78,7 +78,7 @@ interface TestHelpers {
         view
         returns (CriteriaResolverHelper);
 
-    function makeAccount(
+    function makeAccountWrapper(
         string memory name
     ) external view returns (StdCheats.Account memory);
 

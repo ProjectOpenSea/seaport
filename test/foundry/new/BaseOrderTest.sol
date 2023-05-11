@@ -293,13 +293,24 @@ contract BaseOrderTest is
     }
 
     /**
+     * @dev Wrapper for forge-std's makeAccount that has public visibility
+     *      instead of internal visibility, so that we can access it in
+     *      libraries.
+     */
+    function makeAccountWrapper(
+        string memory name
+    ) public returns (Account memory) {
+        return makeAccount(name);
+    }
+
+    /**
      * @dev Convenience wrapper for makeAddrAndKey that also allocates tokens,
      *      ether, and approvals.
      */
     function makeAndAllocateAccount(
         string memory name
     ) internal returns (Account memory) {
-        Account memory account = makeAccount(name);
+        Account memory account = makeAccountWrapper(name);
         allocateTokensAndApprovals(account.addr, type(uint128).max);
         return account;
     }

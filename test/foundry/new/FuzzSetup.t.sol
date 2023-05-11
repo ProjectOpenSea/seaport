@@ -62,7 +62,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
     using FuzzEngineLib for FuzzTestContext;
     using FuzzDerivers for FuzzTestContext;
 
-    Account charlie = makeAccount("charlie");
+    Account charlie = makeAccountWrapper("charlie");
 
     function test_setUpOfferItems_erc20() public {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
