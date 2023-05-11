@@ -5306,6 +5306,26 @@ scuffed-abi@^1.0.4:
   resolved "https://registry.npmjs.org/scuffed-abi/-/scuffed-abi-1.0.4.tgz"
   integrity sha512-1NN2L1j+TMF6+/J2jHcAnhPH8Lwaqu5dlgknZPqejEVFQ8+cvcnXYNbaHtGEXTjSNrQLBGePXicD4oFGqecOnQ==
 
+seaport-core@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-0.0.1.tgz#99db0b605d0fbbfd43ca7a4724e64374ce47f6d4"
+  integrity sha512-fgdSIC0ru8xK+fdDfF4bgTFH8ssr6EwbPejC2g/JsWzxy+FvG7JfaX57yn/eIv6hoscgZL87Rm+kANncgwLH3A==
+  dependencies:
+    seaport-types "^0.0.1"
+
+seaport-sol@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/seaport-sol/-/seaport-sol-0.0.1.tgz#35331da57d12956658d88985e29f54dad22e10ba"
+  integrity sha512-e/PBmS53AomOpsSFDBjRimm7gkZVDlewPCEX/99iaOv5qqIbDNJlrw5cqz9ndFB6S3v/brd2AyuaeEAPZQI96g==
+  dependencies:
+    seaport-core "^0.0.1"
+    seaport-types "^0.0.1"
+
+seaport-types@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/seaport-types/-/seaport-types-0.0.1.tgz#e2a32fe8641853d7dadb1b0232d911d88ccc3f1a"
+  integrity sha512-m7MLa7sq3YPwojxXiVvoX1PM9iNVtQIn7AdEtBnKTwgxPfGRWUlbs/oMgetpjT/ZYTmv3X5/BghOcstWYvKqRA==
+
 secp256k1@^4.0.1:
   version "4.0.3"
   resolved "https://registry.npmjs.org/secp256k1/-/secp256k1-4.0.3.tgz"
