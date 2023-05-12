@@ -52,7 +52,9 @@ contract SeaportOrderHelper {
     }
 
     function run(
-        AdvancedOrder[] memory orders
+        AdvancedOrder[] memory orders,
+        address recipient,
+        address caller
     ) external returns (Response memory) {
         ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
             orders.length
@@ -76,10 +78,7 @@ contract SeaportOrderHelper {
             Fulfillment[] memory fulfillments,
             MatchComponent[] memory unspentOfferComponents,
             MatchComponent[] memory unmetConsiderationComponents
-        ) = orderDetails.getFulfillments(
-                address(0), // recipient
-                address(0) // caller
-            );
+        ) = orderDetails.getFulfillments(recipient, caller);
 
         return
             Response({
