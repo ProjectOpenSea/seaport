@@ -92,7 +92,93 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
     }
 
-    function test_validatesOrders() public {
+    function test_basicOrder() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(SINGLE_ERC721_SINGLE_NATIVE)
+            .toAdvancedOrder(1, 1, "");
+
+        Response memory res = helper.run(
+            orders,
+            offerer1.addr,
+            address(this),
+            1
+        );
+        assertEq(
+            res.suggestedAction,
+            seaport.fulfillBasicOrder_efficient_6GL6yc.selector,
+            "unexpected action selected"
+        );
+        assertEq(
+            res.suggestedActionName,
+            "fulfillBasicOrder_efficient_6GL6yc",
+            "unexpected actionName selected"
+        );
+        assertEq(
+            res.validationErrors.length,
+            1,
+            "unexpected validationErrors length"
+        );
+        assertEq(
+            res.validationErrors[0].errors.length,
+            4,
+            "unexpected validationErrors[0].errors length"
+        );
+        assertEq(
+            res.validationErrors[0].warnings.length,
+            1,
+            "unexpected validationErrors[0].warnings length"
+        );
+        assertEq(res.orderDetails.length, 1, "unexpected orderDetails length");
+        assertEq(
+            res.offerFulfillments.length,
+            1,
+            "unexpected offerFulfillments length"
+        );
+        assertEq(
+            res.considerationFulfillments.length,
+            1,
+            "unexpected considerationFulfillments length"
+        );
+        assertEq(res.fulfillments.length, 0, "unexpected fulfillments length");
+        assertEq(
+            res.unspentOfferComponents.length,
+            1,
+            "unexpected unspentOfferComponents length"
+        );
+        assertEq(
+            res.unmetConsiderationComponents.length,
+            1,
+            "unexpected unmetConsiderationComponents length"
+        );
+        assertEq(
+            res.explicitExecutions.length,
+            0,
+            "unexpected explicitExecutions length"
+        );
+        assertEq(
+            res.implicitExecutions.length,
+            3,
+            "unexpected implicitExecutions length"
+        );
+        assertEq(
+            res.implicitExecutionsPre.length,
+            0,
+            "unexpected implicitExecutionsPre length"
+        );
+        assertEq(
+            res.implicitExecutionsPost.length,
+            0,
+            "unexpected implicitExecutionsPost length"
+        );
+        assertEq(
+            res.nativeTokensReturned,
+            0,
+            "unexpected nativeTokensReturned amount"
+        );
+    }
+
+    function test_simpleOrder() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = OrderLib.fromDefault(SINGLE_ERC721).toAdvancedOrder(
             1,
@@ -100,14 +186,19 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             ""
         );
 
-        Response memory res = helper.run(orders, offerer1.addr, address(this));
+        Response memory res = helper.run(
+            orders,
+            offerer1.addr,
+            address(this),
+            0
+        );
         assertEq(
-            res.action,
+            res.suggestedAction,
             seaport.fulfillOrder.selector,
             "unexpected action selected"
         );
         assertEq(
-            res.actionName,
+            res.suggestedActionName,
             "fulfillOrder",
             "unexpected actionName selected"
         );

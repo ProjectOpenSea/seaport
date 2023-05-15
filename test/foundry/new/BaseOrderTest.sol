@@ -172,7 +172,10 @@ contract BaseOrderTest is
 
         _configureStructDefaults();
 
+        uint256 chainId = block.chainid;
+        vm.chainId(2);
         validatorHelper = new SeaportValidatorHelper();
+        vm.chainId(chainId);
 
         validator = new SeaportValidator(
             address(validatorHelper),

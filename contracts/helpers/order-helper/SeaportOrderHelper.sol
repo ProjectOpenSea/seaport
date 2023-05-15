@@ -30,14 +30,23 @@ contract SeaportOrderHelper {
     function run(
         AdvancedOrder[] memory orders,
         address recipient,
-        address caller
+        address caller,
+        uint256 nativeTokensSupplied
     ) external returns (Response memory) {
         return
             OrderHelperContextLib
-                .from(orders, seaport, validator, caller, recipient)
+                .from(
+                    orders,
+                    seaport,
+                    validator,
+                    caller,
+                    recipient,
+                    nativeTokensSupplied
+                )
+                .withDetails()
                 .withErrors()
                 .withFulfillments()
-                .withAction()
+                .withSuggestedAction()
                 .withExecutions()
                 .response;
     }

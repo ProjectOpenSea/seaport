@@ -9,9 +9,7 @@ import {
     OfferItemLib,
     OrderComponentsLib,
     OrderLib,
-    OrderParametersLib,
-    SeaportArrays,
-    ZoneParametersLib
+    OrderParametersLib
 } from "seaport-sol/SeaportSol.sol";
 
 import {
@@ -24,8 +22,7 @@ import {
     OrderComponents,
     OrderParameters,
     ReceivedItem,
-    SpentItem,
-    ZoneParameters
+    SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
 import {
@@ -35,10 +32,6 @@ import {
     OrderType,
     Side
 } from "seaport-sol/SeaportEnums.sol";
-
-import {
-    ContractOffererInterface
-} from "seaport-sol/ContractOffererInterface.sol";
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
@@ -119,8 +112,6 @@ library OrderStructureLib {
     using ConsiderationItemLib for ConsiderationItem[];
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
-    using ZoneParametersLib for AdvancedOrder;
-    using ZoneParametersLib for AdvancedOrder[];
 
     function getQuantity(
         AdvancedOrder[] memory orders
