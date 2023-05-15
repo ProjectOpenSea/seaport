@@ -7,6 +7,7 @@ import {
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,
+    FulfillmentDetails,
     MatchComponent,
     Order,
     OrderComponentsLib,
@@ -25,8 +26,8 @@ import {
     Order,
     OrderComponents,
     OrderParameters,
-    SpentItem,
-    ReceivedItem
+    ReceivedItem,
+    SpentItem
 } from "seaport-sol/SeaportStructs.sol";
 
 import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
@@ -37,6 +38,8 @@ import {
     FulfillmentGeneratorLib
 } from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
+import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
+
 import {
     SeaportValidatorInterface,
     ErrorsAndWarnings
@@ -45,6 +48,8 @@ import {
 struct ExecutionState {
     address caller;
     address recipient;
+    uint256 nativeTokensSupplied;
+    bytes32 fulfillerConduitKey;
     AdvancedOrder[] orders;
     OrderDetails[] orderDetails;
     bool hasRemainders;
@@ -67,6 +72,11 @@ struct Response {
     Fulfillment[] fulfillments;
     MatchComponent[] unspentOfferComponents;
     MatchComponent[] unmetConsiderationComponents;
+    Execution[] explicitExecutions;
+    Execution[] implicitExecutions;
+    Execution[] implicitExecutionsPre;
+    Execution[] implicitExecutionsPost;
+    uint256 nativeTokensReturned;
 }
 
 library OrderHelperContextLib {
@@ -76,6 +86,7 @@ library OrderHelperContextLib {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
     using FulfillmentGeneratorLib for OrderDetails[];
+    using ExecutionHelper for FulfillmentDetails;
 
     using OrderStructureLib for AdvancedOrder;
     using OrderStructureLib for AdvancedOrder[];
@@ -104,6 +115,8 @@ library OrderHelperContextLib {
                 executionState: ExecutionState({
                     caller: caller,
                     recipient: recipient,
+                    nativeTokensSupplied: 0,
+                    fulfillerConduitKey: bytes32(0),
                     orders: orders,
                     orderDetails: orderDetails,
                     hasRemainders: false
@@ -117,7 +130,12 @@ library OrderHelperContextLib {
                     considerationFulfillments: new FulfillmentComponent[][](0),
                     fulfillments: new Fulfillment[](0),
                     unspentOfferComponents: new MatchComponent[](0),
-                    unmetConsiderationComponents: new MatchComponent[](0)
+                    unmetConsiderationComponents: new MatchComponent[](0),
+                    explicitExecutions: new Execution[](0),
+                    implicitExecutions: new Execution[](0),
+                    implicitExecutionsPre: new Execution[](0),
+                    implicitExecutionsPost: new Execution[](0),
+                    nativeTokensReturned: 0
                 })
             });
     }
@@ -162,6 +180,75 @@ library OrderHelperContextLib {
         context
             .response
             .unmetConsiderationComponents = unmetConsiderationComponents;
+        return context;
+    }
+
+    function withExecutions(
+        OrderHelperContext memory context
+    ) internal pure returns (OrderHelperContext memory) {
+        bytes4 _action = context.response.action;
+        FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
+            orders: context.executionState.orderDetails,
+            recipient: payable(context.executionState.recipient),
+            fulfiller: payable(context.executionState.caller),
+            nativeTokensSupplied: context.executionState.nativeTokensSupplied,
+            fulfillerConduitKey: context.executionState.fulfillerConduitKey,
+            seaport: address(context.seaport)
+        });
+
+        Execution[] memory explicitExecutions;
+        Execution[] memory implicitExecutions;
+        Execution[] memory implicitExecutionsPre;
+        Execution[] memory implicitExecutionsPost;
+        uint256 nativeTokensReturned;
+
+        if (
+            _action == context.seaport.fulfillAvailableOrders.selector ||
+            _action == context.seaport.fulfillAvailableAdvancedOrders.selector
+        ) {
+            (
+                explicitExecutions,
+                implicitExecutionsPre,
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = fulfillmentDetails.getFulfillAvailableExecutions(
+                context.response.offerFulfillments,
+                context.response.considerationFulfillments,
+                context.response.orderDetails
+            );
+        } else if (
+            _action == context.seaport.matchOrders.selector ||
+            _action == context.seaport.matchAdvancedOrders.selector
+        ) {
+            (
+                explicitExecutions,
+                implicitExecutionsPre,
+                implicitExecutionsPost,
+                nativeTokensReturned
+            ) = fulfillmentDetails.getMatchExecutions(
+                context.response.fulfillments
+            );
+        } else if (
+            _action == context.seaport.fulfillOrder.selector ||
+            _action == context.seaport.fulfillAdvancedOrder.selector
+        ) {
+            (implicitExecutions, nativeTokensReturned) = fulfillmentDetails
+                .getStandardExecutions();
+        } else if (
+            _action == context.seaport.fulfillBasicOrder.selector ||
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            (implicitExecutions, nativeTokensReturned) = fulfillmentDetails
+                .getBasicExecutions();
+        } else {
+            revert("OrderHelperContextLib: Unknown action");
+        }
+        context.response.explicitExecutions = explicitExecutions;
+        context.response.implicitExecutions = implicitExecutions;
+        context.response.implicitExecutionsPre = implicitExecutionsPre;
+        context.response.implicitExecutionsPost = implicitExecutionsPost;
+        context.response.nativeTokensReturned = nativeTokensReturned;
         return context;
     }
 

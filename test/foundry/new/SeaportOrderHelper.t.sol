@@ -101,8 +101,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
 
         Response memory res = helper.run(orders, offerer1.addr, address(this));
-        assertEq(res.action, seaport.fulfillOrder.selector);
-        assertEq(res.actionName, "fulfillOrder");
+        assertEq(
+            res.action,
+            seaport.fulfillOrder.selector,
+            "unexpected action selected"
+        );
+        assertEq(
+            res.actionName,
+            "fulfillOrder",
+            "unexpected actionName selected"
+        );
         assertEq(
             res.validationErrors.length,
             1,
@@ -139,6 +147,31 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             res.unmetConsiderationComponents.length,
             0,
             "unexpected unmetConsiderationComponents length"
+        );
+        assertEq(
+            res.explicitExecutions.length,
+            0,
+            "unexpected explicitExecutions length"
+        );
+        assertEq(
+            res.implicitExecutions.length,
+            1,
+            "unexpected implicitExecutions length"
+        );
+        assertEq(
+            res.implicitExecutionsPre.length,
+            0,
+            "unexpected implicitExecutionsPre length"
+        );
+        assertEq(
+            res.implicitExecutionsPost.length,
+            0,
+            "unexpected implicitExecutionsPost length"
+        );
+        assertEq(
+            res.nativeTokensReturned,
+            0,
+            "unexpected nativeTokensReturned amount"
         );
     }
 }

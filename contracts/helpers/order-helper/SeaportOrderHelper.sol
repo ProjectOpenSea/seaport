@@ -32,12 +32,13 @@ contract SeaportOrderHelper {
         address recipient,
         address caller
     ) external returns (Response memory) {
-        OrderHelperContext memory context = OrderHelperContextLib
-            .from(orders, seaport, validator, caller, recipient)
-            .withErrors()
-            .withFulfillments()
-            .withAction();
-
-        return context.response;
+        return
+            OrderHelperContextLib
+                .from(orders, seaport, validator, caller, recipient)
+                .withErrors()
+                .withFulfillments()
+                .withAction()
+                .withExecutions()
+                .response;
     }
 }
