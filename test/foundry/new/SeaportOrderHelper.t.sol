@@ -101,7 +101,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
 
         Response memory res = helper.run(orders, offerer1.addr, address(this));
-
+        assertEq(res.action, seaport.fulfillOrder.selector);
+        assertEq(res.actionName, "fulfillOrder");
         assertEq(
             res.validationErrors.length,
             1,

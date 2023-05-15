@@ -1,45 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    AdvancedOrderLib,
-    OrderLib,
-    SeaportInterface,
-    CriteriaResolver,
-    OrderDetails,
-    AdvancedOrder,
-    Order,
-    FulfillmentComponent,
-    Fulfillment,
-    MatchComponent,
-    UnavailableReason
-} from "seaport-sol/SeaportSol.sol";
+import { SeaportInterface, AdvancedOrder } from "seaport-sol/SeaportSol.sol";
 
 import {
-    FulfillmentGeneratorLib
-} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
-
-import {
-    SeaportValidatorInterface,
-    ErrorsAndWarnings
+    SeaportValidatorInterface
 } from "../order-validator/SeaportValidator.sol";
 
-struct Response {
-    ErrorsAndWarnings[] validationErrors;
-    OrderDetails[] orderDetails;
-    FulfillmentComponent[][] offerFulfillments;
-    FulfillmentComponent[][] considerationFulfillments;
-    Fulfillment[] fulfillments;
-    MatchComponent[] unspentOfferComponents;
-    MatchComponent[] unmetConsiderationComponents;
-}
+import {
+    OrderHelperContext,
+    OrderHelperContextLib,
+    Response
+} from "./lib/OrderHelperLib.sol";
 
 contract SeaportOrderHelper {
-    using AdvancedOrderLib for AdvancedOrder[];
-    using AdvancedOrderLib for AdvancedOrder;
-    using OrderLib for Order;
-    using OrderLib for Order[];
-    using FulfillmentGeneratorLib for OrderDetails[];
+    using OrderHelperContextLib for OrderHelperContext;
 
     SeaportInterface public immutable seaport;
     SeaportValidatorInterface public immutable validator;
@@ -57,43 +32,12 @@ contract SeaportOrderHelper {
         address recipient,
         address caller
     ) external returns (Response memory) {
-        ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
-            orders.length
-        );
-        for (uint256 i; i < orders.length; i++) {
-            errors[i] = validator.isValidOrder(
-                orders[i].toOrder(),
-                address(seaport)
-            );
-        }
-        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
-            orders.length
-        );
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
-        bytes32[] memory orderHashes = orders.getOrderHashes(address(seaport));
-        OrderDetails[] memory orderDetails = orders.getOrderDetails(
-            criteriaResolvers,
-            orderHashes,
-            unavailableReasons
-        );
-        (
-            ,
-            FulfillmentComponent[][] memory offerFulfillments,
-            FulfillmentComponent[][] memory considerationFulfillments,
-            Fulfillment[] memory fulfillments,
-            MatchComponent[] memory unspentOfferComponents,
-            MatchComponent[] memory unmetConsiderationComponents
-        ) = orderDetails.getFulfillments(recipient, caller);
+        OrderHelperContext memory context = OrderHelperContextLib
+            .from(orders, seaport, validator, caller, recipient)
+            .withErrors()
+            .withFulfillments()
+            .withAction();
 
-        return
-            Response({
-                validationErrors: errors,
-                orderDetails: orderDetails,
-                offerFulfillments: offerFulfillments,
-                considerationFulfillments: considerationFulfillments,
-                fulfillments: fulfillments,
-                unspentOfferComponents: unspentOfferComponents,
-                unmetConsiderationComponents: unmetConsiderationComponents
-            });
+        return context.response;
     }
 }
