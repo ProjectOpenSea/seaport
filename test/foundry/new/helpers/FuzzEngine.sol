@@ -256,6 +256,7 @@ contract FuzzEngine is
         runSetup(context);
         runCheckRegistration(context);
         validate(context);
+        runHelper(context);
         execFailure(context);
         execSuccess(context);
         checkAll(context);
@@ -319,13 +320,14 @@ contract FuzzEngine is
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)
             .withSeaportValidator(validator)
+            .withSeaportOrderHelper(orderHelper)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
-            .withPreExecOrderStatuses(space)
-            .withCounter(generatorContext.counter);
+            .withPreExecOrderStatuses(space);
 
         // This is on a separate line to avoid stack too deep.
         context = context
+            .withCounter(generatorContext.counter)
             .withContractOffererNonce(generatorContext.contractOffererNonce)
             .withCaller(generatorContext.caller)
             .withFulfillerConduitKey(
@@ -519,6 +521,20 @@ contract FuzzEngine is
                     order
                 );
         }
+    }
+
+    /**
+     * @dev Call SeaportOrderHelper.run with generated orders
+     *
+     * @param context A Fuzz test context.
+     */
+    function runHelper(FuzzTestContext memory context) internal {
+        context.seaportOrderHelper.run(
+            context.executionState.orders,
+            context.executionState.caller,
+            context.executionState.recipient,
+            context.executionState.value
+        );
     }
 
     /**

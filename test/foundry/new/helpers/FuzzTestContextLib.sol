@@ -68,6 +68,10 @@ import {
     SeaportValidatorInterface
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
+import {
+    SeaportOrderHelperInterface
+} from "../../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -316,6 +320,10 @@ struct FuzzTestContext {
      */
     SeaportValidatorInterface seaportValidator;
     /**
+     * @dev A SeaportOrderHelper interface.
+     */
+    SeaportOrderHelperInterface seaportOrderHelper;
+    /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
      */
@@ -398,6 +406,7 @@ library FuzzTestContextLib {
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 seaportValidator: SeaportValidatorInterface(address(0)),
+                seaportOrderHelper: SeaportOrderHelperInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -626,6 +635,24 @@ library FuzzTestContextLib {
         SeaportValidatorInterface seaportValidator
     ) internal pure returns (FuzzTestContext memory) {
         context.seaportValidator = seaportValidator;
+        return context;
+    }
+
+    /**
+     * @dev Sets the SeaportOrderHelperInterface on a FuzzTestContext
+     *
+     * @param context           the FuzzTestContext to set the
+     *                          SeaportOrderHelperInterface of
+     * @param seaportOrderHelper  the SeaportOrderHelperInterface to set
+     *
+     * @return _context the FuzzTestContext with the SeaportOrderHelperInterface
+     *                  set
+     */
+    function withSeaportOrderHelper(
+        FuzzTestContext memory context,
+        SeaportOrderHelperInterface seaportOrderHelper
+    ) internal pure returns (FuzzTestContext memory) {
+        context.seaportOrderHelper = seaportOrderHelper;
         return context;
     }
 

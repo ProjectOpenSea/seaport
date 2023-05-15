@@ -43,8 +43,6 @@ contract SeaportOrderHelperTest is BaseOrderTest {
 
     string constant SINGLE_ERC721_SINGLE_NATIVE = "SINGLE_ERC721_SINGLE_NATIVE";
 
-    SeaportOrderHelper helper;
-
     function setUp() public override {
         super.setUp();
 
@@ -85,11 +83,6 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         OrderLib.empty().withParameters(parameters).saveDefault(
             SINGLE_ERC721_SINGLE_NATIVE
         );
-
-        helper = new SeaportOrderHelper(
-            SeaportInterface(address(seaport)),
-            SeaportValidatorInterface(address(validator))
-        );
     }
 
     function test_basicOrder() public {
@@ -98,7 +91,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .fromDefault(SINGLE_ERC721_SINGLE_NATIVE)
             .toAdvancedOrder(1, 1, "");
 
-        Response memory res = helper.run(
+        Response memory res = orderHelper.run(
             orders,
             offerer1.addr,
             address(this),
@@ -186,7 +179,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             ""
         );
 
-        Response memory res = helper.run(
+        Response memory res = orderHelper.run(
             orders,
             offerer1.addr,
             address(this),

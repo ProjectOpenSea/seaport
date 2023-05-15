@@ -64,8 +64,13 @@ import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
 import {
     SeaportValidatorHelper,
-    SeaportValidator
+    SeaportValidator,
+    SeaportValidatorInterface
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    SeaportOrderHelper
+} from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
 
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token
@@ -111,6 +116,7 @@ contract BaseOrderTest is
 
     SeaportValidatorHelper validatorHelper;
     SeaportValidator validator;
+    SeaportOrderHelper orderHelper;
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
 
@@ -180,6 +186,11 @@ contract BaseOrderTest is
         validator = new SeaportValidator(
             address(validatorHelper),
             address(getConduitController())
+        );
+
+        orderHelper = new SeaportOrderHelper(
+            SeaportInterface(address(seaport)),
+            SeaportValidatorInterface(address(validator))
         );
 
         fulfill = new FulfillAvailableHelper();

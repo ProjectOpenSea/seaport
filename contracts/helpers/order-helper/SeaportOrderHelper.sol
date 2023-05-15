@@ -13,7 +13,11 @@ import {
     Response
 } from "./lib/OrderHelperLib.sol";
 
-contract SeaportOrderHelper {
+import {
+    SeaportOrderHelperInterface
+} from "./lib/SeaportOrderHelperInterface.sol";
+
+contract SeaportOrderHelper is SeaportOrderHelperInterface {
     using OrderHelperContextLib for OrderHelperContext;
 
     SeaportInterface public immutable seaport;
