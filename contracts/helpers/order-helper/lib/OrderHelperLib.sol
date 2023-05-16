@@ -51,6 +51,7 @@ struct OrderHelperContext {
     address caller;
     address recipient;
     uint256 nativeTokensSupplied;
+    uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
     AdvancedOrder[] orders;
     Response response;
@@ -92,7 +93,8 @@ library OrderHelperContextLib {
         SeaportValidatorInterface validator,
         address caller,
         address recipient,
-        uint256 nativeTokensSupplied
+        uint256 nativeTokensSupplied,
+        uint256 maximumFulfilled
     ) internal pure returns (OrderHelperContext memory) {
         return
             OrderHelperContext({
@@ -101,6 +103,7 @@ library OrderHelperContextLib {
                 caller: caller,
                 recipient: recipient,
                 nativeTokensSupplied: nativeTokensSupplied,
+                maximumFulfilled: maximumFulfilled,
                 fulfillerConduitKey: bytes32(0),
                 orders: orders,
                 response: Response({
@@ -305,6 +308,31 @@ library OrderHelperContextLib {
             address(context.seaport)
         );
 
+        bool hasUnavailable = context.maximumFulfilled < context.orders.length;
+        for (uint256 i = 0; i < context.response.orderDetails.length; ++i) {
+            if (
+                context.response.orderDetails[i].unavailableReason !=
+                UnavailableReason.AVAILABLE
+            ) {
+                hasUnavailable = true;
+                break;
+            }
+        }
+
+        if (hasUnavailable) {
+            if (invalidOfferItemsLocated) {
+                revert(
+                    "OrderHelperLib: invalid native token + unavailable combination"
+                );
+            }
+
+            if (structure == Structure.ADVANCED) {
+                return context.seaport.fulfillAvailableAdvancedOrders.selector;
+            } else {
+                return context.seaport.fulfillAvailableOrders.selector;
+            }
+        }
+
         if (family == Family.SINGLE && !invalidOfferItemsLocated) {
             if (structure == Structure.BASIC) {
                 return
@@ -320,7 +348,8 @@ library OrderHelperContextLib {
             }
         }
 
-        bool cannotMatch = (context.response.remainders.length != 0);
+        bool cannotMatch = (context.response.remainders.length != 0 ||
+            hasUnavailable);
 
         if (cannotMatch && invalidOfferItemsLocated) {
             revert("OrderHelperLib: cannot fulfill provided combined order");

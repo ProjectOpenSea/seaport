@@ -9,6 +9,7 @@ interface SeaportOrderHelperInterface {
         AdvancedOrder[] memory orders,
         address recipient,
         address caller,
-        uint256 nativeTokensSupplied
+        uint256 nativeTokensSupplied,
+        uint256 maximumFulfilled
     ) external returns (Response memory);
 }

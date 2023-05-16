@@ -35,7 +35,8 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         AdvancedOrder[] memory orders,
         address recipient,
         address caller,
-        uint256 nativeTokensSupplied
+        uint256 nativeTokensSupplied,
+        uint256 maximumFulfilled
     ) external returns (Response memory) {
         return
             OrderHelperContextLib
@@ -45,7 +46,8 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                     validator,
                     caller,
                     recipient,
-                    nativeTokensSupplied
+                    nativeTokensSupplied,
+                    maximumFulfilled
                 )
                 .withDetails()
                 .withErrors()

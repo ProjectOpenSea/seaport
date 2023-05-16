@@ -95,7 +95,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             orders,
             offerer1.addr,
             address(this),
-            1
+            1,
+            0
         );
         assertEq(
             res.suggestedAction,
@@ -183,6 +184,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             orders,
             offerer1.addr,
             address(this),
+            0,
             0
         );
         assertEq(
