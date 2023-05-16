@@ -2,6 +2,10 @@
 pragma solidity ^0.8.17;
 
 import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+
+import {
     AdvancedOrder,
     AdvancedOrderLib,
     CriteriaResolver,
@@ -14,7 +18,6 @@ import {
     OrderDetails,
     OrderLib,
     OrderParametersLib,
-    SeaportInterface,
     UnavailableReason
 } from "seaport-sol/SeaportSol.sol";
 
@@ -46,7 +49,7 @@ import {
 } from "../../order-validator/SeaportValidator.sol";
 
 struct OrderHelperContext {
-    SeaportInterface seaport;
+    ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
     address caller;
     address recipient;
@@ -89,7 +92,7 @@ library OrderHelperContextLib {
 
     function from(
         AdvancedOrder[] memory orders,
-        SeaportInterface seaport,
+        ConsiderationInterface seaport,
         SeaportValidatorInterface validator,
         address caller,
         address recipient,

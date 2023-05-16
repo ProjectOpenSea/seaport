@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { SeaportInterface, AdvancedOrder } from "seaport-sol/SeaportSol.sol";
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { AdvancedOrder } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     SeaportValidatorInterface
@@ -20,11 +23,11 @@ import {
 contract SeaportOrderHelper is SeaportOrderHelperInterface {
     using OrderHelperContextLib for OrderHelperContext;
 
-    SeaportInterface public immutable seaport;
+    ConsiderationInterface public immutable seaport;
     SeaportValidatorInterface public immutable validator;
 
     constructor(
-        SeaportInterface _seaport,
+        ConsiderationInterface _seaport,
         SeaportValidatorInterface _validator
     ) {
         seaport = _seaport;
