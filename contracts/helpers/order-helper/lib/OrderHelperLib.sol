@@ -48,6 +48,8 @@ import {
     ErrorsAndWarnings
 } from "../../order-validator/SeaportValidator.sol";
 
+import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
+
 struct OrderHelperContext {
     ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
@@ -89,6 +91,7 @@ library OrderHelperContextLib {
 
     using OrderStructureLib for AdvancedOrder;
     using OrderStructureLib for AdvancedOrder[];
+    using OrderAvailabilityLib for AdvancedOrder[];
 
     function from(
         AdvancedOrder[] memory orders,
@@ -141,9 +144,9 @@ library OrderHelperContextLib {
                 address(context.seaport)
             );
         }
-        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
-            context.orders.length
-        );
+        UnavailableReason[] memory unavailableReasons = context
+            .orders
+            .unavailableReasons(context.maximumFulfilled, context.seaport);
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         bytes32[] memory orderHashes = context.orders.getOrderHashes(
             address(context.seaport)
