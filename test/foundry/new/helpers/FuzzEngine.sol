@@ -530,12 +530,14 @@ contract FuzzEngine is
      */
     function runHelper(FuzzTestContext memory context) internal {
         dumpExecutions(context);
+
         context.seaportOrderHelper.run(
             context.executionState.orders,
             context.executionState.caller,
             context.executionState.recipient,
             context.executionState.value,
-            context.executionState.maximumFulfilled
+            context.executionState.maximumFulfilled,
+            context.executionState.criteriaResolvers
         );
     }
 

@@ -58,6 +58,7 @@ struct OrderHelperContext {
     uint256 nativeTokensSupplied;
     uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
+    CriteriaResolver[] criteriaResolvers;
     AdvancedOrder[] orders;
     Response response;
 }
@@ -100,7 +101,8 @@ library OrderHelperContextLib {
         address caller,
         address recipient,
         uint256 nativeTokensSupplied,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        CriteriaResolver[] memory criteriaResolvers
     ) internal pure returns (OrderHelperContext memory) {
         return
             OrderHelperContext({
@@ -112,6 +114,7 @@ library OrderHelperContextLib {
                 maximumFulfilled: maximumFulfilled,
                 fulfillerConduitKey: bytes32(0),
                 orders: orders,
+                criteriaResolvers: criteriaResolvers,
                 response: Response({
                     suggestedAction: bytes4(0),
                     suggestedActionName: "",
@@ -135,24 +138,14 @@ library OrderHelperContextLib {
     function withDetails(
         OrderHelperContext memory context
     ) internal returns (OrderHelperContext memory) {
-        ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
-            context.orders.length
-        );
-        for (uint256 i; i < context.orders.length; i++) {
-            errors[i] = context.validator.isValidOrder(
-                context.orders[i].toOrder(),
-                address(context.seaport)
-            );
-        }
         UnavailableReason[] memory unavailableReasons = context
             .orders
             .unavailableReasons(context.maximumFulfilled, context.seaport);
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         bytes32[] memory orderHashes = context.orders.getOrderHashes(
             address(context.seaport)
         );
         context.response.orderDetails = context.orders.getOrderDetails(
-            criteriaResolvers,
+            context.criteriaResolvers,
             orderHashes,
             unavailableReasons
         );

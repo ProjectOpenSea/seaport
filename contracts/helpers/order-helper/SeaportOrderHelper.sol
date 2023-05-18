@@ -4,7 +4,10 @@ pragma solidity ^0.8.17;
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder } from "seaport-types/src/lib/ConsiderationStructs.sol";
+import {
+    AdvancedOrder,
+    CriteriaResolver
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     SeaportValidatorInterface
@@ -39,7 +42,8 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         address recipient,
         address caller,
         uint256 nativeTokensSupplied,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        CriteriaResolver[] memory criteriaResolvers
     ) external returns (Response memory) {
         return
             OrderHelperContextLib
@@ -50,7 +54,8 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                     caller,
                     recipient,
                     nativeTokensSupplied,
-                    maximumFulfilled
+                    maximumFulfilled,
+                    criteriaResolvers
                 )
                 .withDetails()
                 .withErrors()

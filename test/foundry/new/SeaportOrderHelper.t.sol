@@ -10,7 +10,8 @@ import {
     OrderType,
     AdvancedOrderLib,
     ItemType,
-    SeaportInterface
+    SeaportInterface,
+    CriteriaResolver
 } from "seaport-sol/SeaportSol.sol";
 
 import {
@@ -96,7 +97,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             offerer1.addr,
             address(this),
             1,
-            0
+            0,
+            new CriteriaResolver[](0)
         );
         assertEq(
             res.suggestedAction,
@@ -185,7 +187,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             offerer1.addr,
             address(this),
             0,
-            0
+            0,
+            new CriteriaResolver[](0)
         );
         assertEq(
             res.suggestedAction,

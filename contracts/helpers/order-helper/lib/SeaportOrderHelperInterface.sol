@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder } from "seaport-sol/SeaportSol.sol";
+import { AdvancedOrder, CriteriaResolver } from "seaport-sol/SeaportSol.sol";
 import { Response } from "./OrderHelperLib.sol";
 
 interface SeaportOrderHelperInterface {
@@ -10,6 +10,7 @@ interface SeaportOrderHelperInterface {
         address recipient,
         address caller,
         uint256 nativeTokensSupplied,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        CriteriaResolver[] memory criteriaResolvers
     ) external returns (Response memory);
 }
