@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Merkle } from "murky/Merkle.sol";
+
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
@@ -19,15 +21,19 @@ import {
     Response
 } from "./lib/OrderHelperLib.sol";
 
+import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
+
 import {
     SeaportOrderHelperInterface
 } from "./lib/SeaportOrderHelperInterface.sol";
 
 contract SeaportOrderHelper is SeaportOrderHelperInterface {
     using OrderHelperContextLib for OrderHelperContext;
+    using CriteriaHelperLib for uint256[];
 
     ConsiderationInterface public immutable seaport;
     SeaportValidatorInterface public immutable validator;
+    Merkle public immutable merkleHelper;
 
     constructor(
         ConsiderationInterface _seaport,
@@ -35,6 +41,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     ) {
         seaport = _seaport;
         validator = _validator;
+        merkleHelper = new Merkle();
     }
 
     function run(
@@ -63,5 +70,18 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                 .withSuggestedAction()
                 .withExecutions()
                 .response;
+    }
+
+    function criteriaRoot(
+        uint256[] memory tokenIds
+    ) external view returns (bytes32) {
+        return tokenIds.criteriaRoot(merkleHelper);
+    }
+
+    function criteriaProof(
+        uint256[] memory tokenIds,
+        uint256 index
+    ) external view returns (bytes32[] memory) {
+        return tokenIds.criteriaProof(index, merkleHelper);
     }
 }

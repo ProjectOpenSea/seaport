@@ -11,7 +11,10 @@ import {
     MatchFulfillmentHelper,
     OrderComponentsLib,
     OrderLib,
-    OrderParametersLib
+    OrderParametersLib,
+    OfferItem,
+    ConsiderationItem,
+    ItemType
 } from "seaport-sol/SeaportSol.sol";
 
 import {
@@ -531,14 +534,27 @@ contract FuzzEngine is
     function runHelper(FuzzTestContext memory context) internal {
         dumpExecutions(context);
 
-        context.seaportOrderHelper.run(
-            context.executionState.orders,
-            context.executionState.caller,
-            context.executionState.recipient,
-            context.executionState.value,
-            context.executionState.maximumFulfilled,
-            context.executionState.criteriaResolvers
-        );
+        bool isContractOrder;
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            if (
+                uint8(context.executionState.orders[i].parameters.orderType) ==
+                4
+            ) {
+                isContractOrder = true;
+                break;
+            }
+        }
+
+        if (!isContractOrder) {
+            context.seaportOrderHelper.run(
+                context.executionState.orders,
+                context.executionState.caller,
+                context.executionState.recipient,
+                context.executionState.value,
+                context.executionState.maximumFulfilled,
+                context.executionState.criteriaResolvers
+            );
+        }
     }
 
     /**

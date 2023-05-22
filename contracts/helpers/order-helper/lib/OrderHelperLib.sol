@@ -203,7 +203,7 @@ library OrderHelperContextLib {
 
     function withExecutions(
         OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
+    ) internal view returns (OrderHelperContext memory) {
         bytes4 _suggestedAction = context.response.suggestedAction;
         FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
             orders: context.response.orderDetails,

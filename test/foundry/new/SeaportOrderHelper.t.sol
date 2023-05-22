@@ -42,7 +42,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
 
-    string constant SINGLE_ERC721_SINGLE_NATIVE = "SINGLE_ERC721_SINGLE_NATIVE";
+    string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
 
     function setUp() public override {
         super.setUp();
@@ -64,40 +64,40 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .withAmount(1);
         OrderParameters memory parameters = OrderComponentsLib
             .fromDefault(STANDARD)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 1)
             .toOrderParameters()
             .withOffer(offer);
         parameters.saveDefault(SINGLE_ERC721);
         OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC721);
 
-        // Set up and store order with single ERC721 offer item
-        // and single native consideration item
         ConsiderationItem[] memory _consideration = new ConsiderationItem[](1);
         _consideration[0] = ConsiderationItemLib
             .empty()
-            .withItemType(ItemType.NATIVE)
-            .withToken(address(0))
+            .withItemType(ItemType.ERC20)
+            .withToken(address(erc20s[0]))
             .withAmount(1);
         parameters = OrderParametersLib
             .fromDefault(SINGLE_ERC721)
             .withConsideration(_consideration)
             .withTotalOriginalConsiderationItems(1);
         OrderLib.empty().withParameters(parameters).saveDefault(
-            SINGLE_ERC721_SINGLE_NATIVE
+            SINGLE_ERC721_SINGLE_ERC20
         );
     }
 
     function test_basicOrder() public {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = OrderLib
-            .fromDefault(SINGLE_ERC721_SINGLE_NATIVE)
+            .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
             .toAdvancedOrder(1, 1, "");
 
         Response memory res = orderHelper.run(
             orders,
             offerer1.addr,
             address(this),
-            1,
             0,
+            type(uint256).max,
             new CriteriaResolver[](0)
         );
         assertEq(
@@ -154,7 +154,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.implicitExecutions.length,
-            3,
+            2,
             "unexpected implicitExecutions length"
         );
         assertEq(
@@ -187,7 +187,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             offerer1.addr,
             address(this),
             0,
-            0,
+            type(uint256).max,
             new CriteriaResolver[](0)
         );
         assertEq(
@@ -261,6 +261,46 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             res.nativeTokensReturned,
             0,
             "unexpected nativeTokensReturned amount"
+        );
+    }
+
+    function test_criteriaRoot() public {
+        bytes32 expectedRoot = bytes32(
+            0x11572c83a2c0fe92ff78bbe3be1013bdef0b1eca44bb67f468dbd31f46237097
+        );
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = 2;
+        tokenIds[1] = 5;
+        tokenIds[2] = 3;
+        assertEq(orderHelper.criteriaRoot(tokenIds), expectedRoot);
+
+        // TokenIds are sorted before hashing
+        tokenIds[0] = 5;
+        tokenIds[1] = 3;
+        tokenIds[2] = 2;
+        assertEq(orderHelper.criteriaRoot(tokenIds), expectedRoot);
+    }
+
+    function test_criteriaProof() public {
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = 2;
+        tokenIds[1] = 5;
+        tokenIds[2] = 3;
+
+        bytes32[] memory proof = orderHelper.criteriaProof(tokenIds, 0);
+
+        assertEq(proof.length, 2);
+        assertEq(
+            proof[0],
+            bytes32(
+                0x405787fa12a823e0f2b7631cc41b3ba8828b3321ca811111fa75cd3aa3bb5ace
+            )
+        );
+        assertEq(
+            proof[1],
+            bytes32(
+                0x428a6bbf587e6f3339e6162c6b1772e06c62ca82f784b9af8a31028560d0d717
+            )
         );
     }
 }

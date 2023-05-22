@@ -11,8 +11,6 @@ import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
 
 import { OrderStructureLib, State } from "./OrderStructureLib.sol";
 
-import "forge-std/console.sol";
-
 library OrderAvailabilityLib {
     using OrderStructureLib for AdvancedOrder;
 
@@ -61,11 +59,6 @@ library OrderAvailabilityLib {
             reasons[i] = reason;
             if (reason == UnavailableReason.AVAILABLE) {
                 totalAvailable++;
-                console.log("available");
-                console.log(uint8(reason));
-            } else {
-                console.log("unavailable");
-                console.log(uint8(reason));
             }
         }
         return reasons;
