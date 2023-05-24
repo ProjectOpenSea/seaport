@@ -16,6 +16,7 @@ import {
 } from "../order-validator/SeaportValidator.sol";
 
 import {
+    CriteriaConstraint,
     OrderHelperContext,
     OrderHelperContextLib,
     Response
@@ -64,6 +65,34 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                     maximumFulfilled,
                     criteriaResolvers
                 )
+                .withDetails()
+                .withErrors()
+                .withFulfillments()
+                .withSuggestedAction()
+                .withExecutions()
+                .response;
+    }
+
+    function run(
+        AdvancedOrder[] memory orders,
+        address recipient,
+        address caller,
+        uint256 nativeTokensSupplied,
+        uint256 maximumFulfilled,
+        CriteriaConstraint[] memory criteria
+    ) external returns (Response memory) {
+        OrderHelperContext memory context = OrderHelperContextLib.from(
+            orders,
+            seaport,
+            validator,
+            caller,
+            recipient,
+            nativeTokensSupplied,
+            maximumFulfilled
+        );
+        return
+            context
+                .withInferredCriteria(criteria, merkleHelper)
                 .withDetails()
                 .withErrors()
                 .withFulfillments()

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import { Merkle } from "murky/Merkle.sol";
+
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
@@ -50,6 +52,8 @@ import {
 
 import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
 
+import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
+
 struct OrderHelperContext {
     ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
@@ -64,6 +68,7 @@ struct OrderHelperContext {
 }
 
 struct Response {
+    AdvancedOrder[] orders;
     bytes4 suggestedAction;
     string suggestedActionName;
     ErrorsAndWarnings[] validationErrors;
@@ -81,6 +86,14 @@ struct Response {
     uint256 nativeTokensReturned;
 }
 
+struct CriteriaConstraint {
+    uint256 orderIndex;
+    Side side;
+    uint256 index;
+    uint256 identifier;
+    uint256[] tokenIds;
+}
+
 library OrderHelperContextLib {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -93,6 +106,8 @@ library OrderHelperContextLib {
     using OrderStructureLib for AdvancedOrder;
     using OrderStructureLib for AdvancedOrder[];
     using OrderAvailabilityLib for AdvancedOrder[];
+
+    using CriteriaHelperLib for uint256[];
 
     function from(
         AdvancedOrder[] memory orders,
@@ -116,6 +131,7 @@ library OrderHelperContextLib {
                 orders: orders,
                 criteriaResolvers: criteriaResolvers,
                 response: Response({
+                    orders: orders,
                     suggestedAction: bytes4(0),
                     suggestedActionName: "",
                     validationErrors: new ErrorsAndWarnings[](0),
@@ -133,6 +149,85 @@ library OrderHelperContextLib {
                     nativeTokensReturned: 0
                 })
             });
+    }
+
+    function from(
+        AdvancedOrder[] memory orders,
+        ConsiderationInterface seaport,
+        SeaportValidatorInterface validator,
+        address caller,
+        address recipient,
+        uint256 nativeTokensSupplied,
+        uint256 maximumFulfilled
+    ) internal pure returns (OrderHelperContext memory) {
+        return
+            OrderHelperContext({
+                seaport: seaport,
+                validator: validator,
+                caller: caller,
+                recipient: recipient,
+                nativeTokensSupplied: nativeTokensSupplied,
+                maximumFulfilled: maximumFulfilled,
+                fulfillerConduitKey: bytes32(0),
+                orders: orders,
+                criteriaResolvers: new CriteriaResolver[](0),
+                response: Response({
+                    orders: orders,
+                    suggestedAction: bytes4(0),
+                    suggestedActionName: "",
+                    validationErrors: new ErrorsAndWarnings[](0),
+                    orderDetails: new OrderDetails[](0),
+                    offerFulfillments: new FulfillmentComponent[][](0),
+                    considerationFulfillments: new FulfillmentComponent[][](0),
+                    fulfillments: new Fulfillment[](0),
+                    unspentOfferComponents: new MatchComponent[](0),
+                    unmetConsiderationComponents: new MatchComponent[](0),
+                    remainders: new MatchComponent[](0),
+                    explicitExecutions: new Execution[](0),
+                    implicitExecutions: new Execution[](0),
+                    implicitExecutionsPre: new Execution[](0),
+                    implicitExecutionsPost: new Execution[](0),
+                    nativeTokensReturned: 0
+                })
+            });
+    }
+
+    function withInferredCriteria(
+        OrderHelperContext memory context,
+        CriteriaConstraint[] memory criteria,
+        Merkle murky
+    ) internal returns (OrderHelperContext memory) {
+        for (uint256 i; i < criteria.length; i++) {
+            CriteriaConstraint memory constraint = criteria[i];
+            OrderParameters memory parameters = context
+                .orders[constraint.orderIndex]
+                .parameters;
+            if (constraint.side == Side.OFFER) {
+                OfferItem memory offerItem = parameters.offer[constraint.index];
+                ItemType itemType = offerItem.itemType;
+                if (
+                    itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    offerItem.identifierOrCriteria = uint256(
+                        constraint.tokenIds.criteriaRoot(murky)
+                    );
+                }
+            } else {
+                ConsiderationItem memory considerationItem = parameters
+                    .consideration[constraint.index];
+                ItemType itemType = considerationItem.itemType;
+                if (
+                    itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    itemType == ItemType.ERC1155_WITH_CRITERIA
+                ) {
+                    considerationItem.identifierOrCriteria = uint256(
+                        constraint.tokenIds.criteriaRoot(murky)
+                    );
+                }
+            }
+        }
+        return context;
     }
 
     function withDetails(

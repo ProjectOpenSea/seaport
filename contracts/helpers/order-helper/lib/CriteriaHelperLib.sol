@@ -11,17 +11,17 @@ struct HashAndIntTuple {
 library CriteriaHelperLib {
     function criteriaRoot(
         uint256[] memory tokenIds,
-        Merkle merkleHelper
+        Merkle murky
     ) internal view returns (bytes32) {
-        return merkleHelper.getRoot(toSortedHashes(tokenIds));
+        return murky.getRoot(toSortedHashes(tokenIds));
     }
 
     function criteriaProof(
         uint256[] memory tokenIds,
         uint256 index,
-        Merkle merkleHelper
+        Merkle murky
     ) internal view returns (bytes32[] memory) {
-        return merkleHelper.getProof(toSortedHashes(tokenIds), index);
+        return murky.getProof(toSortedHashes(tokenIds), index);
     }
 
     function sortByHash(
@@ -47,7 +47,7 @@ library CriteriaHelperLib {
 
     function toSortedHashes(
         uint256[] memory tokenIds
-    ) internal view returns (bytes32[] memory hashes) {
+    ) internal pure returns (bytes32[] memory hashes) {
         hashes = new bytes32[](tokenIds.length);
         uint256[] memory ids = sortByHash(tokenIds);
         for (uint256 i; i < ids.length; ++i) {

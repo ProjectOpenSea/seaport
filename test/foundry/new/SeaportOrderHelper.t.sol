@@ -11,6 +11,7 @@ import {
     AdvancedOrderLib,
     ItemType,
     SeaportInterface,
+    Side,
     CriteriaResolver
 } from "seaport-sol/SeaportSol.sol";
 
@@ -29,6 +30,7 @@ import {
 
 import {
     Response,
+    CriteriaConstraint,
     SeaportOrderHelper
 } from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
 
@@ -43,6 +45,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     using AdvancedOrderLib for AdvancedOrder;
 
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
+    string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =
+        "SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA";
 
     function setUp() public override {
         super.setUp();
@@ -83,6 +87,28 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .withTotalOriginalConsiderationItems(1);
         OrderLib.empty().withParameters(parameters).saveDefault(
             SINGLE_ERC721_SINGLE_ERC20
+        );
+
+        offer[0] = OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721_WITH_CRITERIA)
+            .withToken(address(erc721s[0]))
+            .withAmount(1);
+        _consideration[0] = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC721_WITH_CRITERIA)
+            .withToken(address(erc721s[0]))
+            .withAmount(1);
+        parameters = OrderParametersLib
+            .fromDefault(SINGLE_ERC721)
+            .withOffer(offer)
+            .withConsideration(_consideration)
+            .withTotalOriginalConsiderationItems(1);
+        parameters.saveDefault(
+            SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+        );
+        OrderLib.empty().withParameters(parameters).saveDefault(
+            SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
         );
     }
 
@@ -261,6 +287,59 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             res.nativeTokensReturned,
             0,
             "unexpected nativeTokensReturned amount"
+        );
+    }
+
+    function test_inferredCriteria() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(
+                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+            )
+            .toAdvancedOrder(1, 1, "");
+
+        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
+
+        uint256[] memory offerIds = new uint256[](3);
+        offerIds[0] = 1;
+        offerIds[1] = 2;
+        offerIds[2] = 3;
+        criteria[0] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.OFFER,
+            index: 0,
+            identifier: 1,
+            tokenIds: offerIds
+        });
+
+        uint256[] memory considerationIds = new uint256[](3);
+        considerationIds[0] = 4;
+        considerationIds[1] = 5;
+        considerationIds[2] = 6;
+        criteria[1] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 0,
+            identifier: 4,
+            tokenIds: considerationIds
+        });
+
+        Response memory res = orderHelper.run(
+            orders,
+            offerer1.addr,
+            address(this),
+            0,
+            type(uint256).max,
+            criteria
+        );
+
+        assertEq(
+            res.orders[0].parameters.offer[0].identifierOrCriteria,
+            uint256(orderHelper.criteriaRoot(offerIds))
+        );
+        assertEq(
+            res.orders[0].parameters.consideration[0].identifierOrCriteria,
+            uint256(orderHelper.criteriaRoot(considerationIds))
         );
     }
 
