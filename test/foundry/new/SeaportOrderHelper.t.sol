@@ -341,6 +341,36 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             res.orders[0].parameters.consideration[0].identifierOrCriteria,
             uint256(orderHelper.criteriaRoot(considerationIds))
         );
+
+        assertEq(res.criteriaResolvers.length, 2);
+        // offer
+        assertEq(res.criteriaResolvers[0].criteriaProof.length, 2);
+        assertEq(
+            res.criteriaResolvers[0].criteriaProof[0],
+            bytes32(
+                0x405787fa12a823e0f2b7631cc41b3ba8828b3321ca811111fa75cd3aa3bb5ace
+            )
+        );
+        assertEq(
+            res.criteriaResolvers[0].criteriaProof[1],
+            bytes32(
+                0x428a6bbf587e6f3339e6162c6b1772e06c62ca82f784b9af8a31028560d0d717
+            )
+        );
+        // consideration
+        assertEq(res.criteriaResolvers[1].criteriaProof.length, 2);
+        assertEq(
+            res.criteriaResolvers[1].criteriaProof[0],
+            bytes32(
+                0x036b6384b5eca791c62761152d0c79bb0604c104a5fb6f4eb0703f3154bb3db0
+            )
+        );
+        assertEq(
+            res.criteriaResolvers[1].criteriaProof[1],
+            bytes32(
+                0x54d86c808646efdd2ca89e32f5a89bf6f7318cf8d10627e2f001c99fb9fa90dd
+            )
+        );
     }
 
     function test_criteriaRoot() public {

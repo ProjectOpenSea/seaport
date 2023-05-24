@@ -69,6 +69,7 @@ struct OrderHelperContext {
 
 struct Response {
     AdvancedOrder[] orders;
+    CriteriaResolver[] criteriaResolvers;
     bytes4 suggestedAction;
     string suggestedActionName;
     ErrorsAndWarnings[] validationErrors;
@@ -132,6 +133,7 @@ library OrderHelperContextLib {
                 criteriaResolvers: criteriaResolvers,
                 response: Response({
                     orders: orders,
+                    criteriaResolvers: criteriaResolvers,
                     suggestedAction: bytes4(0),
                     suggestedActionName: "",
                     validationErrors: new ErrorsAndWarnings[](0),
@@ -173,6 +175,7 @@ library OrderHelperContextLib {
                 criteriaResolvers: new CriteriaResolver[](0),
                 response: Response({
                     orders: orders,
+                    criteriaResolvers: new CriteriaResolver[](0),
                     suggestedAction: bytes4(0),
                     suggestedActionName: "",
                     validationErrors: new ErrorsAndWarnings[](0),
@@ -196,7 +199,10 @@ library OrderHelperContextLib {
         OrderHelperContext memory context,
         CriteriaConstraint[] memory criteria,
         Merkle murky
-    ) internal returns (OrderHelperContext memory) {
+    ) internal view returns (OrderHelperContext memory) {
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
+            criteria.length
+        );
         for (uint256 i; i < criteria.length; i++) {
             CriteriaConstraint memory constraint = criteria[i];
             OrderParameters memory parameters = context
@@ -226,13 +232,34 @@ library OrderHelperContextLib {
                     );
                 }
             }
+            bytes32 idHash = keccak256(abi.encode(constraint.identifier));
+            uint256 idHashIndex;
+            bytes32[] memory idHashes = constraint.tokenIds.toSortedHashes();
+            for (uint256 j; j < idHashes.length; j++) {
+                if (idHashes[j] == idHash) {
+                    idHashIndex = j;
+                    break;
+                }
+            }
+            criteriaResolvers[i] = CriteriaResolver({
+                orderIndex: constraint.orderIndex,
+                side: constraint.side,
+                index: constraint.index,
+                identifier: constraint.identifier,
+                criteriaProof: constraint.tokenIds.criteriaProof(
+                    idHashIndex,
+                    murky
+                )
+            });
         }
+        context.criteriaResolvers = criteriaResolvers;
+        context.response.criteriaResolvers = criteriaResolvers;
         return context;
     }
 
     function withDetails(
         OrderHelperContext memory context
-    ) internal returns (OrderHelperContext memory) {
+    ) internal view returns (OrderHelperContext memory) {
         UnavailableReason[] memory unavailableReasons = context
             .orders
             .unavailableReasons(context.maximumFulfilled, context.seaport);
