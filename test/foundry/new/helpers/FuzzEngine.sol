@@ -14,7 +14,8 @@ import {
     OrderParametersLib,
     OfferItem,
     ConsiderationItem,
-    ItemType
+    ItemType,
+    OrderType
 } from "seaport-sol/SeaportSol.sol";
 
 import {
@@ -532,13 +533,12 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runHelper(FuzzTestContext memory context) internal {
-        dumpExecutions(context);
-
+        // Skip contract orders, which are not supported by the helper.
         bool isContractOrder;
         for (uint256 i; i < context.executionState.orders.length; i++) {
             if (
-                uint8(context.executionState.orders[i].parameters.orderType) ==
-                4
+                context.executionState.orders[i].parameters.orderType ==
+                OrderType.CONTRACT
             ) {
                 isContractOrder = true;
                 break;
