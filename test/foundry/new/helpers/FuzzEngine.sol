@@ -549,8 +549,9 @@ contract FuzzEngine is
             context.seaportOrderHelper.run(
                 context.executionState.orders,
                 context.executionState.caller,
-                context.executionState.recipient,
                 context.executionState.value,
+                context.executionState.fulfillerConduitKey,
+                context.executionState.recipient,
                 context.executionState.maximumFulfilled,
                 context.executionState.criteriaResolvers
             );

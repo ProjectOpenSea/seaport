@@ -28,13 +28,12 @@ import {
     SeaportOrderHelperInterface
 } from "./lib/SeaportOrderHelperInterface.sol";
 
-contract SeaportOrderHelper is SeaportOrderHelperInterface {
+contract SeaportOrderHelper is SeaportOrderHelperInterface, Merkle {
     using OrderHelperContextLib for OrderHelperContext;
     using CriteriaHelperLib for uint256[];
 
     ConsiderationInterface public immutable seaport;
     SeaportValidatorInterface public immutable validator;
-    Merkle public immutable merkleHelper;
 
     constructor(
         ConsiderationInterface _seaport,
@@ -42,29 +41,31 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     ) {
         seaport = _seaport;
         validator = _validator;
-        merkleHelper = new Merkle();
     }
 
     function run(
         AdvancedOrder[] memory orders,
-        address recipient,
         address caller,
         uint256 nativeTokensSupplied,
+        bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled,
         CriteriaResolver[] memory criteriaResolvers
     ) external returns (Response memory) {
+        OrderHelperContext memory context = OrderHelperContextLib.from(
+            orders,
+            seaport,
+            validator,
+            caller,
+            recipient,
+            nativeTokensSupplied,
+            maximumFulfilled,
+            fulfillerConduitKey,
+            criteriaResolvers
+        );
         return
-            OrderHelperContextLib
-                .from(
-                    orders,
-                    seaport,
-                    validator,
-                    caller,
-                    recipient,
-                    nativeTokensSupplied,
-                    maximumFulfilled,
-                    criteriaResolvers
-                )
+            context
+                .validate()
                 .withDetails()
                 .withErrors()
                 .withFulfillments()
@@ -75,9 +76,10 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
 
     function run(
         AdvancedOrder[] memory orders,
-        address recipient,
         address caller,
         uint256 nativeTokensSupplied,
+        bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled,
         CriteriaConstraint[] memory criteria
     ) external returns (Response memory) {
@@ -88,11 +90,13 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
             caller,
             recipient,
             nativeTokensSupplied,
-            maximumFulfilled
+            maximumFulfilled,
+            fulfillerConduitKey
         );
         return
             context
-                .withInferredCriteria(criteria, merkleHelper)
+                .validate()
+                .withInferredCriteria(criteria, Merkle(address(this)))
                 .withDetails()
                 .withErrors()
                 .withFulfillments()
@@ -104,13 +108,13 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     function criteriaRoot(
         uint256[] memory tokenIds
     ) external view returns (bytes32) {
-        return tokenIds.criteriaRoot(merkleHelper);
+        return tokenIds.criteriaRoot(Merkle(address(this)));
     }
 
     function criteriaProof(
         uint256[] memory tokenIds,
         uint256 index
     ) external view returns (bytes32[] memory) {
-        return tokenIds.criteriaProof(index, merkleHelper);
+        return tokenIds.criteriaProof(index, Merkle(address(this)));
     }
 }

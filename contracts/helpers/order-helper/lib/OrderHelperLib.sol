@@ -37,7 +37,12 @@ import {
 
 import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
 
-import { Family, OrderStructureLib, Structure } from "./OrderStructureLib.sol";
+import {
+    Type,
+    Family,
+    OrderStructureLib,
+    Structure
+} from "./OrderStructureLib.sol";
 
 import {
     FulfillmentGeneratorLib
@@ -62,8 +67,6 @@ struct OrderHelperContext {
     uint256 nativeTokensSupplied;
     uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
-    CriteriaResolver[] criteriaResolvers;
-    AdvancedOrder[] orders;
     Response response;
 }
 
@@ -95,6 +98,12 @@ struct CriteriaConstraint {
     uint256[] tokenIds;
 }
 
+error ContractOrdersNotSupported();
+error UnknownAction();
+error UnknownSelector();
+error CannotFulfillProvidedCombinedOrder();
+error InvalidNativeTokenUnavailableCombination();
+
 library OrderHelperContextLib {
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
@@ -118,6 +127,7 @@ library OrderHelperContextLib {
         address recipient,
         uint256 nativeTokensSupplied,
         uint256 maximumFulfilled,
+        bytes32 fulfillerConduitKey,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure returns (OrderHelperContext memory) {
         return
@@ -128,9 +138,7 @@ library OrderHelperContextLib {
                 recipient: recipient,
                 nativeTokensSupplied: nativeTokensSupplied,
                 maximumFulfilled: maximumFulfilled,
-                fulfillerConduitKey: bytes32(0),
-                orders: orders,
-                criteriaResolvers: criteriaResolvers,
+                fulfillerConduitKey: fulfillerConduitKey,
                 response: Response({
                     orders: orders,
                     criteriaResolvers: criteriaResolvers,
@@ -160,7 +168,8 @@ library OrderHelperContextLib {
         address caller,
         address recipient,
         uint256 nativeTokensSupplied,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        bytes32 fulfillerConduitKey
     ) internal pure returns (OrderHelperContext memory) {
         return
             OrderHelperContext({
@@ -170,9 +179,7 @@ library OrderHelperContextLib {
                 recipient: recipient,
                 nativeTokensSupplied: nativeTokensSupplied,
                 maximumFulfilled: maximumFulfilled,
-                fulfillerConduitKey: bytes32(0),
-                orders: orders,
-                criteriaResolvers: new CriteriaResolver[](0),
+                fulfillerConduitKey: fulfillerConduitKey,
                 response: Response({
                     orders: orders,
                     criteriaResolvers: new CriteriaResolver[](0),
@@ -195,6 +202,18 @@ library OrderHelperContextLib {
             });
     }
 
+    function validate(
+        OrderHelperContext memory context
+    ) internal pure returns (OrderHelperContext memory) {
+        for (uint256 i; i < context.response.orders.length; i++) {
+            AdvancedOrder memory order = context.response.orders[i];
+            if (order.getType() == Type.CONTRACT) {
+                revert ContractOrdersNotSupported();
+            }
+        }
+        return context;
+    }
+
     function withInferredCriteria(
         OrderHelperContext memory context,
         CriteriaConstraint[] memory criteria,
@@ -206,6 +225,7 @@ library OrderHelperContextLib {
         for (uint256 i; i < criteria.length; i++) {
             CriteriaConstraint memory constraint = criteria[i];
             OrderParameters memory parameters = context
+                .response
                 .orders[constraint.orderIndex]
                 .parameters;
             if (constraint.side == Side.OFFER) {
@@ -252,7 +272,6 @@ library OrderHelperContextLib {
                 )
             });
         }
-        context.criteriaResolvers = criteriaResolvers;
         context.response.criteriaResolvers = criteriaResolvers;
         return context;
     }
@@ -261,13 +280,14 @@ library OrderHelperContextLib {
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
         UnavailableReason[] memory unavailableReasons = context
+            .response
             .orders
             .unavailableReasons(context.maximumFulfilled, context.seaport);
-        bytes32[] memory orderHashes = context.orders.getOrderHashes(
+        bytes32[] memory orderHashes = context.response.orders.getOrderHashes(
             address(context.seaport)
         );
-        context.response.orderDetails = context.orders.getOrderDetails(
-            context.criteriaResolvers,
+        context.response.orderDetails = context.response.orders.getOrderDetails(
+            context.response.criteriaResolvers,
             orderHashes,
             unavailableReasons
         );
@@ -277,7 +297,7 @@ library OrderHelperContextLib {
     function withErrors(
         OrderHelperContext memory context
     ) internal returns (OrderHelperContext memory) {
-        AdvancedOrder[] memory orders = context.orders;
+        AdvancedOrder[] memory orders = context.response.orders;
 
         ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
             orders.length
@@ -384,7 +404,7 @@ library OrderHelperContextLib {
             (implicitExecutions, nativeTokensReturned) = fulfillmentDetails
                 .getBasicExecutions();
         } else {
-            revert("OrderHelperContextLib: Unknown action");
+            revert UnknownAction();
         }
         context.response.explicitExecutions = explicitExecutions;
         context.response.implicitExecutions = implicitExecutions;
@@ -415,21 +435,22 @@ library OrderHelperContextLib {
         if (selector == 0xf2d12b12) return "matchAdvancedOrders";
         if (selector == 0xa8174404) return "matchOrders";
 
-        revert("Unknown selector");
+        revert UnknownSelector();
     }
 
     function action(
         OrderHelperContext memory context
     ) internal view returns (bytes4) {
-        Family family = context.orders.getFamily();
+        Family family = context.response.orders.getFamily();
 
         bool invalidOfferItemsLocated = mustUseMatch(context);
 
-        Structure structure = context.orders.getStructure(
+        Structure structure = context.response.orders.getStructure(
             address(context.seaport)
         );
 
-        bool hasUnavailable = context.maximumFulfilled < context.orders.length;
+        bool hasUnavailable = context.maximumFulfilled <
+            context.response.orders.length;
         for (uint256 i = 0; i < context.response.orderDetails.length; ++i) {
             if (
                 context.response.orderDetails[i].unavailableReason !=
@@ -442,9 +463,7 @@ library OrderHelperContextLib {
 
         if (hasUnavailable) {
             if (invalidOfferItemsLocated) {
-                revert(
-                    "OrderHelperLib: invalid native token + unavailable combination"
-                );
+                revert InvalidNativeTokenUnavailableCombination();
             }
 
             if (structure == Structure.ADVANCED) {
@@ -473,7 +492,7 @@ library OrderHelperContextLib {
             hasUnavailable);
 
         if (cannotMatch && invalidOfferItemsLocated) {
-            revert("OrderHelperLib: cannot fulfill provided combined order");
+            revert CannotFulfillProvidedCombinedOrder();
         }
 
         if (cannotMatch) {

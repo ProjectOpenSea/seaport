@@ -35,6 +35,8 @@ import {
 
 import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
+error TypeNotFound();
+
 /**
  * @dev The "structure" of the order.
  *      - BASIC: adheres to basic construction rules.
@@ -167,7 +169,7 @@ library OrderStructureLib {
         } else if (orderType == OrderType.CONTRACT) {
             return Type.CONTRACT;
         } else {
-            revert("FuzzEngine: Type not found");
+            revert TypeNotFound();
         }
     }
 

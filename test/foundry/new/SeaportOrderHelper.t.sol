@@ -121,8 +121,9 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         Response memory res = orderHelper.run(
             orders,
             offerer1.addr,
-            address(this),
             0,
+            bytes32(0),
+            address(this),
             type(uint256).max,
             new CriteriaResolver[](0)
         );
@@ -211,8 +212,9 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         Response memory res = orderHelper.run(
             orders,
             offerer1.addr,
-            address(this),
             0,
+            bytes32(0),
+            address(this),
             type(uint256).max,
             new CriteriaResolver[](0)
         );
@@ -327,8 +329,9 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         Response memory res = orderHelper.run(
             orders,
             offerer1.addr,
-            address(this),
             0,
+            bytes32(0),
+            address(this),
             type(uint256).max,
             criteria
         );
