@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Merkle } from "murky/Merkle.sol";
+import { MerkleLib } from "./MerkleLib.sol";
 
 struct HashAndIntTuple {
     uint256 num;
@@ -10,18 +10,22 @@ struct HashAndIntTuple {
 
 library CriteriaHelperLib {
     function criteriaRoot(
-        uint256[] memory tokenIds,
-        Merkle murky
-    ) internal view returns (bytes32) {
-        return murky.getRoot(toSortedHashes(tokenIds));
+        uint256[] memory tokenIds
+    ) internal pure returns (bytes32) {
+        return
+            MerkleLib.getRoot(toSortedHashes(tokenIds), MerkleLib.merkleHash);
     }
 
     function criteriaProof(
         uint256[] memory tokenIds,
-        uint256 index,
-        Merkle murky
-    ) internal view returns (bytes32[] memory) {
-        return murky.getProof(toSortedHashes(tokenIds), index);
+        uint256 index
+    ) internal pure returns (bytes32[] memory) {
+        return
+            MerkleLib.getProof(
+                toSortedHashes(tokenIds),
+                index,
+                MerkleLib.merkleHash
+            );
     }
 
     function sortByHash(

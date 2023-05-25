@@ -1,41 +1,48 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Merkle } from "murky/Merkle.sol";
-
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
+import { AdvancedOrderLib } from "seaport-sol/lib/AdvancedOrderLib.sol";
+import { OrderComponentsLib } from "seaport-sol/lib/OrderComponentsLib.sol";
+import { OrderLib } from "seaport-sol/lib/OrderLib.sol";
+import { OrderParametersLib } from "seaport-sol/lib/OrderParametersLib.sol";
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+
+import { MatchComponent } from "seaport-sol/lib/types/MatchComponentType.sol";
 import {
-    AdvancedOrder,
-    AdvancedOrderLib,
-    CriteriaResolver,
-    Fulfillment,
-    FulfillmentComponent,
     FulfillmentDetails,
-    MatchComponent,
-    Order,
-    OrderComponentsLib,
-    OrderDetails,
-    OrderLib,
-    OrderParametersLib,
-    UnavailableReason
-} from "seaport-sol/SeaportSol.sol";
+    OrderDetails
+} from "seaport-sol/fulfillments/lib/Structs.sol";
+
+import {
+    FulfillmentGeneratorLib
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+
+import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
 import {
     AdvancedOrder,
-    ConsiderationItem,
+    CriteriaResolver,
     Execution,
-    OfferItem,
     Order,
     OrderComponents,
     OrderParameters,
+    ConsiderationItem,
+    OfferItem,
     ReceivedItem,
-    SpentItem
-} from "seaport-sol/SeaportStructs.sol";
+    SpentItem,
+    Fulfillment,
+    FulfillmentComponent
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
+import {
+    ItemType,
+    Side,
+    OrderType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     Type,
@@ -43,12 +50,6 @@ import {
     OrderStructureLib,
     Structure
 } from "./OrderStructureLib.sol";
-
-import {
-    FulfillmentGeneratorLib
-} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
-
-import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
 import {
     SeaportValidatorInterface,
@@ -216,9 +217,8 @@ library OrderHelperContextLib {
 
     function withInferredCriteria(
         OrderHelperContext memory context,
-        CriteriaConstraint[] memory criteria,
-        Merkle murky
-    ) internal view returns (OrderHelperContext memory) {
+        CriteriaConstraint[] memory criteria
+    ) internal pure returns (OrderHelperContext memory) {
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
             criteria.length
         );
@@ -236,7 +236,7 @@ library OrderHelperContextLib {
                     itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     offerItem.identifierOrCriteria = uint256(
-                        constraint.tokenIds.criteriaRoot(murky)
+                        constraint.tokenIds.criteriaRoot()
                     );
                 }
             } else {
@@ -248,7 +248,7 @@ library OrderHelperContextLib {
                     itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     considerationItem.identifierOrCriteria = uint256(
-                        constraint.tokenIds.criteriaRoot(murky)
+                        constraint.tokenIds.criteriaRoot()
                     );
                 }
             }
@@ -266,10 +266,7 @@ library OrderHelperContextLib {
                 side: constraint.side,
                 index: constraint.index,
                 identifier: constraint.identifier,
-                criteriaProof: constraint.tokenIds.criteriaProof(
-                    idHashIndex,
-                    murky
-                )
+                criteriaProof: constraint.tokenIds.criteriaProof(idHashIndex)
             });
         }
         context.response.criteriaResolvers = criteriaResolvers;

@@ -14,16 +14,18 @@ import {
 
 import {
     AdvancedOrder,
-    ConsiderationItem,
     CriteriaResolver,
-    Fulfillment,
-    OfferItem,
+    Execution,
     Order,
     OrderComponents,
     OrderParameters,
+    ConsiderationItem,
+    OfferItem,
     ReceivedItem,
-    SpentItem
-} from "seaport-sol/SeaportStructs.sol";
+    SpentItem,
+    Fulfillment,
+    FulfillmentComponent
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     BasicOrderRouteType,
@@ -31,9 +33,11 @@ import {
     ItemType,
     OrderType,
     Side
-} from "seaport-sol/SeaportEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 error TypeNotFound();
 
@@ -133,7 +137,7 @@ library OrderStructureLib {
 
     function getState(
         AdvancedOrder memory order,
-        SeaportInterface seaport
+        ConsiderationInterface seaport
     ) internal view returns (State) {
         uint256 counter = seaport.getCounter(order.parameters.offerer);
         bytes32 orderHash = seaport.getOrderHash(
@@ -267,7 +271,9 @@ library OrderStructureLib {
         }
 
         // Order cannot be partially filled.
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
+        ConsiderationInterface seaportInterface = ConsiderationInterface(
+            seaport
+        );
         uint256 counter = seaportInterface.getCounter(order.parameters.offerer);
         OrderComponents memory orderComponents = order
             .parameters

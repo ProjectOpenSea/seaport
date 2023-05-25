@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder, CriteriaResolver } from "seaport-sol/SeaportSol.sol";
+import {
+    AdvancedOrder,
+    CriteriaResolver
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
+
 import { CriteriaConstraint, Response } from "./OrderHelperLib.sol";
 
 interface SeaportOrderHelperInterface {
