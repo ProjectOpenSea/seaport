@@ -39,9 +39,9 @@ import {
 } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 /**
- * @dev Context struct for OrderHelperLib. Includes context information for
- *      fulfillment, like the caller and recipient, and the Seaport and
- *      SeaportValidator interfaces.
+ * @dev Context struct for OrderHelperLib. Includes context information
+ *      necessary for fulfillment, like the caller and recipient addresses,
+ *      and Seaport and SeaportValidator interfaces.
  */
 struct OrderHelperContext {
     ConsiderationInterface seaport;

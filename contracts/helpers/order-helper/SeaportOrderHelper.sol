@@ -33,7 +33,7 @@ import {
  *         orders and external parameters like caller, recipient, and native
  *         tokens supplied, SeaportOrderHelper will validate the orders and
  *         return associated errors and warnings, recommend a fulfillment
- *         method, suggest fulfillments, provide execution and order details, a
+ *         method, suggest fulfillments, provide execution and order details,
  *         and optionally generate criteria resolvers from provided token IDs.
  */
 contract SeaportOrderHelper is SeaportOrderHelperInterface {
