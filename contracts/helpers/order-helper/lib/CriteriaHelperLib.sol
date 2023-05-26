@@ -3,6 +3,8 @@ pragma solidity ^0.8.17;
 
 import { MerkleLib } from "./MerkleLib.sol";
 
+error TokenIdNotFound();
+
 struct HashAndIntTuple {
     uint256 num;
     bytes32 hash;
@@ -22,14 +24,20 @@ library CriteriaHelperLib {
 
     function criteriaProof(
         uint256[] memory tokenIds,
-        uint256 index
+        uint256 id
     ) internal pure returns (bytes32[] memory) {
-        return
-            MerkleLib.getProof(
-                toSortedHashes(tokenIds),
-                index,
-                MerkleLib.merkleHash
-            );
+        bytes32 idHash = keccak256(abi.encode(id));
+        uint256 idx;
+        bool found;
+        bytes32[] memory idHashes = toSortedHashes(tokenIds);
+        for (; idx < idHashes.length; idx++) {
+            if (idHashes[idx] == idHash) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) revert TokenIdNotFound();
+        return MerkleLib.getProof(idHashes, idx, MerkleLib.merkleHash);
     }
 
     function sortByHash(
