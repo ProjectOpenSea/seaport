@@ -51,11 +51,6 @@ import {
     Structure
 } from "./OrderStructureLib.sol";
 
-import {
-    SeaportValidatorInterface,
-    ErrorsAndWarnings
-} from "../../order-validator/SeaportValidator.sol";
-
 import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
 
 import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
@@ -65,6 +60,11 @@ import {
     CriteriaConstraint,
     OrderHelperContext
 } from "./SeaportOrderHelperTypes.sol";
+
+import {
+    SeaportValidatorInterface,
+    ErrorsAndWarnings
+} from "../../order-validator/SeaportValidator.sol";
 
 /**
  * @dev Bad request error: provided orders include at least one contract order.
@@ -248,21 +248,14 @@ library OrderHelperContextLib {
                     );
                 }
             }
-            bytes32 idHash = keccak256(abi.encode(constraint.identifier));
-            uint256 idHashIndex;
-            bytes32[] memory idHashes = constraint.tokenIds.toSortedHashes();
-            for (uint256 j; j < idHashes.length; j++) {
-                if (idHashes[j] == idHash) {
-                    idHashIndex = j;
-                    break;
-                }
-            }
             criteriaResolvers[i] = CriteriaResolver({
                 orderIndex: constraint.orderIndex,
                 side: constraint.side,
                 index: constraint.index,
                 identifier: constraint.identifier,
-                criteriaProof: constraint.tokenIds.criteriaProof(idHashIndex)
+                criteriaProof: constraint.tokenIds.criteriaProof(
+                    constraint.identifier
+                )
             });
         }
         context.response.criteriaResolvers = criteriaResolvers;

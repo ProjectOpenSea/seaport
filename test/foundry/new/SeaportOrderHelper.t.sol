@@ -44,6 +44,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
 
+    error TokenIdNotFound();
+
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
     string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =
         "SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA";
@@ -399,7 +401,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[1] = 5;
         tokenIds[2] = 3;
 
-        bytes32[] memory proof = orderHelper.criteriaProof(tokenIds, 0);
+        bytes32[] memory proof = orderHelper.criteriaProof(tokenIds, 5);
 
         assertEq(proof.length, 2);
         assertEq(
@@ -414,5 +416,15 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 0x428a6bbf587e6f3339e6162c6b1772e06c62ca82f784b9af8a31028560d0d717
             )
         );
+    }
+
+    function test_criteriaProof_revertsTokenNotFound() public {
+        uint256[] memory tokenIds = new uint256[](3);
+        tokenIds[0] = 2;
+        tokenIds[1] = 5;
+        tokenIds[2] = 3;
+
+        vm.expectRevert(TokenIdNotFound.selector);
+        orderHelper.criteriaProof(tokenIds, 7);
     }
 }
