@@ -68,7 +68,7 @@ import {
 
 /**
  * @dev Bad request error: provided orders include at least one contract order.
- *      The OrderHelper does not currently support contract orders.
+ *      The order helper does not currently support contract orders.
  */
 error ContractOrdersNotSupported();
 /**
@@ -108,64 +108,17 @@ library OrderHelperContextLib {
     function from(
         AdvancedOrder[] memory orders,
         ConsiderationInterface seaport,
-        SeaportValidatorInterface validator,
-        address caller,
-        address recipient,
-        uint256 nativeTokensSupplied,
-        uint256 maximumFulfilled,
-        bytes32 fulfillerConduitKey,
-        CriteriaResolver[] memory criteriaResolvers
+        SeaportValidatorInterface validator
     ) internal pure returns (OrderHelperContext memory) {
         return
             OrderHelperContext({
                 seaport: seaport,
                 validator: validator,
-                caller: caller,
-                recipient: recipient,
-                nativeTokensSupplied: nativeTokensSupplied,
-                maximumFulfilled: maximumFulfilled,
-                fulfillerConduitKey: fulfillerConduitKey,
-                response: Response({
-                    orders: orders,
-                    criteriaResolvers: criteriaResolvers,
-                    suggestedAction: bytes4(0),
-                    suggestedActionName: "",
-                    validationErrors: new ErrorsAndWarnings[](0),
-                    orderDetails: new OrderDetails[](0),
-                    offerFulfillments: new FulfillmentComponent[][](0),
-                    considerationFulfillments: new FulfillmentComponent[][](0),
-                    fulfillments: new Fulfillment[](0),
-                    unspentOfferComponents: new MatchComponent[](0),
-                    unmetConsiderationComponents: new MatchComponent[](0),
-                    remainders: new MatchComponent[](0),
-                    explicitExecutions: new Execution[](0),
-                    implicitExecutions: new Execution[](0),
-                    implicitExecutionsPre: new Execution[](0),
-                    implicitExecutionsPost: new Execution[](0),
-                    nativeTokensReturned: 0
-                })
-            });
-    }
-
-    function from(
-        AdvancedOrder[] memory orders,
-        ConsiderationInterface seaport,
-        SeaportValidatorInterface validator,
-        address caller,
-        address recipient,
-        uint256 nativeTokensSupplied,
-        uint256 maximumFulfilled,
-        bytes32 fulfillerConduitKey
-    ) internal pure returns (OrderHelperContext memory) {
-        return
-            OrderHelperContext({
-                seaport: seaport,
-                validator: validator,
-                caller: caller,
-                recipient: recipient,
-                nativeTokensSupplied: nativeTokensSupplied,
-                maximumFulfilled: maximumFulfilled,
-                fulfillerConduitKey: fulfillerConduitKey,
+                caller: address(0),
+                recipient: address(0),
+                nativeTokensSupplied: 0,
+                maximumFulfilled: 0,
+                fulfillerConduitKey: bytes32(0),
                 response: Response({
                     orders: orders,
                     criteriaResolvers: new CriteriaResolver[](0),
@@ -186,6 +139,36 @@ library OrderHelperContextLib {
                     nativeTokensReturned: 0
                 })
             });
+    }
+
+    /**
+     * @dev Add provided call parameters to the context.
+     */
+    function withCallContext(
+        OrderHelperContext memory context,
+        address caller,
+        uint256 nativeTokensSupplied,
+        bytes32 fulfillerConduitKey,
+        address recipient,
+        uint256 maximumFulfilled
+    ) internal pure returns (OrderHelperContext memory) {
+        context.caller = caller;
+        context.nativeTokensSupplied = nativeTokensSupplied;
+        context.fulfillerConduitKey = fulfillerConduitKey;
+        context.recipient = recipient;
+        context.maximumFulfilled = maximumFulfilled;
+        return context;
+    }
+
+    /**
+     * @dev Add criteria resolvers to the response.
+     */
+    function withCriteriaResolvers(
+        OrderHelperContext memory context,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal pure returns (OrderHelperContext memory) {
+        context.response.criteriaResolvers = criteriaResolvers;
+        return context;
     }
 
     /**

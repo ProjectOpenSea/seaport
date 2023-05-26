@@ -11,10 +11,14 @@ struct HashAndIntTuple {
 }
 
 /**
- * @notice Helper library for calculating criteria resolver merkle roots and
- *         proofs from integer token IDs.
+ * @notice Helper library for calculating criteria resolver Merkle roots and
+ *         proofs from integer token ids.
  */
 library CriteriaHelperLib {
+    /**
+     * @notice Calculate the Merkle root of a criteria tree containing the given
+     *         integer token ids.
+     */
     function criteriaRoot(
         uint256[] memory tokenIds
     ) internal pure returns (bytes32) {
@@ -22,6 +26,10 @@ library CriteriaHelperLib {
             MerkleLib.getRoot(toSortedHashes(tokenIds), MerkleLib.merkleHash);
     }
 
+    /**
+     * @notice Calculate the Merkle proof that the given token id is a member of
+     *         the criteria tree containing the provided tokenIds.
+     */
     function criteriaProof(
         uint256[] memory tokenIds,
         uint256 id
@@ -40,6 +48,9 @@ library CriteriaHelperLib {
         return MerkleLib.getProof(idHashes, idx, MerkleLib.merkleHash);
     }
 
+    /**
+     * @notice Sort an array of integer token ids by their hashed values.
+     */
     function sortByHash(
         uint256[] memory tokenIds
     ) internal pure returns (uint256[] memory sortedIds) {
@@ -61,6 +72,10 @@ library CriteriaHelperLib {
         }
     }
 
+    /**
+     * @notice Convert an array of integer token ids to a sorted array of
+     *         their hashed values.
+     */
     function toSortedHashes(
         uint256[] memory tokenIds
     ) internal pure returns (bytes32[] memory hashes) {

@@ -65,7 +65,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *
      *         - An order index, side (i.e. offer/consideration), and item index
      *           describing which item is associated with the constraint.
-     *         - An array of eligible token IDs.
+     *         - An array of eligible token IDs used to generate the criteria.
      *         - The actual token ID that will be provided at fulfillment time.
      *
      *         The order helper will calculate criteria merkle roots and proofs
@@ -73,9 +73,9 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *         item `identifierOrCriteria`, and return the calculated proofs and
      *         criteria resolvers.
      *
-     *         The order helper is designed to return details about a single
+     *         The order helper is designed to return details about a *single*
      *         call to Seaport. You should provide multiple orders only if you
-     *         intend to call a method like fulfill available or match, not to
+     *         intend to call a method like fulfill available or match, *not* to
      *         batch process multiple individual calls. If you are retrieving
      *         helper data for a single order, there is a convenience function
      *         below that accepts a single order rather than an array.
@@ -108,16 +108,15 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         uint256 maximumFulfilled,
         CriteriaConstraint[] memory criteriaConstraints
     ) public returns (Response memory) {
-        OrderHelperContext memory context = OrderHelperContextLib.from(
-            orders,
-            seaport,
-            validator,
-            caller,
-            recipient,
-            nativeTokensSupplied,
-            maximumFulfilled,
-            fulfillerConduitKey
-        );
+        OrderHelperContext memory context = OrderHelperContextLib
+            .from(orders, seaport, validator)
+            .withCallContext(
+                caller,
+                nativeTokensSupplied,
+                fulfillerConduitKey,
+                recipient,
+                maximumFulfilled
+            );
         return
             context
                 .validate()
@@ -162,20 +161,19 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         uint256 maximumFulfilled,
         CriteriaResolver[] memory criteriaResolvers
     ) public returns (Response memory) {
-        OrderHelperContext memory context = OrderHelperContextLib.from(
-            orders,
-            seaport,
-            validator,
-            caller,
-            recipient,
-            nativeTokensSupplied,
-            maximumFulfilled,
-            fulfillerConduitKey,
-            criteriaResolvers
-        );
+        OrderHelperContext memory context = OrderHelperContextLib
+            .from(orders, seaport, validator)
+            .withCallContext(
+                caller,
+                nativeTokensSupplied,
+                fulfillerConduitKey,
+                recipient,
+                maximumFulfilled
+            );
         return
             context
                 .validate()
+                .withCriteriaResolvers(criteriaResolvers)
                 .withDetails()
                 .withErrors()
                 .withFulfillments()
