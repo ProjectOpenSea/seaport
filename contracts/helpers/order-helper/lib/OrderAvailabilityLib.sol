@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+
 import { AdvancedOrder } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";

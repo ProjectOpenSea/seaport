@@ -13,27 +13,28 @@ import {
     SeaportValidatorInterface
 } from "../order-validator/SeaportValidator.sol";
 
+import { OrderHelperContextLib } from "./lib/OrderHelperLib.sol";
+
+import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
+
 import {
     CriteriaConstraint,
     OrderHelperContext,
-    OrderHelperContextLib,
     Response
-} from "./lib/OrderHelperLib.sol";
-
-import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
+} from "./lib/SeaportOrderHelperTypes.sol";
 
 import {
     SeaportOrderHelperInterface
 } from "./lib/SeaportOrderHelperInterface.sol";
 
 /**
- * @notice SeaportOrderHelper is a helper contract for validating and fulfilling
- *         Seaport orders. Given an array of orders and external parameters like
- *         caller, recipient, and native tokens supplied, SeaportOrderHelper
- *         will validate the orders and return associated errors and warnings,
- *         recommend a fulfillment method, suggest fulfillments, provide
- *         execution and order details, and generate criteria resolvers from
- *         provided token IDs.
+ * @notice SeaportOrderHelper is a helper contract that generates additional
+ *         information useful for fulfilling Seaport orders. Given an array of
+ *         orders and external parameters like caller, recipient, and native
+ *         tokens supplied, SeaportOrderHelper will validate the orders and
+ *         return associated errors and warnings, recommend a fulfillment
+ *         method, suggest fulfillments, provide execution and order details, a
+ *         and optionally generate criteria resolvers from provided token IDs.
  */
 contract SeaportOrderHelper is SeaportOrderHelperInterface {
     using OrderHelperContextLib for OrderHelperContext;
@@ -74,12 +75,29 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *
      *         The order helper is designed to return details about a single
      *         call to Seaport. You should provide multiple orders only if you
-     *         intend to call a  method like fulfill available or match, not
-     *         to batch process multiple individual calls. If you are retrieving
+     *         intend to call a method like fulfill available or match, not to
+     *         batch process multiple individual calls. If you are retrieving
      *         helper data for a single order, there is a convenience function
      *         below that accepts a single order rather than an array.
      *
      *         The order helper does not yet support contract orders.
+     *
+     * @param orders               An array of orders to process. Only provide
+     *                             multiple orders if you intend to call a
+     *                             fulfill/match method.
+     * @param caller               Address that will make the call to Seaport.
+     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
+     *                             by the caller.
+     * @param fulfillerConduitKey  Optional fulfiller conduit key.
+     * @param recipient            Optional recipient address.
+     * @param maximumFulfilled     Optional maximumFulfilled amount.
+     * @param criteriaConstraints  An array of "criteria constraint" structs,
+     *                             which describe the criteria to apply to
+     *                             specific order/side/item combinations.
+     *
+     * @return A Response struct containing data derived by the OrderHelper. See
+     *         SeaportOrderHelperTypes.sol for details on the structure of this
+     *         response object.
      */
     function run(
         AdvancedOrder[] memory orders,
@@ -88,7 +106,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         uint256 maximumFulfilled,
-        CriteriaConstraint[] memory criteria
+        CriteriaConstraint[] memory criteriaConstraints
     ) public returns (Response memory) {
         OrderHelperContext memory context = OrderHelperContextLib.from(
             orders,
@@ -103,7 +121,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         return
             context
                 .validate()
-                .withInferredCriteria(criteria)
+                .withInferredCriteria(criteriaConstraints)
                 .withDetails()
                 .withErrors()
                 .withFulfillments()
@@ -118,6 +136,22 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *         resolver generation and does not modify the provided orders. Use
      *         this if you don't want to automatically generate resolvers from
      *         token IDs.
+     *
+     * @param orders               An array of orders to process. Only provide
+     *                             multiple orders if you intend to call a
+     *                             fulfill/match method.
+     * @param caller               Address that will make the call to Seaport.
+     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
+     *                             by the caller.
+     * @param fulfillerConduitKey  Optional fulfiller conduit key.
+     * @param recipient            Optional recipient address.
+     * @param maximumFulfilled     Optional maximumFulfilled amount.
+     * @param criteriaResolvers    An array of explicit criteria resolvers for
+     *                             the provided orders.
+     *
+     * @return A Response struct containing data derived by the OrderHelper. See
+     *         SeaportOrderHelperTypes.sol for details on the structure of this
+     *         response object.
      */
     function run(
         AdvancedOrder[] memory orders,
@@ -152,6 +186,21 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
 
     /**
      * @notice Convenience function for single orders.
+     *
+     * @param order                A single order to process.
+     * @param caller               Address that will make the call to Seaport.
+     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
+     *                             by the caller.
+     * @param fulfillerConduitKey  Optional fulfiller conduit key.
+     * @param recipient            Optional recipient address.
+     * @param criteriaConstraints  An array of "criteria constraint" structs,
+     *                             which describe the criteria to apply to
+     *                             specific order/side/item combinations.
+     *                             the provided orders.
+     *
+     * @return A Response struct containing data derived by the OrderHelper. See
+     *         SeaportOrderHelperTypes.sol for details on the structure of this
+     *         response object.
      */
     function run(
         AdvancedOrder memory order,
@@ -159,7 +208,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         uint256 nativeTokensSupplied,
         bytes32 fulfillerConduitKey,
         address recipient,
-        CriteriaConstraint[] memory criteria
+        CriteriaConstraint[] memory criteriaConstraints
     ) external returns (Response memory) {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
@@ -171,12 +220,25 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                 fulfillerConduitKey,
                 recipient,
                 type(uint256).max,
-                criteria
+                criteriaConstraints
             );
     }
 
     /**
      * @notice Convenience function for single orders.
+     *
+     * @param order                A single order to process.
+     * @param caller               Address that will make the call to Seaport.
+     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
+     *                             by the caller.
+     * @param fulfillerConduitKey  Optional fulfiller conduit key.
+     * @param recipient            Optional recipient address.
+     * @param criteriaResolvers    An array of explicit criteria resolvers for
+     *                             the provided orders.
+     *
+     * @return A Response struct containing data derived by the OrderHelper. See
+     *         SeaportOrderHelperTypes.sol for details on the structure of this
+     *         response object.
      */
     function run(
         AdvancedOrder memory order,
@@ -203,6 +265,12 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     /**
      * @notice Generate a criteria merkle root from an array of `tokenIds`. Use
      *         this helper to construct an order item's `identifierOrCriteria`.
+     *
+     * @param tokenIds An array of integer token IDs to be converted to a merkle
+     *                 root.
+     *
+     * @return The bytes32 merkle root of a criteria tree containing the given
+     *         token IDs.
      */
     function criteriaRoot(
         uint256[] memory tokenIds
@@ -214,6 +282,12 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      * @notice Generate a criteria merkle proof that `id` is a member of
      *        `tokenIds`. Reverts if `id` is not a member of `tokenIds`. Use
      *         this helper to construct proof data for criteria resolvers.
+     *
+     * @param tokenIds An array of integer token IDs.
+     * @param id       The integer token ID to generate a proof for.
+     *
+     * @return Merkle proof that the given token ID is  amember of the criteria
+     *         tree containing the given token IDs.
      */
     function criteriaProof(
         uint256[] memory tokenIds,

@@ -60,111 +60,35 @@ import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
 
 import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
 
-struct OrderHelperContext {
-    ConsiderationInterface seaport;
-    SeaportValidatorInterface validator;
-    address caller;
-    address recipient;
-    uint256 nativeTokensSupplied;
-    uint256 maximumFulfilled;
-    bytes32 fulfillerConduitKey;
-    Response response;
-}
+import {
+    Response,
+    CriteriaConstraint,
+    OrderHelperContext
+} from "./SeaportOrderHelperTypes.sol";
 
-struct Response {
-    /**
-     * @dev The provided orders. If the caller provides explicit criteria
-     *      resolvers, the orders will not be modified. If the caller provides
-     *      criteria constraints, the returned offer/consideration will be
-     *      updated with calculated merkle roots as their `identifierOrCriteria`
-     */
-    AdvancedOrder[] orders;
-    /**
-     * @dev The provided or calculated criteria resolvers. If the caller
-     *      provides criteria constraints rather than explicit criteria
-     *      resolvers, criteria resolvers and merkle proofs will be calculated.
-     */
-    CriteriaResolver[] criteriaResolvers;
-    /**
-     * @dev Selector of the suggested Seaport fulfillment method for the
-     *      provided orders.
-     */
-    bytes4 suggestedAction;
-    /**
-     * @dev Human-readeable name of the suggested Seaport fulfillment method for
-     *      the provided orders.
-     */
-    string suggestedActionName;
-    /**
-     * @dev Array of errors and warnings returned by SeaportValidator for the
-     *      provided orders, by order index in the orders array.
-     */
-    ErrorsAndWarnings[] validationErrors;
-    /**
-     * @dev Calculated OrderDetails structs for the provided orders, by order
-     *      index. Includs, offerer, conduit key, spent and received items,
-     *      order hash, and unavailable reason.
-     */
-    OrderDetails[] orderDetails;
-    /**
-     * @dev Calculated fulfillment components and combined Fullfiilments.
-     */
-    FulfillmentComponent[][] offerFulfillments;
-    FulfillmentComponent[][] considerationFulfillments;
-    Fulfillment[] fulfillments;
-    /**
-     * @dev Calculated match components for matchable orders.
-     */
-    MatchComponent[] unspentOfferComponents;
-    MatchComponent[] unmetConsiderationComponents;
-    MatchComponent[] remainders;
-    /**
-     * @dev Calculated explicit and implicit exectutions.
-     */
-    Execution[] explicitExecutions;
-    Execution[] implicitExecutions;
-    Execution[] implicitExecutionsPre;
-    Execution[] implicitExecutionsPost;
-    /**
-     * @dev Quantity of native tokens returned to caller.
-     */
-    uint256 nativeTokensReturned;
-}
-
-struct CriteriaConstraint {
-    /**
-     * @dev Apply constraint to the order at this index in the orders array.
-     */
-    uint256 orderIndex;
-    /**
-     * @dev Apply constraint to this side of the order, either Side.OFFER or
-     *      Side.CONSIDERATION.
-     */
-    Side side;
-    /**
-     * @dev Apply constraint to this item in the offer/consideration array.
-     */
-    uint256 index;
-    /**
-     * @dev Generate a criteria resolver for this token identifier. The helper
-     *      will calculate a merkle proof that this token ID is in the set of
-     *      eligible token IDs for the item with critera at the specified
-     *(     order index/side/item index.
-     */
-    uint256 identifier;
-    /**
-     * @dev Array of eligible token IDs. The helper will calculate a merkle
-     *      root from this array and apply it to the item at the specified
-     *      order index/side/item index as its `identifierOrCriteria`.
-     */
-    uint256[] tokenIds;
-}
-
+/**
+ * @dev Bad request error: provided orders include at least one contract order.
+ *      The OrderHelper does not currently support contract orders.
+ */
 error ContractOrdersNotSupported();
-error UnknownAction();
-error UnknownSelector();
+/**
+ * @dev Bad request error: provided orders cannot be fulfilled.
+ */
 error CannotFulfillProvidedCombinedOrder();
+/**
+ * @dev Bad request error: provided orders include an invalid combination of
+ *      native tokens and unavailable orders.
+ */
 error InvalidNativeTokenUnavailableCombination();
+/**
+ * @dev Internal error: Could not select a fulfillment method for the provided
+ *      orders.
+ */
+error UnknownAction();
+/**
+ * @dev Internal error: Could not find selector for the suggested action.
+ */
+error UnknownSelector();
 
 library OrderHelperContextLib {
     using AdvancedOrderLib for AdvancedOrder;
@@ -264,6 +188,10 @@ library OrderHelperContextLib {
             });
     }
 
+    /**
+     * @dev Validate the provided orders. Checks that none of the provided orders
+     *      are contract orders.
+     */
     function validate(
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
@@ -276,6 +204,13 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Calculate criteria resolvers, merkle proofs, and criteria merkle
+     *      roots for the provided orders and criteria constraints. Modifies
+     *      orders in place to add criteria merkle roots to the appropriate
+     *      offer/consdieration items. Adds calculated criteria resolvers to
+     *      the response.
+     */
     function withInferredCriteria(
         OrderHelperContext memory context,
         CriteriaConstraint[] memory criteria
@@ -334,6 +269,9 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Calculate OrderDetails for each order and add them to the response.
+     */
     function withDetails(
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
@@ -352,6 +290,10 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Validate each order using SeaportValidator and add the results to
+     *      the response.
+     */
     function withErrors(
         OrderHelperContext memory context
     ) internal returns (OrderHelperContext memory) {
@@ -370,6 +312,10 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Calculate fulfillments and match components for the provided orders
+     *      and add them to the response.
+     */
     function withFulfillments(
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
@@ -401,6 +347,10 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Calculate executions for the provided orders and add them to the
+     *      response.
+     */
     function withExecutions(
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
@@ -472,6 +422,10 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Choose a suggested fulfillment method based on the structure of the
+     *      orders and add it to the response.
+     */
     function withSuggestedAction(
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
@@ -480,6 +434,10 @@ library OrderHelperContextLib {
         return context;
     }
 
+    /**
+     * @dev Add the human-readable name of the selected fulfillment method to
+     *      the response.
+     */
     function actionName(
         OrderHelperContext memory context
     ) internal view returns (string memory) {
@@ -496,6 +454,10 @@ library OrderHelperContextLib {
         revert UnknownSelector();
     }
 
+    /**
+     * @dev Choose a suggested fulfillment method based on the structure of the
+     *      orders.
+     */
     function action(
         OrderHelperContext memory context
     ) internal view returns (bytes4) {
@@ -574,6 +536,10 @@ library OrderHelperContextLib {
         }
     }
 
+    /**
+     * @dev Return whether the provided orders must be matched using matchOrders
+     *      or matchAdvancedOrders.
+     */
     function mustUseMatch(
         OrderHelperContext memory context
     ) internal pure returns (bool) {
