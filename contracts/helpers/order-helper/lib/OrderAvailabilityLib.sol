@@ -10,9 +10,15 @@ import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { OrderStructureLib, State } from "./OrderStructureLib.sol";
 
+/**
+ * @notice Helper library for determining order availability.
+ */
 library OrderAvailabilityLib {
     using OrderStructureLib for AdvancedOrder;
 
+    /**
+     * @notice Returns true if the order is available for fulfillment.
+     */
     function isAvailable(
         AdvancedOrder memory order,
         ConsiderationInterface seaport
@@ -20,6 +26,11 @@ library OrderAvailabilityLib {
         return unavailableReason(order, seaport) == UnavailableReason.AVAILABLE;
     }
 
+    /**
+     * @notice Returns the order's UnavailableReason. Available orders will
+     *         return UnavailableReason.AVAILABLE to indicate that they are
+     *         available for fulfillment.
+     */
     function unavailableReason(
         AdvancedOrder memory order,
         ConsiderationInterface seaport
@@ -39,6 +50,9 @@ library OrderAvailabilityLib {
         return UnavailableReason.AVAILABLE;
     }
 
+    /**
+     * @notice Return an array of UnavailableReasons for the provided orders.
+     */
     function unavailableReasons(
         AdvancedOrder[] memory orders,
         uint256 maximumFulfilled,

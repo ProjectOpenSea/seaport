@@ -8,6 +8,10 @@ struct HashAndIntTuple {
     bytes32 hash;
 }
 
+/**
+ * @notice Helper library for calculating criteria resolver merkle roots and
+ *         proofs from integer token IDs.
+ */
 library CriteriaHelperLib {
     function criteriaRoot(
         uint256[] memory tokenIds

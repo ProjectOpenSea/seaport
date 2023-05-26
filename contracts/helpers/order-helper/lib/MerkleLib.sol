@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.17;
 
-/// @notice A pure library adapted from https://github.com/dmfxyz/murky
+/**
+ * @notice A pure library for generating Merkle trees/proofs, adapted from
+ * Murky: https://github.com/dmfxyz/murky
+ */
 library MerkleLib {
     function merkleHash(
         bytes32 left,

@@ -97,19 +97,9 @@ enum State {
 }
 
 /**
- * @dev The "result" of execution.
- *      - FULFILLMENT: Order should be fulfilled.
- *      - UNAVAILABLE: Order should be skipped.
- *      - VALIDATE: Order should be validated.
- *      - CANCEL: Order should be cancelled.
+ * @notice Helper library for classifying an order's structure. This is helpful
+ *         for determining which fulfillment method to use.
  */
-enum Result {
-    FULFILLMENT,
-    UNAVAILABLE,
-    VALIDATE,
-    CANCEL
-}
-
 library OrderStructureLib {
     using OrderLib for Order;
     using OrderComponentsLib for OrderComponents;
