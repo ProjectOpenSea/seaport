@@ -107,7 +107,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         address recipient,
         uint256 maximumFulfilled,
         CriteriaConstraint[] memory criteriaConstraints
-    ) public returns (Response memory) {
+    ) public view returns (Response memory) {
         OrderHelperContext memory context = OrderHelperContextLib
             .from(orders, seaport, validator)
             .withCallContext(
@@ -160,7 +160,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         address recipient,
         uint256 maximumFulfilled,
         CriteriaResolver[] memory criteriaResolvers
-    ) public returns (Response memory) {
+    ) public view returns (Response memory) {
         OrderHelperContext memory context = OrderHelperContextLib
             .from(orders, seaport, validator)
             .withCallContext(
@@ -207,7 +207,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaConstraint[] memory criteriaConstraints
-    ) external returns (Response memory) {
+    ) external view returns (Response memory) {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
         return
@@ -245,7 +245,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaResolver[] memory criteriaResolvers
-    ) external returns (Response memory) {
+    ) external view returns (Response memory) {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
         return

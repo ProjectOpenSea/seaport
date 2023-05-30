@@ -272,14 +272,14 @@ library OrderHelperContextLib {
      */
     function withErrors(
         OrderHelperContext memory context
-    ) internal returns (OrderHelperContext memory) {
+    ) internal view returns (OrderHelperContext memory) {
         AdvancedOrder[] memory orders = context.response.orders;
 
         ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
             orders.length
         );
         for (uint256 i; i < orders.length; i++) {
-            errors[i] = context.validator.isValidOrder(
+            errors[i] = context.validator.isValidOrderReadOnly(
                 orders[i].toOrder(),
                 address(context.seaport)
             );

@@ -528,11 +528,11 @@ contract FuzzEngine is
     }
 
     /**
-     * @dev Call SeaportOrderHelper.run with generated orders
+     * @dev Call SeaportOrderHelper.run with generated order.
      *
      * @param context A Fuzz test context.
      */
-    function runHelper(FuzzTestContext memory context) internal {
+    function runHelper(FuzzTestContext memory context) internal view {
         // Skip contract orders, which are not supported by the helper.
         bool isContractOrder;
         for (uint256 i; i < context.executionState.orders.length; i++) {

@@ -146,7 +146,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.validationErrors[0].errors.length,
-            4,
+            3,
             "unexpected validationErrors[0].errors length"
         );
         assertEq(
@@ -237,7 +237,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.validationErrors[0].errors.length,
-            4,
+            3,
             "unexpected validationErrors[0].errors length"
         );
         assertEq(

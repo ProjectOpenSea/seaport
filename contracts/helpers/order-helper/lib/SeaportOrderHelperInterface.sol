@@ -64,8 +64,8 @@ interface SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         uint256 maximumFulfilled,
-        CriteriaResolver[] memory criteriaResolvers
-    ) external returns (Response memory);
+        CriteriaConstraint[] memory criteriaConstraints
+    ) external view returns (Response memory);
 
     /**
      * @notice Same as the above function, but accepts explicit criteria
@@ -97,8 +97,8 @@ interface SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         uint256 maximumFulfilled,
-        CriteriaConstraint[] memory criteriaConstraints
-    ) external returns (Response memory);
+        CriteriaResolver[] memory criteriaResolvers
+    ) external view returns (Response memory);
 
     /**
      * @notice Convenience function for single orders.
@@ -125,7 +125,7 @@ interface SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaConstraint[] memory criteriaConstraints
-    ) external returns (Response memory);
+    ) external view returns (Response memory);
 
     /**
      * @notice Convenience function for single orders.
@@ -150,7 +150,7 @@ interface SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaResolver[] memory criteriaResolvers
-    ) external returns (Response memory);
+    ) external view returns (Response memory);
 
     /**
      * @notice Generate a criteria merkle root from an array of `tokenIds`. Use
