@@ -9,7 +9,7 @@ import {
     Execution,
     ItemType,
     ReceivedItem
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 

@@ -7,26 +7,26 @@ import { StdCheats } from "forge-std/StdCheats.sol";
 
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { MatchComponent } from "seaport-sol/src/SeaportSol.sol";
+import { MatchComponent } from "seaport-sol/SeaportSol.sol";
 
-import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     Amount,
     BasicOrderCategory,
     Criteria,
     TokenIndex
-} from "seaport-sol/src/SpaceEnums.sol";
+} from "seaport-sol/SpaceEnums.sol";
 
-import { OfferItemSpace } from "seaport-sol/src/StructSpace.sol";
+import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
 
-import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/src/ConduitControllerInterface.sol";
+} from "seaport-sol/ConduitControllerInterface.sol";
 
 import { TestHelpers } from "./FuzzTestContextLib.sol";
 

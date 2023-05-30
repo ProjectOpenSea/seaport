@@ -5,7 +5,7 @@ import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
 import { getEventHashWithTopics } from "./EventHashes.sol";
 
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 library OrdersMatchedEventsLib {
     event OrdersMatched(bytes32[] orderHashes);

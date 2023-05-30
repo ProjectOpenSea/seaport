@@ -3,10 +3,7 @@ pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
 
-import {
-    ExecutionLib,
-    ZoneParametersLib
-} from "seaport-sol/src/SeaportSol.sol";
+import { ExecutionLib, ZoneParametersLib } from "seaport-sol/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -15,13 +12,13 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
-import { ItemType, OrderType } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
@@ -29,7 +26,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
 import {
     AmountDeriverHelper
-} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 

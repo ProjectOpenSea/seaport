@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import { Test } from "forge-std/Test.sol";
 import {
     AmountDeriverHelper
-} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 contract TestAmountDeriverHelper is AmountDeriverHelper {
     function applyFraction(

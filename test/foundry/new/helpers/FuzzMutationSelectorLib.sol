@@ -5,9 +5,9 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     ReceivedItem
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import { FuzzTestContext, MutationState } from "./FuzzTestContextLib.sol";
 import { FuzzMutations, MutationFilters } from "./FuzzMutations.sol";

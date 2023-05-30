@@ -10,7 +10,7 @@ import {
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -19,7 +19,7 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     FuzzTestContext,

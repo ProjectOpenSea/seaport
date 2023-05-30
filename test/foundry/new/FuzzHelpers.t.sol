@@ -10,7 +10,7 @@ import {
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -20,13 +20,13 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     BasicOrderType,
     ItemType,
     OrderType
-} from "seaport-sol/src/SeaportEnums.sol";
+} from "seaport-sol/SeaportEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 

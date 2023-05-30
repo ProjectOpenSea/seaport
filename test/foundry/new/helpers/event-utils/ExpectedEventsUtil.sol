@@ -8,9 +8,9 @@ import {
     MemoryPointer
 } from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
-import { Execution } from "seaport-sol/src/SeaportStructs.sol";
+import { Execution } from "seaport-sol/SeaportStructs.sol";
 
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 

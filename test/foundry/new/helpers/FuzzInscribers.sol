@@ -3,11 +3,11 @@ pragma solidity ^0.8.17;
 
 import { vm } from "./VmUtils.sol";
 
-import { AdvancedOrder, OrderStatus } from "seaport-sol/src/SeaportStructs.sol";
+import { AdvancedOrder, OrderStatus } from "seaport-sol/SeaportStructs.sol";
 
-import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { AdvancedOrderLib } from "seaport-sol/src/SeaportSol.sol";
+import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
 
 /**
  * @notice "Inscribers" are helpers that set Seaport state directly by modifying

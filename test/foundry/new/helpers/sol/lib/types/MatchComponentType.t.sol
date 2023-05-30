@@ -6,7 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import {
     MatchComponent,
     MatchComponentType
-} from "seaport-sol/src/lib/types/MatchComponentType.sol";
+} from "seaport-sol/lib/types/MatchComponentType.sol";
 
 contract MatchComponentTypeTest is Test {
     using MatchComponentType for MatchComponent;

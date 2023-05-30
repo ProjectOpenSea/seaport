@@ -5,27 +5,23 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { AdvancedOrderLib } from "seaport-sol/src/lib/AdvancedOrderLib.sol";
-import { OrderComponentsLib } from "seaport-sol/src/lib/OrderComponentsLib.sol";
-import { OrderLib } from "seaport-sol/src/lib/OrderLib.sol";
-import { OrderParametersLib } from "seaport-sol/src/lib/OrderParametersLib.sol";
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+import { AdvancedOrderLib } from "seaport-sol/lib/AdvancedOrderLib.sol";
+import { OrderComponentsLib } from "seaport-sol/lib/OrderComponentsLib.sol";
+import { OrderLib } from "seaport-sol/lib/OrderLib.sol";
+import { OrderParametersLib } from "seaport-sol/lib/OrderParametersLib.sol";
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
-import {
-    MatchComponent
-} from "seaport-sol/src/lib/types/MatchComponentType.sol";
+import { MatchComponent } from "seaport-sol/lib/types/MatchComponentType.sol";
 import {
     FulfillmentDetails,
     OrderDetails
-} from "seaport-sol/src/fulfillments/lib/Structs.sol";
+} from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     FulfillmentGeneratorLib
-} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
-import {
-    ExecutionHelper
-} from "seaport-sol/src/executions/ExecutionHelper.sol";
+import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
 import {
     AdvancedOrder,

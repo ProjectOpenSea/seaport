@@ -8,9 +8,9 @@ import {
     ConsiderationItemSpace,
     OfferItemSpace,
     OrderComponentsSpace
-} from "seaport-sol/src/StructSpace.sol";
+} from "seaport-sol/StructSpace.sol";
 
-import { AdvancedOrder, ItemType } from "seaport-sol/src/SeaportStructs.sol";
+import { AdvancedOrder, ItemType } from "seaport-sol/SeaportStructs.sol";
 
 import {
     Amount,
@@ -32,7 +32,7 @@ import {
     UnavailableReason,
     Zone,
     ZoneHash
-} from "seaport-sol/src/SpaceEnums.sol";
+} from "seaport-sol/SpaceEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -57,7 +57,7 @@ import {
 
 import {
     FulfillmentGeneratorLib
-} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;

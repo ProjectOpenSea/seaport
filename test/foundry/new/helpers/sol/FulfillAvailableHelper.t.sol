@@ -8,20 +8,20 @@ import {
     OfferItemLib,
     OrderParametersLib,
     SeaportArrays
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     ConsiderationItem,
     OfferItem,
     FulfillmentComponent,
     OrderParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
 import {
     FulfillAvailableHelper
-} from "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";
+} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
 
 contract FulfillAvailableHelperTest is Test {
     using ConsiderationItemLib for ConsiderationItem;

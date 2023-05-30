@@ -31,14 +31,12 @@ import {
     OrderType
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import {
-    MatchComponent
-} from "seaport-sol/src/lib/types/MatchComponentType.sol";
+import { MatchComponent } from "seaport-sol/lib/types/MatchComponentType.sol";
 
 import {
     FulfillmentDetails,
     OrderDetails
-} from "seaport-sol/src/fulfillments/lib/Structs.sol";
+} from "seaport-sol/fulfillments/lib/Structs.sol";
 
 /**
  * @dev Context struct for OrderHelperLib. Includes context information

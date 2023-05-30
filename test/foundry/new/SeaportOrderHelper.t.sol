@@ -13,7 +13,7 @@ import {
     SeaportInterface,
     Side,
     CriteriaResolver
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -22,7 +22,7 @@ import {
     OrderComponents,
     Order,
     AdvancedOrder
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     SeaportValidatorInterface

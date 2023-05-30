@@ -7,11 +7,9 @@ import { DifferentialTest } from "./DifferentialTest.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/src/ConduitControllerInterface.sol";
+} from "seaport-sol/ConduitControllerInterface.sol";
 
-import {
-    ConduitController
-} from "seaport-core/src/conduit/ConduitController.sol";
+import { ConduitController } from "seaport-core/src/conduit/ConduitController.sol";
 
 import {
     ReferenceConduitController

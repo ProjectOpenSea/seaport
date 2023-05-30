@@ -11,7 +11,7 @@ import {
     AdvancedOrderLib,
     BasicOrderParametersLib,
     MatchComponent
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -21,30 +21,30 @@ import {
     Fulfillment,
     FulfillmentComponent,
     OrderParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import { ItemType, OrderType, Side } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
 
 import {
     BroadOrderType,
     OrderStatusEnum,
     SignatureMethod,
     UnavailableReason
-} from "seaport-sol/src/SpaceEnums.sol";
+} from "seaport-sol/SpaceEnums.sol";
 
-import { AdvancedOrdersSpace } from "seaport-sol/src/StructSpace.sol";
+import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
 
-import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import {
     AmountDeriverHelper
-} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/src/ConduitControllerInterface.sol";
+} from "seaport-sol/ConduitControllerInterface.sol";
 
-import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 

@@ -12,9 +12,9 @@ import {
     ConsiderationItem,
     CriteriaResolver,
     OfferItem
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import { ItemType, Side } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType, Side } from "seaport-sol/SeaportEnums.sol";
 
 struct CriteriaMetadata {
     uint256 resolvedIdentifier;

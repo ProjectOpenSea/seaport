@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import { ArrayHelpers, MemoryPointer } from "seaport/helpers/ArrayHelpers.sol";
 
-import { Execution, ItemType } from "seaport-sol/src/SeaportStructs.sol";
-import { ExecutionLib } from "seaport-sol/src/lib/ExecutionLib.sol";
+import { Execution, ItemType } from "seaport-sol/SeaportStructs.sol";
+import { ExecutionLib } from "seaport-sol/lib/ExecutionLib.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 

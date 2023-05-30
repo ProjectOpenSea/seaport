@@ -9,7 +9,7 @@ import {
     AdvancedOrderLib,
     MatchComponent,
     MatchComponentType
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -21,25 +21,20 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
-import { ItemType, OrderType } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
 
-import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/SeaportEnums.sol";
 
-import {
-    OrderStatusEnum,
-    UnavailableReason
-} from "seaport-sol/src/SpaceEnums.sol";
+import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
-import {
-    ExecutionHelper
-} from "seaport-sol/src/executions/ExecutionHelper.sol";
+import { ExecutionHelper } from "seaport-sol/executions/ExecutionHelper.sol";
 
 import {
     FulfillmentDetails,
     OrderDetails
-} from "seaport-sol/src/fulfillments/lib/Structs.sol";
+} from "seaport-sol/fulfillments/lib/Structs.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
@@ -51,7 +46,7 @@ import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
 import {
     FulfillmentGeneratorLib
-} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
 
 /**
  *  @dev "Derivers" examine generated orders and calculate additional

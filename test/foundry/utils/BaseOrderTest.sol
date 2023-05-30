@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {
     FulfillAvailableHelper,
     MatchFulfillmentHelper
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     AdditionalRecipient,
@@ -13,7 +13,7 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     ConsiderationInterface

@@ -12,7 +12,7 @@ import {
     OrderParametersLib,
     SeaportArrays,
     ZoneParametersLib
-} from "seaport-sol/src/SeaportSol.sol";
+} from "seaport-sol/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -26,7 +26,7 @@ import {
     ReceivedItem,
     SpentItem,
     ZoneParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+} from "seaport-sol/SeaportStructs.sol";
 
 import {
     BasicOrderRouteType,
@@ -34,17 +34,17 @@ import {
     ItemType,
     OrderType,
     Side
-} from "seaport-sol/src/SeaportEnums.sol";
+} from "seaport-sol/SeaportEnums.sol";
 
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
 
 import {
     ContractOffererInterface
-} from "seaport-sol/src/ContractOffererInterface.sol";
+} from "seaport-sol/ContractOffererInterface.sol";
 
-import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
-import { ZoneInterface } from "seaport-sol/src/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-sol/ZoneInterface.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 

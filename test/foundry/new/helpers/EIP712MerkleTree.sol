@@ -7,9 +7,9 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { Test } from "forge-std/Test.sol";
 
-import { OrderComponents } from "seaport-sol/src/SeaportStructs.sol";
+import { OrderComponents } from "seaport-sol/SeaportStructs.sol";
 
-import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
 
 import {
     TypehashDirectory
