@@ -15,14 +15,14 @@ import {
     OfferItem,
     OrderParameters,
     ReceivedItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import {
     BasicOrderType,
     ItemType,
     OrderType,
     Side
-} from "seaport-sol/SeaportEnums.sol";
+} from "seaport-sol/src/SeaportEnums.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 

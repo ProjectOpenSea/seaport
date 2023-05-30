@@ -8,7 +8,7 @@ import {
     OfferItemLib,
     OrderComponentsLib,
     OrderLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -16,9 +16,9 @@ import {
     CriteriaResolver,
     OfferItem,
     OrderComponents
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/src/SeaportEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 

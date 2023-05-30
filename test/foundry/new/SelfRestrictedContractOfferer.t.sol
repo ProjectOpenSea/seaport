@@ -9,9 +9,9 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     AdvancedOrderLib,
@@ -23,9 +23,9 @@ import {
     OrderLib,
     OrderParametersLib,
     SeaportArrays
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 

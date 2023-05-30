@@ -11,7 +11,7 @@ import {
     OrderLib,
     OrderParametersLib,
     SeaportArrays
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -21,20 +21,20 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
-import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 
 import {
     MatchFulfillmentHelper
-} from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
+} from "seaport-sol/src/fulfillments/match/MatchFulfillmentHelper.sol";
 
 import {
     MatchComponent,
     MatchComponentType
-} from "seaport-sol/lib/types/MatchComponentType.sol";
+} from "seaport-sol/src/lib/types/MatchComponentType.sol";
 
 import { BaseOrderTest } from "../../BaseOrderTest.sol";
 

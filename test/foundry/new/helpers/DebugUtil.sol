@@ -13,7 +13,10 @@ import { console2 } from "forge-std/console2.sol";
 
 import { ArrayHelpers, MemoryPointer } from "seaport/helpers/ArrayHelpers.sol";
 
-import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import {
+    OrderStatusEnum,
+    UnavailableReason
+} from "seaport-sol/src/SpaceEnums.sol";
 
 import { ForgeEventsLib } from "./event-utils/ForgeEventsLib.sol";
 

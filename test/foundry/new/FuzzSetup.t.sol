@@ -10,13 +10,16 @@ import {
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
-import { OrderComponentsSpace } from "seaport-sol/StructSpace.sol";
+import { OrderComponentsSpace } from "seaport-sol/src/StructSpace.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
-import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import {
+    OrderStatusEnum,
+    UnavailableReason
+} from "seaport-sol/src/SpaceEnums.sol";
 
 import {
     AdvancedOrder,
@@ -27,9 +30,9 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 

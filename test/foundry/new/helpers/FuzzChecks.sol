@@ -5,16 +5,19 @@ import { Test } from "forge-std/Test.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
-import { OrderParametersLib } from "seaport-sol/SeaportSol.sol";
+import { OrderParametersLib } from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
     Execution,
     OrderParameters,
     OrderType
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { OrderStatusEnum, UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import {
+    OrderStatusEnum,
+    UnavailableReason
+} from "seaport-sol/src/SpaceEnums.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
 

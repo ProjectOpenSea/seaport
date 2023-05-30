@@ -11,7 +11,7 @@ import { Test } from "forge-std/Test.sol";
 //     OfferItemLib,
 //     OrderParametersLib,
 //     SeaportArrays
-// } from "seaport-sol/SeaportSol.sol";
+// } from "seaport-sol/src/SeaportSol.sol";
 
 import { CriteriaResolverHelper } from "./helpers/CriteriaResolverHelper.sol";
 

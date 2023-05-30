@@ -12,7 +12,7 @@ import {
     OrderParametersLib,
     SeaportArrays,
     ZoneParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -25,11 +25,11 @@ import {
     OrderComponents,
     OrderParameters,
     OrderType
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
     HashValidationZoneOfferer
