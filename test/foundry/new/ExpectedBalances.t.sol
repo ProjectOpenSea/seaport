@@ -3,9 +3,9 @@ pragma solidity ^0.8.17;
 
 import { stdError, Test } from "forge-std/Test.sol";
 
-import { Execution, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+import { Execution, ReceivedItem } from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     BalanceErrorMessages,

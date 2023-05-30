@@ -10,7 +10,7 @@ import {
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,

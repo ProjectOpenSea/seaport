@@ -16,7 +16,7 @@ import {
     ConsiderationItem,
     ItemType,
     OrderType
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -25,17 +25,17 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
-
-import {
-    ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+} from "seaport-sol/src/ConduitControllerInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 

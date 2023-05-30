@@ -3,9 +3,9 @@ pragma solidity ^0.8.17;
 
 import { vm } from "../VmUtils.sol";
 
-import { SpentItem, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+import { SpentItem, ReceivedItem } from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 struct ERC20TransferEvent {
     string kind;
