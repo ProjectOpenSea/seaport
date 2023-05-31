@@ -85,6 +85,30 @@ error CannotFulfillProvidedCombinedOrder();
  */
 error InvalidNativeTokenUnavailableCombination();
 /**
+ * @dev Bad request error: a constraint includes a nonexistent order index
+ */
+error InvalidCriteriaConstraintOrderIndex(uint256 orderIndex);
+/**
+ * @dev Bad request error: a constraint includes a nonexistent offer item index.
+ */
+error InvalidCriteriaConstraintOfferIndex(
+    uint256 orderIndex,
+    uint256 itemIndex
+);
+/**
+ * @dev Bad request error: a constraint includes a nonexistent consideration
+ *      item index.
+ */
+error InvalidCriteriaConstraintConsiderationIndex(
+    uint256 orderIndex,
+    uint256 itemIndex
+);
+/**
+ * @dev Bad request error: a constraint specifies an identifier that's not
+ *      included in the provided token IDs.
+ */
+error InvalidCriteriaConstraintIdentifier(uint256 identifier);
+/**
  * @dev Internal error: Could not select a fulfillment method for the provided
  *      orders.
  */
@@ -182,10 +206,104 @@ library OrderHelperContextLib {
     function validate(
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
+        validateNoContractOrders(context);
+        return context;
+    }
+
+    /**
+     * @dev Validate the provided orders. Checks that none of the provided orders
+     *      are contract orders and applies basic criteria constraint validations.
+     */
+    function validate(
+        OrderHelperContext memory context,
+        CriteriaConstraint[] memory criteriaConstraints
+    ) internal pure returns (OrderHelperContext memory) {
+        validateNoContractOrders(context);
+        validateCriteriaConstraints(context, criteriaConstraints);
+        return context;
+    }
+
+    /**
+     * @dev Checks that none of the provided orders are contract orders.
+     */
+    function validateNoContractOrders(
+        OrderHelperContext memory context
+    ) internal pure returns (OrderHelperContext memory) {
         for (uint256 i; i < context.response.orders.length; i++) {
             AdvancedOrder memory order = context.response.orders[i];
             if (order.getType() == Type.CONTRACT) {
                 revert ContractOrdersNotSupported();
+            }
+        }
+        return context;
+    }
+
+    /**
+     * @dev Basic validations for criteria constraints. Checks for valid order
+     *     and item indexes and that the provided identifier is included in the
+     *     constraint's token IDs. Caller beware: we omit more advanced
+     *     validations like checking for duplicate and conflicting constraints.
+     */
+    function validateCriteriaConstraints(
+        OrderHelperContext memory context,
+        CriteriaConstraint[] memory criteriaConstraints
+    ) internal pure returns (OrderHelperContext memory) {
+        for (uint256 i; i < criteriaConstraints.length; i++) {
+            CriteriaConstraint memory constraint = criteriaConstraints[i];
+
+            // Validate order index
+            if (constraint.orderIndex >= context.response.orders.length) {
+                revert InvalidCriteriaConstraintOrderIndex(
+                    constraint.orderIndex
+                );
+            }
+
+            // Validate item index
+            if (constraint.side == Side.OFFER) {
+                if (
+                    constraint.index >=
+                    context
+                        .response
+                        .orders[constraint.orderIndex]
+                        .parameters
+                        .offer
+                        .length
+                ) {
+                    revert InvalidCriteriaConstraintOfferIndex(
+                        constraint.orderIndex,
+                        constraint.index
+                    );
+                }
+            } else {
+                if (
+                    constraint.index >=
+                    context
+                        .response
+                        .orders[constraint.orderIndex]
+                        .parameters
+                        .consideration
+                        .length
+                ) {
+                    revert InvalidCriteriaConstraintConsiderationIndex(
+                        constraint.orderIndex,
+                        constraint.index
+                    );
+                }
+            }
+
+            // Validate identifier in tokenIds
+            uint256 id = constraint.identifier;
+            bool found;
+            for (uint256 j; j < constraint.tokenIds.length; j++) {
+                if (constraint.tokenIds[j] == id) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                revert InvalidCriteriaConstraintIdentifier(
+                    constraint.identifier
+                );
             }
         }
         return context;

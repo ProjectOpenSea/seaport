@@ -119,7 +119,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
             );
         return
             context
-                .validate()
+                .validate(criteriaConstraints)
                 .withInferredCriteria(criteriaConstraints)
                 .withDetails()
                 .withErrors()

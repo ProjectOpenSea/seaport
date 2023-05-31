@@ -34,6 +34,17 @@ import {
     SeaportOrderHelper
 } from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
 
+import {
+    TokenIdNotFound
+} from "../../../contracts/helpers/order-helper/lib/CriteriaHelperLib.sol";
+
+import {
+    InvalidCriteriaConstraintOrderIndex,
+    InvalidCriteriaConstraintOfferIndex,
+    InvalidCriteriaConstraintConsiderationIndex,
+    InvalidCriteriaConstraintIdentifier
+} from "../../../contracts/helpers/order-helper/lib/OrderHelperLib.sol";
+
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
 contract SeaportOrderHelperTest is BaseOrderTest {
@@ -43,8 +54,6 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
-
-    error TokenIdNotFound();
 
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
     string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =
@@ -375,6 +384,236 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             bytes32(
                 0x54d86c808646efdd2ca89e32f5a89bf6f7318cf8d10627e2f001c99fb9fa90dd
             )
+        );
+    }
+
+    /**
+     * @dev Workaround for Foundry issues with custom errors + libraries.
+     *      See: https://github.com/foundry-rs/foundry/issues/4405
+     */
+    function runHelper(
+        AdvancedOrder[] memory orders,
+        address caller,
+        uint256 nativeTokensSupplied,
+        bytes32 fulfillerConduitKey,
+        address recipient,
+        uint256 maximumFulfilled,
+        CriteriaConstraint[] memory criteriaConstraints
+    ) public {
+        orderHelper.run(
+            orders,
+            caller,
+            nativeTokensSupplied,
+            fulfillerConduitKey,
+            recipient,
+            maximumFulfilled,
+            criteriaConstraints
+        );
+    }
+
+    function test_criteriaValidation_invalidOrderIndex() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(
+                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+            )
+            .toAdvancedOrder(1, 1, "");
+
+        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
+
+        uint256[] memory offerIds = new uint256[](3);
+        offerIds[0] = 1;
+        offerIds[1] = 2;
+        offerIds[2] = 3;
+        criteria[0] = CriteriaConstraint({
+            orderIndex: 1,
+            side: Side.OFFER,
+            index: 0,
+            identifier: 1,
+            tokenIds: offerIds
+        });
+
+        uint256[] memory considerationIds = new uint256[](3);
+        considerationIds[0] = 4;
+        considerationIds[1] = 5;
+        considerationIds[2] = 6;
+        criteria[1] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 0,
+            identifier: 4,
+            tokenIds: considerationIds
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidCriteriaConstraintOrderIndex.selector,
+                1
+            )
+        );
+        this.runHelper(
+            orders,
+            offerer1.addr,
+            0,
+            bytes32(0),
+            address(this),
+            type(uint256).max,
+            criteria
+        );
+    }
+
+    function test_criteriaValidation_invalidOfferItemIndex() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(
+                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+            )
+            .toAdvancedOrder(1, 1, "");
+
+        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
+
+        uint256[] memory offerIds = new uint256[](3);
+        offerIds[0] = 1;
+        offerIds[1] = 2;
+        offerIds[2] = 3;
+        criteria[0] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.OFFER,
+            index: 1,
+            identifier: 1,
+            tokenIds: offerIds
+        });
+
+        uint256[] memory considerationIds = new uint256[](3);
+        considerationIds[0] = 4;
+        considerationIds[1] = 5;
+        considerationIds[2] = 6;
+        criteria[1] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 0,
+            identifier: 4,
+            tokenIds: considerationIds
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidCriteriaConstraintOfferIndex.selector,
+                0,
+                1
+            )
+        );
+        this.runHelper(
+            orders,
+            offerer1.addr,
+            0,
+            bytes32(0),
+            address(this),
+            type(uint256).max,
+            criteria
+        );
+    }
+
+    function test_criteriaValidation_invalidConsiderationItemIndex() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(
+                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+            )
+            .toAdvancedOrder(1, 1, "");
+
+        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
+
+        uint256[] memory offerIds = new uint256[](3);
+        offerIds[0] = 1;
+        offerIds[1] = 2;
+        offerIds[2] = 3;
+        criteria[0] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.OFFER,
+            index: 0,
+            identifier: 1,
+            tokenIds: offerIds
+        });
+
+        uint256[] memory considerationIds = new uint256[](3);
+        considerationIds[0] = 4;
+        considerationIds[1] = 5;
+        considerationIds[2] = 6;
+        criteria[1] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 1,
+            identifier: 4,
+            tokenIds: considerationIds
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidCriteriaConstraintConsiderationIndex.selector,
+                0,
+                1
+            )
+        );
+        this.runHelper(
+            orders,
+            offerer1.addr,
+            0,
+            bytes32(0),
+            address(this),
+            type(uint256).max,
+            criteria
+        );
+    }
+
+    function test_criteriaValidation_invalidIdentifier() public {
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = OrderLib
+            .fromDefault(
+                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+            )
+            .toAdvancedOrder(1, 1, "");
+
+        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
+
+        uint256[] memory offerIds = new uint256[](3);
+        offerIds[0] = 1;
+        offerIds[1] = 2;
+        offerIds[2] = 3;
+        criteria[0] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.OFFER,
+            index: 0,
+            identifier: 1,
+            tokenIds: offerIds
+        });
+
+        uint256[] memory considerationIds = new uint256[](3);
+        considerationIds[0] = 4;
+        considerationIds[1] = 5;
+        considerationIds[2] = 6;
+        criteria[1] = CriteriaConstraint({
+            orderIndex: 0,
+            side: Side.CONSIDERATION,
+            index: 0,
+            identifier: 7,
+            tokenIds: considerationIds
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InvalidCriteriaConstraintIdentifier.selector,
+                7
+            )
+        );
+        this.runHelper(
+            orders,
+            offerer1.addr,
+            0,
+            bytes32(0),
+            address(this),
+            type(uint256).max,
+            criteria
         );
     }
 
