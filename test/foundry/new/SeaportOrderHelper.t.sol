@@ -29,7 +29,7 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
-    Response,
+    OrderHelperResponse,
     CriteriaConstraint,
     SeaportOrderHelper
 } from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
@@ -129,7 +129,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
             .toAdvancedOrder(1, 1, "");
 
-        Response memory res = orderHelper.prepare(
+        OrderHelperResponse memory res = orderHelper.prepare(
             orders,
             offerer1.addr,
             0,
@@ -220,7 +220,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             ""
         );
 
-        Response memory res = orderHelper.prepare(
+        OrderHelperResponse memory res = orderHelper.prepare(
             orders,
             offerer1.addr,
             0,
@@ -337,7 +337,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             tokenIds: considerationIds
         });
 
-        Response memory res = orderHelper.prepare(
+        OrderHelperResponse memory res = orderHelper.prepare(
             orders,
             offerer1.addr,
             0,

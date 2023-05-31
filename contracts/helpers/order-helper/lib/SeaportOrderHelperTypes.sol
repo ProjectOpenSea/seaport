@@ -53,10 +53,10 @@ struct OrderHelperContext {
     uint256 nativeTokensSupplied;
     uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
-    Response response;
+    OrderHelperResponse OrderHelperResponse;
 }
 
-struct Response {
+struct OrderHelperResponse {
     /**
      * @dev The provided orders. If the caller provides explicit criteria
      *      resolvers, the orders will not be modified. If the caller provides

@@ -6,7 +6,7 @@ import {
     CriteriaResolver
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { CriteriaConstraint, Response } from "./OrderHelperLib.sol";
+import { CriteriaConstraint, OrderHelperResponse } from "./OrderHelperLib.sol";
 
 interface SeaportOrderHelperInterface {
     /**
@@ -53,9 +53,9 @@ interface SeaportOrderHelperInterface {
      *                             which describe the criteria to apply to
      *                             specific order/side/item combinations.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder[] memory orders,
@@ -65,7 +65,7 @@ interface SeaportOrderHelperInterface {
         address recipient,
         uint256 maximumFulfilled,
         CriteriaConstraint[] memory criteriaConstraints
-    ) external view returns (Response memory);
+    ) external view returns (OrderHelperResponse memory);
 
     /**
      * @notice Same as the above function, but accepts explicit criteria
@@ -86,9 +86,9 @@ interface SeaportOrderHelperInterface {
      * @param criteriaResolvers    An array of explicit criteria resolvers for
      *                             the provided orders.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder[] memory orders,
@@ -98,7 +98,7 @@ interface SeaportOrderHelperInterface {
         address recipient,
         uint256 maximumFulfilled,
         CriteriaResolver[] memory criteriaResolvers
-    ) external view returns (Response memory);
+    ) external view returns (OrderHelperResponse memory);
 
     /**
      * @notice Convenience function for single orders.
@@ -114,9 +114,9 @@ interface SeaportOrderHelperInterface {
      *                             specific order/side/item combinations.
      *                             the provided orders.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder memory order,
@@ -125,7 +125,7 @@ interface SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaConstraint[] memory criteriaConstraints
-    ) external view returns (Response memory);
+    ) external view returns (OrderHelperResponse memory);
 
     /**
      * @notice Convenience function for single orders.
@@ -139,9 +139,9 @@ interface SeaportOrderHelperInterface {
      * @param criteriaResolvers    An array of explicit criteria resolvers for
      *                             the provided orders.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder memory order,
@@ -150,7 +150,7 @@ interface SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaResolver[] memory criteriaResolvers
-    ) external view returns (Response memory);
+    ) external view returns (OrderHelperResponse memory);
 
     /**
      * @notice Generate a criteria merkle root from an array of `tokenIds`. Use

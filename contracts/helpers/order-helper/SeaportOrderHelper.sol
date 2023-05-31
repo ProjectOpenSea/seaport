@@ -20,7 +20,7 @@ import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
 import {
     CriteriaConstraint,
     OrderHelperContext,
-    Response
+    OrderHelperResponse
 } from "./lib/SeaportOrderHelperTypes.sol";
 
 import {
@@ -95,9 +95,9 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *                             which describe the criteria to apply to
      *                             specific order/side/item combinations.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder[] memory orders,
@@ -107,7 +107,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         address recipient,
         uint256 maximumFulfilled,
         CriteriaConstraint[] memory criteriaConstraints
-    ) public view returns (Response memory) {
+    ) public view returns (OrderHelperResponse memory) {
         OrderHelperContext memory context = OrderHelperContextLib
             .from(orders, seaport, validator)
             .withCallContext(
@@ -126,7 +126,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                 .withFulfillments()
                 .withSuggestedAction()
                 .withExecutions()
-                .response;
+                .OrderHelperResponse;
     }
 
     /**
@@ -148,9 +148,9 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      * @param criteriaResolvers    An array of explicit criteria resolvers for
      *                             the provided orders.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder[] memory orders,
@@ -160,7 +160,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         address recipient,
         uint256 maximumFulfilled,
         CriteriaResolver[] memory criteriaResolvers
-    ) public view returns (Response memory) {
+    ) public view returns (OrderHelperResponse memory) {
         OrderHelperContext memory context = OrderHelperContextLib
             .from(orders, seaport, validator)
             .withCallContext(
@@ -179,7 +179,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
                 .withFulfillments()
                 .withSuggestedAction()
                 .withExecutions()
-                .response;
+                .OrderHelperResponse;
     }
 
     /**
@@ -196,9 +196,9 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *                             specific order/side/item combinations.
      *                             the provided orders.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder memory order,
@@ -207,7 +207,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaConstraint[] memory criteriaConstraints
-    ) external view returns (Response memory) {
+    ) external view returns (OrderHelperResponse memory) {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
         return
@@ -234,9 +234,9 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      * @param criteriaResolvers    An array of explicit criteria resolvers for
      *                             the provided orders.
      *
-     * @return A Response struct containing data derived by the OrderHelper. See
+     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
      *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         response object.
+     *         OrderHelperResponse object.
      */
     function prepare(
         AdvancedOrder memory order,
@@ -245,7 +245,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         bytes32 fulfillerConduitKey,
         address recipient,
         CriteriaResolver[] memory criteriaResolvers
-    ) external view returns (Response memory) {
+    ) external view returns (OrderHelperResponse memory) {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
         return
