@@ -99,7 +99,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder[] memory orders,
         address caller,
         uint256 nativeTokensSupplied,
@@ -152,7 +152,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder[] memory orders,
         address caller,
         uint256 nativeTokensSupplied,
@@ -200,7 +200,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder memory order,
         address caller,
         uint256 nativeTokensSupplied,
@@ -211,7 +211,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
         return
-            run(
+            prepare(
                 orders,
                 caller,
                 nativeTokensSupplied,
@@ -238,7 +238,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder memory order,
         address caller,
         uint256 nativeTokensSupplied,
@@ -249,7 +249,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = order;
         return
-            run(
+            prepare(
                 orders,
                 caller,
                 nativeTokensSupplied,

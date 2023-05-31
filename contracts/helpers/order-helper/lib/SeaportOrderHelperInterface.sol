@@ -57,7 +57,7 @@ interface SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder[] memory orders,
         address caller,
         uint256 nativeTokensSupplied,
@@ -90,7 +90,7 @@ interface SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder[] memory orders,
         address caller,
         uint256 nativeTokensSupplied,
@@ -118,7 +118,7 @@ interface SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder memory order,
         address caller,
         uint256 nativeTokensSupplied,
@@ -143,7 +143,7 @@ interface SeaportOrderHelperInterface {
      *         SeaportOrderHelperTypes.sol for details on the structure of this
      *         response object.
      */
-    function run(
+    function prepare(
         AdvancedOrder memory order,
         address caller,
         uint256 nativeTokensSupplied,

@@ -546,7 +546,7 @@ contract FuzzEngine is
         }
 
         if (!isContractOrder) {
-            context.seaportOrderHelper.run(
+            context.seaportOrderHelper.prepare(
                 context.executionState.orders,
                 context.executionState.caller,
                 context.executionState.value,

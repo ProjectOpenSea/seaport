@@ -129,7 +129,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
             .toAdvancedOrder(1, 1, "");
 
-        Response memory res = orderHelper.run(
+        Response memory res = orderHelper.prepare(
             orders,
             offerer1.addr,
             0,
@@ -220,7 +220,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             ""
         );
 
-        Response memory res = orderHelper.run(
+        Response memory res = orderHelper.prepare(
             orders,
             offerer1.addr,
             0,
@@ -337,7 +337,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             tokenIds: considerationIds
         });
 
-        Response memory res = orderHelper.run(
+        Response memory res = orderHelper.prepare(
             orders,
             offerer1.addr,
             0,
@@ -400,7 +400,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         uint256 maximumFulfilled,
         CriteriaConstraint[] memory criteriaConstraints
     ) public {
-        orderHelper.run(
+        orderHelper.prepare(
             orders,
             caller,
             nativeTokensSupplied,
