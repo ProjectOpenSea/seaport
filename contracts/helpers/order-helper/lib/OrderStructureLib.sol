@@ -9,24 +9,23 @@ import {
     OfferItemLib,
     OrderComponentsLib,
     OrderLib,
-    OrderParametersLib,
-    SeaportArrays,
-    ZoneParametersLib
+    OrderParametersLib
 } from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
-    ConsiderationItem,
     CriteriaResolver,
-    Fulfillment,
-    OfferItem,
+    Execution,
     Order,
     OrderComponents,
     OrderParameters,
+    ConsiderationItem,
+    OfferItem,
     ReceivedItem,
     SpentItem,
-    ZoneParameters
-} from "seaport-sol/src/SeaportStructs.sol";
+    Fulfillment,
+    FulfillmentComponent
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     BasicOrderRouteType,
@@ -34,23 +33,13 @@ import {
     ItemType,
     OrderType,
     Side
-} from "seaport-sol/src/SeaportEnums.sol";
-
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
-    ContractOffererInterface
-} from "seaport-sol/src/ContractOffererInterface.sol";
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
-
-import { ZoneInterface } from "seaport-sol/src/ZoneInterface.sol";
-
-import { FuzzTestContext } from "./FuzzTestContextLib.sol";
-
-import { FuzzInscribers } from "./FuzzInscribers.sol";
-
-import { assume } from "./VmUtils.sol";
+error TypeNotFound();
 
 /**
  * @dev The "structure" of the order.
@@ -108,23 +97,10 @@ enum State {
 }
 
 /**
- * @dev The "result" of execution.
- *      - FULFILLMENT: Order should be fulfilled.
- *      - UNAVAILABLE: Order should be skipped.
- *      - VALIDATE: Order should be validated.
- *      - CANCEL: Order should be cancelled.
+ * @notice Helper library for classifying an order's structure. This is helpful
+ *         for determining which fulfillment method to use.
  */
-enum Result {
-    FULFILLMENT,
-    UNAVAILABLE,
-    VALIDATE,
-    CANCEL
-}
-
-/**
- * @notice Stateless helpers for Fuzz tests.
- */
-library FuzzHelpers {
+library OrderStructureLib {
     using OrderLib for Order;
     using OrderComponentsLib for OrderComponents;
     using OrderParametersLib for OrderParameters;
@@ -132,196 +108,13 @@ library FuzzHelpers {
     using ConsiderationItemLib for ConsiderationItem[];
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
-    using ZoneParametersLib for AdvancedOrder;
-    using ZoneParametersLib for AdvancedOrder[];
-    using FuzzInscribers for AdvancedOrder;
 
-    event ExpectedGenerateOrderDataHash(bytes32 dataHash);
-
-    function _gcd(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (b == 0) {
-            return a;
-        } else {
-            return _gcd(b, a % b);
-        }
-    }
-
-    function _lcm(
-        uint256 a,
-        uint256 b,
-        uint256 gcdValue
-    ) internal returns (uint256 result) {
-        bool success;
-        (success, result) = _tryMul(a, b);
-
-        if (success) {
-            return result / gcdValue;
-        } else {
-            uint256 candidate = a / gcdValue;
-            if (candidate * gcdValue == a) {
-                (success, result) = _tryMul(candidate, b);
-                if (success) {
-                    return result;
-                } else {
-                    candidate = b / gcdValue;
-                    if (candidate * gcdValue == b) {
-                        (success, result) = _tryMul(candidate, a);
-                        if (success) {
-                            return result;
-                        }
-                    }
-                }
-            }
-
-            assume(false, "cannot_derive_lcm_for_partial_fill");
-        }
-
-        return result / gcdValue;
-    }
-
-    function _tryMul(
-        uint256 a,
-        uint256 b
-    ) internal pure returns (bool, uint256) {
-        unchecked {
-            if (a == 0) {
-                return (true, 0);
-            }
-
-            uint256 c = a * b;
-
-            if (c / a != b) {
-                return (false, 0);
-            }
-
-            return (true, c);
-        }
-    }
-
-    function findSmallestDenominator(
-        uint256[] memory numbers
-    ) internal returns (uint256 denominator) {
-        require(
-            numbers.length > 0,
-            "FuzzHelpers: Input array must not be empty"
-        );
-
-        bool initialValueSet = false;
-
-        uint256 gcdValue;
-        uint256 lcmValue;
-
-        for (uint256 i = 0; i < numbers.length; i++) {
-            uint256 number = numbers[i];
-
-            if (number == 0) {
-                continue;
-            }
-
-            if (!initialValueSet) {
-                initialValueSet = true;
-                gcdValue = number;
-                lcmValue = number;
-                continue;
-            }
-
-            gcdValue = _gcd(gcdValue, number);
-            lcmValue = _lcm(lcmValue, number, gcdValue);
-        }
-
-        if (gcdValue == 0) {
-            return 0;
-        }
-
-        denominator = lcmValue / gcdValue;
-
-        // TODO: this should support up to uint120, work out
-        // how to fly closer to the sun on this
-        if (denominator > type(uint80).max) {
-            return 0;
-        }
-    }
-
-    function getTotalFractionalizableAmounts(
-        OrderParameters memory order
-    ) internal pure returns (uint256) {
-        if (
-            order.orderType == OrderType.PARTIAL_OPEN ||
-            order.orderType == OrderType.PARTIAL_RESTRICTED
-        ) {
-            return 2 * (order.offer.length + order.consideration.length);
-        }
-
-        return 0;
-    }
-
-    function getSmallestDenominator(
-        OrderParameters memory order
-    ) internal returns (uint256 smallestDenominator, bool canScaleUp) {
-        canScaleUp = true;
-
-        uint256 totalFractionalizableAmounts = (
-            getTotalFractionalizableAmounts(order)
-        );
-
-        if (totalFractionalizableAmounts != 0) {
-            uint256[] memory numbers = new uint256[](
-                totalFractionalizableAmounts
-            );
-
-            uint256 numberIndex = 0;
-
-            for (uint256 j = 0; j < order.offer.length; ++j) {
-                OfferItem memory item = order.offer[j];
-                numbers[numberIndex++] = item.startAmount;
-                numbers[numberIndex++] = item.endAmount;
-                if (
-                    item.itemType == ItemType.ERC721 ||
-                    item.itemType == ItemType.ERC721_WITH_CRITERIA
-                ) {
-                    canScaleUp = false;
-                }
-            }
-
-            for (uint256 j = 0; j < order.consideration.length; ++j) {
-                ConsiderationItem memory item = order.consideration[j];
-                numbers[numberIndex++] = item.startAmount;
-                numbers[numberIndex++] = item.endAmount;
-                if (
-                    item.itemType == ItemType.ERC721 ||
-                    item.itemType == ItemType.ERC721_WITH_CRITERIA
-                ) {
-                    canScaleUp = false;
-                }
-            }
-
-            smallestDenominator = findSmallestDenominator(numbers);
-        } else {
-            smallestDenominator = 0;
-        }
-    }
-
-    /**
-     * @dev Get the "quantity" of orders to process, equal to the number of
-     *      orders in the provided array.
-     *
-     * @param orders array of AdvancedOrders.
-     *
-     * @custom:return quantity of orders to process.
-     */
     function getQuantity(
         AdvancedOrder[] memory orders
     ) internal pure returns (uint256) {
         return orders.length;
     }
 
-    /**
-     * @dev Get the "family" of method that can fulfill these orders.
-     *
-     * @param orders array of AdvancedOrders.
-     *
-     * @custom:return family of method that can fulfill these orders.
-     */
     function getFamily(
         AdvancedOrder[] memory orders
     ) internal pure returns (Family) {
@@ -332,17 +125,9 @@ library FuzzHelpers {
         return Family.SINGLE;
     }
 
-    /**
-     * @dev Get the "state" of the given order.
-     *
-     * @param order   an AdvancedOrder.
-     * @param seaport a SeaportInterface, either reference or optimized.
-     *
-     * @custom:return state of the given order.
-     */
     function getState(
         AdvancedOrder memory order,
-        SeaportInterface seaport
+        ConsiderationInterface seaport
     ) internal view returns (State) {
         uint256 counter = seaport.getCounter(order.parameters.offerer);
         bytes32 orderHash = seaport.getOrderHash(
@@ -363,14 +148,6 @@ library FuzzHelpers {
         return State.UNUSED;
     }
 
-    /**
-     * @dev Get the "type" of the given order.
-     *
-     * @param order an AdvancedOrder.
-     *
-     * @custom:return type of the given order (in the sense of the enum defined
-     *                above in this file, not ConsiderationStructs' OrderType).
-     */
     function getType(AdvancedOrder memory order) internal pure returns (Type) {
         OrderType orderType = order.parameters.orderType;
         if (
@@ -386,18 +163,10 @@ library FuzzHelpers {
         } else if (orderType == OrderType.CONTRACT) {
             return Type.CONTRACT;
         } else {
-            revert("FuzzEngine: Type not found");
+            revert TypeNotFound();
         }
     }
 
-    /**
-     * @dev Get the "structure" of the given order.
-     *
-     * @param order   an AdvancedOrder.
-     * @param seaport a SeaportInterface, either reference or optimized.
-     *
-     * @custom:return structure of the given order.
-     */
     function getStructure(
         AdvancedOrder memory order,
         address seaport
@@ -453,16 +222,6 @@ library FuzzHelpers {
         return Structure.STANDARD;
     }
 
-    /**
-     * @dev Inspect an AdvancedOrder and check that it is eligible for the
-     *      fulfillBasic functions.
-     *
-     * @param order   an AdvancedOrder.
-     * @param seaport a SeaportInterface, either reference or optimized.
-     *
-     * @custom:return true if the order is eligible for the fulfillBasic
-     *                functions, false otherwise.
-     */
     function getBasicOrderTypeEligibility(
         AdvancedOrder memory order,
         address seaport
@@ -502,7 +261,9 @@ library FuzzHelpers {
         }
 
         // Order cannot be partially filled.
-        SeaportInterface seaportInterface = SeaportInterface(seaport);
+        ConsiderationInterface seaportInterface = ConsiderationInterface(
+            seaport
+        );
         uint256 counter = seaportInterface.getCounter(order.parameters.offerer);
         OrderComponents memory orderComponents = order
             .parameters
@@ -662,13 +423,6 @@ library FuzzHelpers {
         return true;
     }
 
-    /**
-     * @dev Get the BasicOrderType for a given advanced order.
-     *
-     * @param order The advanced order.
-     *
-     * @return basicOrderType The BasicOrderType.
-     */
     function getBasicOrderType(
         AdvancedOrder memory order
     ) internal pure returns (BasicOrderType basicOrderType) {
@@ -685,13 +439,6 @@ library FuzzHelpers {
         }
     }
 
-    /**
-     * @dev Get the BasicOrderRouteType for a given advanced order.
-     *
-     * @param order The advanced order.
-     *
-     * @return route The BasicOrderRouteType.
-     */
     function getBasicOrderRouteType(
         AdvancedOrder memory order
     ) internal pure returns (BasicOrderRouteType route) {
@@ -720,154 +467,6 @@ library FuzzHelpers {
                 route = BasicOrderRouteType.ERC1155_TO_ERC20;
             }
         }
-    }
-
-    /**
-     * @dev Derive ZoneParameters from a given restricted order and return
-     *      the expected calldata hash for the call to validateOrder.
-     *
-     * @param orders             The restricted orders.
-     * @param seaport            The Seaport address.
-     * @param fulfiller          The fulfiller.
-     * @param maximumFulfilled   The maximum number of orders to fulfill.
-     * @param criteriaResolvers  The criteria resolvers.
-     * @param maximumFulfilled   The maximum number of orders to fulfill.
-     * @param unavailableReasons The availability status.
-     *
-     * @return calldataHashes The derived calldata hashes.
-     */
-    function getExpectedZoneCalldataHash(
-        AdvancedOrder[] memory orders,
-        address seaport,
-        address fulfiller,
-        CriteriaResolver[] memory criteriaResolvers,
-        uint256 maximumFulfilled,
-        UnavailableReason[] memory unavailableReasons
-    ) internal view returns (bytes32[] memory calldataHashes) {
-        calldataHashes = new bytes32[](orders.length);
-
-        ZoneParameters[] memory zoneParameters = orders.getZoneParameters(
-            fulfiller,
-            maximumFulfilled,
-            seaport,
-            criteriaResolvers,
-            unavailableReasons
-        );
-
-        for (uint256 i; i < zoneParameters.length; ++i) {
-            // Derive the expected calldata hash for the call to validateOrder
-            calldataHashes[i] = keccak256(
-                abi.encodeCall(ZoneInterface.validateOrder, (zoneParameters[i]))
-            );
-        }
-    }
-
-    /**
-     * @dev Get the orderHashes of an array of AdvancedOrders and return
-     *      the expected calldata hashes for calls to validateOrder.
-     */
-    function getExpectedContractOffererCalldataHashes(
-        FuzzTestContext memory context
-    ) internal pure returns (bytes32[2][] memory) {
-        AdvancedOrder[] memory orders = context.executionState.orders;
-        address fulfiller = context.executionState.caller;
-
-        bytes32[] memory orderHashes = new bytes32[](orders.length);
-        for (uint256 i = 0; i < orderHashes.length; ++i) {
-            if (
-                context.executionState.orderDetails[i].unavailableReason !=
-                UnavailableReason.AVAILABLE
-            ) {
-                orderHashes[i] = bytes32(0);
-            } else {
-                orderHashes[i] = context
-                    .executionState
-                    .orderDetails[i]
-                    .orderHash;
-            }
-        }
-
-        bytes32[2][] memory calldataHashes = new bytes32[2][](orders.length);
-
-        // Iterate over contract orders to derive calldataHashes
-        for (uint256 i; i < orders.length; ++i) {
-            AdvancedOrder memory order = orders[i];
-
-            // calldataHashes for non-contract orders should be null
-            if (getType(order) != Type.CONTRACT) {
-                continue;
-            }
-
-            SpentItem[] memory minimumReceived = order
-                .parameters
-                .offer
-                .toSpentItemArray();
-
-            SpentItem[] memory maximumSpent = order
-                .parameters
-                .consideration
-                .toSpentItemArray();
-
-            // Derive the expected calldata hash for the call to generateOrder
-            calldataHashes[i][0] = keccak256(
-                abi.encodeCall(
-                    ContractOffererInterface.generateOrder,
-                    (fulfiller, minimumReceived, maximumSpent, order.extraData)
-                )
-            );
-
-            uint256 shiftedOfferer = uint256(
-                uint160(order.parameters.offerer)
-            ) << 96;
-
-            // Get counter of the order offerer
-            uint256 counter = shiftedOfferer ^ uint256(orderHashes[i]);
-
-            // Derive the expected calldata hash for the call to ratifyOrder
-            calldataHashes[i][1] = keccak256(
-                abi.encodeCall(
-                    ContractOffererInterface.ratifyOrder,
-                    (
-                        context.executionState.orderDetails[i].offer,
-                        context.executionState.orderDetails[i].consideration,
-                        order.extraData,
-                        orderHashes,
-                        counter
-                    )
-                )
-            );
-        }
-
-        return calldataHashes;
-    }
-
-    /**
-     * @dev Call `validate` on an AdvancedOrders and return the success bool.
-     *      This function can be treated as a wrapper around Seaport's
-     *      `validate` function. It is used to validate an AdvancedOrder that
-     *      thas a tip added onto it.  Calling it on an AdvancedOrder that does
-     *      not have a tip is identical to calling Seaport's `validate` function
-     *      directly. Seaport handles tips gracefully inside of the top level
-     *      fulfill and match functions, but since we're adding tips early in
-     *      the fuzz test lifecycle, it's necessary to flip them back and forth
-     *      when we need to validate orders. Note: they're two different orders,
-     *      so e.g. cancelling or validating order with a tip on it is not the
-     *      same as cancelling the order without a tip on it.
-     */
-    function validateTipNeutralizedOrder(
-        AdvancedOrder memory order,
-        FuzzTestContext memory context
-    ) internal returns (bool validated) {
-        order.inscribeOrderStatusValidated(true, context.seaport);
-        return true;
-    }
-
-    function cancelTipNeutralizedOrder(
-        AdvancedOrder memory order,
-        SeaportInterface seaport
-    ) internal view returns (bytes32 orderHash) {
-        // Get the orderHash using the tweaked OrderComponents.
-        orderHash = order.getTipNeutralizedOrderHash(seaport);
     }
 
     /**
@@ -914,57 +513,4 @@ library FuzzHelpers {
 
         return (false, false);
     }
-}
-
-function _locateCurrentAmount(
-    uint256 startAmount,
-    uint256 endAmount,
-    uint256 startTime,
-    uint256 endTime,
-    bool roundUp
-) view returns (uint256 amount) {
-    // Only modify end amount if it doesn't already equal start amount.
-    if (startAmount != endAmount) {
-        // Declare variables to derive in the subsequent unchecked scope.
-        uint256 duration;
-        uint256 elapsed;
-        uint256 remaining;
-
-        // Skip underflow checks as startTime <= block.timestamp < endTime.
-        unchecked {
-            // Derive the duration for the order and place it on the stack.
-            duration = endTime - startTime;
-
-            // Derive time elapsed since the order started & place on stack.
-            elapsed = block.timestamp - startTime;
-
-            // Derive time remaining until order expires and place on stack.
-            remaining = duration - elapsed;
-        }
-
-        // Aggregate new amounts weighted by time with rounding factor.
-        uint256 totalBeforeDivision = ((startAmount * remaining) +
-            (endAmount * elapsed));
-
-        // Use assembly to combine operations and skip divide-by-zero check.
-        assembly {
-            // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
-            // amount is set to zero if totalBeforeDivision is zero,
-            // as intermediate overflow can occur if it is zero.
-            amount := mul(
-                iszero(iszero(totalBeforeDivision)),
-                // Subtract 1 from the numerator and add 1 to the result if
-                // roundUp is true to get the proper rounding direction.
-                // Division is performed with no zero check as duration
-                // cannot be zero as long as startTime < endTime.
-                add(div(sub(totalBeforeDivision, roundUp), duration), roundUp)
-            )
-        }
-
-        // Return the current amount.
-        return amount;
-    }
-
-    // Return the original amount as startAmount == endAmount.
-    return endAmount;
 }

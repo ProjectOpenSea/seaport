@@ -14,9 +14,9 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     AdvancedOrderLib,
@@ -25,17 +25,17 @@ import {
     ItemType,
     BasicOrderType,
     ConsiderationItemLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     FulfillmentDetails,
     OrderDetails
-} from "seaport-sol/fulfillments/lib/Structs.sol";
+} from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
 import {
     ContractOrderRebate,
     UnavailableReason
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
 import { FractionStatus, FractionUtil } from "./FractionUtil.sol";
 
@@ -1406,10 +1406,9 @@ library MutationFilters {
         // part of paying out additional recipient items.
         if (
             ineligibleWhenBasic(context) &&
-            order.parameters.consideration.length > 1 && (
-                order.parameters.consideration[0].itemType == ItemType.ERC721 ||
-                order.parameters.consideration[0].itemType == ItemType.ERC1155
-            )
+            order.parameters.consideration.length > 1 &&
+            (order.parameters.consideration[0].itemType == ItemType.ERC721 ||
+                order.parameters.consideration[0].itemType == ItemType.ERC1155)
         ) {
             return true;
         }

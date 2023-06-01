@@ -11,19 +11,19 @@ import {
     ConsiderationItemLib,
     OfferItemLib,
     OrderParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     MatchFulfillmentLib,
     ProcessComponentParams
-} from "seaport-sol/fulfillments/match/MatchFulfillmentLib.sol";
+} from "seaport-sol/src/fulfillments/match/MatchFulfillmentLib.sol";
 
 import {
     MatchComponent,
     MatchComponentType
-} from "seaport-sol/lib/types/MatchComponentType.sol";
+} from "seaport-sol/src/lib/types/MatchComponentType.sol";
 
-import { MatchArrays } from "seaport-sol/fulfillments/lib/MatchArrays.sol";
+import { MatchArrays } from "seaport-sol/src/fulfillments/lib/MatchArrays.sol";
 
 import {
     ConsiderationItem,
@@ -31,7 +31,7 @@ import {
     FulfillmentComponent,
     OfferItem,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 contract MatchFulfillmentLibTest is Test {
     using ConsiderationItemLib for ConsiderationItem;

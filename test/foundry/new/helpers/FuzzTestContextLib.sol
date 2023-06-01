@@ -11,7 +11,7 @@ import {
     AdvancedOrderLib,
     BasicOrderParametersLib,
     MatchComponent
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -21,30 +21,30 @@ import {
     Fulfillment,
     FulfillmentComponent,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     BroadOrderType,
     OrderStatusEnum,
     SignatureMethod,
     UnavailableReason
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
-import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
+import { AdvancedOrdersSpace } from "seaport-sol/src/StructSpace.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
 import {
     AmountDeriverHelper
-} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 
@@ -67,6 +67,10 @@ import {
     ErrorsAndWarnings,
     SeaportValidatorInterface
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
+    SeaportOrderHelperInterface
+} from "../../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
@@ -316,6 +320,10 @@ struct FuzzTestContext {
      */
     SeaportValidatorInterface seaportValidator;
     /**
+     * @dev A SeaportOrderHelper interface.
+     */
+    SeaportOrderHelperInterface seaportOrderHelper;
+    /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
      */
@@ -398,6 +406,7 @@ library FuzzTestContextLib {
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 seaportValidator: SeaportValidatorInterface(address(0)),
+                seaportOrderHelper: SeaportOrderHelperInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -626,6 +635,24 @@ library FuzzTestContextLib {
         SeaportValidatorInterface seaportValidator
     ) internal pure returns (FuzzTestContext memory) {
         context.seaportValidator = seaportValidator;
+        return context;
+    }
+
+    /**
+     * @dev Sets the SeaportOrderHelperInterface on a FuzzTestContext
+     *
+     * @param context             the FuzzTestContext to set the
+     *                            SeaportOrderHelperInterface of
+     * @param seaportOrderHelper  the SeaportOrderHelperInterface to set
+     *
+     * @return _context the FuzzTestContext with the SeaportOrderHelperInterface
+     *                  set
+     */
+    function withSeaportOrderHelper(
+        FuzzTestContext memory context,
+        SeaportOrderHelperInterface seaportOrderHelper
+    ) internal pure returns (FuzzTestContext memory) {
+        context.seaportOrderHelper = seaportOrderHelper;
         return context;
     }
 

@@ -17,7 +17,7 @@
     "hardhat": "^2.12.1-ir.0",
     "merkletreejs": "^0.3.9",
     "seaport-core": "^1.5.0",
-    "seaport-sol": "^0.0.1",
+    "seaport-sol": "^1.5.0",
     "seaport-types": "^0.0.1",
     "solady": "^0.0.84"
   },

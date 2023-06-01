@@ -11,8 +11,12 @@ import {
     MatchFulfillmentHelper,
     OrderComponentsLib,
     OrderLib,
-    OrderParametersLib
-} from "seaport-sol/SeaportSol.sol";
+    OrderParametersLib,
+    OfferItem,
+    ConsiderationItem,
+    ItemType,
+    OrderType
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -21,17 +25,17 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
-
-import {
-    ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+} from "seaport-sol/src/ConduitControllerInterface.sol";
+
+import {
+    ConduitControllerInterface
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 
@@ -256,6 +260,7 @@ contract FuzzEngine is
         runSetup(context);
         runCheckRegistration(context);
         validate(context);
+        runHelper(context);
         execFailure(context);
         execSuccess(context);
         checkAll(context);
@@ -319,13 +324,14 @@ contract FuzzEngine is
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)
             .withSeaportValidator(validator)
+            .withSeaportOrderHelper(orderHelper)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
-            .withPreExecOrderStatuses(space)
-            .withCounter(generatorContext.counter);
+            .withPreExecOrderStatuses(space);
 
         // This is on a separate line to avoid stack too deep.
         context = context
+            .withCounter(generatorContext.counter)
             .withContractOffererNonce(generatorContext.contractOffererNonce)
             .withCaller(generatorContext.caller)
             .withFulfillerConduitKey(
@@ -518,6 +524,37 @@ contract FuzzEngine is
                     }),
                     order
                 );
+        }
+    }
+
+    /**
+     * @dev Call SeaportOrderHelper.run with generated order.
+     *
+     * @param context A Fuzz test context.
+     */
+    function runHelper(FuzzTestContext memory context) internal view {
+        // Skip contract orders, which are not supported by the helper.
+        bool isContractOrder;
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            if (
+                context.executionState.orders[i].parameters.orderType ==
+                OrderType.CONTRACT
+            ) {
+                isContractOrder = true;
+                break;
+            }
+        }
+
+        if (!isContractOrder) {
+            context.seaportOrderHelper.prepare(
+                context.executionState.orders,
+                context.executionState.caller,
+                context.executionState.value,
+                context.executionState.fulfillerConduitKey,
+                context.executionState.recipient,
+                context.executionState.maximumFulfilled,
+                context.executionState.criteriaResolvers
+            );
         }
     }
 

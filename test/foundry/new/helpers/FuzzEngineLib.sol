@@ -7,7 +7,7 @@ import {
     OrderComponentsLib,
     OrderLib,
     OrderParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -19,13 +19,13 @@ import {
     OrderParameters,
     SpentItem,
     ReceivedItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
-import { ItemType, Side, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, Side, OrderType } from "seaport-sol/src/SeaportEnums.sol";
 
-import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 
 import {
     _locateCurrentAmount,
@@ -40,7 +40,7 @@ import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 import {
     FulfillmentGeneratorLib
-} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine. The FuzzEngine uses functions in

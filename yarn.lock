@@ -5318,17 +5318,17 @@ seaport-core@^0.0.1:
   dependencies:
     seaport-types "^0.0.1"
 
-seaport-core@^0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-0.0.3.tgz#491fd562b9abe7802c1bb66e6a88bfaad1a73351"
-  integrity sha512-ehly6wX1ARfrQhZGyNcZNZejnoL4ARL/rrncEqwBPzZiUTkXS0uqWaQ/HFn1UHLFDU18YUKPqimzKoV2ILZWAQ==
+seaport-core@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.5.0.tgz#1dae19b6c7940b0042be50b6ff070b13da0c5a09"
+  integrity sha512-qS5y3+EdW+ostBliVqzAP/b0eceKFNPSe6JsvvxYtkpdb9hVI6Ls2N+rOxQ4LcW2h/yGARAJPk7nxm4I7PRjqQ==
   dependencies:
     seaport-types "^0.0.1"
 
-seaport-sol@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/seaport-sol/-/seaport-sol-0.0.1.tgz#35331da57d12956658d88985e29f54dad22e10ba"
-  integrity sha512-e/PBmS53AomOpsSFDBjRimm7gkZVDlewPCEX/99iaOv5qqIbDNJlrw5cqz9ndFB6S3v/brd2AyuaeEAPZQI96g==
+seaport-sol@^1.5.0:
+  version "1.5.3"
+  resolved "https://registry.yarnpkg.com/seaport-sol/-/seaport-sol-1.5.3.tgz#ccb0047bcefb7d29bcd379faddf3a5a9902d0c3a"
+  integrity sha512-6g91hs15v4zBx/ZN9YD0evhQSDhdMKu83c2CgBgtc517D8ipaYaFO71ZD6V0Z6/I0cwNfuN/ZljcA1J+xXr65A==
   dependencies:
     seaport-core "^0.0.1"
     seaport-types "^0.0.1"

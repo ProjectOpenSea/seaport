@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
 
-import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
+import { AdvancedOrderLib } from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -12,9 +12,9 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/src/SeaportEnums.sol";
 
 import { FuzzChecks } from "./FuzzChecks.sol";
 
@@ -31,7 +31,7 @@ import { CheckHelpers } from "./FuzzSetup.sol";
 import {
     OrderStatusEnum,
     ContractOrderRebate
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
 import {
     HashCalldataContractOfferer

@@ -36,7 +36,7 @@ import {
     OrderType,
     AdvancedOrderLib,
     ItemType
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -45,7 +45,7 @@ import {
     OrderComponents,
     Order,
     AdvancedOrder
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
