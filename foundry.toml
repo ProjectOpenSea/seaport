@@ -37,7 +37,8 @@ runs = 1_000
 max_test_rejects = 1_000_000
 
 [profile.reference]
-solc = '0.8.13'
+#solc = '0.8.13'
+auto_detect_solc = true
 src = 'reference'
 out = 'reference-out'
 script = 'reference'
