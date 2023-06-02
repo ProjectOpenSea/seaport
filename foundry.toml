@@ -1,5 +1,5 @@
 [profile.default]
-solc = '0.8.17'
+solc = '0.8.19'
 src = 'contracts'
 out = 'out'
 libs = ["node_modules", "lib"]
@@ -28,7 +28,7 @@ fs_permissions = [
 ]
 
 [profile.validator]
-solc = '0.8.17'
+solc = '0.8.19'
 src = 'contracts/helpers/order-validator'
 optimizer_runs = 1
 
@@ -37,8 +37,7 @@ runs = 1_000
 max_test_rejects = 1_000_000
 
 [profile.reference]
-#solc = '0.8.13'
-auto_detect_solc = true
+solc = '0.8.19'
 src = 'reference'
 out = 'reference-out'
 script = 'reference'
