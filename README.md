@@ -500,7 +500,7 @@ To be deployed on other EVM chains, such as:
 
 - RSK
 - Boba
-- Base
+- Aurora
 
 To deploy to a new EVM chain, follow the [steps outlined here](docs/Deployment.md).
 
