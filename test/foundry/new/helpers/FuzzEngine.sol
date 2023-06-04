@@ -90,6 +90,11 @@ import {
     IssueStringHelpers
 } from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
+import {
+    CriteriaConstraint,
+    OrderHelperRequest
+} from "../../../../contracts/helpers/order-helper/lib/SeaportOrderHelperTypes.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -547,13 +552,18 @@ contract FuzzEngine is
 
         if (!isContractOrder) {
             context.seaportOrderHelper.prepare(
-                context.executionState.orders,
-                context.executionState.caller,
-                context.executionState.value,
-                context.executionState.fulfillerConduitKey,
-                context.executionState.recipient,
-                context.executionState.maximumFulfilled,
-                context.executionState.criteriaResolvers
+                OrderHelperRequest({
+                    orders: context.executionState.orders,
+                    caller: context.executionState.caller,
+                    nativeTokensSupplied: context.executionState.value,
+                    fulfillerConduitKey: context
+                        .executionState
+                        .fulfillerConduitKey,
+                    recipient: context.executionState.recipient,
+                    maximumFulfilled: context.executionState.maximumFulfilled,
+                    criteriaResolvers: context.executionState.criteriaResolvers,
+                    criteriaConstraints: new CriteriaConstraint[](0)
+                })
             );
         }
     }

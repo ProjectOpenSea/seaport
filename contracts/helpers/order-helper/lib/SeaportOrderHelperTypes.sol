@@ -48,12 +48,19 @@ import {
 struct OrderHelperContext {
     ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
+    OrderHelperRequest request;
+    OrderHelperResponse response;
+}
+
+struct OrderHelperRequest {
+    AdvancedOrder[] orders;
     address caller;
     address recipient;
     uint256 nativeTokensSupplied;
     uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
-    OrderHelperResponse OrderHelperResponse;
+    CriteriaConstraint[] criteriaConstraints;
+    CriteriaResolver[] criteriaResolvers;
 }
 
 struct OrderHelperResponse {

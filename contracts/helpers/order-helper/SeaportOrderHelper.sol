@@ -20,12 +20,21 @@ import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
 import {
     CriteriaConstraint,
     OrderHelperContext,
+    OrderHelperRequest,
     OrderHelperResponse
 } from "./lib/SeaportOrderHelperTypes.sol";
 
 import {
     SeaportOrderHelperInterface
 } from "./lib/SeaportOrderHelperInterface.sol";
+
+import { HelperInterface } from "./lib/HelperInterface.sol";
+import { RequestValidator } from "./lib/RequestValidator.sol";
+import { CriteriaResolverHelper } from "./lib/CriteriaResolverHelper.sol";
+import { SeaportValidatorHelper } from "./lib/SeaportValidatorHelper.sol";
+import { OrderDetailsHelper } from "./lib/OrderDetailsHelper.sol";
+import { FulfillmentsHelper } from "./lib/FulfillmentsHelper.sol";
+import { ExecutionsHelper } from "./lib/ExecutionsHelper.sol";
 
 /**
  * @notice SeaportOrderHelper is a helper contract that generates additional
@@ -43,221 +52,51 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     ConsiderationInterface public immutable seaport;
     SeaportValidatorInterface public immutable validator;
 
+    RequestValidator public immutable requestValidator;
+    CriteriaResolverHelper public immutable criteriaResolverHelper;
+    SeaportValidatorHelper public immutable seaportValidatorHelper;
+    OrderDetailsHelper public immutable orderDetailsHelper;
+    FulfillmentsHelper public immutable fulfillmentsHelper;
+    ExecutionsHelper public immutable executionsHelper;
+
+    HelperInterface[] public helpers;
+
     constructor(
         ConsiderationInterface _seaport,
         SeaportValidatorInterface _validator
     ) {
         seaport = _seaport;
         validator = _validator;
+
+        requestValidator = new RequestValidator();
+        criteriaResolverHelper = new CriteriaResolverHelper();
+        seaportValidatorHelper = new SeaportValidatorHelper();
+        orderDetailsHelper = new OrderDetailsHelper();
+        fulfillmentsHelper = new FulfillmentsHelper();
+        executionsHelper = new ExecutionsHelper();
+
+        helpers.push(requestValidator);
+        helpers.push(criteriaResolverHelper);
+        helpers.push(seaportValidatorHelper);
+        helpers.push(orderDetailsHelper);
+        helpers.push(fulfillmentsHelper);
+        helpers.push(executionsHelper);
     }
 
-    /**
-     * @notice Given an array of orders, return additional information useful
-     *         for order fulfillment. This function will:
-     *
-     *         - Validate the orders and return associated errors and warnings.
-     *         - Recommend a fulfillment method.
-     *         - Suggest fulfillments.
-     *         - Calculate and return `Execution` and `OrderDetails` structs.
-     *         - Generate criteria resolvers based on the provided constraints.
-     *
-     *         "Criteria constraints" are an array of structs specifying:
-     *
-     *         - An order index, side (i.e. offer/consideration), and item index
-     *           describing which item is associated with the constraint.
-     *         - An array of eligible token IDs used to generate the criteria.
-     *         - The actual token ID that will be provided at fulfillment time.
-     *
-     *         The order helper will calculate criteria merkle roots and proofs
-     *         for each constraint, modify orders in place to add the roots as
-     *         item `identifierOrCriteria`, and return the calculated proofs and
-     *         criteria resolvers.
-     *
-     *         The order helper is designed to return details about a *single*
-     *         call to Seaport. You should provide multiple orders only if you
-     *         intend to call a method like fulfill available or match, *not* to
-     *         batch process multiple individual calls. If you are retrieving
-     *         helper data for a single order, there is a convenience function
-     *         below that accepts a single order rather than an array.
-     *
-     *         The order helper does not yet support contract orders.
-     *
-     * @param orders               An array of orders to process. Only provide
-     *                             multiple orders if you intend to call a
-     *                             fulfill/match method.
-     * @param caller               Address that will make the call to Seaport.
-     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
-     *                             by the caller.
-     * @param fulfillerConduitKey  Optional fulfiller conduit key.
-     * @param recipient            Optional recipient address.
-     * @param maximumFulfilled     Optional maximumFulfilled amount.
-     * @param criteriaConstraints  An array of "criteria constraint" structs,
-     *                             which describe the criteria to apply to
-     *                             specific order/side/item combinations.
-     *
-     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
-     *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         OrderHelperResponse object.
-     */
     function prepare(
-        AdvancedOrder[] memory orders,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        uint256 maximumFulfilled,
-        CriteriaConstraint[] memory criteriaConstraints
+        OrderHelperRequest memory request
     ) public view returns (OrderHelperResponse memory) {
-        OrderHelperContext memory context = OrderHelperContextLib
-            .from(orders, seaport, validator)
-            .withCallContext(
-                caller,
-                nativeTokensSupplied,
-                fulfillerConduitKey,
-                recipient,
-                maximumFulfilled
-            );
-        return
-            context
-                .validate(criteriaConstraints)
-                .withInferredCriteria(criteriaConstraints)
-                .withDetails()
-                .withErrors()
-                .withFulfillments()
-                .withSuggestedAction()
-                .withExecutions()
-                .OrderHelperResponse;
-    }
+        OrderHelperContext memory context = OrderHelperContextLib.from(
+            seaport,
+            validator,
+            request
+        );
 
-    /**
-     * @notice Same as the above function, but accepts explicit criteria
-     *         resolvers instead of criteria constraints. Skips criteria
-     *         resolver generation and does not modify the provided orders. Use
-     *         this if you don't want to automatically generate resolvers from
-     *         token IDs.
-     *
-     * @param orders               An array of orders to process. Only provide
-     *                             multiple orders if you intend to call a
-     *                             fulfill/match method.
-     * @param caller               Address that will make the call to Seaport.
-     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
-     *                             by the caller.
-     * @param fulfillerConduitKey  Optional fulfiller conduit key.
-     * @param recipient            Optional recipient address.
-     * @param maximumFulfilled     Optional maximumFulfilled amount.
-     * @param criteriaResolvers    An array of explicit criteria resolvers for
-     *                             the provided orders.
-     *
-     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
-     *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         OrderHelperResponse object.
-     */
-    function prepare(
-        AdvancedOrder[] memory orders,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        uint256 maximumFulfilled,
-        CriteriaResolver[] memory criteriaResolvers
-    ) public view returns (OrderHelperResponse memory) {
-        OrderHelperContext memory context = OrderHelperContextLib
-            .from(orders, seaport, validator)
-            .withCallContext(
-                caller,
-                nativeTokensSupplied,
-                fulfillerConduitKey,
-                recipient,
-                maximumFulfilled
-            );
-        return
-            context
-                .validate()
-                .withCriteriaResolvers(criteriaResolvers)
-                .withDetails()
-                .withErrors()
-                .withFulfillments()
-                .withSuggestedAction()
-                .withExecutions()
-                .OrderHelperResponse;
-    }
+        for (uint256 i; i < helpers.length; i++) {
+            context = helpers[i].prepare(context);
+        }
 
-    /**
-     * @notice Convenience function for single orders.
-     *
-     * @param order                A single order to process.
-     * @param caller               Address that will make the call to Seaport.
-     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
-     *                             by the caller.
-     * @param fulfillerConduitKey  Optional fulfiller conduit key.
-     * @param recipient            Optional recipient address.
-     * @param criteriaConstraints  An array of "criteria constraint" structs,
-     *                             which describe the criteria to apply to
-     *                             specific order/side/item combinations.
-     *                             the provided orders.
-     *
-     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
-     *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         OrderHelperResponse object.
-     */
-    function prepare(
-        AdvancedOrder memory order,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        CriteriaConstraint[] memory criteriaConstraints
-    ) external view returns (OrderHelperResponse memory) {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = order;
-        return
-            prepare(
-                orders,
-                caller,
-                nativeTokensSupplied,
-                fulfillerConduitKey,
-                recipient,
-                type(uint256).max,
-                criteriaConstraints
-            );
-    }
-
-    /**
-     * @notice Convenience function for single orders.
-     *
-     * @param order                A single order to process.
-     * @param caller               Address that will make the call to Seaport.
-     * @param nativeTokensSupplied Quantity of native tokens supplied to Seaport
-     *                             by the caller.
-     * @param fulfillerConduitKey  Optional fulfiller conduit key.
-     * @param recipient            Optional recipient address.
-     * @param criteriaResolvers    An array of explicit criteria resolvers for
-     *                             the provided orders.
-     *
-     * @return A OrderHelperResponse struct containing data derived by the OrderHelper. See
-     *         SeaportOrderHelperTypes.sol for details on the structure of this
-     *         OrderHelperResponse object.
-     */
-    function prepare(
-        AdvancedOrder memory order,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        CriteriaResolver[] memory criteriaResolvers
-    ) external view returns (OrderHelperResponse memory) {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = order;
-        return
-            prepare(
-                orders,
-                caller,
-                nativeTokensSupplied,
-                fulfillerConduitKey,
-                recipient,
-                type(uint256).max,
-                criteriaResolvers
-            );
+        return context.response;
     }
 
     /**

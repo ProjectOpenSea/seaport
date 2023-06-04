@@ -29,6 +29,7 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
+    OrderHelperRequest,
     OrderHelperResponse,
     CriteriaConstraint,
     SeaportOrderHelper
@@ -130,13 +131,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .toAdvancedOrder(1, 1, "");
 
         OrderHelperResponse memory res = orderHelper.prepare(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            new CriteriaResolver[](0)
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: new CriteriaConstraint[](0)
+            })
         );
         assertEq(
             res.suggestedAction,
@@ -221,13 +225,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
 
         OrderHelperResponse memory res = orderHelper.prepare(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            new CriteriaResolver[](0)
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: new CriteriaConstraint[](0)
+            })
         );
         assertEq(
             res.suggestedAction,
@@ -338,13 +345,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         });
 
         OrderHelperResponse memory res = orderHelper.prepare(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: criteria
+            })
         );
 
         assertEq(
@@ -391,24 +401,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
      * @dev Workaround for Foundry issues with custom errors + libraries.
      *      See: https://github.com/foundry-rs/foundry/issues/4405
      */
-    function runHelper(
-        AdvancedOrder[] memory orders,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        uint256 maximumFulfilled,
-        CriteriaConstraint[] memory criteriaConstraints
-    ) public {
-        orderHelper.prepare(
-            orders,
-            caller,
-            nativeTokensSupplied,
-            fulfillerConduitKey,
-            recipient,
-            maximumFulfilled,
-            criteriaConstraints
-        );
+    function runHelper(OrderHelperRequest memory request) public {
+        orderHelper.prepare(request);
     }
 
     function test_criteriaValidation_invalidOrderIndex() public {
@@ -452,13 +446,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             )
         );
         this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: criteria
+            })
         );
     }
 
@@ -504,13 +501,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             )
         );
         this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: criteria
+            })
         );
     }
 
@@ -556,13 +556,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             )
         );
         this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: criteria
+            })
         );
     }
 
@@ -607,13 +610,16 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             )
         );
         this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
+            OrderHelperRequest({
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                criteriaResolvers: new CriteriaResolver[](0),
+                criteriaConstraints: criteria
+            })
         );
     }
 

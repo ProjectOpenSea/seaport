@@ -60,6 +60,7 @@ import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
 import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
 
 import {
+    OrderHelperRequest,
     OrderHelperResponse,
     CriteriaConstraint,
     OrderHelperContext
@@ -84,6 +85,11 @@ error CannotFulfillProvidedCombinedOrder();
  *      native tokens and unavailable orders.
  */
 error InvalidNativeTokenUnavailableCombination();
+/**
+ * @dev Bad request error: request included both criteria constraints and
+ *      criteria resolvers. Only one or the other is allowed.
+ */
+error CannotProvideConstraintsAndResolvers();
 /**
  * @dev Bad request error: a constraint includes a nonexistent order index
  */
@@ -118,108 +124,34 @@ error UnknownAction();
  */
 error UnknownSelector();
 
-library OrderHelperContextLib {
-    using AdvancedOrderLib for AdvancedOrder;
-    using AdvancedOrderLib for AdvancedOrder[];
-    using OrderComponentsLib for OrderComponents;
-    using OrderLib for Order;
-    using OrderParametersLib for OrderParameters;
-    using FulfillmentGeneratorLib for OrderDetails[];
-    using ExecutionHelper for FulfillmentDetails;
-
+library OrderHelperRequestValidatorLib {
     using OrderStructureLib for AdvancedOrder;
-    using OrderStructureLib for AdvancedOrder[];
-    using OrderAvailabilityLib for AdvancedOrder[];
-
-    using CriteriaHelperLib for uint256[];
-
-    function from(
-        AdvancedOrder[] memory orders,
-        ConsiderationInterface seaport,
-        SeaportValidatorInterface validator
-    ) internal pure returns (OrderHelperContext memory) {
-        return
-            OrderHelperContext({
-                seaport: seaport,
-                validator: validator,
-                caller: address(0),
-                recipient: address(0),
-                nativeTokensSupplied: 0,
-                maximumFulfilled: 0,
-                fulfillerConduitKey: bytes32(0),
-                OrderHelperResponse: OrderHelperResponse({
-                    orders: orders,
-                    criteriaResolvers: new CriteriaResolver[](0),
-                    suggestedAction: bytes4(0),
-                    suggestedActionName: "",
-                    validationErrors: new ErrorsAndWarnings[](0),
-                    orderDetails: new OrderDetails[](0),
-                    offerFulfillments: new FulfillmentComponent[][](0),
-                    considerationFulfillments: new FulfillmentComponent[][](0),
-                    fulfillments: new Fulfillment[](0),
-                    unspentOfferComponents: new MatchComponent[](0),
-                    unmetConsiderationComponents: new MatchComponent[](0),
-                    remainders: new MatchComponent[](0),
-                    explicitExecutions: new Execution[](0),
-                    implicitExecutions: new Execution[](0),
-                    implicitExecutionsPre: new Execution[](0),
-                    implicitExecutionsPost: new Execution[](0),
-                    nativeTokensReturned: 0
-                })
-            });
-    }
-
-    /**
-     * @dev Add provided call parameters to the context.
-     */
-    function withCallContext(
-        OrderHelperContext memory context,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        uint256 maximumFulfilled
-    ) internal pure returns (OrderHelperContext memory) {
-        context.caller = caller;
-        context.nativeTokensSupplied = nativeTokensSupplied;
-        context.fulfillerConduitKey = fulfillerConduitKey;
-        context.recipient = recipient;
-        context.maximumFulfilled = maximumFulfilled;
-        return context;
-    }
-
-    /**
-     * @dev Add criteria resolvers to the OrderHelperResponse.
-     */
-    function withCriteriaResolvers(
-        OrderHelperContext memory context,
-        CriteriaResolver[] memory criteriaResolvers
-    ) internal pure returns (OrderHelperContext memory) {
-        context.OrderHelperResponse.criteriaResolvers = criteriaResolvers;
-        return context;
-    }
-
-    /**
-     * @dev Validate the provided orders. Checks that none of the provided orders
-     *      are contract orders.
-     */
-    function validate(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
-        validateNoContractOrders(context);
-        return context;
-    }
 
     /**
      * @dev Validate the provided orders. Checks that none of the provided orders
      *      are contract orders and applies basic criteria constraint validations.
      */
     function validate(
-        OrderHelperContext memory context,
-        CriteriaConstraint[] memory criteriaConstraints
+        OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
         validateNoContractOrders(context);
-        validateCriteriaConstraints(context, criteriaConstraints);
+        validateEitherConstraintsOrResolvers(context);
+        validateCriteriaConstraints(context);
+        return context;
+    }
+
+    /**
+     * @dev Checks that none of the provided orders are contract orders.
+     */
+    function validateEitherConstraintsOrResolvers(
+        OrderHelperContext memory context
+    ) internal pure returns (OrderHelperContext memory) {
+        if (
+            context.request.criteriaConstraints.length > 0 &&
+            context.request.criteriaResolvers.length > 0
+        ) {
+            revert CannotProvideConstraintsAndResolvers();
+        }
         return context;
     }
 
@@ -229,8 +161,8 @@ library OrderHelperContextLib {
     function validateNoContractOrders(
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
-        for (uint256 i; i < context.OrderHelperResponse.orders.length; i++) {
-            AdvancedOrder memory order = context.OrderHelperResponse.orders[i];
+        for (uint256 i; i < context.response.orders.length; i++) {
+            AdvancedOrder memory order = context.response.orders[i];
             if (order.getType() == Type.CONTRACT) {
                 revert ContractOrdersNotSupported();
             }
@@ -245,17 +177,15 @@ library OrderHelperContextLib {
      *     validations like checking for duplicate and conflicting constraints.
      */
     function validateCriteriaConstraints(
-        OrderHelperContext memory context,
-        CriteriaConstraint[] memory criteriaConstraints
+        OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
-        for (uint256 i; i < criteriaConstraints.length; i++) {
-            CriteriaConstraint memory constraint = criteriaConstraints[i];
+        for (uint256 i; i < context.request.criteriaConstraints.length; i++) {
+            CriteriaConstraint memory constraint = context
+                .request
+                .criteriaConstraints[i];
 
             // Validate order index
-            if (
-                constraint.orderIndex >=
-                context.OrderHelperResponse.orders.length
-            ) {
+            if (constraint.orderIndex >= context.response.orders.length) {
                 revert InvalidCriteriaConstraintOrderIndex(
                     constraint.orderIndex
                 );
@@ -266,7 +196,7 @@ library OrderHelperContextLib {
                 if (
                     constraint.index >=
                     context
-                        .OrderHelperResponse
+                        .response
                         .orders[constraint.orderIndex]
                         .parameters
                         .offer
@@ -281,7 +211,7 @@ library OrderHelperContextLib {
                 if (
                     constraint.index >=
                     context
-                        .OrderHelperResponse
+                        .response
                         .orders[constraint.orderIndex]
                         .parameters
                         .consideration
@@ -311,6 +241,10 @@ library OrderHelperContextLib {
         }
         return context;
     }
+}
+
+library OrderHelperCriteriaResolverLib {
+    using CriteriaHelperLib for uint256[];
 
     /**
      * @dev Calculate criteria resolvers, merkle proofs, and criteria merkle
@@ -320,16 +254,18 @@ library OrderHelperContextLib {
      *      the OrderHelperResponse.
      */
     function withInferredCriteria(
-        OrderHelperContext memory context,
-        CriteriaConstraint[] memory criteria
+        OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
+        CriteriaConstraint[] memory criteria = context
+            .request
+            .criteriaConstraints;
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
             criteria.length
         );
         for (uint256 i; i < criteria.length; i++) {
             CriteriaConstraint memory constraint = criteria[i];
             OrderParameters memory parameters = context
-                .OrderHelperResponse
+                .response
                 .orders[constraint.orderIndex]
                 .parameters;
             if (constraint.side == Side.OFFER) {
@@ -366,34 +302,13 @@ library OrderHelperContextLib {
                 )
             });
         }
-        context.OrderHelperResponse.criteriaResolvers = criteriaResolvers;
+        context.response.criteriaResolvers = criteriaResolvers;
         return context;
     }
+}
 
-    /**
-     * @dev Calculate OrderDetails for each order and add them to the OrderHelperResponse.
-     */
-    function withDetails(
-        OrderHelperContext memory context
-    ) internal view returns (OrderHelperContext memory) {
-        UnavailableReason[] memory unavailableReasons = context
-            .OrderHelperResponse
-            .orders
-            .unavailableReasons(context.maximumFulfilled, context.seaport);
-        bytes32[] memory orderHashes = context
-            .OrderHelperResponse
-            .orders
-            .getOrderHashes(address(context.seaport));
-        context.OrderHelperResponse.orderDetails = context
-            .OrderHelperResponse
-            .orders
-            .getOrderDetails(
-                context.OrderHelperResponse.criteriaResolvers,
-                orderHashes,
-                unavailableReasons
-            );
-        return context;
-    }
+library OrderHelperSeaportValidatorLib {
+    using AdvancedOrderLib for AdvancedOrder;
 
     /**
      * @dev Validate each order using SeaportValidator and add the results to
@@ -402,7 +317,7 @@ library OrderHelperContextLib {
     function withErrors(
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
-        AdvancedOrder[] memory orders = context.OrderHelperResponse.orders;
+        AdvancedOrder[] memory orders = context.response.orders;
 
         ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
             orders.length
@@ -413,9 +328,42 @@ library OrderHelperContextLib {
                 address(context.seaport)
             );
         }
-        context.OrderHelperResponse.validationErrors = errors;
+        context.response.validationErrors = errors;
         return context;
     }
+}
+
+library OrderHelperDetailsLib {
+    using AdvancedOrderLib for AdvancedOrder[];
+    using OrderAvailabilityLib for AdvancedOrder[];
+
+    /**
+     * @dev Calculate OrderDetails for each order and add them to the OrderHelperResponse.
+     */
+    function withDetails(
+        OrderHelperContext memory context
+    ) internal view returns (OrderHelperContext memory) {
+        UnavailableReason[] memory unavailableReasons = context
+            .response
+            .orders
+            .unavailableReasons(
+                context.request.maximumFulfilled,
+                context.seaport
+            );
+        bytes32[] memory orderHashes = context.response.orders.getOrderHashes(
+            address(context.seaport)
+        );
+        context.response.orderDetails = context.response.orders.getOrderDetails(
+            context.response.criteriaResolvers,
+            orderHashes,
+            unavailableReasons
+        );
+        return context;
+    }
+}
+
+library OrderHelperFulfillmentsLib {
+    using FulfillmentGeneratorLib for OrderDetails[];
 
     /**
      * @dev Calculate fulfillments and match components for the provided orders
@@ -431,30 +379,31 @@ library OrderHelperContextLib {
             Fulfillment[] memory fulfillments,
             MatchComponent[] memory unspentOfferComponents,
             MatchComponent[] memory unmetConsiderationComponents
-        ) = context.OrderHelperResponse.orderDetails.getFulfillments(
-                context.recipient,
-                context.caller
+        ) = context.response.orderDetails.getFulfillments(
+                context.request.recipient,
+                context.request.caller
             );
 
         (, , MatchComponent[] memory remainders) = context
-            .OrderHelperResponse
+            .response
             .orderDetails
             .getMatchedFulfillments();
 
-        context.OrderHelperResponse.offerFulfillments = offerFulfillments;
+        context.response.offerFulfillments = offerFulfillments;
+        context.response.considerationFulfillments = considerationFulfillments;
+        context.response.fulfillments = fulfillments;
+        context.response.unspentOfferComponents = unspentOfferComponents;
         context
-            .OrderHelperResponse
-            .considerationFulfillments = considerationFulfillments;
-        context.OrderHelperResponse.fulfillments = fulfillments;
-        context
-            .OrderHelperResponse
-            .unspentOfferComponents = unspentOfferComponents;
-        context
-            .OrderHelperResponse
+            .response
             .unmetConsiderationComponents = unmetConsiderationComponents;
-        context.OrderHelperResponse.remainders = remainders;
+        context.response.remainders = remainders;
         return context;
     }
+}
+
+library OrderHelperExecutionsLib {
+    using ExecutionHelper for FulfillmentDetails;
+    using OrderStructureLib for AdvancedOrder[];
 
     /**
      * @dev Calculate executions for the provided orders and add them to the
@@ -463,13 +412,13 @@ library OrderHelperContextLib {
     function withExecutions(
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
-        bytes4 _suggestedAction = context.OrderHelperResponse.suggestedAction;
+        bytes4 _suggestedAction = context.response.suggestedAction;
         FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
-            orders: context.OrderHelperResponse.orderDetails,
-            recipient: payable(context.recipient),
-            fulfiller: payable(context.caller),
-            nativeTokensSupplied: context.nativeTokensSupplied,
-            fulfillerConduitKey: context.fulfillerConduitKey,
+            orders: context.response.orderDetails,
+            recipient: payable(context.request.recipient),
+            fulfiller: payable(context.request.caller),
+            nativeTokensSupplied: context.request.nativeTokensSupplied,
+            fulfillerConduitKey: context.request.fulfillerConduitKey,
             seaport: address(context.seaport)
         });
 
@@ -491,9 +440,9 @@ library OrderHelperContextLib {
                 implicitExecutionsPost,
                 nativeTokensReturned
             ) = fulfillmentDetails.getFulfillAvailableExecutions(
-                context.OrderHelperResponse.offerFulfillments,
-                context.OrderHelperResponse.considerationFulfillments,
-                context.OrderHelperResponse.orderDetails
+                context.response.offerFulfillments,
+                context.response.considerationFulfillments,
+                context.response.orderDetails
             );
         } else if (
             _suggestedAction == context.seaport.matchOrders.selector ||
@@ -505,7 +454,7 @@ library OrderHelperContextLib {
                 implicitExecutionsPost,
                 nativeTokensReturned
             ) = fulfillmentDetails.getMatchExecutions(
-                context.OrderHelperResponse.fulfillments
+                context.response.fulfillments
             );
         } else if (
             _suggestedAction == context.seaport.fulfillOrder.selector ||
@@ -523,15 +472,11 @@ library OrderHelperContextLib {
         } else {
             revert UnknownAction();
         }
-        context.OrderHelperResponse.explicitExecutions = explicitExecutions;
-        context.OrderHelperResponse.implicitExecutions = implicitExecutions;
-        context
-            .OrderHelperResponse
-            .implicitExecutionsPre = implicitExecutionsPre;
-        context
-            .OrderHelperResponse
-            .implicitExecutionsPost = implicitExecutionsPost;
-        context.OrderHelperResponse.nativeTokensReturned = nativeTokensReturned;
+        context.response.explicitExecutions = explicitExecutions;
+        context.response.implicitExecutions = implicitExecutions;
+        context.response.implicitExecutionsPre = implicitExecutionsPre;
+        context.response.implicitExecutionsPost = implicitExecutionsPost;
+        context.response.nativeTokensReturned = nativeTokensReturned;
         return context;
     }
 
@@ -542,8 +487,8 @@ library OrderHelperContextLib {
     function withSuggestedAction(
         OrderHelperContext memory context
     ) internal view returns (OrderHelperContext memory) {
-        context.OrderHelperResponse.suggestedAction = action(context);
-        context.OrderHelperResponse.suggestedActionName = actionName(context);
+        context.response.suggestedAction = action(context);
+        context.response.suggestedActionName = actionName(context);
         return context;
     }
 
@@ -574,23 +519,19 @@ library OrderHelperContextLib {
     function action(
         OrderHelperContext memory context
     ) internal view returns (bytes4) {
-        Family family = context.OrderHelperResponse.orders.getFamily();
+        Family family = context.response.orders.getFamily();
 
         bool invalidOfferItemsLocated = mustUseMatch(context);
 
-        Structure structure = context.OrderHelperResponse.orders.getStructure(
+        Structure structure = context.response.orders.getStructure(
             address(context.seaport)
         );
 
-        bool hasUnavailable = context.maximumFulfilled <
-            context.OrderHelperResponse.orders.length;
-        for (
-            uint256 i = 0;
-            i < context.OrderHelperResponse.orderDetails.length;
-            ++i
-        ) {
+        bool hasUnavailable = context.request.maximumFulfilled <
+            context.response.orders.length;
+        for (uint256 i = 0; i < context.response.orderDetails.length; ++i) {
             if (
-                context.OrderHelperResponse.orderDetails[i].unavailableReason !=
+                context.response.orderDetails[i].unavailableReason !=
                 UnavailableReason.AVAILABLE
             ) {
                 hasUnavailable = true;
@@ -625,8 +566,7 @@ library OrderHelperContextLib {
             }
         }
 
-        bool cannotMatch = (context.OrderHelperResponse.remainders.length !=
-            0 ||
+        bool cannotMatch = (context.response.remainders.length != 0 ||
             hasUnavailable);
 
         if (cannotMatch && invalidOfferItemsLocated) {
@@ -661,7 +601,7 @@ library OrderHelperContextLib {
     function mustUseMatch(
         OrderHelperContext memory context
     ) internal pure returns (bool) {
-        OrderDetails[] memory orders = context.OrderHelperResponse.orderDetails;
+        OrderDetails[] memory orders = context.response.orderDetails;
 
         for (uint256 i = 0; i < orders.length; ++i) {
             OrderDetails memory order = orders[i];
@@ -677,7 +617,7 @@ library OrderHelperContextLib {
             }
         }
 
-        if (context.caller == context.recipient) {
+        if (context.request.caller == context.request.recipient) {
             return false;
         }
 
@@ -714,5 +654,39 @@ library OrderHelperContextLib {
         }
 
         return false;
+    }
+}
+
+library OrderHelperContextLib {
+    function from(
+        ConsiderationInterface seaport,
+        SeaportValidatorInterface validator,
+        OrderHelperRequest memory request
+    ) internal pure returns (OrderHelperContext memory) {
+        return
+            OrderHelperContext({
+                seaport: seaport,
+                validator: validator,
+                request: request,
+                response: OrderHelperResponse({
+                    orders: request.orders,
+                    criteriaResolvers: request.criteriaResolvers,
+                    suggestedAction: bytes4(0),
+                    suggestedActionName: "",
+                    validationErrors: new ErrorsAndWarnings[](0),
+                    orderDetails: new OrderDetails[](0),
+                    offerFulfillments: new FulfillmentComponent[][](0),
+                    considerationFulfillments: new FulfillmentComponent[][](0),
+                    fulfillments: new Fulfillment[](0),
+                    unspentOfferComponents: new MatchComponent[](0),
+                    unmetConsiderationComponents: new MatchComponent[](0),
+                    remainders: new MatchComponent[](0),
+                    explicitExecutions: new Execution[](0),
+                    implicitExecutions: new Execution[](0),
+                    implicitExecutionsPre: new Execution[](0),
+                    implicitExecutionsPost: new Execution[](0),
+                    nativeTokensReturned: 0
+                })
+            });
     }
 }
