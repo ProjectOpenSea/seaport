@@ -253,6 +253,23 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://nova.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
+<tr><td>Base Goerli</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://goerli.basescan.org/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.basescan.org/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
 <tr><td>Avalanche C-Chain</td><td>
 
 [0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://snowtrace.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
@@ -441,14 +458,49 @@ Not deployed
 [0x00000000F9490004C11Cef243f5400493c00Ad63](https://evm.explorer.canto.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td></tr>
+
+<tr><td>Fantom</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://ftmscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://ftmscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
+
+<tr><td>Celo</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://celoscan.io/address/0x00000000000000adc04c56bf30ac9d3c0aaf14dc#code)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://celoscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+
+</td></tr>
 </table>
 
 To be deployed on other EVM chains, such as:
 
-- Skale
-- Celo
-- Fantom
 - RSK
+- Boba
+- Aurora
 
 To deploy to a new EVM chain, follow the [steps outlined here](docs/Deployment.md).
 
