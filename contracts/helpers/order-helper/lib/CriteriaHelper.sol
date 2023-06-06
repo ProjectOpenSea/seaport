@@ -20,6 +20,6 @@ contract CriteriaHelper is HelperInterface {
     function prepare(
         OrderHelperContext memory context
     ) public pure returns (OrderHelperContext memory) {
-        return context.withInferredCriteria();
+        return context.withCriteria();
     }
 }
