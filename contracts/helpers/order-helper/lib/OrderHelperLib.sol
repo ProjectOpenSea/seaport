@@ -246,6 +246,16 @@ library OrderHelperRequestValidatorLib {
 library OrderHelperCriteriaResolverLib {
     using CriteriaHelperLib for uint256[];
 
+    function withCriteria(
+        OrderHelperContext memory context
+    ) internal pure returns (OrderHelperContext memory) {
+        if (context.request.criteriaConstraints.length > 0) {
+            return withInferredCriteria(context);
+        } else {
+            return context;
+        }
+    }
+
     /**
      * @dev Calculate criteria resolvers, merkle proofs, and criteria merkle
      *      roots for the provided orders and criteria constraints. Modifies
@@ -411,7 +421,7 @@ library OrderHelperExecutionsLib {
      */
     function withExecutions(
         OrderHelperContext memory context
-    ) internal view returns (OrderHelperContext memory) {
+    ) internal pure returns (OrderHelperContext memory) {
         bytes4 _suggestedAction = context.response.suggestedAction;
         FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
             orders: context.response.orderDetails,
