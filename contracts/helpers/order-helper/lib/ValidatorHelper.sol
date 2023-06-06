@@ -7,7 +7,7 @@ import { OrderHelperContext } from "./SeaportOrderHelperTypes.sol";
 
 import { HelperInterface } from "./HelperInterface.sol";
 
-contract SeaportValidatorHelper is HelperInterface {
+contract ValidatorHelper is HelperInterface {
     using OrderHelperSeaportValidatorLib for OrderHelperContext;
 
     function prepare(

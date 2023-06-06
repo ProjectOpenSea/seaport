@@ -401,7 +401,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
      * @dev Workaround for Foundry issues with custom errors + libraries.
      *      See: https://github.com/foundry-rs/foundry/issues/4405
      */
-    function runHelper(OrderHelperRequest memory request) public {
+    function runHelper(OrderHelperRequest memory request) public view {
         orderHelper.prepare(request);
     }
 

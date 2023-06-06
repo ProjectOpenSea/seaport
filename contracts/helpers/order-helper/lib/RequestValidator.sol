@@ -16,7 +16,7 @@ contract RequestValidator is HelperInterface {
 
     function prepare(
         OrderHelperContext memory context
-    ) public view returns (OrderHelperContext memory) {
+    ) public pure returns (OrderHelperContext memory) {
         return context.validate();
     }
 }
