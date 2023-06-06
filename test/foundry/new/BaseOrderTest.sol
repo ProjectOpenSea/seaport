@@ -71,6 +71,27 @@ import {
 import {
     SeaportOrderHelper
 } from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+import {
+    HelperInterface
+} from "../../../contracts/helpers/order-helper/lib/HelperInterface.sol";
+import {
+    RequestValidator
+} from "../../../contracts/helpers/order-helper/lib/RequestValidator.sol";
+import {
+    CriteriaHelper
+} from "../../../contracts/helpers/order-helper/lib/CriteriaHelper.sol";
+import {
+    ValidatorHelper
+} from "../../../contracts/helpers/order-helper/lib/ValidatorHelper.sol";
+import {
+    OrderDetailsHelper
+} from "../../../contracts/helpers/order-helper/lib/OrderDetailsHelper.sol";
+import {
+    FulfillmentsHelper
+} from "../../../contracts/helpers/order-helper/lib/FulfillmentsHelper.sol";
+import {
+    ExecutionsHelper
+} from "../../../contracts/helpers/order-helper/lib/ExecutionsHelper.sol";
 
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token
@@ -114,9 +135,17 @@ contract BaseOrderTest is
         SeaportInterface seaport;
     }
 
-    SeaportValidatorHelper validatorHelper;
+    SeaportValidatorHelper seaportValidatorHelper;
     SeaportValidator validator;
+
+    HelperInterface requestValidator = new RequestValidator();
+    HelperInterface criteriaHelper = new CriteriaHelper();
+    HelperInterface validatorHelper = new ValidatorHelper();
+    HelperInterface orderDetailsHelper = new OrderDetailsHelper();
+    HelperInterface fulfillmentsHelper = new FulfillmentsHelper();
+    HelperInterface executionsHelper = new ExecutionsHelper();
     SeaportOrderHelper orderHelper;
+
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
 
@@ -178,19 +207,27 @@ contract BaseOrderTest is
 
         _configureStructDefaults();
 
+        // Note: this chainId hack prevents the validator from calling a
+        // hardcoded royalty registry.
         uint256 chainId = block.chainid;
         vm.chainId(2);
-        validatorHelper = new SeaportValidatorHelper();
+        seaportValidatorHelper = new SeaportValidatorHelper();
         vm.chainId(chainId);
 
         validator = new SeaportValidator(
-            address(validatorHelper),
+            address(seaportValidatorHelper),
             address(getConduitController())
         );
 
         orderHelper = new SeaportOrderHelper(
             SeaportInterface(address(seaport)),
-            SeaportValidatorInterface(address(validator))
+            SeaportValidatorInterface(address(validator)),
+            address(requestValidator),
+            address(criteriaHelper),
+            address(validatorHelper),
+            address(orderDetailsHelper),
+            address(fulfillmentsHelper),
+            address(executionsHelper)
         );
 
         fulfill = new FulfillAvailableHelper();

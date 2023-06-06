@@ -29,12 +29,6 @@ import {
 } from "./lib/SeaportOrderHelperInterface.sol";
 
 import { HelperInterface } from "./lib/HelperInterface.sol";
-import { RequestValidator } from "./lib/RequestValidator.sol";
-import { CriteriaResolverHelper } from "./lib/CriteriaResolverHelper.sol";
-import { SeaportValidatorHelper } from "./lib/SeaportValidatorHelper.sol";
-import { OrderDetailsHelper } from "./lib/OrderDetailsHelper.sol";
-import { FulfillmentsHelper } from "./lib/FulfillmentsHelper.sol";
-import { ExecutionsHelper } from "./lib/ExecutionsHelper.sol";
 
 /**
  * @notice SeaportOrderHelper is a helper contract that generates additional
@@ -52,45 +46,52 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     ConsiderationInterface public immutable seaport;
     SeaportValidatorInterface public immutable validator;
 
-    RequestValidator public immutable requestValidator;
-    CriteriaResolverHelper public immutable criteriaResolverHelper;
-    SeaportValidatorHelper public immutable seaportValidatorHelper;
-    OrderDetailsHelper public immutable orderDetailsHelper;
-    FulfillmentsHelper public immutable fulfillmentsHelper;
-    ExecutionsHelper public immutable executionsHelper;
+    HelperInterface public immutable requestValidator;
+    HelperInterface public immutable criteriaHelper;
+    HelperInterface public immutable validatorHelper;
+    HelperInterface public immutable orderDetailsHelper;
+    HelperInterface public immutable fulfillmentsHelper;
+    HelperInterface public immutable executionsHelper;
 
     HelperInterface[] public helpers;
 
     constructor(
         ConsiderationInterface _seaport,
-        SeaportValidatorInterface _validator
+        SeaportValidatorInterface _validator,
+        address _requestValidator,
+        address _criteriaHelper,
+        address _validatorHelper,
+        address _orderDetailsHelper,
+        address _fulfillmentsHelper,
+        address _executionsHelper
     ) {
         seaport = _seaport;
         validator = _validator;
-
-        requestValidator = new RequestValidator();
-        criteriaResolverHelper = new CriteriaResolverHelper();
-        seaportValidatorHelper = new SeaportValidatorHelper();
-        orderDetailsHelper = new OrderDetailsHelper();
-        fulfillmentsHelper = new FulfillmentsHelper();
-        executionsHelper = new ExecutionsHelper();
-
+        requestValidator = HelperInterface(_requestValidator);
         helpers.push(requestValidator);
-        helpers.push(criteriaResolverHelper);
-        helpers.push(seaportValidatorHelper);
+
+        criteriaHelper = HelperInterface(_criteriaHelper);
+        helpers.push(criteriaHelper);
+
+        validatorHelper = HelperInterface(_validatorHelper);
+        helpers.push(validatorHelper);
+
+        orderDetailsHelper = HelperInterface(_orderDetailsHelper);
         helpers.push(orderDetailsHelper);
+
+        fulfillmentsHelper = HelperInterface(_fulfillmentsHelper);
         helpers.push(fulfillmentsHelper);
+
+        executionsHelper = HelperInterface(_executionsHelper);
         helpers.push(executionsHelper);
     }
 
     function prepare(
-        OrderHelperRequest memory request
+        OrderHelperRequest calldata request
     ) public view returns (OrderHelperResponse memory) {
-        OrderHelperContext memory context = OrderHelperContextLib.from(
-            seaport,
-            validator,
-            request
-        );
+        OrderHelperContext memory context = OrderHelperContextLib
+            .from(seaport, validator, request)
+            .withEmptyResponse();
 
         for (uint256 i; i < helpers.length; i++) {
             context = helpers[i].prepare(context);

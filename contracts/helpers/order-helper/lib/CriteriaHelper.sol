@@ -14,12 +14,12 @@ import {
 
 import { HelperInterface } from "./HelperInterface.sol";
 
-contract CriteriaResolverHelper is HelperInterface {
+contract CriteriaHelper is HelperInterface {
     using OrderHelperCriteriaResolverLib for OrderHelperContext;
 
     function prepare(
         OrderHelperContext memory context
-    ) public view returns (OrderHelperContext memory) {
+    ) public pure returns (OrderHelperContext memory) {
         return context.withInferredCriteria();
     }
 }

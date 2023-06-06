@@ -663,30 +663,35 @@ library OrderHelperContextLib {
         SeaportValidatorInterface validator,
         OrderHelperRequest memory request
     ) internal pure returns (OrderHelperContext memory) {
-        return
-            OrderHelperContext({
-                seaport: seaport,
-                validator: validator,
-                request: request,
-                response: OrderHelperResponse({
-                    orders: request.orders,
-                    criteriaResolvers: request.criteriaResolvers,
-                    suggestedAction: bytes4(0),
-                    suggestedActionName: "",
-                    validationErrors: new ErrorsAndWarnings[](0),
-                    orderDetails: new OrderDetails[](0),
-                    offerFulfillments: new FulfillmentComponent[][](0),
-                    considerationFulfillments: new FulfillmentComponent[][](0),
-                    fulfillments: new Fulfillment[](0),
-                    unspentOfferComponents: new MatchComponent[](0),
-                    unmetConsiderationComponents: new MatchComponent[](0),
-                    remainders: new MatchComponent[](0),
-                    explicitExecutions: new Execution[](0),
-                    implicitExecutions: new Execution[](0),
-                    implicitExecutionsPre: new Execution[](0),
-                    implicitExecutionsPost: new Execution[](0),
-                    nativeTokensReturned: 0
-                })
-            });
+        OrderHelperContext memory context;
+        context.seaport = seaport;
+        context.validator = validator;
+        context.request = request;
+        return context;
+    }
+
+    function withEmptyResponse(
+        OrderHelperContext memory context
+    ) internal pure returns (OrderHelperContext memory) {
+        context.response = OrderHelperResponse({
+            orders: context.request.orders,
+            criteriaResolvers: context.request.criteriaResolvers,
+            suggestedAction: bytes4(0),
+            suggestedActionName: "",
+            validationErrors: new ErrorsAndWarnings[](0),
+            orderDetails: new OrderDetails[](0),
+            offerFulfillments: new FulfillmentComponent[][](0),
+            considerationFulfillments: new FulfillmentComponent[][](0),
+            fulfillments: new Fulfillment[](0),
+            unspentOfferComponents: new MatchComponent[](0),
+            unmetConsiderationComponents: new MatchComponent[](0),
+            remainders: new MatchComponent[](0),
+            explicitExecutions: new Execution[](0),
+            implicitExecutions: new Execution[](0),
+            implicitExecutionsPre: new Execution[](0),
+            implicitExecutionsPost: new Execution[](0),
+            nativeTokensReturned: 0
+        });
+        return context;
     }
 }
