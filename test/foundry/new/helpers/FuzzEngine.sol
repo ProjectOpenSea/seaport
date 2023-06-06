@@ -95,6 +95,13 @@ import {
     OrderHelperRequest
 } from "../../../../contracts/helpers/order-helper/lib/SeaportOrderHelperTypes.sol";
 
+import {
+    FulfillmentStrategy,
+    AggregationStrategy,
+    FulfillAvailableStrategy,
+    MatchStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+
 /**
  * @notice Base test contract for FuzzEngine. Fuzz tests should inherit this.
  *         Includes the setup and helper functions from BaseOrderTest.
@@ -551,6 +558,13 @@ contract FuzzEngine is
         }
 
         if (!isContractOrder) {
+            FulfillmentStrategy
+                memory fulfillmentStrategy = FulfillmentStrategy({
+                    aggregationStrategy: AggregationStrategy.RANDOM,
+                    fulfillAvailableStrategy: FulfillAvailableStrategy
+                        .DROP_RANDOM_OFFER,
+                    matchStrategy: MatchStrategy.MAX_INCLUSION
+                });
             context.seaportOrderHelper.prepare(
                 OrderHelperRequest({
                     orders: context.executionState.orders,
@@ -561,6 +575,8 @@ contract FuzzEngine is
                         .fulfillerConduitKey,
                     recipient: context.executionState.recipient,
                     maximumFulfilled: context.executionState.maximumFulfilled,
+                    seed: context.fuzzParams.seed,
+                    fulfillmentStrategy: fulfillmentStrategy,
                     criteriaResolvers: context.executionState.criteriaResolvers,
                     criteriaConstraints: new CriteriaConstraint[](0)
                 })

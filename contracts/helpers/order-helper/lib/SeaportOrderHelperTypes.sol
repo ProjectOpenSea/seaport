@@ -40,6 +40,10 @@ import {
     OrderDetails
 } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
+import {
+    FulfillmentStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+
 /**
  * @dev Context struct for OrderHelperLib. Includes context information
  *      necessary for fulfillment, like the caller and recipient addresses,
@@ -59,6 +63,8 @@ struct OrderHelperRequest {
     uint256 nativeTokensSupplied;
     uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
+    uint256 seed;
+    FulfillmentStrategy fulfillmentStrategy;
     CriteriaConstraint[] criteriaConstraints;
     CriteriaResolver[] criteriaResolvers;
 }

@@ -48,6 +48,13 @@ import {
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
+import {
+    FulfillmentStrategy,
+    AggregationStrategy,
+    FulfillAvailableStrategy,
+    MatchStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+
 contract SeaportOrderHelperTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
@@ -130,6 +137,11 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
             .toAdvancedOrder(1, 1, "");
 
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
         OrderHelperResponse memory res = orderHelper.prepare(
             OrderHelperRequest({
                 orders: orders,
@@ -138,6 +150,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: new CriteriaConstraint[](0)
             })
@@ -224,6 +238,11 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             ""
         );
 
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
         OrderHelperResponse memory res = orderHelper.prepare(
             OrderHelperRequest({
                 orders: orders,
@@ -232,6 +251,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: new CriteriaConstraint[](0)
             })
@@ -344,6 +365,11 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             tokenIds: considerationIds
         });
 
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
         OrderHelperResponse memory res = orderHelper.prepare(
             OrderHelperRequest({
                 orders: orders,
@@ -352,6 +378,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: criteria
             })
@@ -438,6 +466,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             identifier: 4,
             tokenIds: considerationIds
         });
+        FulfillmentStrategy memory fulfillmentStrategy;
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -453,6 +482,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: criteria
             })
@@ -492,6 +523,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             identifier: 4,
             tokenIds: considerationIds
         });
+        FulfillmentStrategy memory fulfillmentStrategy;
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -508,6 +540,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: criteria
             })
@@ -547,6 +581,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             identifier: 4,
             tokenIds: considerationIds
         });
+        FulfillmentStrategy memory fulfillmentStrategy;
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -563,6 +598,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: criteria
             })
@@ -602,6 +639,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             identifier: 7,
             tokenIds: considerationIds
         });
+        FulfillmentStrategy memory fulfillmentStrategy;
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -617,6 +655,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
                 fulfillerConduitKey: bytes32(0),
                 recipient: address(this),
                 maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
                 criteriaResolvers: new CriteriaResolver[](0),
                 criteriaConstraints: criteria
             })

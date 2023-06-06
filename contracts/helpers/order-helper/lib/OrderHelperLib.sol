@@ -390,14 +390,19 @@ library OrderHelperFulfillmentsLib {
             MatchComponent[] memory unspentOfferComponents,
             MatchComponent[] memory unmetConsiderationComponents
         ) = context.response.orderDetails.getFulfillments(
+                context.request.fulfillmentStrategy,
                 context.request.recipient,
-                context.request.caller
+                context.request.caller,
+                context.request.seed
             );
 
         (, , MatchComponent[] memory remainders) = context
             .response
             .orderDetails
-            .getMatchedFulfillments();
+            .getMatchedFulfillments(
+                context.request.fulfillmentStrategy,
+                context.request.seed
+            );
 
         context.response.offerFulfillments = offerFulfillments;
         context.response.considerationFulfillments = considerationFulfillments;
