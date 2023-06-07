@@ -156,7 +156,6 @@ struct OrderHelperResponse {
      */
     MatchComponent[] unspentOfferComponents;
     MatchComponent[] unmetConsiderationComponents;
-    MatchComponent[] remainders;
     /**
      * @dev Calculated explicit and implicit executions.
      */

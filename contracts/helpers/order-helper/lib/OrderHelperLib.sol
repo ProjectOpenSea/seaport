@@ -89,15 +89,14 @@ error CannotFulfillProvidedCombinedOrder();
  */
 error InvalidNativeTokenUnavailableCombination();
 /**
- * @dev Bad request error: request included both criteria constraints and
- *      criteria resolvers. Only one or the other is allowed.
- */
-error CannotProvideConstraintsAndResolvers();
-/**
  * @dev Internal error: Could not select a fulfillment method for the provided
  *      orders.
  */
 error UnknownAction();
+/**
+ * @dev Internal error: Could not convert item type.
+ */
+error UnknownItemType();
 /**
  * @dev Internal error: Could not find selector for the suggested action.
  */
@@ -123,7 +122,7 @@ library HelperItemLib {
             ) {
                 return ItemType.ERC1155_WITH_CRITERIA;
             } else {
-                revert("huh");
+                revert UnknownItemType();
             }
         } else {
             return itemType;
@@ -146,7 +145,7 @@ library HelperItemLib {
             ) {
                 return ItemType.ERC1155_WITH_CRITERIA;
             } else {
-                revert("huh");
+                revert UnknownItemType();
             }
         } else {
             return itemType;
@@ -599,14 +598,6 @@ library OrderHelperFulfillmentsLib {
                 context.request.seed
             );
 
-        (, , MatchComponent[] memory remainders) = context
-            .response
-            .orderDetails
-            .getMatchedFulfillments(
-                context.request.fulfillmentStrategy,
-                context.request.seed
-            );
-
         context.response.offerFulfillments = offerFulfillments;
         context.response.considerationFulfillments = considerationFulfillments;
         context.response.fulfillments = fulfillments;
@@ -614,7 +605,6 @@ library OrderHelperFulfillmentsLib {
         context
             .response
             .unmetConsiderationComponents = unmetConsiderationComponents;
-        context.response.remainders = remainders;
         return context;
     }
 }
@@ -784,7 +774,11 @@ library OrderHelperExecutionsLib {
             }
         }
 
-        bool cannotMatch = (context.response.remainders.length != 0 ||
+        bool cannotMatch = (context
+            .response
+            .unmetConsiderationComponents
+            .length !=
+            0 ||
             hasUnavailable);
 
         if (cannotMatch && invalidOfferItemsLocated) {
@@ -903,7 +897,6 @@ library OrderHelperContextLib {
             fulfillments: new Fulfillment[](0),
             unspentOfferComponents: new MatchComponent[](0),
             unmetConsiderationComponents: new MatchComponent[](0),
-            remainders: new MatchComponent[](0),
             explicitExecutions: new Execution[](0),
             implicitExecutions: new Execution[](0),
             implicitExecutionsPre: new Execution[](0),

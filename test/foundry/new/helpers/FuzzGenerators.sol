@@ -87,7 +87,8 @@ import {
     FulfillAvailableStrategy,
     MatchStrategy,
     FulfillmentGeneratorLib,
-    FulfillmentStrategy
+    FulfillmentStrategy,
+    DefaultFulfillmentGeneratorLib
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 /**
@@ -160,10 +161,8 @@ library TestStateGenerator {
         for (uint256 i; i < totalOrders; ++i) {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
-                    ? UnavailableReason.AVAILABLE
-                    : // Don't fuzz 5 (maxfulfilled satisfied), since it's a more
-                    // of a consequence (to be handled in derivers) than a
-                    // target.
+                    ? UnavailableReason.AVAILABLE // Don't fuzz 5 (maxfulfilled satisfied), since it's a more // of a consequence (to be handled in derivers) than a
+                    : // target.
                     UnavailableReason(
                         context.choice(Solarray.uint256s(1, 2, 3, 4, 6))
                     )
@@ -345,7 +344,7 @@ library TestStateGenerator {
         }
 
         FulfillmentStrategy memory strategy = (
-            FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            DefaultFulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
         );
 
         {
@@ -489,7 +488,7 @@ library TestStateGenerator {
                 recipient: FulfillmentRecipient.ZERO,
                 conduit: ConduitChoice.NONE,
                 caller: Caller.TEST_CONTRACT,
-                strategy: FulfillmentGeneratorLib
+                strategy: DefaultFulfillmentGeneratorLib
                     .getDefaultFulfillmentStrategy()
             });
     }
@@ -506,7 +505,7 @@ library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using FulfillmentGeneratorLib for OrderDetails[];
+    using DefaultFulfillmentGeneratorLib for OrderDetails[];
 
     using BroadOrderTypeGenerator for AdvancedOrder;
     using ConduitGenerator for ConduitChoice;
