@@ -106,7 +106,6 @@ struct OrderHelperRequest {
     bytes32 fulfillerConduitKey;
     uint256 seed;
     FulfillmentStrategy fulfillmentStrategy;
-    CriteriaConstraint[] criteriaConstraints;
     CriteriaResolver[] criteriaResolvers;
 }
 
@@ -169,33 +168,4 @@ struct OrderHelperResponse {
      * @dev Quantity of native tokens returned to caller.
      */
     uint256 nativeTokensReturned;
-}
-
-struct CriteriaConstraint {
-    /**
-     * @dev Apply constraint to the order at this index in the orders array.
-     */
-    uint256 orderIndex;
-    /**
-     * @dev Apply constraint to this side of the order, either Side.OFFER or
-     *      Side.CONSIDERATION.
-     */
-    Side side;
-    /**
-     * @dev Apply constraint to this item in the offer/consideration array.
-     */
-    uint256 index;
-    /**
-     * @dev Generate a criteria resolver for this token identifier. The helper
-     *      will calculate a merkle proof that this token ID is in the set of
-     *      eligible token IDs for the item with critera at the specified
-     *      order index/side/item index.
-     */
-    uint256 identifier;
-    /**
-     * @dev Array of eligible token IDs. The helper will calculate a merkle
-     *      root from this array and apply it to the item at the specified
-     *      order index/side/item index as its `identifierOrCriteria`.
-     */
-    uint256[] tokenIds;
 }

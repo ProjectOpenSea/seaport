@@ -18,7 +18,6 @@ import { OrderHelperContextLib } from "./lib/OrderHelperLib.sol";
 import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
 
 import {
-    CriteriaConstraint,
     OrderHelperContext,
     OrderHelperRequest,
     OrderHelperResponse

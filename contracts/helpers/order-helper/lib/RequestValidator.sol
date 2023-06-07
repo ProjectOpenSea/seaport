@@ -4,7 +4,6 @@ pragma solidity ^0.8.17;
 import { OrderHelperRequestValidatorLib } from "./OrderHelperLib.sol";
 
 import {
-    CriteriaConstraint,
     OrderHelperContext,
     OrderHelperResponse
 } from "./SeaportOrderHelperTypes.sol";

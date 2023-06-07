@@ -7,10 +7,7 @@ import {
 
 import { OrderHelperCriteriaResolverLib } from "./OrderHelperLib.sol";
 
-import {
-    CriteriaConstraint,
-    OrderHelperContext
-} from "./SeaportOrderHelperTypes.sol";
+import { OrderHelperContext } from "./SeaportOrderHelperTypes.sol";
 
 import { HelperInterface } from "./HelperInterface.sol";
 

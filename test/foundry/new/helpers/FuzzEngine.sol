@@ -91,9 +91,12 @@ import {
 } from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 import {
-    CriteriaConstraint,
     OrderHelperRequest
 } from "../../../../contracts/helpers/order-helper/lib/SeaportOrderHelperTypes.sol";
+
+import {
+    HelperAdvancedOrderLib
+} from "../../../../contracts/helpers/order-helper/lib/OrderHelperLib.sol";
 
 import {
     FulfillmentStrategy,
@@ -567,7 +570,9 @@ contract FuzzEngine is
                 });
             context.seaportOrderHelper.prepare(
                 OrderHelperRequest({
-                    orders: context.executionState.orders,
+                    orders: HelperAdvancedOrderLib.fromAdvancedOrders(
+                        context.executionState.orders
+                    ),
                     caller: context.executionState.caller,
                     nativeTokensSupplied: context.executionState.value,
                     fulfillerConduitKey: context
@@ -577,8 +582,7 @@ contract FuzzEngine is
                     maximumFulfilled: context.executionState.maximumFulfilled,
                     seed: context.fuzzParams.seed,
                     fulfillmentStrategy: fulfillmentStrategy,
-                    criteriaResolvers: context.executionState.criteriaResolvers,
-                    criteriaConstraints: new CriteriaConstraint[](0)
+                    criteriaResolvers: context.executionState.criteriaResolvers
                 })
             );
         }

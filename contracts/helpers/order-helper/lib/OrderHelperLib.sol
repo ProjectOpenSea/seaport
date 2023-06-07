@@ -62,8 +62,11 @@ import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
 import {
     OrderHelperRequest,
     OrderHelperResponse,
-    CriteriaConstraint,
-    OrderHelperContext
+    OrderHelperContext,
+    HelperOfferItem,
+    HelperConsiderationItem,
+    HelperOrderParameters,
+    HelperAdvancedOrder
 } from "./SeaportOrderHelperTypes.sol";
 
 import {
@@ -91,30 +94,6 @@ error InvalidNativeTokenUnavailableCombination();
  */
 error CannotProvideConstraintsAndResolvers();
 /**
- * @dev Bad request error: a constraint includes a nonexistent order index
- */
-error InvalidCriteriaConstraintOrderIndex(uint256 orderIndex);
-/**
- * @dev Bad request error: a constraint includes a nonexistent offer item index.
- */
-error InvalidCriteriaConstraintOfferIndex(
-    uint256 orderIndex,
-    uint256 itemIndex
-);
-/**
- * @dev Bad request error: a constraint includes a nonexistent consideration
- *      item index.
- */
-error InvalidCriteriaConstraintConsiderationIndex(
-    uint256 orderIndex,
-    uint256 itemIndex
-);
-/**
- * @dev Bad request error: a constraint specifies an identifier that's not
- *      included in the provided token IDs.
- */
-error InvalidCriteriaConstraintIdentifier(uint256 identifier);
-/**
  * @dev Internal error: Could not select a fulfillment method for the provided
  *      orders.
  */
@@ -123,6 +102,363 @@ error UnknownAction();
  * @dev Internal error: Could not find selector for the suggested action.
  */
 error UnknownSelector();
+
+library HelperItemLib {
+    error InvalidIdentifier(uint256 identifier, uint256[] candidateIdentifiers);
+    error InvalidItemTypeForCandidateIdentifiers();
+
+    function normalizeType(
+        HelperOfferItem memory item
+    ) internal pure returns (ItemType) {
+        ItemType itemType = item.itemType;
+        if (hasCriteria(item)) {
+            if (
+                itemType == ItemType.ERC721 ||
+                itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return ItemType.ERC721_WITH_CRITERIA;
+            } else if (
+                itemType == ItemType.ERC1155 ||
+                itemType == ItemType.ERC1155_WITH_CRITERIA
+            ) {
+                return ItemType.ERC1155_WITH_CRITERIA;
+            } else {
+                revert("huh");
+            }
+        } else {
+            return itemType;
+        }
+    }
+
+    function normalizeType(
+        HelperConsiderationItem memory item
+    ) internal pure returns (ItemType) {
+        ItemType itemType = item.itemType;
+        if (hasCriteria(item)) {
+            if (
+                itemType == ItemType.ERC721 ||
+                itemType == ItemType.ERC721_WITH_CRITERIA
+            ) {
+                return ItemType.ERC721_WITH_CRITERIA;
+            } else if (
+                itemType == ItemType.ERC1155 ||
+                itemType == ItemType.ERC1155_WITH_CRITERIA
+            ) {
+                return ItemType.ERC1155_WITH_CRITERIA;
+            } else {
+                revert("huh");
+            }
+        } else {
+            return itemType;
+        }
+    }
+
+    function hasCriteria(
+        HelperOfferItem memory item
+    ) internal pure returns (bool) {
+        return item.candidateIdentifiers.length > 0;
+    }
+
+    function hasCriteria(
+        HelperConsiderationItem memory item
+    ) internal pure returns (bool) {
+        return item.candidateIdentifiers.length > 0;
+    }
+
+    function validate(HelperOfferItem memory item) internal pure {
+        ItemType itemType = item.itemType;
+        if (itemType == ItemType.ERC20 || itemType == ItemType.NATIVE) {
+            if (item.candidateIdentifiers.length > 0) {
+                revert InvalidItemTypeForCandidateIdentifiers();
+            } else {
+                return;
+            }
+        }
+        // If the item has candidate identifiers, the item identifier must be
+        // zero for wildcard or one of the candidates.
+        if (item.candidateIdentifiers.length == 0 && item.identifier == 0) {
+            revert InvalidIdentifier(
+                item.identifier,
+                item.candidateIdentifiers
+            );
+        }
+        if (item.candidateIdentifiers.length > 0) {
+            bool identifierFound;
+            for (uint256 i; i < item.candidateIdentifiers.length; i++) {
+                if (item.candidateIdentifiers[i] == item.identifier) {
+                    identifierFound = true;
+                    break;
+                }
+            }
+            if (!identifierFound && item.identifier != 0) {
+                revert InvalidIdentifier(
+                    item.identifier,
+                    item.candidateIdentifiers
+                );
+            }
+        }
+    }
+
+    function validate(HelperConsiderationItem memory item) internal pure {
+        ItemType itemType = item.itemType;
+        if (itemType == ItemType.ERC20 || itemType == ItemType.NATIVE) {
+            if (item.candidateIdentifiers.length > 0) {
+                revert InvalidItemTypeForCandidateIdentifiers();
+            } else {
+                return;
+            }
+        }
+        // If the item has candidate identifiers, the item identifier must be
+        // zero for wildcard or one of the candidates.
+        if (item.candidateIdentifiers.length == 0 && item.identifier == 0) {
+            revert InvalidIdentifier(
+                item.identifier,
+                item.candidateIdentifiers
+            );
+        }
+        if (item.candidateIdentifiers.length > 0) {
+            bool identifierFound;
+            for (uint256 i; i < item.candidateIdentifiers.length; i++) {
+                if (item.candidateIdentifiers[i] == item.identifier) {
+                    identifierFound = true;
+                    break;
+                }
+            }
+            if (!identifierFound && item.identifier != 0) {
+                revert InvalidIdentifier(
+                    item.identifier,
+                    item.candidateIdentifiers
+                );
+            }
+        }
+    }
+}
+
+library HelperAdvancedOrderLib {
+    using CriteriaHelperLib for uint256[];
+    using HelperItemLib for HelperOfferItem;
+    using HelperItemLib for HelperConsiderationItem;
+
+    function fromAdvancedOrders(
+        AdvancedOrder[] memory orders
+    ) internal pure returns (HelperAdvancedOrder[] memory) {
+        HelperAdvancedOrder[] memory helperOrders = new HelperAdvancedOrder[](
+            orders.length
+        );
+        for (uint256 i; i < orders.length; i++) {
+            helperOrders[i] = fromAdvancedOrder(orders[i]);
+        }
+        return helperOrders;
+    }
+
+    function fromAdvancedOrder(
+        AdvancedOrder memory order
+    ) internal pure returns (HelperAdvancedOrder memory) {
+        HelperOfferItem[] memory offerItems = new HelperOfferItem[](
+            order.parameters.offer.length
+        );
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            OfferItem memory item = order.parameters.offer[i];
+            offerItems[i] = HelperOfferItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifier: item.identifierOrCriteria,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                candidateIdentifiers: new uint256[](0)
+            });
+        }
+        HelperConsiderationItem[]
+            memory considerationItems = new HelperConsiderationItem[](
+                order.parameters.consideration.length
+            );
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            ConsiderationItem memory item = order.parameters.consideration[i];
+            considerationItems[i] = HelperConsiderationItem({
+                itemType: item.itemType,
+                token: item.token,
+                identifier: item.identifierOrCriteria,
+                startAmount: item.startAmount,
+                endAmount: item.endAmount,
+                recipient: item.recipient,
+                candidateIdentifiers: new uint256[](0)
+            });
+        }
+        return
+            HelperAdvancedOrder({
+                parameters: HelperOrderParameters({
+                    offerer: order.parameters.offerer,
+                    zone: order.parameters.zone,
+                    offer: offerItems,
+                    consideration: considerationItems,
+                    orderType: order.parameters.orderType,
+                    startTime: order.parameters.startTime,
+                    endTime: order.parameters.endTime,
+                    zoneHash: order.parameters.zoneHash,
+                    salt: order.parameters.salt,
+                    conduitKey: order.parameters.conduitKey,
+                    totalOriginalConsiderationItems: order
+                        .parameters
+                        .totalOriginalConsiderationItems
+                }),
+                numerator: order.numerator,
+                denominator: order.denominator,
+                signature: order.signature,
+                extraData: order.extraData
+            });
+    }
+
+    function toAdvancedOrder(
+        HelperAdvancedOrder memory order,
+        uint256 orderIndex
+    ) internal pure returns (AdvancedOrder memory, CriteriaResolver[] memory) {
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
+            order.parameters.offer.length +
+                order.parameters.consideration.length
+        );
+        uint256 criteriaResolverLen;
+        OfferItem[] memory offer = new OfferItem[](
+            order.parameters.offer.length
+        );
+        for (uint256 i; i < order.parameters.offer.length; i++) {
+            HelperOfferItem memory item = order.parameters.offer[i];
+            if (item.hasCriteria()) {
+                item.validate();
+                offer[i] = OfferItem({
+                    itemType: item.normalizeType(),
+                    token: item.token,
+                    identifierOrCriteria: uint256(
+                        item.candidateIdentifiers.criteriaRoot()
+                    ),
+                    startAmount: item.startAmount,
+                    endAmount: item.endAmount
+                });
+                criteriaResolvers[criteriaResolverLen] = CriteriaResolver({
+                    orderIndex: orderIndex,
+                    side: Side.OFFER,
+                    index: i,
+                    identifier: item.identifier,
+                    criteriaProof: item.candidateIdentifiers.criteriaProof(
+                        item.identifier
+                    )
+                });
+                criteriaResolverLen++;
+            } else {
+                offer[i] = OfferItem({
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifierOrCriteria: item.identifier,
+                    startAmount: item.startAmount,
+                    endAmount: item.endAmount
+                });
+            }
+        }
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](
+            order.parameters.consideration.length
+        );
+        for (uint256 i; i < order.parameters.consideration.length; i++) {
+            HelperConsiderationItem memory item = order
+                .parameters
+                .consideration[i];
+            if (item.hasCriteria()) {
+                item.validate();
+                consideration[i] = ConsiderationItem({
+                    itemType: item.normalizeType(),
+                    token: item.token,
+                    identifierOrCriteria: uint256(
+                        item.candidateIdentifiers.criteriaRoot()
+                    ),
+                    startAmount: item.startAmount,
+                    endAmount: item.endAmount,
+                    recipient: item.recipient
+                });
+                criteriaResolvers[criteriaResolverLen] = CriteriaResolver({
+                    orderIndex: orderIndex,
+                    side: Side.CONSIDERATION,
+                    index: i,
+                    identifier: item.identifier,
+                    criteriaProof: item.candidateIdentifiers.criteriaProof(
+                        item.identifier
+                    )
+                });
+                criteriaResolverLen++;
+            } else {
+                consideration[i] = ConsiderationItem({
+                    itemType: item.itemType,
+                    token: item.token,
+                    identifierOrCriteria: item.identifier,
+                    startAmount: item.startAmount,
+                    endAmount: item.endAmount,
+                    recipient: item.recipient
+                });
+            }
+        }
+        assembly {
+            mstore(criteriaResolvers, criteriaResolverLen)
+        }
+        return (
+            AdvancedOrder({
+                parameters: OrderParameters({
+                    offerer: order.parameters.offerer,
+                    zone: order.parameters.zone,
+                    offer: offer,
+                    consideration: consideration,
+                    orderType: order.parameters.orderType,
+                    startTime: order.parameters.startTime,
+                    endTime: order.parameters.endTime,
+                    zoneHash: order.parameters.zoneHash,
+                    salt: order.parameters.salt,
+                    conduitKey: order.parameters.conduitKey,
+                    totalOriginalConsiderationItems: order
+                        .parameters
+                        .totalOriginalConsiderationItems
+                }),
+                numerator: order.numerator,
+                denominator: order.denominator,
+                signature: order.signature,
+                extraData: order.extraData
+            }),
+            criteriaResolvers
+        );
+    }
+
+    function toAdvancedOrders(
+        HelperAdvancedOrder[] memory orders
+    )
+        internal
+        pure
+        returns (AdvancedOrder[] memory, CriteriaResolver[] memory)
+    {
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](
+            orders.length
+        );
+        uint256 maxCriteriaResolvers;
+        for (uint256 i; i < orders.length; i++) {
+            HelperOrderParameters memory parameters = orders[i].parameters;
+            maxCriteriaResolvers += (parameters.offer.length +
+                parameters.consideration.length);
+        }
+        uint256 criteriaResolverIndex;
+        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
+            maxCriteriaResolvers
+        );
+        for (uint256 i = 0; i < orders.length; i++) {
+            (
+                AdvancedOrder memory order,
+                CriteriaResolver[] memory orderResolvers
+            ) = toAdvancedOrder(orders[i], i);
+            advancedOrders[i] = order;
+            for (uint256 j; j < orderResolvers.length; j++) {
+                criteriaResolvers[criteriaResolverIndex] = orderResolvers[j];
+                criteriaResolverIndex++;
+            }
+        }
+        assembly {
+            mstore(criteriaResolvers, criteriaResolverIndex)
+        }
+        return (advancedOrders, criteriaResolvers);
+    }
+}
 
 library OrderHelperRequestValidatorLib {
     using OrderStructureLib for AdvancedOrder;
@@ -135,23 +471,6 @@ library OrderHelperRequestValidatorLib {
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
         validateNoContractOrders(context);
-        validateEitherConstraintsOrResolvers(context);
-        validateCriteriaConstraints(context);
-        return context;
-    }
-
-    /**
-     * @dev Checks that none of the provided orders are contract orders.
-     */
-    function validateEitherConstraintsOrResolvers(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
-        if (
-            context.request.criteriaConstraints.length > 0 &&
-            context.request.criteriaResolvers.length > 0
-        ) {
-            revert CannotProvideConstraintsAndResolvers();
-        }
         return context;
     }
 
@@ -169,92 +488,10 @@ library OrderHelperRequestValidatorLib {
         }
         return context;
     }
-
-    /**
-     * @dev Basic validations for criteria constraints. Checks for valid order
-     *     and item indexes and that the provided identifier is included in the
-     *     constraint's token IDs. Caller beware: we omit more advanced
-     *     validations like checking for duplicate and conflicting constraints.
-     */
-    function validateCriteriaConstraints(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
-        for (uint256 i; i < context.request.criteriaConstraints.length; i++) {
-            CriteriaConstraint memory constraint = context
-                .request
-                .criteriaConstraints[i];
-
-            // Validate order index
-            if (constraint.orderIndex >= context.response.orders.length) {
-                revert InvalidCriteriaConstraintOrderIndex(
-                    constraint.orderIndex
-                );
-            }
-
-            // Validate item index
-            if (constraint.side == Side.OFFER) {
-                if (
-                    constraint.index >=
-                    context
-                        .response
-                        .orders[constraint.orderIndex]
-                        .parameters
-                        .offer
-                        .length
-                ) {
-                    revert InvalidCriteriaConstraintOfferIndex(
-                        constraint.orderIndex,
-                        constraint.index
-                    );
-                }
-            } else {
-                if (
-                    constraint.index >=
-                    context
-                        .response
-                        .orders[constraint.orderIndex]
-                        .parameters
-                        .consideration
-                        .length
-                ) {
-                    revert InvalidCriteriaConstraintConsiderationIndex(
-                        constraint.orderIndex,
-                        constraint.index
-                    );
-                }
-            }
-
-            // Validate identifier in tokenIds
-            uint256 id = constraint.identifier;
-            bool found;
-            for (uint256 j; j < constraint.tokenIds.length; j++) {
-                if (constraint.tokenIds[j] == id) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                revert InvalidCriteriaConstraintIdentifier(
-                    constraint.identifier
-                );
-            }
-        }
-        return context;
-    }
 }
 
 library OrderHelperCriteriaResolverLib {
-    using CriteriaHelperLib for uint256[];
-
-    function withCriteria(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
-        if (context.request.criteriaConstraints.length > 0) {
-            return withInferredCriteria(context);
-        } else {
-            return context;
-        }
-    }
+    using HelperAdvancedOrderLib for HelperAdvancedOrder[];
 
     /**
      * @dev Calculate criteria resolvers, merkle proofs, and criteria merkle
@@ -263,57 +500,23 @@ library OrderHelperCriteriaResolverLib {
      *      offer/consdieration items. Adds calculated criteria resolvers to
      *      the OrderHelperResponse.
      */
-    function withInferredCriteria(
+    function withCriteria(
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
-        CriteriaConstraint[] memory criteria = context
-            .request
-            .criteriaConstraints;
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
-            criteria.length
-        );
-        for (uint256 i; i < criteria.length; i++) {
-            CriteriaConstraint memory constraint = criteria[i];
-            OrderParameters memory parameters = context
-                .response
-                .orders[constraint.orderIndex]
-                .parameters;
-            if (constraint.side == Side.OFFER) {
-                OfferItem memory offerItem = parameters.offer[constraint.index];
-                ItemType itemType = offerItem.itemType;
-                if (
-                    itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    offerItem.identifierOrCriteria = uint256(
-                        constraint.tokenIds.criteriaRoot()
-                    );
-                }
-            } else {
-                ConsiderationItem memory considerationItem = parameters
-                    .consideration[constraint.index];
-                ItemType itemType = considerationItem.itemType;
-                if (
-                    itemType == ItemType.ERC721_WITH_CRITERIA ||
-                    itemType == ItemType.ERC1155_WITH_CRITERIA
-                ) {
-                    considerationItem.identifierOrCriteria = uint256(
-                        constraint.tokenIds.criteriaRoot()
-                    );
-                }
-            }
-            criteriaResolvers[i] = CriteriaResolver({
-                orderIndex: constraint.orderIndex,
-                side: constraint.side,
-                index: constraint.index,
-                identifier: constraint.identifier,
-                criteriaProof: constraint.tokenIds.criteriaProof(
-                    constraint.identifier
-                )
-            });
+        (
+            AdvancedOrder[] memory orders,
+            CriteriaResolver[] memory resolvers
+        ) = context.request.orders.toAdvancedOrders();
+        context.response.orders = orders;
+        if (context.request.criteriaResolvers.length > 0) {
+            context.response.criteriaResolvers = context
+                .request
+                .criteriaResolvers;
+            return context;
+        } else {
+            context.response.criteriaResolvers = resolvers;
+            return context;
         }
-        context.response.criteriaResolvers = criteriaResolvers;
-        return context;
     }
 }
 
@@ -689,8 +892,8 @@ library OrderHelperContextLib {
         OrderHelperContext memory context
     ) internal pure returns (OrderHelperContext memory) {
         context.response = OrderHelperResponse({
-            orders: context.request.orders,
-            criteriaResolvers: context.request.criteriaResolvers,
+            orders: new AdvancedOrder[](0),
+            criteriaResolvers: new CriteriaResolver[](0),
             suggestedAction: bytes4(0),
             suggestedActionName: "",
             validationErrors: new ErrorsAndWarnings[](0),
