@@ -44,6 +44,47 @@ import {
     FulfillmentStrategy
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
+struct HelperAdvancedOrder {
+    HelperOrderParameters parameters;
+    uint120 numerator;
+    uint120 denominator;
+    bytes signature;
+    bytes extraData;
+}
+
+struct HelperOrderParameters {
+    address offerer;
+    address zone;
+    HelperOfferItem[] offer;
+    HelperConsiderationItem[] consideration;
+    OrderType orderType;
+    uint256 startTime;
+    uint256 endTime;
+    bytes32 zoneHash;
+    uint256 salt;
+    bytes32 conduitKey;
+    uint256 totalOriginalConsiderationItems;
+}
+
+struct HelperOfferItem {
+    ItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 startAmount;
+    uint256 endAmount;
+    uint256[] candidateIdentifiers;
+}
+
+struct HelperConsiderationItem {
+    ItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 startAmount;
+    uint256 endAmount;
+    address payable recipient;
+    uint256[] candidateIdentifiers;
+}
+
 /**
  * @dev Context struct for OrderHelperLib. Includes context information
  *      necessary for fulfillment, like the caller and recipient addresses,
@@ -57,7 +98,7 @@ struct OrderHelperContext {
 }
 
 struct OrderHelperRequest {
-    AdvancedOrder[] orders;
+    HelperAdvancedOrder[] orders;
     address caller;
     address recipient;
     uint256 nativeTokensSupplied;
