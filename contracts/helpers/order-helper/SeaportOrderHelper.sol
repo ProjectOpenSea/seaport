@@ -42,9 +42,6 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     using OrderHelperContextLib for OrderHelperContext;
     using CriteriaHelperLib for uint256[];
 
-    ConsiderationInterface public immutable seaport;
-    SeaportValidatorInterface public immutable validator;
-
     HelperInterface public immutable requestValidator;
     HelperInterface public immutable criteriaHelper;
     HelperInterface public immutable validatorHelper;
@@ -55,8 +52,6 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     HelperInterface[] public helpers;
 
     constructor(
-        ConsiderationInterface _seaport,
-        SeaportValidatorInterface _validator,
         address _requestValidator,
         address _criteriaHelper,
         address _validatorHelper,
@@ -64,8 +59,6 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         address _fulfillmentsHelper,
         address _executionsHelper
     ) {
-        seaport = _seaport;
-        validator = _validator;
         requestValidator = HelperInterface(_requestValidator);
         helpers.push(requestValidator);
 
@@ -89,7 +82,7 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
         OrderHelperRequest calldata request
     ) public view returns (OrderHelperResponse memory) {
         OrderHelperContext memory context = OrderHelperContextLib
-            .from(seaport, validator, request)
+            .from(request)
             .withEmptyResponse();
 
         for (uint256 i; i < helpers.length; i++) {

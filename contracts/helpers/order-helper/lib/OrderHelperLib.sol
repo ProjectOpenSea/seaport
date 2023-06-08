@@ -519,6 +519,14 @@ library OrderHelperCriteriaResolverLib {
     }
 }
 
+interface ValidatorHelper {
+    function validateAndRevert(
+        SeaportValidatorInterface validator,
+        Order memory order,
+        address seaport
+    ) external view;
+}
+
 library OrderHelperSeaportValidatorLib {
     using AdvancedOrderLib for AdvancedOrder;
 
@@ -527,7 +535,8 @@ library OrderHelperSeaportValidatorLib {
      *      the OrderHelperResponse.
      */
     function withErrors(
-        OrderHelperContext memory context
+        OrderHelperContext memory context,
+        address validatorHelper
     ) internal view returns (OrderHelperContext memory) {
         AdvancedOrder[] memory orders = context.response.orders;
 
@@ -535,10 +544,25 @@ library OrderHelperSeaportValidatorLib {
             orders.length
         );
         for (uint256 i; i < orders.length; i++) {
-            errors[i] = context.validator.isValidOrderReadOnly(
-                orders[i].toOrder(),
-                address(context.seaport)
-            );
+            try
+                ValidatorHelper(validatorHelper).validateAndRevert(
+                    context.request.validator,
+                    orders[i].toOrder(),
+                    address(context.request.seaport)
+                )
+            {
+                assert(false);
+            } catch (bytes memory revertData) {
+                (bool success, bytes memory returnData) = abi.decode(
+                    revertData,
+                    (bool, bytes)
+                );
+                if (!success) {
+                    revert("oops");
+                } else {
+                    errors[i] = abi.decode(returnData, (ErrorsAndWarnings));
+                }
+            }
         }
         context.response.validationErrors = errors;
         return context;
@@ -560,10 +584,10 @@ library OrderHelperDetailsLib {
             .orders
             .unavailableReasons(
                 context.request.maximumFulfilled,
-                context.seaport
+                context.request.seaport
             );
         bytes32[] memory orderHashes = context.response.orders.getOrderHashes(
-            address(context.seaport)
+            address(context.request.seaport)
         );
         context.response.orderDetails = context.response.orders.getOrderDetails(
             context.response.criteriaResolvers,
@@ -627,7 +651,7 @@ library OrderHelperExecutionsLib {
             fulfiller: payable(context.request.caller),
             nativeTokensSupplied: context.request.nativeTokensSupplied,
             fulfillerConduitKey: context.request.fulfillerConduitKey,
-            seaport: address(context.seaport)
+            seaport: address(context.request.seaport)
         });
 
         Execution[] memory explicitExecutions;
@@ -638,9 +662,9 @@ library OrderHelperExecutionsLib {
 
         if (
             _suggestedAction ==
-            context.seaport.fulfillAvailableOrders.selector ||
+            ConsiderationInterface.fulfillAvailableOrders.selector ||
             _suggestedAction ==
-            context.seaport.fulfillAvailableAdvancedOrders.selector
+            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector
         ) {
             (
                 explicitExecutions,
@@ -653,8 +677,9 @@ library OrderHelperExecutionsLib {
                 context.response.orderDetails
             );
         } else if (
-            _suggestedAction == context.seaport.matchOrders.selector ||
-            _suggestedAction == context.seaport.matchAdvancedOrders.selector
+            _suggestedAction == ConsiderationInterface.matchOrders.selector ||
+            _suggestedAction ==
+            ConsiderationInterface.matchAdvancedOrders.selector
         ) {
             (
                 explicitExecutions,
@@ -665,15 +690,17 @@ library OrderHelperExecutionsLib {
                 context.response.fulfillments
             );
         } else if (
-            _suggestedAction == context.seaport.fulfillOrder.selector ||
-            _suggestedAction == context.seaport.fulfillAdvancedOrder.selector
+            _suggestedAction == ConsiderationInterface.fulfillOrder.selector ||
+            _suggestedAction ==
+            ConsiderationInterface.fulfillAdvancedOrder.selector
         ) {
             (implicitExecutions, nativeTokensReturned) = fulfillmentDetails
                 .getStandardExecutions();
         } else if (
-            _suggestedAction == context.seaport.fulfillBasicOrder.selector ||
             _suggestedAction ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            ConsiderationInterface.fulfillBasicOrder.selector ||
+            _suggestedAction ==
+            ConsiderationInterface.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             (implicitExecutions, nativeTokensReturned) = fulfillmentDetails
                 .getBasicExecutions();
@@ -732,7 +759,7 @@ library OrderHelperExecutionsLib {
         bool invalidOfferItemsLocated = mustUseMatch(context);
 
         Structure structure = context.response.orders.getStructure(
-            address(context.seaport)
+            address(context.request.seaport)
         );
 
         bool hasUnavailable = context.request.maximumFulfilled <
@@ -753,24 +780,29 @@ library OrderHelperExecutionsLib {
             }
 
             if (structure == Structure.ADVANCED) {
-                return context.seaport.fulfillAvailableAdvancedOrders.selector;
+                return
+                    ConsiderationInterface
+                        .fulfillAvailableAdvancedOrders
+                        .selector;
             } else {
-                return context.seaport.fulfillAvailableOrders.selector;
+                return ConsiderationInterface.fulfillAvailableOrders.selector;
             }
         }
 
         if (family == Family.SINGLE && !invalidOfferItemsLocated) {
             if (structure == Structure.BASIC) {
                 return
-                    context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector;
+                    ConsiderationInterface
+                        .fulfillBasicOrder_efficient_6GL6yc
+                        .selector;
             }
 
             if (structure == Structure.STANDARD) {
-                return context.seaport.fulfillOrder.selector;
+                return ConsiderationInterface.fulfillOrder.selector;
             }
 
             if (structure == Structure.ADVANCED) {
-                return context.seaport.fulfillAdvancedOrder.selector;
+                return ConsiderationInterface.fulfillAdvancedOrder.selector;
             }
         }
 
@@ -787,21 +819,27 @@ library OrderHelperExecutionsLib {
 
         if (cannotMatch) {
             if (structure == Structure.ADVANCED) {
-                return context.seaport.fulfillAvailableAdvancedOrders.selector;
+                return
+                    ConsiderationInterface
+                        .fulfillAvailableAdvancedOrders
+                        .selector;
             } else {
-                return context.seaport.fulfillAvailableOrders.selector;
+                return ConsiderationInterface.fulfillAvailableOrders.selector;
             }
         } else if (invalidOfferItemsLocated) {
             if (structure == Structure.ADVANCED) {
-                return context.seaport.matchAdvancedOrders.selector;
+                return ConsiderationInterface.matchAdvancedOrders.selector;
             } else {
-                return context.seaport.matchOrders.selector;
+                return ConsiderationInterface.matchOrders.selector;
             }
         } else {
             if (structure == Structure.ADVANCED) {
-                return context.seaport.fulfillAvailableAdvancedOrders.selector;
+                return
+                    ConsiderationInterface
+                        .fulfillAvailableAdvancedOrders
+                        .selector;
             } else {
-                return context.seaport.fulfillAvailableOrders.selector;
+                return ConsiderationInterface.fulfillAvailableOrders.selector;
             }
         }
     }
@@ -871,15 +909,9 @@ library OrderHelperExecutionsLib {
 
 library OrderHelperContextLib {
     function from(
-        ConsiderationInterface seaport,
-        SeaportValidatorInterface validator,
         OrderHelperRequest memory request
-    ) internal pure returns (OrderHelperContext memory) {
-        OrderHelperContext memory context;
-        context.seaport = seaport;
-        context.validator = validator;
+    ) internal pure returns (OrderHelperContext memory context) {
         context.request = request;
-        return context;
     }
 
     function withEmptyResponse(

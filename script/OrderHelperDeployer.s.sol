@@ -114,8 +114,6 @@ contract OrderHelperDeployer is Script {
             bytes.concat(
                 type(SeaportOrderHelper).creationCode,
                 abi.encode(
-                    SEAPORT_ADDRESS,
-                    SEAPORT_VALIDATOR_ADDRESS,
                     requestValidator,
                     criteriaHelper,
                     validatorHelper,

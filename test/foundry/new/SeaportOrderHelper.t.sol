@@ -142,6 +142,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         });
         OrderHelperResponse memory res = orderHelper.prepare(
             OrderHelperRequest({
+                seaport: seaport,
+                validator: validator,
                 orders: orders,
                 caller: offerer1.addr,
                 nativeTokensSupplied: 0,
@@ -170,7 +172,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.validationErrors[0].errors.length,
-            3,
+            4,
             "unexpected validationErrors[0].errors length"
         );
         assertEq(
@@ -241,6 +243,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         });
         OrderHelperResponse memory res = orderHelper.prepare(
             OrderHelperRequest({
+                seaport: seaport,
+                validator: validator,
                 orders: orders,
                 caller: offerer1.addr,
                 nativeTokensSupplied: 0,
@@ -269,7 +273,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.validationErrors[0].errors.length,
-            3,
+            4,
             "unexpected validationErrors[0].errors length"
         );
         assertEq(
@@ -359,6 +363,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         });
         OrderHelperResponse memory res = orderHelper.prepare(
             OrderHelperRequest({
+                seaport: seaport,
+                validator: validator,
                 orders: orders,
                 caller: offerer1.addr,
                 nativeTokensSupplied: 0,

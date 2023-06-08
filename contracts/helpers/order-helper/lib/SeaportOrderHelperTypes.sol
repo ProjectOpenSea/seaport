@@ -91,13 +91,13 @@ struct HelperConsiderationItem {
  *      and Seaport and SeaportValidator interfaces.
  */
 struct OrderHelperContext {
-    ConsiderationInterface seaport;
-    SeaportValidatorInterface validator;
     OrderHelperRequest request;
     OrderHelperResponse response;
 }
 
 struct OrderHelperRequest {
+    ConsiderationInterface seaport;
+    SeaportValidatorInterface validator;
     HelperAdvancedOrder[] orders;
     address caller;
     address recipient;

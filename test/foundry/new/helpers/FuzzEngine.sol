@@ -570,6 +570,8 @@ contract FuzzEngine is
                 });
             context.seaportOrderHelper.prepare(
                 OrderHelperRequest({
+                    seaport: context.seaport,
+                    validator: context.seaportValidator,
                     orders: HelperAdvancedOrderLib.fromAdvancedOrders(
                         context.executionState.orders
                     ),

@@ -220,8 +220,6 @@ contract BaseOrderTest is
         );
 
         orderHelper = new SeaportOrderHelper(
-            SeaportInterface(address(seaport)),
-            SeaportValidatorInterface(address(validator)),
             address(requestValidator),
             address(criteriaHelper),
             address(validatorHelper),
