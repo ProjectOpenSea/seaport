@@ -38,6 +38,8 @@ contract OrderHelperDeployer is Script {
         ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
     address private constant SEAPORT_ADDRESS =
         0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC;
+    address private constant SEAPORT_VALIDATOR_ADDRESS =
+        0x000000000DD1F1B245b936b2771408555CF8B8af;
     bytes32 private constant SALT = bytes32(uint256(0x1));
 
     function deploy(
@@ -86,7 +88,7 @@ contract OrderHelperDeployer is Script {
                 type(SeaportOrderHelper).creationCode,
                 abi.encode(
                     SEAPORT_ADDRESS,
-                    vm.envAddr("ORDER_VALIDATOR_ADDRESS"),
+                    SEAPORT_VALIDATOR_ADDRESS,
                     requestValidator,
                     criteriaHelper,
                     validatorHelper,
