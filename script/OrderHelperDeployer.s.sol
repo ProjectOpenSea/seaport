@@ -27,6 +27,15 @@ import {
 } from "../contracts/helpers/order-helper/SeaportOrderHelper.sol";
 
 interface ImmutableCreate2Factory {
+    function hasBeenDeployed(
+        address deploymentAddress
+    ) external view returns (bool);
+
+    function findCreate2Address(
+        bytes32 salt,
+        bytes calldata initializationCode
+    ) external view returns (address deploymentAddress);
+
     function safeCreate2(
         bytes32 salt,
         bytes calldata initializationCode
@@ -46,11 +55,29 @@ contract OrderHelperDeployer is Script {
         string memory name,
         bytes memory initCode
     ) internal returns (address) {
-        address deploymentAddress = IMMUTABLE_CREATE2_FACTORY.safeCreate2(
-            SALT,
-            initCode
+        address deploymentAddress = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex"ff",
+                            address(IMMUTABLE_CREATE2_FACTORY),
+                            SALT,
+                            keccak256(initCode)
+                        )
+                    )
+                )
+            )
         );
-        console.log(name, deploymentAddress);
+        bool deployed;
+        if (!IMMUTABLE_CREATE2_FACTORY.hasBeenDeployed(deploymentAddress)) {
+            deploymentAddress = IMMUTABLE_CREATE2_FACTORY.safeCreate2(
+                SALT,
+                initCode
+            );
+            deployed = true;
+        }
+        console.log(deployed ? "deploying" : "found", name, deploymentAddress);
         return deploymentAddress;
     }
 
