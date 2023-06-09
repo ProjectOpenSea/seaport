@@ -5,18 +5,18 @@ import {
     CriteriaResolver
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { OrderHelperCriteriaResolverLib } from "./OrderHelperLib.sol";
+import { NavigatorCriteriaResolverLib } from "./NavigatorLib.sol";
 
-import { OrderHelperContext } from "./SeaportOrderHelperTypes.sol";
+import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 
 import { HelperInterface } from "./HelperInterface.sol";
 
 contract CriteriaHelper is HelperInterface {
-    using OrderHelperCriteriaResolverLib for OrderHelperContext;
+    using NavigatorCriteriaResolverLib for NavigatorContext;
 
     function prepare(
-        OrderHelperContext memory context
-    ) public pure returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) public pure returns (NavigatorContext memory) {
         return context.withCriteria();
     }
 }

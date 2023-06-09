@@ -60,14 +60,14 @@ import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
 import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
 
 import {
-    OrderHelperRequest,
-    OrderHelperResponse,
-    OrderHelperContext,
+    NavigatorRequest,
+    NavigatorResponse,
+    NavigatorContext,
     HelperOfferItem,
     HelperConsiderationItem,
     HelperOrderParameters,
     HelperAdvancedOrder
-} from "./SeaportOrderHelperTypes.sol";
+} from "./SeaportNavigatorTypes.sol";
 
 import {
     SeaportValidatorInterface,
@@ -459,7 +459,7 @@ library HelperAdvancedOrderLib {
     }
 }
 
-library OrderHelperRequestValidatorLib {
+library NavigatorRequestValidatorLib {
     using OrderStructureLib for AdvancedOrder;
 
     /**
@@ -467,8 +467,8 @@ library OrderHelperRequestValidatorLib {
      *      are contract orders and applies basic criteria constraint validations.
      */
     function validate(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal pure returns (NavigatorContext memory) {
         validateNoContractOrders(context);
         return context;
     }
@@ -477,8 +477,8 @@ library OrderHelperRequestValidatorLib {
      * @dev Checks that none of the provided orders are contract orders.
      */
     function validateNoContractOrders(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal pure returns (NavigatorContext memory) {
         for (uint256 i; i < context.response.orders.length; i++) {
             AdvancedOrder memory order = context.response.orders[i];
             if (order.getType() == Type.CONTRACT) {
@@ -489,7 +489,7 @@ library OrderHelperRequestValidatorLib {
     }
 }
 
-library OrderHelperCriteriaResolverLib {
+library NavigatorCriteriaResolverLib {
     using HelperAdvancedOrderLib for HelperAdvancedOrder[];
 
     /**
@@ -497,11 +497,11 @@ library OrderHelperCriteriaResolverLib {
      *      roots for the provided orders and criteria constraints. Modifies
      *      orders in place to add criteria merkle roots to the appropriate
      *      offer/consdieration items. Adds calculated criteria resolvers to
-     *      the OrderHelperResponse.
+     *      the NavigatorResponse.
      */
     function withCriteria(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal pure returns (NavigatorContext memory) {
         (
             AdvancedOrder[] memory orders,
             CriteriaResolver[] memory resolvers
@@ -527,58 +527,44 @@ interface ValidatorHelper {
     ) external view;
 }
 
-library OrderHelperSeaportValidatorLib {
+library NavigatorSeaportValidatorLib {
     using AdvancedOrderLib for AdvancedOrder;
+
+    error ValidatorReverted();
 
     /**
      * @dev Validate each order using SeaportValidator and add the results to
-     *      the OrderHelperResponse.
+     *      the NavigatorResponse.
      */
     function withErrors(
-        OrderHelperContext memory context,
-        address validatorHelper
-    ) internal view returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal view returns (NavigatorContext memory) {
         AdvancedOrder[] memory orders = context.response.orders;
 
         ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
             orders.length
         );
         for (uint256 i; i < orders.length; i++) {
-            try
-                ValidatorHelper(validatorHelper).validateAndRevert(
-                    context.request.validator,
-                    orders[i].toOrder(),
-                    address(context.request.seaport)
-                )
-            {
-                assert(false);
-            } catch (bytes memory revertData) {
-                (bool success, bytes memory returnData) = abi.decode(
-                    revertData,
-                    (bool, bytes)
-                );
-                if (!success) {
-                    revert("oops");
-                } else {
-                    errors[i] = abi.decode(returnData, (ErrorsAndWarnings));
-                }
-            }
+            errors[i] = context.request.validator.isValidOrder(
+                orders[i].toOrder(),
+                address(context.request.seaport)
+            );
         }
         context.response.validationErrors = errors;
         return context;
     }
 }
 
-library OrderHelperDetailsLib {
+library NavigatorDetailsLib {
     using AdvancedOrderLib for AdvancedOrder[];
     using OrderAvailabilityLib for AdvancedOrder[];
 
     /**
-     * @dev Calculate OrderDetails for each order and add them to the OrderHelperResponse.
+     * @dev Calculate OrderDetails for each order and add them to the NavigatorResponse.
      */
     function withDetails(
-        OrderHelperContext memory context
-    ) internal view returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal view returns (NavigatorContext memory) {
         UnavailableReason[] memory unavailableReasons = context
             .response
             .orders
@@ -598,16 +584,16 @@ library OrderHelperDetailsLib {
     }
 }
 
-library OrderHelperFulfillmentsLib {
+library NavigatorFulfillmentsLib {
     using FulfillmentGeneratorLib for OrderDetails[];
 
     /**
      * @dev Calculate fulfillments and match components for the provided orders
-     *      and add them to the OrderHelperResponse.
+     *      and add them to the NavigatorResponse.
      */
     function withFulfillments(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal pure returns (NavigatorContext memory) {
         (
             ,
             FulfillmentComponent[][] memory offerFulfillments,
@@ -633,17 +619,17 @@ library OrderHelperFulfillmentsLib {
     }
 }
 
-library OrderHelperExecutionsLib {
+library NavigatorExecutionsLib {
     using ExecutionHelper for FulfillmentDetails;
     using OrderStructureLib for AdvancedOrder[];
 
     /**
      * @dev Calculate executions for the provided orders and add them to the
-     *      OrderHelperResponse.
+     *      NavigatorResponse.
      */
     function withExecutions(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal pure returns (NavigatorContext memory) {
         bytes4 _suggestedAction = context.response.suggestedAction;
         FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
             orders: context.response.orderDetails,
@@ -717,11 +703,11 @@ library OrderHelperExecutionsLib {
 
     /**
      * @dev Choose a suggested fulfillment method based on the structure of the
-     *      orders and add it to the OrderHelperResponse.
+     *      orders and add it to the NavigatorResponse.
      */
     function withSuggestedAction(
-        OrderHelperContext memory context
-    ) internal view returns (OrderHelperContext memory) {
+        NavigatorContext memory context
+    ) internal view returns (NavigatorContext memory) {
         context.response.suggestedAction = action(context);
         context.response.suggestedActionName = actionName(context);
         return context;
@@ -729,10 +715,10 @@ library OrderHelperExecutionsLib {
 
     /**
      * @dev Add the human-readable name of the selected fulfillment method to
-     *      the OrderHelperResponse.
+     *      the NavigatorResponse.
      */
     function actionName(
-        OrderHelperContext memory context
+        NavigatorContext memory context
     ) internal view returns (string memory) {
         bytes4 selector = action(context);
         if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
@@ -752,7 +738,7 @@ library OrderHelperExecutionsLib {
      *      orders.
      */
     function action(
-        OrderHelperContext memory context
+        NavigatorContext memory context
     ) internal view returns (bytes4) {
         Family family = context.response.orders.getFamily();
 
@@ -849,7 +835,7 @@ library OrderHelperExecutionsLib {
      *      or matchAdvancedOrders.
      */
     function mustUseMatch(
-        OrderHelperContext memory context
+        NavigatorContext memory context
     ) internal pure returns (bool) {
         OrderDetails[] memory orders = context.response.orderDetails;
 
@@ -907,17 +893,17 @@ library OrderHelperExecutionsLib {
     }
 }
 
-library OrderHelperContextLib {
+library NavigatorContextLib {
     function from(
-        OrderHelperRequest memory request
-    ) internal pure returns (OrderHelperContext memory context) {
+        NavigatorRequest memory request
+    ) internal pure returns (NavigatorContext memory context) {
         context.request = request;
     }
 
     function withEmptyResponse(
-        OrderHelperContext memory context
-    ) internal pure returns (OrderHelperContext memory) {
-        context.response = OrderHelperResponse({
+        NavigatorContext memory context
+    ) internal pure returns (NavigatorContext memory) {
+        context.response = NavigatorResponse({
             orders: new AdvancedOrder[](0),
             criteriaResolvers: new CriteriaResolver[](0),
             suggestedAction: bytes4(0),

@@ -29,7 +29,7 @@ interface SeaportValidatorInterface {
     function isValidOrder(
         Order calldata order,
         address seaportAddress
-    ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
+    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
      * @notice Same as `isValidOrder` but allows for more configuration related to fee validation.
@@ -37,7 +37,7 @@ interface SeaportValidatorInterface {
     function isValidOrderWithConfiguration(
         ValidationConfiguration memory validationConfiguration,
         Order memory order
-    ) external returns (ErrorsAndWarnings memory errorsAndWarnings);
+    ) external view returns (ErrorsAndWarnings memory errorsAndWarnings);
 
     /**
      * @notice Checks if a conduit key is valid.

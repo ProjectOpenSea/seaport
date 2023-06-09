@@ -13,33 +13,31 @@ import {
     SeaportValidatorInterface
 } from "../order-validator/SeaportValidator.sol";
 
-import { OrderHelperContextLib } from "./lib/OrderHelperLib.sol";
+import { NavigatorContextLib } from "./lib/NavigatorLib.sol";
 
 import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
 
 import {
-    OrderHelperContext,
-    OrderHelperRequest,
-    OrderHelperResponse
-} from "./lib/SeaportOrderHelperTypes.sol";
+    NavigatorContext,
+    NavigatorRequest,
+    NavigatorResponse
+} from "./lib/SeaportNavigatorTypes.sol";
 
-import {
-    SeaportOrderHelperInterface
-} from "./lib/SeaportOrderHelperInterface.sol";
+import { SeaportNavigatorInterface } from "./lib/SeaportNavigatorInterface.sol";
 
 import { HelperInterface } from "./lib/HelperInterface.sol";
 
 /**
- * @notice SeaportOrderHelper is a helper contract that generates additional
+ * @notice SeaportNavigator is a helper contract that generates additional
  *         information useful for fulfilling Seaport orders. Given an array of
  *         orders and external parameters like caller, recipient, and native
- *         tokens supplied, SeaportOrderHelper will validate the orders and
+ *         tokens supplied, SeaportNavigator will validate the orders and
  *         return associated errors and warnings, recommend a fulfillment
  *         method, suggest fulfillments, provide execution and order details,
  *         and optionally generate criteria resolvers from provided token IDs.
  */
-contract SeaportOrderHelper is SeaportOrderHelperInterface {
-    using OrderHelperContextLib for OrderHelperContext;
+contract SeaportNavigator is SeaportNavigatorInterface {
+    using NavigatorContextLib for NavigatorContext;
     using CriteriaHelperLib for uint256[];
 
     HelperInterface public immutable requestValidator;
@@ -79,9 +77,9 @@ contract SeaportOrderHelper is SeaportOrderHelperInterface {
     }
 
     function prepare(
-        OrderHelperRequest calldata request
-    ) public view returns (OrderHelperResponse memory) {
-        OrderHelperContext memory context = OrderHelperContextLib
+        NavigatorRequest calldata request
+    ) public view returns (NavigatorResponse memory) {
+        NavigatorContext memory context = NavigatorContextLib
             .from(request)
             .withEmptyResponse();
 

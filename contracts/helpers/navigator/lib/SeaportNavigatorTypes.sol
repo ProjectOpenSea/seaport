@@ -86,16 +86,16 @@ struct HelperConsiderationItem {
 }
 
 /**
- * @dev Context struct for OrderHelperLib. Includes context information
+ * @dev Context struct for NavigatorLib. Includes context information
  *      necessary for fulfillment, like the caller and recipient addresses,
  *      and Seaport and SeaportValidator interfaces.
  */
-struct OrderHelperContext {
-    OrderHelperRequest request;
-    OrderHelperResponse response;
+struct NavigatorContext {
+    NavigatorRequest request;
+    NavigatorResponse response;
 }
 
-struct OrderHelperRequest {
+struct NavigatorRequest {
     ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
     HelperAdvancedOrder[] orders;
@@ -109,7 +109,7 @@ struct OrderHelperRequest {
     CriteriaResolver[] criteriaResolvers;
 }
 
-struct OrderHelperResponse {
+struct NavigatorResponse {
     /**
      * @dev The provided orders. If the caller provides explicit criteria
      *      resolvers, the orders will not be modified. If the caller provides

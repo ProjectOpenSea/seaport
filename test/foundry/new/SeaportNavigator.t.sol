@@ -29,19 +29,19 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
-    OrderHelperRequest,
-    OrderHelperResponse,
-    SeaportOrderHelper
-} from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+    NavigatorRequest,
+    NavigatorResponse,
+    SeaportNavigator
+} from "../../../contracts/helpers/navigator/Seaportnavigator.sol";
 
 import {
     TokenIdNotFound
-} from "../../../contracts/helpers/order-helper/lib/CriteriaHelperLib.sol";
+} from "../../../contracts/helpers/navigator/lib/CriteriaHelperLib.sol";
 
 import {
     HelperAdvancedOrder,
     HelperAdvancedOrderLib
-} from "../../../contracts/helpers/order-helper/lib/OrderHelperLib.sol";
+} from "../../../contracts/helpers/navigator/lib/NavigatorLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -52,7 +52,7 @@ import {
     MatchStrategy
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
-contract SeaportOrderHelperTest is BaseOrderTest {
+contract SeaportNavigatorTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
     using OrderParametersLib for OrderParameters;
@@ -140,8 +140,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
             matchStrategy: MatchStrategy.MAX_INCLUSION
         });
-        OrderHelperResponse memory res = orderHelper.prepare(
-            OrderHelperRequest({
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
                 seaport: seaport,
                 validator: validator,
                 orders: orders,
@@ -241,8 +241,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
             matchStrategy: MatchStrategy.MAX_INCLUSION
         });
-        OrderHelperResponse memory res = orderHelper.prepare(
-            OrderHelperRequest({
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
                 seaport: seaport,
                 validator: validator,
                 orders: orders,
@@ -361,8 +361,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
             matchStrategy: MatchStrategy.MAX_INCLUSION
         });
-        OrderHelperResponse memory res = orderHelper.prepare(
-            OrderHelperRequest({
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
                 seaport: seaport,
                 validator: validator,
                 orders: orders,
@@ -379,11 +379,11 @@ contract SeaportOrderHelperTest is BaseOrderTest {
 
         assertEq(
             res.orders[0].parameters.offer[0].identifierOrCriteria,
-            uint256(orderHelper.criteriaRoot(offerIds))
+            uint256(navigator.criteriaRoot(offerIds))
         );
         assertEq(
             res.orders[0].parameters.consideration[0].identifierOrCriteria,
-            uint256(orderHelper.criteriaRoot(considerationIds))
+            uint256(navigator.criteriaRoot(considerationIds))
         );
 
         assertEq(
@@ -433,8 +433,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
      * @dev Workaround for Foundry issues with custom errors + libraries.
      *      See: https://github.com/foundry-rs/foundry/issues/4405
      */
-    function runHelper(OrderHelperRequest memory request) public view {
-        orderHelper.prepare(request);
+    function runHelper(NavigatorRequest memory request) public view {
+        navigator.prepare(request);
     }
 
     function test_criteriaRoot() public {
@@ -445,13 +445,13 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[0] = 2;
         tokenIds[1] = 5;
         tokenIds[2] = 3;
-        assertEq(orderHelper.criteriaRoot(tokenIds), expectedRoot);
+        assertEq(navigator.criteriaRoot(tokenIds), expectedRoot);
 
         // TokenIds are sorted before hashing
         tokenIds[0] = 5;
         tokenIds[1] = 3;
         tokenIds[2] = 2;
-        assertEq(orderHelper.criteriaRoot(tokenIds), expectedRoot);
+        assertEq(navigator.criteriaRoot(tokenIds), expectedRoot);
     }
 
     function test_criteriaProof() public {
@@ -460,7 +460,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[1] = 5;
         tokenIds[2] = 3;
 
-        bytes32[] memory proof = orderHelper.criteriaProof(tokenIds, 5);
+        bytes32[] memory proof = navigator.criteriaProof(tokenIds, 5);
 
         assertEq(proof.length, 2);
         assertEq(
@@ -484,6 +484,6 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[2] = 3;
 
         vm.expectRevert(TokenIdNotFound.selector);
-        orderHelper.criteriaProof(tokenIds, 7);
+        navigator.criteriaProof(tokenIds, 7);
     }
 }

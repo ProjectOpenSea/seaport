@@ -91,12 +91,12 @@ import {
 } from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 import {
-    OrderHelperRequest
-} from "../../../../contracts/helpers/order-helper/lib/SeaportOrderHelperTypes.sol";
+    NavigatorRequest
+} from "../../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
 import {
     HelperAdvancedOrderLib
-} from "../../../../contracts/helpers/order-helper/lib/OrderHelperLib.sol";
+} from "../../../../contracts/helpers/navigator/lib/NavigatorLib.sol";
 
 import {
     FulfillmentStrategy,
@@ -339,7 +339,7 @@ contract FuzzEngine is
             .from({ orders: orders, seaport: getSeaport() })
             .withConduitController(conduitController_)
             .withSeaportValidator(validator)
-            .withSeaportOrderHelper(orderHelper)
+            .withSeaportNavigator(navigator)
             .withFuzzParams(fuzzParams)
             .withMaximumFulfilled(space.maximumFulfilled)
             .withPreExecOrderStatuses(space);
@@ -543,7 +543,7 @@ contract FuzzEngine is
     }
 
     /**
-     * @dev Call SeaportOrderHelper.run with generated order.
+     * @dev Call SeaportNavigator.run with generated order.
      *
      * @param context A Fuzz test context.
      */
@@ -568,8 +568,8 @@ contract FuzzEngine is
                         .DROP_RANDOM_OFFER,
                     matchStrategy: MatchStrategy.MAX_INCLUSION
                 });
-            context.seaportOrderHelper.prepare(
-                OrderHelperRequest({
+            context.seaportNavigator.prepare(
+                NavigatorRequest({
                     seaport: context.seaport,
                     validator: context.seaportValidator,
                     orders: HelperAdvancedOrderLib.fromAdvancedOrders(

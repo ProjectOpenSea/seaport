@@ -6,25 +6,25 @@ import "forge-std/console.sol";
 
 import {
     RequestValidator
-} from "../contracts/helpers/order-helper/lib/RequestValidator.sol";
+} from "../contracts/helpers/navigator/lib/RequestValidator.sol";
 import {
     CriteriaHelper
-} from "../contracts/helpers/order-helper/lib/CriteriaHelper.sol";
+} from "../contracts/helpers/navigator/lib/CriteriaHelper.sol";
 import {
     ValidatorHelper
-} from "../contracts/helpers/order-helper/lib/ValidatorHelper.sol";
+} from "../contracts/helpers/navigator/lib/ValidatorHelper.sol";
 import {
     OrderDetailsHelper
-} from "../contracts/helpers/order-helper/lib/OrderDetailsHelper.sol";
+} from "../contracts/helpers/navigator/lib/OrderDetailsHelper.sol";
 import {
     FulfillmentsHelper
-} from "../contracts/helpers/order-helper/lib/FulfillmentsHelper.sol";
+} from "../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
 import {
     ExecutionsHelper
-} from "../contracts/helpers/order-helper/lib/ExecutionsHelper.sol";
+} from "../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
 import {
-    SeaportOrderHelper
-} from "../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+    SeaportNavigator
+} from "../contracts/helpers/navigator/SeaportNavigator.sol";
 
 interface ImmutableCreate2Factory {
     function hasBeenDeployed(
@@ -42,13 +42,9 @@ interface ImmutableCreate2Factory {
     ) external payable returns (address deploymentAddress);
 }
 
-contract OrderHelperDeployer is Script {
+contract NavigatorDeployer is Script {
     ImmutableCreate2Factory private constant IMMUTABLE_CREATE2_FACTORY =
         ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
-    address private constant SEAPORT_ADDRESS =
-        0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC;
-    address private constant SEAPORT_VALIDATOR_ADDRESS =
-        0x000000000DD1F1B245b936b2771408555CF8B8af;
     bytes32 private constant SALT = bytes32(uint256(0x1));
 
     function deploy(
@@ -112,7 +108,7 @@ contract OrderHelperDeployer is Script {
         deploy(
             "orderHelper",
             bytes.concat(
-                type(SeaportOrderHelper).creationCode,
+                type(SeaportNavigator).creationCode,
                 abi.encode(
                     requestValidator,
                     criteriaHelper,

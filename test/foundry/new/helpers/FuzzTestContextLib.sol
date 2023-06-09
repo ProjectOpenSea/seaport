@@ -69,8 +69,8 @@ import {
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
-    SeaportOrderHelperInterface
-} from "../../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+    SeaportNavigatorInterface
+} from "../../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
@@ -320,9 +320,9 @@ struct FuzzTestContext {
      */
     SeaportValidatorInterface seaportValidator;
     /**
-     * @dev A SeaportOrderHelper interface.
+     * @dev A SeaportNavigator interface.
      */
-    SeaportOrderHelperInterface seaportOrderHelper;
+    SeaportNavigatorInterface seaportNavigator;
     /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
@@ -406,7 +406,7 @@ library FuzzTestContextLib {
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 seaportValidator: SeaportValidatorInterface(address(0)),
-                seaportOrderHelper: SeaportOrderHelperInterface(address(0)),
+                seaportNavigator: SeaportNavigatorInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -639,20 +639,20 @@ library FuzzTestContextLib {
     }
 
     /**
-     * @dev Sets the SeaportOrderHelperInterface on a FuzzTestContext
+     * @dev Sets the SeaportNavigatorInterface on a FuzzTestContext
      *
      * @param context             the FuzzTestContext to set the
-     *                            SeaportOrderHelperInterface of
-     * @param seaportOrderHelper  the SeaportOrderHelperInterface to set
+     *                            SeaportNavigatorInterface of
+     * @param seaportNavigator  the SeaportNavigatorInterface to set
      *
-     * @return _context the FuzzTestContext with the SeaportOrderHelperInterface
+     * @return _context the FuzzTestContext with the SeaportNavigatorInterface
      *                  set
      */
-    function withSeaportOrderHelper(
+    function withSeaportNavigator(
         FuzzTestContext memory context,
-        SeaportOrderHelperInterface seaportOrderHelper
+        SeaportNavigatorInterface seaportNavigator
     ) internal pure returns (FuzzTestContext memory) {
-        context.seaportOrderHelper = seaportOrderHelper;
+        context.seaportNavigator = seaportNavigator;
         return context;
     }
 

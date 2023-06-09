@@ -69,29 +69,29 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
-    SeaportOrderHelper
-} from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+    SeaportNavigator
+} from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
 import {
     HelperInterface
-} from "../../../contracts/helpers/order-helper/lib/HelperInterface.sol";
+} from "../../../contracts/helpers/navigator/lib/HelperInterface.sol";
 import {
     RequestValidator
-} from "../../../contracts/helpers/order-helper/lib/RequestValidator.sol";
+} from "../../../contracts/helpers/navigator/lib/RequestValidator.sol";
 import {
     CriteriaHelper
-} from "../../../contracts/helpers/order-helper/lib/CriteriaHelper.sol";
+} from "../../../contracts/helpers/navigator/lib/CriteriaHelper.sol";
 import {
     ValidatorHelper
-} from "../../../contracts/helpers/order-helper/lib/ValidatorHelper.sol";
+} from "../../../contracts/helpers/navigator/lib/ValidatorHelper.sol";
 import {
     OrderDetailsHelper
-} from "../../../contracts/helpers/order-helper/lib/OrderDetailsHelper.sol";
+} from "../../../contracts/helpers/navigator/lib/OrderDetailsHelper.sol";
 import {
     FulfillmentsHelper
-} from "../../../contracts/helpers/order-helper/lib/FulfillmentsHelper.sol";
+} from "../../../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
 import {
     ExecutionsHelper
-} from "../../../contracts/helpers/order-helper/lib/ExecutionsHelper.sol";
+} from "../../../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
 
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token
@@ -144,7 +144,7 @@ contract BaseOrderTest is
     HelperInterface orderDetailsHelper = new OrderDetailsHelper();
     HelperInterface fulfillmentsHelper = new FulfillmentsHelper();
     HelperInterface executionsHelper = new ExecutionsHelper();
-    SeaportOrderHelper orderHelper;
+    SeaportNavigator navigator;
 
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
@@ -219,7 +219,7 @@ contract BaseOrderTest is
             address(getConduitController())
         );
 
-        orderHelper = new SeaportOrderHelper(
+        navigator = new SeaportNavigator(
             address(requestValidator),
             address(criteriaHelper),
             address(validatorHelper),

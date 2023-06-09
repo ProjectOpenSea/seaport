@@ -4,9 +4,6 @@ pragma solidity 0.8.17;
 import { OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
-    AdvancedOrder,
-    ConsiderationItem,
-    OfferItem,
     Order,
     OrderComponents,
     OrderParameters,
@@ -14,39 +11,9 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
-    _revertBadFraction,
-    _revertCannotCancelOrder,
     _revertConsiderationLengthNotEqualToTotalOriginal,
-    _revertInvalidContractOrder,
-    _revertPartialFillsNotEnabledForOrder,
     _revertMissingOriginalConsiderationItems
 } from "seaport-types/src/lib/ConsiderationErrors.sol";
-
-import { MemoryPointer } from "seaport-types/src/helpers/PointerLibraries.sol";
-
-import {
-    AdvancedOrder_denominator_offset,
-    AdvancedOrder_numerator_offset,
-    BasicOrder_offerer_cdPtr,
-    Common_amount_offset,
-    Common_endAmount_offset,
-    Common_identifier_offset,
-    Common_token_offset,
-    ConsiderItem_recipient_offset,
-    ContractOrder_orderHash_offerer_shift,
-    MaxUint120,
-    OrderStatus_filledDenominator_offset,
-    OrderStatus_filledNumerator_offset,
-    OrderStatus_ValidatedAndNotCancelled
-} from "seaport-types/src/lib/ConsiderationConstants.sol";
-
-import {
-    Error_selector_offset,
-    Panic_arithmetic,
-    Panic_error_code_ptr,
-    Panic_error_length,
-    Panic_error_selector
-} from "seaport-types/src/lib/ConsiderationErrorConstants.sol";
 
 import {
     SignatureVerification
@@ -61,31 +28,10 @@ import {
 import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
-    Create2AddressDerivation_length,
-    Create2AddressDerivation_ptr,
     EIP_712_PREFIX,
-    EIP712_ConsiderationItem_size,
     EIP712_DigestPayload_size,
     EIP712_DomainSeparator_offset,
-    EIP712_OfferItem_size,
-    EIP712_Order_size,
     EIP712_OrderHash_offset,
-    FreeMemoryPointerSlot,
-    information_conduitController_offset,
-    information_domainSeparator_offset,
-    information_length,
-    information_version_cd_offset,
-    information_version_offset,
-    information_versionLengthPtr,
-    information_versionWithLength,
-    MaskOverByteTwelve,
-    MaskOverLastTwentyBytes,
-    OneWord,
-    OneWordShift,
-    OrderParameters_consideration_head_offset,
-    OrderParameters_counter_offset,
-    OrderParameters_offer_head_offset,
-    TwoWords,
     BulkOrderProof_keyShift,
     BulkOrderProof_keySize,
     BulkOrderProof_lengthAdjustmentBeforeMask,
@@ -93,9 +39,9 @@ import {
     BulkOrderProof_minSize,
     BulkOrderProof_rangeSize,
     ECDSA_MaxLength,
-    OneWord,
     OneWordShift,
     ThirtyOneBytes,
+    OneWord,
     TwoWords,
     BulkOrder_Typehash_Height_One,
     BulkOrder_Typehash_Height_Two,
@@ -120,19 +66,7 @@ import {
     BulkOrder_Typehash_Height_TwentyOne,
     BulkOrder_Typehash_Height_TwentyTwo,
     BulkOrder_Typehash_Height_TwentyThree,
-    BulkOrder_Typehash_Height_TwentyFour,
-    EIP712_domainData_chainId_offset,
-    EIP712_domainData_nameHash_offset,
-    EIP712_domainData_size,
-    EIP712_domainData_verifyingContract_offset,
-    EIP712_domainData_versionHash_offset,
-    FreeMemoryPointerSlot,
-    NameLengthPtr,
-    NameWithLength,
-    OneWord,
-    Slot0x80,
-    ThreeWords,
-    ZeroSlot
+    BulkOrder_Typehash_Height_TwentyFour
 } from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 contract ReadOnlyOrderValidator is SignatureVerification {

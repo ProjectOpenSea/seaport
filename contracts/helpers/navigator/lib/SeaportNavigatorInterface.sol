@@ -6,12 +6,12 @@ import {
     CriteriaResolver
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { OrderHelperRequest, OrderHelperResponse } from "./OrderHelperLib.sol";
+import { NavigatorRequest, NavigatorResponse } from "./NavigatorLib.sol";
 
-interface SeaportOrderHelperInterface {
+interface SeaportNavigatorInterface {
     function prepare(
-        OrderHelperRequest memory request
-    ) external view returns (OrderHelperResponse memory);
+        NavigatorRequest memory request
+    ) external view returns (NavigatorResponse memory);
 
     /**
      * @notice Generate a criteria merkle root from an array of `tokenIds`. Use
