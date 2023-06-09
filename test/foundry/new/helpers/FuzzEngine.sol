@@ -95,7 +95,7 @@ import {
 } from "../../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
 import {
-    HelperAdvancedOrderLib
+    NavigatorAdvancedOrderLib
 } from "../../../../contracts/helpers/navigator/lib/NavigatorLib.sol";
 
 import {
@@ -522,7 +522,7 @@ contract FuzzEngine is
      *
      * @param context A Fuzz test context.
      */
-    function validate(FuzzTestContext memory context) internal {
+    function validate(FuzzTestContext memory context) internal view {
         for (uint256 i; i < context.executionState.orders.length; ++i) {
             Order memory order = context.executionState.orders[i].toOrder();
             context.executionState.validationErrors[i] = context
@@ -572,7 +572,7 @@ contract FuzzEngine is
                 NavigatorRequest({
                     seaport: context.seaport,
                     validator: context.seaportValidator,
-                    orders: HelperAdvancedOrderLib.fromAdvancedOrders(
+                    orders: NavigatorAdvancedOrderLib.fromAdvancedOrders(
                         context.executionState.orders
                     ),
                     caller: context.executionState.caller,
@@ -584,7 +584,8 @@ contract FuzzEngine is
                     maximumFulfilled: context.executionState.maximumFulfilled,
                     seed: context.fuzzParams.seed,
                     fulfillmentStrategy: fulfillmentStrategy,
-                    criteriaResolvers: context.executionState.criteriaResolvers
+                    criteriaResolvers: context.executionState.criteriaResolvers,
+                    preferMatch: true
                 })
             );
         }

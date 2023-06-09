@@ -39,8 +39,8 @@ import {
 } from "../../../contracts/helpers/navigator/lib/CriteriaHelperLib.sol";
 
 import {
-    HelperAdvancedOrder,
-    HelperAdvancedOrderLib
+    NavigatorAdvancedOrder,
+    NavigatorAdvancedOrderLib
 } from "../../../contracts/helpers/navigator/lib/NavigatorLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
@@ -129,11 +129,13 @@ contract SeaportNavigatorTest is BaseOrderTest {
     }
 
     function test_basicOrder() public {
-        HelperAdvancedOrder[] memory orders = new HelperAdvancedOrder[](1);
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
+        );
         AdvancedOrder memory advancedOrder = OrderLib
             .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
             .toAdvancedOrder(1, 1, "");
-        orders[0] = HelperAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
         FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
             aggregationStrategy: AggregationStrategy.MAXIMUM,
@@ -152,7 +154,8 @@ contract SeaportNavigatorTest is BaseOrderTest {
                 maximumFulfilled: type(uint256).max,
                 seed: 0,
                 fulfillmentStrategy: fulfillmentStrategy,
-                criteriaResolvers: new CriteriaResolver[](0)
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
             })
         );
         assertEq(
@@ -230,11 +233,13 @@ contract SeaportNavigatorTest is BaseOrderTest {
     }
 
     function test_simpleOrder() public {
-        HelperAdvancedOrder[] memory orders = new HelperAdvancedOrder[](1);
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
+        );
         AdvancedOrder memory advancedOrder = OrderLib
             .fromDefault(SINGLE_ERC721)
             .toAdvancedOrder(1, 1, "");
-        orders[0] = HelperAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
         FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
             aggregationStrategy: AggregationStrategy.MAXIMUM,
@@ -253,7 +258,8 @@ contract SeaportNavigatorTest is BaseOrderTest {
                 maximumFulfilled: type(uint256).max,
                 seed: 0,
                 fulfillmentStrategy: fulfillmentStrategy,
-                criteriaResolvers: new CriteriaResolver[](0)
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
             })
         );
         assertEq(
@@ -331,13 +337,15 @@ contract SeaportNavigatorTest is BaseOrderTest {
     }
 
     function test_inferredCriteria() public {
-        HelperAdvancedOrder[] memory orders = new HelperAdvancedOrder[](1);
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
+        );
         AdvancedOrder memory advancedOrder = OrderLib
             .fromDefault(
                 SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
             )
             .toAdvancedOrder(1, 1, "");
-        orders[0] = HelperAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
         uint256[] memory offerIds = new uint256[](3);
         offerIds[0] = 1;
@@ -373,7 +381,8 @@ contract SeaportNavigatorTest is BaseOrderTest {
                 maximumFulfilled: type(uint256).max,
                 seed: 0,
                 fulfillmentStrategy: fulfillmentStrategy,
-                criteriaResolvers: new CriteriaResolver[](0)
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
             })
         );
 

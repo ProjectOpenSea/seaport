@@ -63,10 +63,10 @@ import {
     NavigatorRequest,
     NavigatorResponse,
     NavigatorContext,
-    HelperOfferItem,
-    HelperConsiderationItem,
-    HelperOrderParameters,
-    HelperAdvancedOrder
+    NavigatorOfferItem,
+    NavigatorConsiderationItem,
+    NavigatorOrderParameters,
+    NavigatorAdvancedOrder
 } from "./SeaportNavigatorTypes.sol";
 
 import {
@@ -107,7 +107,7 @@ library HelperItemLib {
     error InvalidItemTypeForCandidateIdentifiers();
 
     function normalizeType(
-        HelperOfferItem memory item
+        NavigatorOfferItem memory item
     ) internal pure returns (ItemType) {
         ItemType itemType = item.itemType;
         if (hasCriteria(item)) {
@@ -130,7 +130,7 @@ library HelperItemLib {
     }
 
     function normalizeType(
-        HelperConsiderationItem memory item
+        NavigatorConsiderationItem memory item
     ) internal pure returns (ItemType) {
         ItemType itemType = item.itemType;
         if (hasCriteria(item)) {
@@ -153,18 +153,18 @@ library HelperItemLib {
     }
 
     function hasCriteria(
-        HelperOfferItem memory item
+        NavigatorOfferItem memory item
     ) internal pure returns (bool) {
         return item.candidateIdentifiers.length > 0;
     }
 
     function hasCriteria(
-        HelperConsiderationItem memory item
+        NavigatorConsiderationItem memory item
     ) internal pure returns (bool) {
         return item.candidateIdentifiers.length > 0;
     }
 
-    function validate(HelperOfferItem memory item) internal pure {
+    function validate(NavigatorOfferItem memory item) internal pure {
         ItemType itemType = item.itemType;
         if (itemType == ItemType.ERC20 || itemType == ItemType.NATIVE) {
             if (item.candidateIdentifiers.length > 0) {
@@ -198,7 +198,7 @@ library HelperItemLib {
         }
     }
 
-    function validate(HelperConsiderationItem memory item) internal pure {
+    function validate(NavigatorConsiderationItem memory item) internal pure {
         ItemType itemType = item.itemType;
         if (itemType == ItemType.ERC20 || itemType == ItemType.NATIVE) {
             if (item.candidateIdentifiers.length > 0) {
@@ -233,17 +233,16 @@ library HelperItemLib {
     }
 }
 
-library HelperAdvancedOrderLib {
+library NavigatorAdvancedOrderLib {
     using CriteriaHelperLib for uint256[];
-    using HelperItemLib for HelperOfferItem;
-    using HelperItemLib for HelperConsiderationItem;
+    using HelperItemLib for NavigatorOfferItem;
+    using HelperItemLib for NavigatorConsiderationItem;
 
     function fromAdvancedOrders(
         AdvancedOrder[] memory orders
-    ) internal pure returns (HelperAdvancedOrder[] memory) {
-        HelperAdvancedOrder[] memory helperOrders = new HelperAdvancedOrder[](
-            orders.length
-        );
+    ) internal pure returns (NavigatorAdvancedOrder[] memory) {
+        NavigatorAdvancedOrder[]
+            memory helperOrders = new NavigatorAdvancedOrder[](orders.length);
         for (uint256 i; i < orders.length; i++) {
             helperOrders[i] = fromAdvancedOrder(orders[i]);
         }
@@ -252,13 +251,13 @@ library HelperAdvancedOrderLib {
 
     function fromAdvancedOrder(
         AdvancedOrder memory order
-    ) internal pure returns (HelperAdvancedOrder memory) {
-        HelperOfferItem[] memory offerItems = new HelperOfferItem[](
+    ) internal pure returns (NavigatorAdvancedOrder memory) {
+        NavigatorOfferItem[] memory offerItems = new NavigatorOfferItem[](
             order.parameters.offer.length
         );
         for (uint256 i; i < order.parameters.offer.length; i++) {
             OfferItem memory item = order.parameters.offer[i];
-            offerItems[i] = HelperOfferItem({
+            offerItems[i] = NavigatorOfferItem({
                 itemType: item.itemType,
                 token: item.token,
                 identifier: item.identifierOrCriteria,
@@ -267,13 +266,13 @@ library HelperAdvancedOrderLib {
                 candidateIdentifiers: new uint256[](0)
             });
         }
-        HelperConsiderationItem[]
-            memory considerationItems = new HelperConsiderationItem[](
+        NavigatorConsiderationItem[]
+            memory considerationItems = new NavigatorConsiderationItem[](
                 order.parameters.consideration.length
             );
         for (uint256 i; i < order.parameters.consideration.length; i++) {
             ConsiderationItem memory item = order.parameters.consideration[i];
-            considerationItems[i] = HelperConsiderationItem({
+            considerationItems[i] = NavigatorConsiderationItem({
                 itemType: item.itemType,
                 token: item.token,
                 identifier: item.identifierOrCriteria,
@@ -284,8 +283,8 @@ library HelperAdvancedOrderLib {
             });
         }
         return
-            HelperAdvancedOrder({
-                parameters: HelperOrderParameters({
+            NavigatorAdvancedOrder({
+                parameters: NavigatorOrderParameters({
                     offerer: order.parameters.offerer,
                     zone: order.parameters.zone,
                     offer: offerItems,
@@ -308,7 +307,7 @@ library HelperAdvancedOrderLib {
     }
 
     function toAdvancedOrder(
-        HelperAdvancedOrder memory order,
+        NavigatorAdvancedOrder memory order,
         uint256 orderIndex
     ) internal pure returns (AdvancedOrder memory, CriteriaResolver[] memory) {
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
@@ -320,7 +319,7 @@ library HelperAdvancedOrderLib {
             order.parameters.offer.length
         );
         for (uint256 i; i < order.parameters.offer.length; i++) {
-            HelperOfferItem memory item = order.parameters.offer[i];
+            NavigatorOfferItem memory item = order.parameters.offer[i];
             if (item.hasCriteria()) {
                 item.validate();
                 offer[i] = OfferItem({
@@ -356,7 +355,7 @@ library HelperAdvancedOrderLib {
             order.parameters.consideration.length
         );
         for (uint256 i; i < order.parameters.consideration.length; i++) {
-            HelperConsiderationItem memory item = order
+            NavigatorConsiderationItem memory item = order
                 .parameters
                 .consideration[i];
             if (item.hasCriteria()) {
@@ -422,7 +421,7 @@ library HelperAdvancedOrderLib {
     }
 
     function toAdvancedOrders(
-        HelperAdvancedOrder[] memory orders
+        NavigatorAdvancedOrder[] memory orders
     )
         internal
         pure
@@ -433,7 +432,7 @@ library HelperAdvancedOrderLib {
         );
         uint256 maxCriteriaResolvers;
         for (uint256 i; i < orders.length; i++) {
-            HelperOrderParameters memory parameters = orders[i].parameters;
+            NavigatorOrderParameters memory parameters = orders[i].parameters;
             maxCriteriaResolvers += (parameters.offer.length +
                 parameters.consideration.length);
         }
@@ -490,7 +489,7 @@ library NavigatorRequestValidatorLib {
 }
 
 library NavigatorCriteriaResolverLib {
-    using HelperAdvancedOrderLib for HelperAdvancedOrder[];
+    using NavigatorAdvancedOrderLib for NavigatorAdvancedOrder[];
 
     /**
      * @dev Calculate criteria resolvers, merkle proofs, and criteria merkle
@@ -821,11 +820,18 @@ library NavigatorExecutionsLib {
         } else {
             if (structure == Structure.ADVANCED) {
                 return
-                    ConsiderationInterface
-                        .fulfillAvailableAdvancedOrders
-                        .selector;
+                    context.request.preferMatch
+                        ? ConsiderationInterface.matchAdvancedOrders.selector
+                        : ConsiderationInterface
+                            .fulfillAvailableAdvancedOrders
+                            .selector;
             } else {
-                return ConsiderationInterface.fulfillAvailableOrders.selector;
+                return
+                    context.request.preferMatch
+                        ? ConsiderationInterface.matchOrders.selector
+                        : ConsiderationInterface
+                            .fulfillAvailableOrders
+                            .selector;
             }
         }
     }

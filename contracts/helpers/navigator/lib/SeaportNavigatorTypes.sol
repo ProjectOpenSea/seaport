@@ -44,19 +44,19 @@ import {
     FulfillmentStrategy
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
-struct HelperAdvancedOrder {
-    HelperOrderParameters parameters;
+struct NavigatorAdvancedOrder {
+    NavigatorOrderParameters parameters;
     uint120 numerator;
     uint120 denominator;
     bytes signature;
     bytes extraData;
 }
 
-struct HelperOrderParameters {
+struct NavigatorOrderParameters {
     address offerer;
     address zone;
-    HelperOfferItem[] offer;
-    HelperConsiderationItem[] consideration;
+    NavigatorOfferItem[] offer;
+    NavigatorConsiderationItem[] consideration;
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
@@ -66,7 +66,7 @@ struct HelperOrderParameters {
     uint256 totalOriginalConsiderationItems;
 }
 
-struct HelperOfferItem {
+struct NavigatorOfferItem {
     ItemType itemType;
     address token;
     uint256 identifier;
@@ -75,7 +75,7 @@ struct HelperOfferItem {
     uint256[] candidateIdentifiers;
 }
 
-struct HelperConsiderationItem {
+struct NavigatorConsiderationItem {
     ItemType itemType;
     address token;
     uint256 identifier;
@@ -98,7 +98,7 @@ struct NavigatorContext {
 struct NavigatorRequest {
     ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
-    HelperAdvancedOrder[] orders;
+    NavigatorAdvancedOrder[] orders;
     address caller;
     address recipient;
     uint256 nativeTokensSupplied;
@@ -107,6 +107,7 @@ struct NavigatorRequest {
     uint256 seed;
     FulfillmentStrategy fulfillmentStrategy;
     CriteriaResolver[] criteriaResolvers;
+    bool preferMatch;
 }
 
 struct NavigatorResponse {
