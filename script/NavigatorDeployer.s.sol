@@ -5,6 +5,13 @@ import "forge-std/Script.sol";
 import "forge-std/console.sol";
 
 import {
+    SeaportValidatorHelper
+} from "../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
+import {
+    SeaportValidator
+} from "../contracts/helpers/order-validator/SeaportValidator.sol";
+
+import {
     RequestValidator
 } from "../contracts/helpers/navigator/lib/RequestValidator.sol";
 import {
@@ -45,6 +52,9 @@ interface ImmutableCreate2Factory {
 contract NavigatorDeployer is Script {
     ImmutableCreate2Factory private constant IMMUTABLE_CREATE2_FACTORY =
         ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
+    address private constant CONDUIT_CONTROLLER =
+        0x00000000F9490004C11Cef243f5400493c00Ad63;
+
     bytes32 private constant SALT = bytes32(uint256(0x1));
 
     function deploy(
@@ -73,40 +83,56 @@ contract NavigatorDeployer is Script {
             );
             deployed = true;
         }
-        console.log(deployed ? "deploying" : "found", name, deploymentAddress);
+        console.log(
+            _pad(deployed ? "Deploying" : "Found", 10),
+            _pad(name, 23),
+            deploymentAddress
+        );
         return deploymentAddress;
     }
 
     function run() public {
         vm.startBroadcast();
 
+        address seaportValidatorHelper = deploy(
+            "SeaportValidatorHelper",
+            type(RequestValidator).creationCode
+        );
+        deploy(
+            "SeaportValidator",
+            bytes.concat(
+                type(CriteriaHelper).creationCode,
+                abi.encode(seaportValidatorHelper, CONDUIT_CONTROLLER)
+            )
+        );
+
         address requestValidator = deploy(
-            "requestValidator",
+            "RequestValidator",
             type(RequestValidator).creationCode
         );
         address criteriaHelper = deploy(
-            "criteriaHelper",
+            "CriteriaHelper",
             type(CriteriaHelper).creationCode
         );
         address validatorHelper = deploy(
-            "validatorHelper",
+            "ValidatorHelper",
             type(ValidatorHelper).creationCode
         );
         address orderDetailsHelper = deploy(
-            "orderDetailsHelper",
+            "OrderDetailsHelper",
             type(OrderDetailsHelper).creationCode
         );
         address fulfillmentsHelper = deploy(
-            "fulfillmentsHelper",
+            "FulfillmentsHelper",
             type(FulfillmentsHelper).creationCode
         );
         address executionsHelper = deploy(
-            "executionsHelper",
+            "ExecutionsHelper",
             type(ExecutionsHelper).creationCode
         );
 
         deploy(
-            "orderHelper",
+            "SeaportNavigator",
             bytes.concat(
                 type(SeaportNavigator).creationCode,
                 abi.encode(
@@ -119,5 +145,16 @@ contract NavigatorDeployer is Script {
                 )
             )
         );
+    }
+
+    function _pad(
+        string memory name,
+        uint256 n
+    ) internal pure returns (string memory) {
+        string memory padded = name;
+        while (bytes(padded).length < n) {
+            padded = string.concat(padded, " ");
+        }
+        return padded;
     }
 }
