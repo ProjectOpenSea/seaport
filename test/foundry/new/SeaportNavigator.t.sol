@@ -32,7 +32,7 @@ import {
     NavigatorRequest,
     NavigatorResponse,
     SeaportNavigator
-} from "../../../contracts/helpers/navigator/Seaportnavigator.sol";
+} from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 import {
     TokenIdNotFound
