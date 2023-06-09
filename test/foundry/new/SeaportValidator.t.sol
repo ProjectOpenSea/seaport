@@ -212,22 +212,6 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_empty_isValidOrderReadOnly() public {
-        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            OrderLib.empty(),
-            address(seaport)
-        );
-
-        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
-            .empty()
-            .addError(TimeIssue.EndTimeBeforeStartTime)
-            .addError(GenericIssue.InvalidOrderFormat)
-            .addWarning(OfferIssue.ZeroItems)
-            .addWarning(ConsiderationIssue.ZeroItems);
-
-        assertEq(actual, expected);
-    }
-
     function test_default_full_isValidOrder() public {
         ErrorsAndWarnings memory actual = validator.isValidOrder(
             OrderLib.fromDefault(STANDARD),
@@ -891,25 +875,6 @@ contract SeaportValidatorTest is BaseOrderTest {
             .addError(SignatureIssue.Invalid)
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(OfferIssue.AmountStepLarge)
-            .addWarning(ConsiderationIssue.ZeroItems);
-
-        assertEq(actual, expected);
-    }
-
-    function test_default_full_isValidOrderReadOnly() public {
-        Order memory order = OrderLib.empty().withParameters(
-            OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
-        );
-        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            order,
-            address(seaport)
-        );
-
-        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
-            .empty()
-            .addError(GenericIssue.InvalidOrderFormat)
-            .addWarning(TimeIssue.ShortOrder)
-            .addWarning(OfferIssue.ZeroItems)
             .addWarning(ConsiderationIssue.ZeroItems);
 
         assertEq(actual, expected);
