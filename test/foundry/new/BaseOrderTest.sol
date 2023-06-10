@@ -62,38 +62,6 @@ import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
-import {
-    SeaportValidatorHelper,
-    SeaportValidator,
-    SeaportValidatorInterface,
-    ReadOnlyOrderValidator
-} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
-
-import {
-    SeaportNavigator
-} from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
-import {
-    HelperInterface
-} from "../../../contracts/helpers/navigator/lib/HelperInterface.sol";
-import {
-    RequestValidator
-} from "../../../contracts/helpers/navigator/lib/RequestValidator.sol";
-import {
-    CriteriaHelper
-} from "../../../contracts/helpers/navigator/lib/CriteriaHelper.sol";
-import {
-    ValidatorHelper
-} from "../../../contracts/helpers/navigator/lib/ValidatorHelper.sol";
-import {
-    OrderDetailsHelper
-} from "../../../contracts/helpers/navigator/lib/OrderDetailsHelper.sol";
-import {
-    FulfillmentsHelper
-} from "../../../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
-import {
-    ExecutionsHelper
-} from "../../../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
-
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token
  *      contracts. Note that it is different from the BaseOrderTest in the
@@ -135,17 +103,6 @@ contract BaseOrderTest is
     struct Context {
         SeaportInterface seaport;
     }
-
-    SeaportValidatorHelper seaportValidatorHelper;
-    SeaportValidator validator;
-
-    HelperInterface requestValidator = new RequestValidator();
-    HelperInterface criteriaHelper = new CriteriaHelper();
-    HelperInterface validatorHelper = new ValidatorHelper();
-    HelperInterface orderDetailsHelper = new OrderDetailsHelper();
-    HelperInterface fulfillmentsHelper = new FulfillmentsHelper();
-    HelperInterface executionsHelper = new ExecutionsHelper();
-    SeaportNavigator navigator;
 
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
@@ -207,28 +164,6 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(address(this), type(uint128).max);
 
         _configureStructDefaults();
-
-        // Note: this chainId hack prevents the validator from calling a
-        // hardcoded royalty registry.
-        uint256 chainId = block.chainid;
-        vm.chainId(2);
-        seaportValidatorHelper = new SeaportValidatorHelper();
-        vm.chainId(chainId);
-
-        validator = new SeaportValidator(
-            address(new ReadOnlyOrderValidator()),
-            address(seaportValidatorHelper),
-            address(getConduitController())
-        );
-
-        navigator = new SeaportNavigator(
-            address(requestValidator),
-            address(criteriaHelper),
-            address(validatorHelper),
-            address(orderDetailsHelper),
-            address(fulfillmentsHelper),
-            address(executionsHelper)
-        );
 
         fulfill = new FulfillAvailableHelper();
         matcher = new MatchFulfillmentHelper();

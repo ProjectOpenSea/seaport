@@ -38,6 +38,8 @@ import {
 } from "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
+import { SeaportValidatorTest } from "../SeaportValidatorTest.sol";
+import { SeaportNavigatorTest } from "../SeaportNavigatorTest.sol";
 
 import {
     FuzzGeneratorContext,
@@ -196,6 +198,8 @@ import {
  */
 contract FuzzEngine is
     BaseOrderTest,
+    SeaportValidatorTest,
+    SeaportNavigatorTest,
     FuzzAmendments,
     FuzzSetup,
     FuzzChecks,
@@ -239,7 +243,11 @@ contract FuzzEngine is
         }
     }
 
-    function setUp() public virtual override {
+    function setUp()
+        public
+        virtual
+        override(BaseOrderTest, SeaportValidatorTest)
+    {
         super.setUp();
         mutations = new FuzzMutations();
     }
