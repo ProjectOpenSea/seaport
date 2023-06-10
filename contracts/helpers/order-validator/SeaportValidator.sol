@@ -81,8 +81,7 @@ contract SeaportValidator is
 
     SeaportValidatorHelper private immutable _helper;
 
-    ReadOnlyOrderValidator private immutable _readOnlyOrderValidator =
-        new ReadOnlyOrderValidator();
+    ReadOnlyOrderValidator private immutable _readOnlyOrderValidator;
 
     bytes4 public constant ERC20_INTERFACE_ID = 0x36372b07;
 
@@ -95,9 +94,13 @@ contract SeaportValidator is
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
     constructor(
+        address readOnlyOrderValidatorAddress,
         address seaportValidatorHelperAddress,
         address conduitControllerAddress
     ) {
+        _readOnlyOrderValidator = ReadOnlyOrderValidator(
+            readOnlyOrderValidatorAddress
+        );
         _helper = SeaportValidatorHelper(seaportValidatorHelperAddress);
         _conduitController = ConduitControllerInterface(
             conduitControllerAddress

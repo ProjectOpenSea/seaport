@@ -6,7 +6,10 @@ import {
     CriteriaResolver
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { NavigatorRequest, NavigatorResponse } from "./NavigatorLib.sol";
+import {
+    NavigatorRequest,
+    NavigatorResponse
+} from "./SeaportNavigatorTypes.sol";
 
 interface SeaportNavigatorInterface {
     function prepare(

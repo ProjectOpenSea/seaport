@@ -5,7 +5,9 @@ import {
     CriteriaResolver
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { NavigatorCriteriaResolverLib } from "./NavigatorLib.sol";
+import {
+    NavigatorCriteriaResolverLib
+} from "./NavigatorCriteriaResolverLib.sol";
 
 import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 

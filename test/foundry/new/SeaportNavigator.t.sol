@@ -41,7 +41,7 @@ import {
 import {
     NavigatorAdvancedOrder,
     NavigatorAdvancedOrderLib
-} from "../../../contracts/helpers/navigator/lib/NavigatorLib.sol";
+} from "../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 

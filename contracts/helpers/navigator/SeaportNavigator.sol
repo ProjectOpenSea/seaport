@@ -13,7 +13,7 @@ import {
     SeaportValidatorInterface
 } from "../order-validator/SeaportValidator.sol";
 
-import { NavigatorContextLib } from "./lib/NavigatorLib.sol";
+import { NavigatorContextLib } from "./lib/NavigatorContextLib.sol";
 
 import { CriteriaHelperLib } from "./lib/CriteriaHelperLib.sol";
 

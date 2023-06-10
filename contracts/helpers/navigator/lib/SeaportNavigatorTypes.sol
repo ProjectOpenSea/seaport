@@ -86,7 +86,7 @@ struct NavigatorConsiderationItem {
 }
 
 /**
- * @dev Context struct for NavigatorLib. Includes context information
+ * @dev Context struct for NavigatorContextLib. Includes context information
  *      necessary for fulfillment, like the caller and recipient addresses,
  *      and Seaport and SeaportValidator interfaces.
  */

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { NavigatorSeaportValidatorLib } from "./NavigatorLib.sol";
+import {
+    NavigatorSeaportValidatorLib
+} from "./NavigatorSeaportValidatorLib.sol";
 
 import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 

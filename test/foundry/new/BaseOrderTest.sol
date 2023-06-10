@@ -65,7 +65,8 @@ import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import {
     SeaportValidatorHelper,
     SeaportValidator,
-    SeaportValidatorInterface
+    SeaportValidatorInterface,
+    ReadOnlyOrderValidator
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
@@ -215,6 +216,7 @@ contract BaseOrderTest is
         vm.chainId(chainId);
 
         validator = new SeaportValidator(
+            address(new ReadOnlyOrderValidator()),
             address(seaportValidatorHelper),
             address(getConduitController())
         );

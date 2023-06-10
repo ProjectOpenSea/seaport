@@ -5,6 +5,9 @@ import "forge-std/Script.sol";
 import "forge-std/console.sol";
 
 import {
+    ReadOnlyOrderValidator
+} from "../contracts/helpers/order-validator/lib/ReadOnlyOrderValidator.sol";
+import {
     SeaportValidatorHelper
 } from "../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
 import {
@@ -98,11 +101,19 @@ contract NavigatorDeployer is Script {
             "SeaportValidatorHelper",
             type(RequestValidator).creationCode
         );
+        address readOnlyOrderValidator = deploy(
+            "ReadOnlyOrderValidator",
+            type(ReadOnlyOrderValidator).creationCode
+        );
         deploy(
             "SeaportValidator",
             bytes.concat(
                 type(CriteriaHelper).creationCode,
-                abi.encode(seaportValidatorHelper, CONDUIT_CONTROLLER)
+                abi.encode(
+                    readOnlyOrderValidator,
+                    seaportValidatorHelper,
+                    CONDUIT_CONTROLLER
+                )
             )
         );
 
