@@ -93,7 +93,7 @@ jobs:
   forge-lite:
     name: Run "Lite" Forge Tests (via_ir = false; fuzz_runs = 1000)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v3
         with:
