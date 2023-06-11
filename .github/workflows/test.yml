@@ -90,29 +90,6 @@ jobs:
       - run: yarn build:ref
       - run: yarn test:ref
 
-  forge-lite:
-    name: Run "Lite" Forge Tests (via_ir = false; fuzz_runs = 1000)
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: Install forge dependencies
-        run: forge install
-
-      - name: Precompile reference using 0.8.13 and via-ir=false
-        run: FOUNDRY_PROFILE=reference forge build
-
-      - name: Run tests
-        run: FOUNDRY_PROFILE=lite forge test -vvv
-
   forge:
     name: Run Forge Tests (via_ir = true; fuzz_runs = 5000)
     runs-on: ubuntu-latest
