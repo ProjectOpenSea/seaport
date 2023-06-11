@@ -20,6 +20,10 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
+    ConduitControllerInterface
+} from "seaport-sol/src/ConduitControllerInterface.sol";
+
+import {
     SeaportValidatorHelper
 } from "../../../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
 
@@ -48,8 +52,9 @@ import {
 } from "seaport-sol/src/SeaportStructs.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
+import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
 
-contract SeaportValidatorTest is BaseOrderTest {
+contract SeaportValidatorTestSuite is BaseOrderTest, SeaportValidatorTest {
     using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
     using OrderParametersLib for OrderParameters;
@@ -79,7 +84,7 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     address internal noTokens = makeAddr("no tokens/approvals");
 
-    function setUp() public override {
+    function setUp() public override(BaseOrderTest, SeaportValidatorTest) {
         super.setUp();
 
         OrderLib
@@ -205,22 +210,6 @@ contract SeaportValidatorTest is BaseOrderTest {
             .empty()
             .addError(TimeIssue.EndTimeBeforeStartTime)
             .addError(SignatureIssue.Invalid)
-            .addError(GenericIssue.InvalidOrderFormat)
-            .addWarning(OfferIssue.ZeroItems)
-            .addWarning(ConsiderationIssue.ZeroItems);
-
-        assertEq(actual, expected);
-    }
-
-    function test_empty_isValidOrderReadOnly() public {
-        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            OrderLib.empty(),
-            address(seaport)
-        );
-
-        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
-            .empty()
-            .addError(TimeIssue.EndTimeBeforeStartTime)
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(OfferIssue.ZeroItems)
             .addWarning(ConsiderationIssue.ZeroItems);
@@ -891,25 +880,6 @@ contract SeaportValidatorTest is BaseOrderTest {
             .addError(SignatureIssue.Invalid)
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(OfferIssue.AmountStepLarge)
-            .addWarning(ConsiderationIssue.ZeroItems);
-
-        assertEq(actual, expected);
-    }
-
-    function test_default_full_isValidOrderReadOnly() public {
-        Order memory order = OrderLib.empty().withParameters(
-            OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
-        );
-        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            order,
-            address(seaport)
-        );
-
-        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
-            .empty()
-            .addError(GenericIssue.InvalidOrderFormat)
-            .addWarning(TimeIssue.ShortOrder)
-            .addWarning(OfferIssue.ZeroItems)
             .addWarning(ConsiderationIssue.ZeroItems);
 
         assertEq(actual, expected);

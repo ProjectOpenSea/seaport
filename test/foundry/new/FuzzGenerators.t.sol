@@ -56,6 +56,7 @@ import {
 } from "../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import {
+    DefaultFulfillmentGeneratorLib,
     FulfillmentGeneratorLib
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
@@ -122,7 +123,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -168,7 +170,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -223,7 +226,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -289,7 +293,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

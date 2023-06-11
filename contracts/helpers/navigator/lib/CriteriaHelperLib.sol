@@ -15,6 +15,9 @@ struct HashAndIntTuple {
  *         proofs from integer token ids.
  */
 library CriteriaHelperLib {
+    error CannotDeriveRootForSingleTokenId();
+    error CannotDeriveProofForSingleTokenId();
+
     /**
      * @notice Calculate the Merkle root of a criteria tree containing the given
      *         integer token ids.
@@ -22,8 +25,17 @@ library CriteriaHelperLib {
     function criteriaRoot(
         uint256[] memory tokenIds
     ) internal pure returns (bytes32) {
-        return
-            MerkleLib.getRoot(toSortedHashes(tokenIds), MerkleLib.merkleHash);
+        if (tokenIds.length == 0) {
+            return bytes32(0);
+        } else if (tokenIds.length == 1) {
+            revert CannotDeriveRootForSingleTokenId();
+        } else {
+            return
+                MerkleLib.getRoot(
+                    toSortedHashes(tokenIds),
+                    MerkleLib.merkleHash
+                );
+        }
     }
 
     /**
@@ -34,18 +46,24 @@ library CriteriaHelperLib {
         uint256[] memory tokenIds,
         uint256 id
     ) internal pure returns (bytes32[] memory) {
-        bytes32 idHash = keccak256(abi.encode(id));
-        uint256 idx;
-        bool found;
-        bytes32[] memory idHashes = toSortedHashes(tokenIds);
-        for (; idx < idHashes.length; idx++) {
-            if (idHashes[idx] == idHash) {
-                found = true;
-                break;
+        if (tokenIds.length == 0) {
+            return new bytes32[](0);
+        } else if (tokenIds.length == 1) {
+            revert CannotDeriveProofForSingleTokenId();
+        } else {
+            bytes32 idHash = keccak256(abi.encode(id));
+            uint256 idx;
+            bool found;
+            bytes32[] memory idHashes = toSortedHashes(tokenIds);
+            for (; idx < idHashes.length; idx++) {
+                if (idHashes[idx] == idHash) {
+                    found = true;
+                    break;
+                }
             }
+            if (!found) revert TokenIdNotFound();
+            return MerkleLib.getProof(idHashes, idx, MerkleLib.merkleHash);
         }
-        if (!found) revert TokenIdNotFound();
-        return MerkleLib.getProof(idHashes, idx, MerkleLib.merkleHash);
     }
 
     /**

@@ -39,7 +39,7 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 
 import {
-    FulfillmentGeneratorLib
+    DefaultFulfillmentGeneratorLib
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 /**
@@ -52,7 +52,7 @@ library FuzzEngineLib {
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
-    using FulfillmentGeneratorLib for OrderDetails[];
+    using DefaultFulfillmentGeneratorLib for OrderDetails[];
 
     using FuzzHelpers for AdvancedOrder;
     using FuzzHelpers for AdvancedOrder[];

@@ -62,16 +62,6 @@ import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
-import {
-    SeaportValidatorHelper,
-    SeaportValidator,
-    SeaportValidatorInterface
-} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
-
-import {
-    SeaportOrderHelper
-} from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
-
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token
  *      contracts. Note that it is different from the BaseOrderTest in the
@@ -114,9 +104,6 @@ contract BaseOrderTest is
         SeaportInterface seaport;
     }
 
-    SeaportValidatorHelper validatorHelper;
-    SeaportValidator validator;
-    SeaportOrderHelper orderHelper;
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
 
@@ -177,21 +164,6 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(address(this), type(uint128).max);
 
         _configureStructDefaults();
-
-        uint256 chainId = block.chainid;
-        vm.chainId(2);
-        validatorHelper = new SeaportValidatorHelper();
-        vm.chainId(chainId);
-
-        validator = new SeaportValidator(
-            address(validatorHelper),
-            address(getConduitController())
-        );
-
-        orderHelper = new SeaportOrderHelper(
-            SeaportInterface(address(seaport)),
-            SeaportValidatorInterface(address(validator))
-        );
 
         fulfill = new FulfillAvailableHelper();
         matcher = new MatchFulfillmentHelper();

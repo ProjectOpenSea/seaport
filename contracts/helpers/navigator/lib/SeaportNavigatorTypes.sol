@@ -40,23 +40,77 @@ import {
     OrderDetails
 } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
+import {
+    FulfillmentStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+
+struct NavigatorAdvancedOrder {
+    NavigatorOrderParameters parameters;
+    uint120 numerator;
+    uint120 denominator;
+    bytes signature;
+    bytes extraData;
+}
+
+struct NavigatorOrderParameters {
+    address offerer;
+    address zone;
+    NavigatorOfferItem[] offer;
+    NavigatorConsiderationItem[] consideration;
+    OrderType orderType;
+    uint256 startTime;
+    uint256 endTime;
+    bytes32 zoneHash;
+    uint256 salt;
+    bytes32 conduitKey;
+    uint256 totalOriginalConsiderationItems;
+}
+
+struct NavigatorOfferItem {
+    ItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 startAmount;
+    uint256 endAmount;
+    uint256[] candidateIdentifiers;
+}
+
+struct NavigatorConsiderationItem {
+    ItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 startAmount;
+    uint256 endAmount;
+    address payable recipient;
+    uint256[] candidateIdentifiers;
+}
+
 /**
- * @dev Context struct for OrderHelperLib. Includes context information
+ * @dev Context struct for NavigatorContextLib. Includes context information
  *      necessary for fulfillment, like the caller and recipient addresses,
  *      and Seaport and SeaportValidator interfaces.
  */
-struct OrderHelperContext {
+struct NavigatorContext {
+    NavigatorRequest request;
+    NavigatorResponse response;
+}
+
+struct NavigatorRequest {
     ConsiderationInterface seaport;
     SeaportValidatorInterface validator;
+    NavigatorAdvancedOrder[] orders;
     address caller;
     address recipient;
     uint256 nativeTokensSupplied;
     uint256 maximumFulfilled;
     bytes32 fulfillerConduitKey;
-    OrderHelperResponse OrderHelperResponse;
+    uint256 seed;
+    FulfillmentStrategy fulfillmentStrategy;
+    CriteriaResolver[] criteriaResolvers;
+    bool preferMatch;
 }
 
-struct OrderHelperResponse {
+struct NavigatorResponse {
     /**
      * @dev The provided orders. If the caller provides explicit criteria
      *      resolvers, the orders will not be modified. If the caller provides
@@ -103,7 +157,6 @@ struct OrderHelperResponse {
      */
     MatchComponent[] unspentOfferComponents;
     MatchComponent[] unmetConsiderationComponents;
-    MatchComponent[] remainders;
     /**
      * @dev Calculated explicit and implicit executions.
      */
@@ -115,33 +168,4 @@ struct OrderHelperResponse {
      * @dev Quantity of native tokens returned to caller.
      */
     uint256 nativeTokensReturned;
-}
-
-struct CriteriaConstraint {
-    /**
-     * @dev Apply constraint to the order at this index in the orders array.
-     */
-    uint256 orderIndex;
-    /**
-     * @dev Apply constraint to this side of the order, either Side.OFFER or
-     *      Side.CONSIDERATION.
-     */
-    Side side;
-    /**
-     * @dev Apply constraint to this item in the offer/consideration array.
-     */
-    uint256 index;
-    /**
-     * @dev Generate a criteria resolver for this token identifier. The helper
-     *      will calculate a merkle proof that this token ID is in the set of
-     *      eligible token IDs for the item with critera at the specified
-     *      order index/side/item index.
-     */
-    uint256 identifier;
-    /**
-     * @dev Array of eligible token IDs. The helper will calculate a merkle
-     *      root from this array and apply it to the item at the specified
-     *      order index/side/item index as its `identifierOrCriteria`.
-     */
-    uint256[] tokenIds;
 }

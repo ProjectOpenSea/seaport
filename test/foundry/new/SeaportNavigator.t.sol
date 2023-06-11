@@ -29,25 +29,36 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
-    OrderHelperResponse,
-    CriteriaConstraint,
-    SeaportOrderHelper
-} from "../../../contracts/helpers/order-helper/SeaportOrderHelper.sol";
+    NavigatorRequest,
+    NavigatorResponse,
+    SeaportNavigator
+} from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 import {
     TokenIdNotFound
-} from "../../../contracts/helpers/order-helper/lib/CriteriaHelperLib.sol";
+} from "../../../contracts/helpers/navigator/lib/CriteriaHelperLib.sol";
 
 import {
-    InvalidCriteriaConstraintOrderIndex,
-    InvalidCriteriaConstraintOfferIndex,
-    InvalidCriteriaConstraintConsiderationIndex,
-    InvalidCriteriaConstraintIdentifier
-} from "../../../contracts/helpers/order-helper/lib/OrderHelperLib.sol";
+    NavigatorAdvancedOrder,
+    NavigatorAdvancedOrderLib
+} from "../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
+import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
+import { SeaportNavigatorTest } from "./SeaportNavigatorTest.sol";
 
-contract SeaportOrderHelperTest is BaseOrderTest {
+import {
+    FulfillmentStrategy,
+    AggregationStrategy,
+    FulfillAvailableStrategy,
+    MatchStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+
+contract SeaportNavigatorTestSuite is
+    BaseOrderTest,
+    SeaportValidatorTest,
+    SeaportNavigatorTest
+{
     using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
     using OrderParametersLib for OrderParameters;
@@ -59,7 +70,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =
         "SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA";
 
-    function setUp() public override {
+    function setUp() public override(BaseOrderTest, SeaportValidatorTest) {
         super.setUp();
 
         OrderLib
@@ -124,19 +135,34 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     }
 
     function test_basicOrder() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
+        );
+        AdvancedOrder memory advancedOrder = OrderLib
             .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
             .toAdvancedOrder(1, 1, "");
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
-        OrderHelperResponse memory res = orderHelper.prepare(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            new CriteriaResolver[](0)
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
+                seaport: seaport,
+                validator: validator,
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
+            })
         );
         assertEq(
             res.suggestedAction,
@@ -155,7 +181,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.validationErrors[0].errors.length,
-            3,
+            4,
             "unexpected validationErrors[0].errors length"
         );
         assertEq(
@@ -213,21 +239,34 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     }
 
     function test_simpleOrder() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib.fromDefault(SINGLE_ERC721).toAdvancedOrder(
-            1,
-            1,
-            ""
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
         );
+        AdvancedOrder memory advancedOrder = OrderLib
+            .fromDefault(SINGLE_ERC721)
+            .toAdvancedOrder(1, 1, "");
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
-        OrderHelperResponse memory res = orderHelper.prepare(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            new CriteriaResolver[](0)
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
+                seaport: seaport,
+                validator: validator,
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
+            })
         );
         assertEq(
             res.suggestedAction,
@@ -246,7 +285,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         );
         assertEq(
             res.validationErrors[0].errors.length,
-            3,
+            4,
             "unexpected validationErrors[0].errors length"
         );
         assertEq(
@@ -304,61 +343,75 @@ contract SeaportOrderHelperTest is BaseOrderTest {
     }
 
     function test_inferredCriteria() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
+        );
+        AdvancedOrder memory advancedOrder = OrderLib
             .fromDefault(
                 SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
             )
             .toAdvancedOrder(1, 1, "");
-
-        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
         uint256[] memory offerIds = new uint256[](3);
         offerIds[0] = 1;
         offerIds[1] = 2;
         offerIds[2] = 3;
-        criteria[0] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.OFFER,
-            index: 0,
-            identifier: 1,
-            tokenIds: offerIds
-        });
+        orders[0].parameters.offer[0].candidateIdentifiers = offerIds;
+        orders[0].parameters.offer[0].identifier = 1;
 
         uint256[] memory considerationIds = new uint256[](3);
         considerationIds[0] = 4;
         considerationIds[1] = 5;
         considerationIds[2] = 6;
-        criteria[1] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.CONSIDERATION,
-            index: 0,
-            identifier: 4,
-            tokenIds: considerationIds
-        });
+        orders[0]
+            .parameters
+            .consideration[0]
+            .candidateIdentifiers = considerationIds;
+        orders[0].parameters.consideration[0].identifier = 4;
 
-        OrderHelperResponse memory res = orderHelper.prepare(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
+                seaport: seaport,
+                validator: validator,
+                orders: orders,
+                caller: offerer1.addr,
+                nativeTokensSupplied: 0,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: type(uint256).max,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
+            })
         );
 
         assertEq(
             res.orders[0].parameters.offer[0].identifierOrCriteria,
-            uint256(orderHelper.criteriaRoot(offerIds))
+            uint256(navigator.criteriaRoot(offerIds))
         );
         assertEq(
             res.orders[0].parameters.consideration[0].identifierOrCriteria,
-            uint256(orderHelper.criteriaRoot(considerationIds))
+            uint256(navigator.criteriaRoot(considerationIds))
         );
 
-        assertEq(res.criteriaResolvers.length, 2);
+        assertEq(
+            res.criteriaResolvers.length,
+            2,
+            "unexpected criteria resolvers length"
+        );
         // offer
-        assertEq(res.criteriaResolvers[0].criteriaProof.length, 2);
+        assertEq(
+            res.criteriaResolvers[0].criteriaProof.length,
+            2,
+            "unexpected criteria proof length"
+        );
         assertEq(
             res.criteriaResolvers[0].criteriaProof[0],
             bytes32(
@@ -372,7 +425,11 @@ contract SeaportOrderHelperTest is BaseOrderTest {
             )
         );
         // consideration
-        assertEq(res.criteriaResolvers[1].criteriaProof.length, 2);
+        assertEq(
+            res.criteriaResolvers[1].criteriaProof.length,
+            2,
+            "unexpected criteria proof length"
+        );
         assertEq(
             res.criteriaResolvers[1].criteriaProof[0],
             bytes32(
@@ -391,230 +448,8 @@ contract SeaportOrderHelperTest is BaseOrderTest {
      * @dev Workaround for Foundry issues with custom errors + libraries.
      *      See: https://github.com/foundry-rs/foundry/issues/4405
      */
-    function runHelper(
-        AdvancedOrder[] memory orders,
-        address caller,
-        uint256 nativeTokensSupplied,
-        bytes32 fulfillerConduitKey,
-        address recipient,
-        uint256 maximumFulfilled,
-        CriteriaConstraint[] memory criteriaConstraints
-    ) public {
-        orderHelper.prepare(
-            orders,
-            caller,
-            nativeTokensSupplied,
-            fulfillerConduitKey,
-            recipient,
-            maximumFulfilled,
-            criteriaConstraints
-        );
-    }
-
-    function test_criteriaValidation_invalidOrderIndex() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(
-                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
-            )
-            .toAdvancedOrder(1, 1, "");
-
-        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
-
-        uint256[] memory offerIds = new uint256[](3);
-        offerIds[0] = 1;
-        offerIds[1] = 2;
-        offerIds[2] = 3;
-        criteria[0] = CriteriaConstraint({
-            orderIndex: 1,
-            side: Side.OFFER,
-            index: 0,
-            identifier: 1,
-            tokenIds: offerIds
-        });
-
-        uint256[] memory considerationIds = new uint256[](3);
-        considerationIds[0] = 4;
-        considerationIds[1] = 5;
-        considerationIds[2] = 6;
-        criteria[1] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.CONSIDERATION,
-            index: 0,
-            identifier: 4,
-            tokenIds: considerationIds
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidCriteriaConstraintOrderIndex.selector,
-                1
-            )
-        );
-        this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
-        );
-    }
-
-    function test_criteriaValidation_invalidOfferItemIndex() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(
-                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
-            )
-            .toAdvancedOrder(1, 1, "");
-
-        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
-
-        uint256[] memory offerIds = new uint256[](3);
-        offerIds[0] = 1;
-        offerIds[1] = 2;
-        offerIds[2] = 3;
-        criteria[0] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.OFFER,
-            index: 1,
-            identifier: 1,
-            tokenIds: offerIds
-        });
-
-        uint256[] memory considerationIds = new uint256[](3);
-        considerationIds[0] = 4;
-        considerationIds[1] = 5;
-        considerationIds[2] = 6;
-        criteria[1] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.CONSIDERATION,
-            index: 0,
-            identifier: 4,
-            tokenIds: considerationIds
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidCriteriaConstraintOfferIndex.selector,
-                0,
-                1
-            )
-        );
-        this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
-        );
-    }
-
-    function test_criteriaValidation_invalidConsiderationItemIndex() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(
-                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
-            )
-            .toAdvancedOrder(1, 1, "");
-
-        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
-
-        uint256[] memory offerIds = new uint256[](3);
-        offerIds[0] = 1;
-        offerIds[1] = 2;
-        offerIds[2] = 3;
-        criteria[0] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.OFFER,
-            index: 0,
-            identifier: 1,
-            tokenIds: offerIds
-        });
-
-        uint256[] memory considerationIds = new uint256[](3);
-        considerationIds[0] = 4;
-        considerationIds[1] = 5;
-        considerationIds[2] = 6;
-        criteria[1] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.CONSIDERATION,
-            index: 1,
-            identifier: 4,
-            tokenIds: considerationIds
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidCriteriaConstraintConsiderationIndex.selector,
-                0,
-                1
-            )
-        );
-        this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
-        );
-    }
-
-    function test_criteriaValidation_invalidIdentifier() public {
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = OrderLib
-            .fromDefault(
-                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
-            )
-            .toAdvancedOrder(1, 1, "");
-
-        CriteriaConstraint[] memory criteria = new CriteriaConstraint[](2);
-
-        uint256[] memory offerIds = new uint256[](3);
-        offerIds[0] = 1;
-        offerIds[1] = 2;
-        offerIds[2] = 3;
-        criteria[0] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.OFFER,
-            index: 0,
-            identifier: 1,
-            tokenIds: offerIds
-        });
-
-        uint256[] memory considerationIds = new uint256[](3);
-        considerationIds[0] = 4;
-        considerationIds[1] = 5;
-        considerationIds[2] = 6;
-        criteria[1] = CriteriaConstraint({
-            orderIndex: 0,
-            side: Side.CONSIDERATION,
-            index: 0,
-            identifier: 7,
-            tokenIds: considerationIds
-        });
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidCriteriaConstraintIdentifier.selector,
-                7
-            )
-        );
-        this.runHelper(
-            orders,
-            offerer1.addr,
-            0,
-            bytes32(0),
-            address(this),
-            type(uint256).max,
-            criteria
-        );
+    function runHelper(NavigatorRequest memory request) public view {
+        navigator.prepare(request);
     }
 
     function test_criteriaRoot() public {
@@ -625,13 +460,13 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[0] = 2;
         tokenIds[1] = 5;
         tokenIds[2] = 3;
-        assertEq(orderHelper.criteriaRoot(tokenIds), expectedRoot);
+        assertEq(navigator.criteriaRoot(tokenIds), expectedRoot);
 
         // TokenIds are sorted before hashing
         tokenIds[0] = 5;
         tokenIds[1] = 3;
         tokenIds[2] = 2;
-        assertEq(orderHelper.criteriaRoot(tokenIds), expectedRoot);
+        assertEq(navigator.criteriaRoot(tokenIds), expectedRoot);
     }
 
     function test_criteriaProof() public {
@@ -640,7 +475,7 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[1] = 5;
         tokenIds[2] = 3;
 
-        bytes32[] memory proof = orderHelper.criteriaProof(tokenIds, 5);
+        bytes32[] memory proof = navigator.criteriaProof(tokenIds, 5);
 
         assertEq(proof.length, 2);
         assertEq(
@@ -664,6 +499,6 @@ contract SeaportOrderHelperTest is BaseOrderTest {
         tokenIds[2] = 3;
 
         vm.expectRevert(TokenIdNotFound.selector);
-        orderHelper.criteriaProof(tokenIds, 7);
+        navigator.criteriaProof(tokenIds, 7);
     }
 }
