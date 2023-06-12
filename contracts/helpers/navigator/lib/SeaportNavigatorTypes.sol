@@ -96,17 +96,95 @@ struct NavigatorContext {
 }
 
 struct NavigatorRequest {
+    /**
+     * @dev Seaport interface.
+     */
     ConsiderationInterface seaport;
+    /**
+     * @dev SeaportValidator interface.
+     */
     SeaportValidatorInterface validator;
+    /**
+     * @dev An array of `NavigatorAdvancedOrder` structs.
+     */
     NavigatorAdvancedOrder[] orders;
+    /**
+     * @dev Address of the account calling seaport.
+     */
     address caller;
+    /**
+     * @dev Recipient address.
+     */
     address recipient;
+    /**
+     * @dev Quantity of native tokens the caller will provide to Seaport as
+     *      `msg.value`.
+     */
     uint256 nativeTokensSupplied;
+    /**
+     * @dev Optional maximum fulfilled amount.
+     */
     uint256 maximumFulfilled;
+    /**
+     * @dev Optional fulfiller conduit key.
+     */
     bytes32 fulfillerConduitKey;
+    /**
+     * @dev A PRNG seed, used by fulfillment strategies.
+     */
     uint256 seed;
+    /**
+     * @dev A struct that describes a strategy for calculating fulfillments. A
+     *      FulfillmentStrategy consists of three sub-strategies: aggregation,
+     *      fulfill available, and match.
+     *
+     *      Aggregation:
+     *     - MINIMUM: Aggregate as few items as possible
+     *     - MAXIMUM: Aggregate as many items as possible
+     *     - RANDOM:  Randomize aggregation quantity
+
+     *     Fulfill Available:
+     *     - KEEP_ALL:                  Persist default aggregation strategy
+     *     - DROP_SINGLE_OFFER:         Exclude aggregations for single offer
+     *                                  items
+     *     - DROP_ALL_OFFER:            Exclude offer aggregations (keep one if
+     *                                  no consideration)
+     *     - DROP_RANDOM_OFFER:         Exclude random offer aggregations
+     *     - DROP_SINGLE_KEEP_FILTERED: Exclude single unless it would be
+     *                                  filtered
+     *     - DROP_ALL_KEEP_FILTERED:    Exclude all unfilterable offer
+     *                                  aggregations
+     *     - DROP_RANDOM_KEEP_FILTERED: Exclude random, unfilterable offer
+     *                                  aggregations
+     *
+     *     Match:
+     *     - MAX_FILTERS:                Prioritize locating filterable
+     *                                   executions
+     *     - MIN_FILTERS:                Prioritize avoiding filterable
+     *                                   executions where possible
+     *     - MAX_INCLUSION:              Try not to leave any unspent offer
+     *                                   items
+     *     - MIN_INCLUSION:              Leave as many unspent offer items as
+     *                                   possible
+     *     - MIN_INCLUSION_MAX_FILTERS:  Leave unspent items if not filterable
+     *     - MAX_EXECUTIONS:             Use as many fulfillments as possible
+     *                                   given aggregations
+     *     - MIN_EXECUTIONS:             Use as few fulfillments as possible
+     *                                   given aggregations
+     *     - MIN_EXECUTIONS_MAX_FILTERS: Minimize fulfillments and prioritize
+     *                                   filters
+     *
+     */
     FulfillmentStrategy fulfillmentStrategy;
+    /**
+     * @dev An optional array of explicit criteria resolvers. If provided, these
+     *      will override any derived criteria resolvers.
+     */
     CriteriaResolver[] criteriaResolvers;
+    /**
+     * @dev A boolean flag specifying whether to prefer match/matchAdvanced over
+     *      fullfillAvailable/fulfillAvailableAdvanced.
+     */
     bool preferMatch;
 }
 

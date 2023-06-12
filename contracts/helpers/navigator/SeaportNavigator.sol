@@ -28,6 +28,8 @@ import { SeaportNavigatorInterface } from "./lib/SeaportNavigatorInterface.sol";
 import { HelperInterface } from "./lib/HelperInterface.sol";
 
 /**
+ * @title SeaportNavigator
+ * @author OpenSea Protocol Team
  * @notice SeaportNavigator is a helper contract that generates additional
  *         information useful for fulfilling Seaport orders. Given an array of
  *         orders and external parameters like caller, recipient, and native
@@ -76,6 +78,32 @@ contract SeaportNavigator is SeaportNavigatorInterface {
         helpers.push(executionsHelper);
     }
 
+    /**
+     * @notice Given a NavigatorRequest struct containing an array of orders and
+     *         additional external context parameters, return information useful
+     *         for order fulfillment. This function will:
+     *
+     *         - Validate the orders and return associated errors and warnings.
+     *         - Recommend a fulfillment method.
+     *         - Suggest fulfillments.
+     *         - Calculate and return Execution and OrderDetails structs.
+     *         - Generate criteria resolvers based on any provided constraints.
+     *
+     *         The navigator is designed to return details about a *single* call
+     *         to Seaport. You should provide multiple orders only if you intend
+     *         to call a method like fulfill available or match, *not* to batch
+     *         process multiple individual calls.
+     *
+     *         The navigator does not yet support contract orders.
+     *
+     * @param request A NavigatorRequest struct containing an array of orders to
+     *                process and additional external context. See struct docs
+     *                in SeaportNavigatorTypes.sol for details.
+     *
+     * @return A NavigatorResponse struct containing data derived by the
+     *         navigator. See SeaportNavigatorTypes.sol for details on the
+     *         structure of this response.
+     */
     function prepare(
         NavigatorRequest calldata request
     ) public view returns (NavigatorResponse memory) {
