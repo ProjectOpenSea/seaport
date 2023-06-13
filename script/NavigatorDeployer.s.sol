@@ -99,7 +99,7 @@ contract NavigatorDeployer is Script {
 
         address seaportValidatorHelper = deploy(
             "SeaportValidatorHelper",
-            type(RequestValidator).creationCode
+            type(SeaportValidatorHelper).creationCode
         );
         address readOnlyOrderValidator = deploy(
             "ReadOnlyOrderValidator",
@@ -108,7 +108,7 @@ contract NavigatorDeployer is Script {
         deploy(
             "SeaportValidator",
             bytes.concat(
-                type(CriteriaHelper).creationCode,
+                type(SeaportValidator).creationCode,
                 abi.encode(
                     readOnlyOrderValidator,
                     seaportValidatorHelper,
