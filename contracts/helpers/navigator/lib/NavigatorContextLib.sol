@@ -48,6 +48,7 @@ library NavigatorContextLib {
             criteriaResolvers: new CriteriaResolver[](0),
             suggestedAction: bytes4(0),
             suggestedActionName: "",
+            suggestedCallData: hex"",
             validationErrors: new ErrorsAndWarnings[](0),
             orderDetails: new OrderDetails[](0),
             offerFulfillments: new FulfillmentComponent[][](0),

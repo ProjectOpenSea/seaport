@@ -136,6 +136,11 @@ struct NavigatorResponse {
      */
     string suggestedActionName;
     /**
+     * @dev Encoded calldata for the suggested Seaport fulfillment method,
+     *      provided orders, and context args.
+     */
+    bytes suggestedCallData;
+    /**
      * @dev Array of errors and warnings returned by SeaportValidator for the
      *      provided orders, by order index in the orders array.
      */
