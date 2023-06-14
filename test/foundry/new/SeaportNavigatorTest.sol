@@ -23,6 +23,9 @@ import {
     FulfillmentsHelper
 } from "../../../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
 import {
+    SuggestedActionHelper
+} from "../../../contracts/helpers/navigator/lib/SuggestedActionHelper.sol";
+import {
     ExecutionsHelper
 } from "../../../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
 
@@ -32,6 +35,8 @@ contract SeaportNavigatorTest {
     HelperInterface internal validatorHelper = new ValidatorHelper();
     HelperInterface internal orderDetailsHelper = new OrderDetailsHelper();
     HelperInterface internal fulfillmentsHelper = new FulfillmentsHelper();
+    HelperInterface internal suggestedActionHelper =
+        new SuggestedActionHelper();
     HelperInterface internal executionsHelper = new ExecutionsHelper();
 
     SeaportNavigator internal navigator =
@@ -41,6 +46,7 @@ contract SeaportNavigatorTest {
             address(validatorHelper),
             address(orderDetailsHelper),
             address(fulfillmentsHelper),
+            address(suggestedActionHelper),
             address(executionsHelper)
         );
 }

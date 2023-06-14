@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { NavigatorExecutionsLib } from "./NavigatorExecutionsLib.sol";
+import { NavigatorSuggestedActionLib } from "./NavigatorSuggestedActionLib.sol";
 
 import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 
 import { HelperInterface } from "./HelperInterface.sol";
 
-contract ExecutionsHelper is HelperInterface {
-    using NavigatorExecutionsLib for NavigatorContext;
+contract SuggestedActionHelper is HelperInterface {
+    using NavigatorSuggestedActionLib for NavigatorContext;
 
     function prepare(
         NavigatorContext memory context
     ) public view returns (NavigatorContext memory) {
-        return context.withExecutions();
+        return context.withSuggestedAction();
     }
 }
