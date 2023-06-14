@@ -13,9 +13,13 @@ import {
     SeaportInterface
 } from "seaport-types/src/interfaces/SeaportInterface.sol";
 
-import { IERC6551Registry } from "./interfaces/IERC6551Registry.sol";
+import {
+    IERC6551Registry
+} from "../helpers/6551/interfaces/IERC6551Registry.sol";
 
-import { IERC6551Account } from "./interfaces/IERC6551Account.sol";
+import {
+    IERC6551Account
+} from "../helpers/6551/interfaces/IERC6551Account.sol";
 
 import {
     AdvancedOrder,
@@ -25,23 +29,24 @@ import {
     Order,
     OrderComponents,
     Schema,
+    SpentItem,
     ZoneParameters
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * TODO: update title
- * @title  TokenBoundZone
+ * @title  TBAZone
  * @author stephankmin
  * @notice TokenBoundZone is a zone implementation that validates Token Bound Accounts (TBAs)
  *         still own the same tokens both pre- and post-fulfillment.
  */
 
-contract TokenBoundZone is ERC165, PausableZoneEventsAndErrors, ZoneInterface {
+contract TBAZone is ERC165, ZoneInterface {
     // Revert if account nonce has been incremented.
     error InvalidAccountNonce();
 
-    // Revert if account no longer owns the same tokens.
-    error InvalidOffer();
+    // Revert if hash of extraData does not match zoneHash.
+    error InvalidExtraData();
 
     // Set an immutable EIP-6551 registry to check for account nonce.
     IERC6551Registry internal immutable _erc6551Registry;
@@ -52,6 +57,16 @@ contract TokenBoundZone is ERC165, PausableZoneEventsAndErrors, ZoneInterface {
     constructor(address erc6551Registry, address accountImplementation) {
         _erc6551Registry = IERC6551Registry(erc6551Registry);
         _accountImplementation = accountImplementation;
+    }
+
+    uint256 constant TBA_EXTRADATA_RSHIFT = 96;
+    uint256 constant NONCE_RSHIFT = 64;
+    uint256 constant UINT32_MASK = 0xffffffff;
+
+    struct EncodedExtraData {
+        address tba;
+        uint256 nonce;
+        SpentItem[] tokenBalances;
     }
 
     /**
@@ -78,29 +93,42 @@ contract TokenBoundZone is ERC165, PausableZoneEventsAndErrors, ZoneInterface {
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) public returns (bytes4 validOrderMagicValue) {
-        // Get the TBA address from extraData.
-        address accountAddress = address(
-            bytes20(zoneParameters.extraData[:20])
-        );
+        bytes calldata extraData = zoneParameters.extraData;
+        address tba;
+        uint32 expectedAccountNonce;
+        SpentItem[] calldata tokenBalances;
 
-        // Get the expected account nonce from extraData.
-        uint256 expectedAccountNonce = uint256(
-            bytes32(zoneParameters.extraData[20:52])
-        );
+        assembly {
+            tba := shr(TBA_EXTRADATA_RSHIFT, calldataload(extraData.offset))
+            expectedAccountNonce := shr(
+                NONCE_RSHIFT,
+                calldataload(extraData.offset)
+            )
+            let tokenBalancesLength := add(extraData.offset, 192)
+            tokenBalances.length := calldataload(tokenBalancesLength)
+            tokenBalances.offset := add(tokenBalancesLength, 0x20)
+        }
+
+        // Check that hash of extraData matches zoneHash.
+        // Implicitly checks that TBA still owns the tokens specified in extraData.
+        bytes32 expectedExtraDataHash = zoneParameters.zoneHash;
+
+        bytes32 actualExtraDataHash = keccak256(extraData);
+
+        if (expectedExtraDataHash != actualExtraDataHash) {
+            revert InvalidExtraData();
+        }
 
         // Get the actual account nonce by calling the nonce method on the 6551
         // account.
-        uint256 actualAccountNonce = IERC6551Account(payable(accountAddress))
-            .nonce();
+        uint256 actualAccountNonce = IERC6551Account(payable(tba)).nonce();
 
         // Revert if the expected account nonce does not match the actual account nonce.
         if (expectedAccountNonce != actualAccountNonce) {
             revert InvalidAccountNonce();
         }
 
-        // Check that TBA still owns the same tokens from pre-fulfillment.
-
-        // Check that token approvals have been revoked.
+        // TODO: Check that token approvals have been revoked.
 
         // Return magic value
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
