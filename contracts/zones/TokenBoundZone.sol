@@ -74,13 +74,7 @@ contract TBAZone is ERC165, ZoneInterface {
      *      as follows:
      *      [0:20] - TBA address
      *      [20:52] - TBA nonce prior to order fulfillment
-     *      [52:] - Tokens owned by TBA prior to order fulfillment
-     *
-     *      For each token owned by TBA, calldata should be 92 bytes structured as follows:
-     *          [0:8] - enum ItemType
-     *          [8:28] - token address
-     *          [28:60] - tokenId
-     *          [60:92] - amount
+     *      [52:] - SpentItem structs defining tokens owned by TBA prior to order fulfillment
      *
      *      For validation purposes, the zoneHash MUST be a hash of extraData.
      *
@@ -96,7 +90,6 @@ contract TBAZone is ERC165, ZoneInterface {
         bytes calldata extraData = zoneParameters.extraData;
         address tba;
         uint32 expectedAccountNonce;
-        SpentItem[] calldata tokenBalances;
 
         assembly {
             tba := shr(TBA_EXTRADATA_RSHIFT, calldataload(extraData.offset))
@@ -104,9 +97,6 @@ contract TBAZone is ERC165, ZoneInterface {
                 NONCE_RSHIFT,
                 calldataload(extraData.offset)
             )
-            let tokenBalancesLength := add(extraData.offset, 192)
-            tokenBalances.length := calldataload(tokenBalancesLength)
-            tokenBalances.offset := add(tokenBalancesLength, 0x20)
         }
 
         // Check that hash of extraData matches zoneHash.
