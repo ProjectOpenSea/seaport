@@ -177,11 +177,6 @@ contract SeaportNavigatorTestSuite is
             })
         );
         assertEq(
-            res.suggestedAction,
-            seaport.fulfillBasicOrder_efficient_6GL6yc.selector,
-            "unexpected action selected"
-        );
-        assertEq(
             res.suggestedActionName,
             "fulfillBasicOrder_efficient_6GL6yc",
             "unexpected actionName selected"
@@ -291,11 +286,6 @@ contract SeaportNavigatorTestSuite is
                 criteriaResolvers: new CriteriaResolver[](0),
                 preferMatch: false
             })
-        );
-        assertEq(
-            res.suggestedAction,
-            seaport.fulfillOrder.selector,
-            "unexpected action selected"
         );
         assertEq(
             res.suggestedActionName,

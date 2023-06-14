@@ -46,7 +46,6 @@ library NavigatorContextLib {
         context.response = NavigatorResponse({
             orders: new AdvancedOrder[](0),
             criteriaResolvers: new CriteriaResolver[](0),
-            suggestedAction: bytes4(0),
             suggestedActionName: "",
             suggestedCallData: hex"",
             validationErrors: new ErrorsAndWarnings[](0),

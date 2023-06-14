@@ -67,8 +67,9 @@ library NavigatorExecutionsLib {
      */
     function withExecutions(
         NavigatorContext memory context
-    ) internal pure returns (NavigatorContext memory) {
-        bytes4 _suggestedAction = context.response.suggestedAction;
+    ) internal view returns (NavigatorContext memory) {
+        bytes memory callData = suggestedCallData(context);
+        bytes4 _suggestedAction = bytes4(callData);
         FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
             orders: context.response.orderDetails,
             recipient: payable(context.request.recipient),
@@ -146,8 +147,8 @@ library NavigatorExecutionsLib {
     function withSuggestedAction(
         NavigatorContext memory context
     ) internal view returns (NavigatorContext memory) {
-        (bytes4 selector, bytes memory callData) = action(context);
-        context.response.suggestedAction = selector;
+        bytes memory callData = suggestedCallData(context);
+        bytes4 selector = bytes4(callData);
         context.response.suggestedActionName = actionName(selector);
         context.response.suggestedCallData = callData;
         return context;
@@ -174,9 +175,9 @@ library NavigatorExecutionsLib {
      * @dev Choose a suggested fulfillment method based on the structure of the
      *      orders.
      */
-    function action(
+    function suggestedCallData(
         NavigatorContext memory context
-    ) internal view returns (bytes4, bytes memory) {
+    ) internal view returns (bytes memory) {
         Family family = context.response.orders.getFamily();
 
         bool invalidOfferItemsLocated = mustUseMatch(context);
@@ -203,79 +204,71 @@ library NavigatorExecutionsLib {
             }
 
             if (structure == Structure.ADVANCED) {
-                bytes4 selector = ConsiderationInterface
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillAvailableAdvancedOrders,
-                    (
-                        context.response.orders,
-                        context.response.criteriaResolvers,
-                        context.response.offerFulfillments,
-                        context.response.considerationFulfillments,
-                        context.request.fulfillerConduitKey,
-                        context.request.recipient,
-                        context.request.maximumFulfilled
-                    )
-                );
-                return (selector, callData);
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface.fulfillAvailableAdvancedOrders,
+                        (
+                            context.response.orders,
+                            context.response.criteriaResolvers,
+                            context.response.offerFulfillments,
+                            context.response.considerationFulfillments,
+                            context.request.fulfillerConduitKey,
+                            context.request.recipient,
+                            context.request.maximumFulfilled
+                        )
+                    );
             } else {
-                bytes4 selector = ConsiderationInterface
-                    .fulfillAvailableOrders
-                    .selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillAvailableOrders,
-                    (
-                        context.response.orders.toOrders(),
-                        context.response.offerFulfillments,
-                        context.response.considerationFulfillments,
-                        context.request.fulfillerConduitKey,
-                        context.request.maximumFulfilled
-                    )
-                );
-                return (selector, callData);
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface.fulfillAvailableOrders,
+                        (
+                            context.response.orders.toOrders(),
+                            context.response.offerFulfillments,
+                            context.response.considerationFulfillments,
+                            context.request.fulfillerConduitKey,
+                            context.request.maximumFulfilled
+                        )
+                    );
             }
         }
 
         if (family == Family.SINGLE && !invalidOfferItemsLocated) {
             if (structure == Structure.BASIC) {
-                bytes4 selector = ConsiderationInterface
-                    .fulfillBasicOrder_efficient_6GL6yc
-                    .selector;
                 AdvancedOrder memory order = context.response.orders[0];
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillBasicOrder_efficient_6GL6yc,
-                    (order.toBasicOrderParameters(order.getBasicOrderType()))
-                );
-                return (selector, callData);
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface
+                            .fulfillBasicOrder_efficient_6GL6yc,
+                        (
+                            order.toBasicOrderParameters(
+                                order.getBasicOrderType()
+                            )
+                        )
+                    );
             }
 
             if (structure == Structure.STANDARD) {
-                bytes4 selector = ConsiderationInterface.fulfillOrder.selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillOrder,
-                    (
-                        context.response.orders[0].toOrder(),
-                        context.request.fulfillerConduitKey
-                    )
-                );
-                return (selector, callData);
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface.fulfillOrder,
+                        (
+                            context.response.orders[0].toOrder(),
+                            context.request.fulfillerConduitKey
+                        )
+                    );
             }
 
             if (structure == Structure.ADVANCED) {
-                bytes4 selector = ConsiderationInterface
-                    .fulfillAdvancedOrder
-                    .selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillAdvancedOrder,
-                    (
-                        context.response.orders[0],
-                        context.response.criteriaResolvers,
-                        context.request.fulfillerConduitKey,
-                        context.request.recipient
-                    )
-                );
-                return (selector, callData);
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface.fulfillAdvancedOrder,
+                        (
+                            context.response.orders[0],
+                            context.response.criteriaResolvers,
+                            context.request.fulfillerConduitKey,
+                            context.request.recipient
+                        )
+                    );
             }
         }
 
@@ -292,88 +285,8 @@ library NavigatorExecutionsLib {
 
         if (cannotMatch) {
             if (structure == Structure.ADVANCED) {
-                bytes4 selector = ConsiderationInterface
-                    .fulfillAvailableAdvancedOrders
-                    .selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillAvailableAdvancedOrders,
-                    (
-                        context.response.orders,
-                        context.response.criteriaResolvers,
-                        context.response.offerFulfillments,
-                        context.response.considerationFulfillments,
-                        context.request.fulfillerConduitKey,
-                        context.request.recipient,
-                        context.request.maximumFulfilled
-                    )
-                );
-                return (selector, callData);
-            } else {
-                bytes4 selector = ConsiderationInterface
-                    .fulfillAvailableOrders
-                    .selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillAvailableOrders,
-                    (
-                        context.response.orders.toOrders(),
-                        context.response.offerFulfillments,
-                        context.response.considerationFulfillments,
-                        context.request.fulfillerConduitKey,
-                        context.request.maximumFulfilled
-                    )
-                );
-                return (selector, callData);
-            }
-        } else if (invalidOfferItemsLocated) {
-            if (structure == Structure.ADVANCED) {
-                bytes4 selector = ConsiderationInterface
-                    .matchAdvancedOrders
-                    .selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.fulfillAvailableAdvancedOrders,
-                    (
-                        context.response.orders,
-                        context.response.criteriaResolvers,
-                        context.response.offerFulfillments,
-                        context.response.considerationFulfillments,
-                        context.request.fulfillerConduitKey,
-                        context.request.recipient,
-                        context.request.maximumFulfilled
-                    )
-                );
-                return (selector, callData);
-            } else {
-                bytes4 selector = ConsiderationInterface.matchOrders.selector;
-                bytes memory callData = abi.encodeCall(
-                    ConsiderationInterface.matchOrders,
-                    (
-                        context.response.orders.toOrders(),
-                        context.response.fulfillments
-                    )
-                );
-                return (selector, callData);
-            }
-        } else {
-            if (structure == Structure.ADVANCED) {
-                if (context.request.preferMatch) {
-                    bytes4 selector = ConsiderationInterface
-                        .matchAdvancedOrders
-                        .selector;
-                    bytes memory callData = abi.encodeCall(
-                        ConsiderationInterface.matchAdvancedOrders,
-                        (
-                            context.response.orders,
-                            context.response.criteriaResolvers,
-                            context.response.fulfillments,
-                            context.request.recipient
-                        )
-                    );
-                    return (selector, callData);
-                } else {
-                    bytes4 selector = ConsiderationInterface
-                        .fulfillAvailableAdvancedOrders
-                        .selector;
-                    bytes memory callData = abi.encodeCall(
+                return
+                    abi.encodeCall(
                         ConsiderationInterface.fulfillAvailableAdvancedOrders,
                         (
                             context.response.orders,
@@ -385,26 +298,9 @@ library NavigatorExecutionsLib {
                             context.request.maximumFulfilled
                         )
                     );
-                    return (selector, callData);
-                }
             } else {
-                if (context.request.preferMatch) {
-                    bytes4 selector = ConsiderationInterface
-                        .matchOrders
-                        .selector;
-                    bytes memory callData = abi.encodeCall(
-                        ConsiderationInterface.matchOrders,
-                        (
-                            context.response.orders.toOrders(),
-                            context.response.fulfillments
-                        )
-                    );
-                    return (selector, callData);
-                } else {
-                    bytes4 selector = ConsiderationInterface
-                        .fulfillAvailableOrders
-                        .selector;
-                    bytes memory callData = abi.encodeCall(
+                return
+                    abi.encodeCall(
                         ConsiderationInterface.fulfillAvailableOrders,
                         (
                             context.response.orders.toOrders(),
@@ -414,7 +310,83 @@ library NavigatorExecutionsLib {
                             context.request.maximumFulfilled
                         )
                     );
-                    return (selector, callData);
+            }
+        } else if (invalidOfferItemsLocated) {
+            if (structure == Structure.ADVANCED) {
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface.fulfillAvailableAdvancedOrders,
+                        (
+                            context.response.orders,
+                            context.response.criteriaResolvers,
+                            context.response.offerFulfillments,
+                            context.response.considerationFulfillments,
+                            context.request.fulfillerConduitKey,
+                            context.request.recipient,
+                            context.request.maximumFulfilled
+                        )
+                    );
+            } else {
+                return
+                    abi.encodeCall(
+                        ConsiderationInterface.matchOrders,
+                        (
+                            context.response.orders.toOrders(),
+                            context.response.fulfillments
+                        )
+                    );
+            }
+        } else {
+            if (structure == Structure.ADVANCED) {
+                if (context.request.preferMatch) {
+                    return
+                        abi.encodeCall(
+                            ConsiderationInterface.matchAdvancedOrders,
+                            (
+                                context.response.orders,
+                                context.response.criteriaResolvers,
+                                context.response.fulfillments,
+                                context.request.recipient
+                            )
+                        );
+                } else {
+                    return
+                        abi.encodeCall(
+                            ConsiderationInterface
+                                .fulfillAvailableAdvancedOrders,
+                            (
+                                context.response.orders,
+                                context.response.criteriaResolvers,
+                                context.response.offerFulfillments,
+                                context.response.considerationFulfillments,
+                                context.request.fulfillerConduitKey,
+                                context.request.recipient,
+                                context.request.maximumFulfilled
+                            )
+                        );
+                }
+            } else {
+                if (context.request.preferMatch) {
+                    return
+                        abi.encodeCall(
+                            ConsiderationInterface.matchOrders,
+                            (
+                                context.response.orders.toOrders(),
+                                context.response.fulfillments
+                            )
+                        );
+                } else {
+                    return
+                        abi.encodeCall(
+                            ConsiderationInterface.fulfillAvailableOrders,
+                            (
+                                context.response.orders.toOrders(),
+                                context.response.offerFulfillments,
+                                context.response.considerationFulfillments,
+                                context.request.fulfillerConduitKey,
+                                context.request.maximumFulfilled
+                            )
+                        );
                 }
             }
         }

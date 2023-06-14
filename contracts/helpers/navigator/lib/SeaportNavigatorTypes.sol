@@ -126,11 +126,6 @@ struct NavigatorResponse {
      */
     CriteriaResolver[] criteriaResolvers;
     /**
-     * @dev Selector of the suggested Seaport fulfillment method for the
-     *      provided orders.
-     */
-    bytes4 suggestedAction;
-    /**
      * @dev Human-readable name of the suggested Seaport fulfillment method for
      *      the provided orders.
      */
