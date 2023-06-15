@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {
-    ItemType,
-    OrderType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -15,7 +12,7 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -89,7 +86,8 @@ contract ReferenceOrderFulfiller is
         (
             bytes32 orderHash,
             uint256 fillNumerator,
-            uint256 fillDenominator
+            uint256 fillDenominator,
+            OrderToExecute memory orderToExecute
         ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Apply criteria resolvers using generated orders and details arrays.
@@ -99,7 +97,7 @@ contract ReferenceOrderFulfiller is
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
-        OrderToExecute memory orderToExecute = _applyFractionsAndTransferEach(
+        orderToExecute = _applyFractionsAndTransferEach(
             orderParameters,
             fillNumerator,
             fillDenominator,
@@ -340,119 +338,5 @@ contract ReferenceOrderFulfiller is
 
         // Return the array of advanced orders.
         return advancedOrders;
-    }
-
-    /**
-     * @dev Internal pure function to convert an advanced order to an order
-     *      to execute with numerator of 1.
-     *
-     * @param advancedOrder The advanced order to convert.
-     *
-     * @return orderToExecute The new order to execute.
-     */
-    function _convertAdvancedToOrder(
-        AdvancedOrder memory advancedOrder
-    ) internal pure returns (OrderToExecute memory orderToExecute) {
-        // Retrieve the advanced orders offers.
-        OfferItem[] memory offer = advancedOrder.parameters.offer;
-
-        // Create an array of spent items equal to the offer length.
-        SpentItem[] memory spentItems = new SpentItem[](offer.length);
-        uint256[] memory spentItemOriginalAmounts = new uint256[](offer.length);
-
-        // Iterate over each offer item on the order.
-        for (uint256 i = 0; i < offer.length; ++i) {
-            // Retrieve the offer item.
-            OfferItem memory offerItem = offer[i];
-
-            // Create spent item for event based on the offer item.
-            SpentItem memory spentItem = SpentItem(
-                offerItem.itemType,
-                offerItem.token,
-                offerItem.identifierOrCriteria,
-                offerItem.startAmount
-            );
-
-            // Add to array of spent items.
-            spentItems[i] = spentItem;
-            spentItemOriginalAmounts[i] = offerItem.startAmount;
-        }
-
-        // Retrieve the consideration array from the advanced order.
-        ConsiderationItem[] memory consideration = advancedOrder
-            .parameters
-            .consideration;
-
-        // Create an array of received items equal to the consideration length.
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            consideration.length
-        );
-        // Create an array of uint256 values equal in length to the
-        // consideration length containing the amounts of each item.
-        uint256[] memory receivedItemOriginalAmounts = new uint256[](
-            consideration.length
-        );
-
-        // Iterate over each consideration item on the order.
-        for (uint256 i = 0; i < consideration.length; ++i) {
-            // Retrieve the consideration item.
-            ConsiderationItem memory considerationItem = (consideration[i]);
-
-            // Create received item for event based on the consideration item.
-            ReceivedItem memory receivedItem = ReceivedItem(
-                considerationItem.itemType,
-                considerationItem.token,
-                considerationItem.identifierOrCriteria,
-                considerationItem.startAmount,
-                considerationItem.recipient
-            );
-
-            // Add to array of received items.
-            receivedItems[i] = receivedItem;
-
-            // Add to array of received item amounts.
-            receivedItemOriginalAmounts[i] = considerationItem.startAmount;
-        }
-
-        // Create the order to execute from the advanced order data.
-        orderToExecute = OrderToExecute(
-            advancedOrder.parameters.offerer,
-            spentItems,
-            receivedItems,
-            advancedOrder.parameters.conduitKey,
-            advancedOrder.numerator,
-            spentItemOriginalAmounts,
-            receivedItemOriginalAmounts
-        );
-
-        // Return the order.
-        return orderToExecute;
-    }
-
-    /**
-     * @dev Internal pure function to convert an array of advanced orders to
-     *      an array of orders to execute.
-     *
-     * @param advancedOrders The advanced orders to convert.
-     *
-     * @return ordersToExecute The new array of orders.
-     */
-    function _convertAdvancedToOrdersToExecute(
-        AdvancedOrder[] memory advancedOrders
-    ) internal pure returns (OrderToExecute[] memory ordersToExecute) {
-        // Read the number of orders from memory and place on the stack.
-        uint256 totalOrders = advancedOrders.length;
-
-        // Allocate new empty array for each advanced order in memory.
-        ordersToExecute = new OrderToExecute[](totalOrders);
-
-        // Iterate over the given orders.
-        for (uint256 i = 0; i < totalOrders; ++i) {
-            // Convert and update array.
-            ordersToExecute[i] = _convertAdvancedToOrder(advancedOrders[i]);
-        }
-
-        // Return the array of orders to execute
-        return ordersToExecute;
     }
 }

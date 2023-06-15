@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneInterface } from "../../contracts/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 import {
     ContractOffererInterface
-} from "../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import {
-    ItemType,
-    OrderType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -19,13 +16,13 @@ import {
     ReceivedItem,
     SpentItem,
     ZoneParameters
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
 import {
     ZoneInteractionErrors
-} from "../../contracts/interfaces/ZoneInteractionErrors.sol";
+} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 /**
  * @title ZoneInteraction
@@ -152,7 +149,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                     orderToExecute.receivedItems,
                     advancedOrder.extraData,
                     orderHashes,
-                    uint96(uint256(orderHash))
+                    uint256(orderHash) ^ (uint256(uint160(offerer)) << 96)
                 ) != ContractOffererInterface.ratifyOrder.selector
             ) {
                 revert InvalidContractOrder(orderHash);
@@ -212,10 +209,14 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 .additionalRecipients[i];
             amount = additionalRecipient.amount;
             receivedItems[i + 1] = ReceivedItem({
-                itemType: considerationItemType,
-                token: token,
+                itemType: offerItemType == ItemType.ERC20
+                    ? ItemType.ERC20
+                    : considerationItemType,
+                token: offerItemType == ItemType.ERC20
+                    ? parameters.offerToken
+                    : token,
                 amount: amount,
-                identifier: identifier,
+                identifier: offerItemType == ItemType.ERC20 ? 0 : identifier,
                 recipient: additionalRecipient.recipient
             });
         }

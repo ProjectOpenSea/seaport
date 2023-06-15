@@ -11,6 +11,7 @@ module.exports = {
     "interfaces/ConsiderationInterface.sol",
     "interfaces/ContractOffererInterface.sol",
     "interfaces/EIP1271Interface.sol",
+    "interfaces/ERC165.sol",
     "interfaces/SeaportInterface.sol",
     "interfaces/ZoneInterface.sol",
     "lib/ConsiderationConstants.sol",

@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {
     SignatureVerification
-} from "../../contracts/lib/SignatureVerification.sol";
+} from "seaport-core/src/lib/SignatureVerification.sol";
 
 import {
     ReferenceSignatureVerification

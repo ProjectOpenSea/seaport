@@ -13,7 +13,7 @@ import {
     FulfillmentComponent,
     OrderParameters,
     OrderComponents
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract StructCopier {
     Order _tempOrder;

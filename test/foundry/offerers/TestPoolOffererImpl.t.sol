@@ -3,24 +3,26 @@ pragma solidity ^0.8.7;
 
 import { Test } from "forge-std/Test.sol";
 
-import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet
-} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {
-    IERC721
-} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+    ContractOffererInterface
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import {
-    IERC20
-} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
@@ -58,7 +60,7 @@ contract TestPoolFactoryImpl {
     }
 }
 
-contract TestPoolImpl is TestPoolOfferer {
+contract TestPoolImpl is ERC165, TestPoolOfferer {
     using EnumerableSet for EnumerableSet.UintSet;
 
     constructor(
@@ -80,6 +82,12 @@ contract TestPoolImpl is TestPoolOfferer {
 
     function inTokenIds(uint256 id) external view returns (bool) {
         return tokenIds.contains(id);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, TestPoolOfferer) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 }
 

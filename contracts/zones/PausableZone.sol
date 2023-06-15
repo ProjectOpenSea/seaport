@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 import {
     PausableZoneEventsAndErrors
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
-import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -18,7 +22,7 @@ import {
     OrderComponents,
     Schema,
     ZoneParameters
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
 
@@ -31,6 +35,7 @@ import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
  *         cannot execute orders that return native tokens to the fulfiller.
  */
 contract PausableZone is
+    ERC165,
     PausableZoneEventsAndErrors,
     ZoneInterface,
     PausableZoneInterface
@@ -251,5 +256,13 @@ contract PausableZone is
         schemas[0].metadata = new bytes(0);
 
         return ("PausableZone", schemas);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

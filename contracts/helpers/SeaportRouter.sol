@@ -3,18 +3,20 @@ pragma solidity ^0.8.13;
 
 import {
     SeaportRouterInterface
-} from "../interfaces/SeaportRouterInterface.sol";
+} from "seaport-types/src/interfaces/SeaportRouterInterface.sol";
 
-import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
-import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "seaport-core/src/lib/ReentrancyGuard.sol";
 
 import {
     AdvancedOrder,
     CriteriaResolver,
     Execution,
     FulfillmentComponent
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * @title  SeaportRouter
@@ -24,20 +26,20 @@ import {
  *         all consideration items across all listings are native tokens.
  */
 contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
-    /// @dev The allowed v1.1 contract usable through this router.
-    address private immutable _SEAPORT_V1_1;
     /// @dev The allowed v1.4 contract usable through this router.
     address private immutable _SEAPORT_V1_4;
+    /// @dev The allowed v1.5 contract usable through this router.
+    address private immutable _SEAPORT_V1_5;
 
     /**
      * @dev Deploy contract with the supported Seaport contracts.
      *
-     * @param seaportV1point1 The address of the Seaport v1.1 contract.
      * @param seaportV1point4 The address of the Seaport v1.4 contract.
+     * @param seaportV1point5 The address of the Seaport v1.5 contract.
      */
-    constructor(address seaportV1point1, address seaportV1point4) {
-        _SEAPORT_V1_1 = seaportV1point1;
+    constructor(address seaportV1point4, address seaportV1point5) {
         _SEAPORT_V1_4 = seaportV1point4;
+        _SEAPORT_V1_5 = seaportV1point5;
     }
 
     /**
@@ -119,7 +121,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             // Execute the orders, collecting availableOrders and executions.
             // This is wrapped in a try/catch in case a single order is
             // executed that is no longer available, leading to a revert
-            // with `NoSpecifiedOrdersAvailable()`.
+            // with `NoSpecifiedOrdersAvailable()` that can be ignored.
             try
                 SeaportInterface(params.seaportContracts[i])
                     .fulfillAvailableAdvancedOrders{
@@ -155,7 +157,33 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
                 if (fulfillmentsLeft == 0) {
                     break;
                 }
-            } catch {}
+            } catch (bytes memory data) {
+                // Set initial value of first four bytes of revert data
+                // to the mask.
+                bytes4 customErrorSelector = bytes4(0xffffffff);
+
+                // Utilize assembly to read first four bytes
+                // (if present) directly.
+                assembly {
+                    // Combine original mask with first four bytes of
+                    // revert data.
+                    customErrorSelector := and(
+                        // Data begins after length offset.
+                        mload(add(data, 0x20)),
+                        customErrorSelector
+                    )
+                }
+
+                // Pass through the custom error if the error is
+                // not NoSpecifiedOrdersAvailable()
+                if (
+                    customErrorSelector != NoSpecifiedOrdersAvailable.selector
+                ) {
+                    assembly {
+                        revert(add(data, 32), mload(data))
+                    }
+                }
+            }
 
             // Update fulfillments left.
             calldataParams.maximumFulfilled = fulfillmentsLeft;
@@ -163,6 +191,11 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
             unchecked {
                 ++i;
             }
+        }
+
+        // Throw an error if no orders were fulfilled.
+        if (fulfillmentsLeft == params.maximumFulfilled) {
+            revert NoSpecifiedOrdersAvailable();
         }
 
         // Return excess ether that may not have been used or was sent back.
@@ -185,8 +218,8 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
         returns (address[] memory seaportContracts)
     {
         seaportContracts = new address[](2);
-        seaportContracts[0] = _SEAPORT_V1_1;
-        seaportContracts[1] = _SEAPORT_V1_4;
+        seaportContracts[0] = _SEAPORT_V1_4;
+        seaportContracts[1] = _SEAPORT_V1_5;
     }
 
     /**
@@ -194,7 +227,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
      */
     function _assertSeaportAllowed(address seaport) internal view {
         if (
-            _cast(seaport == _SEAPORT_V1_1) | _cast(seaport == _SEAPORT_V1_4) ==
+            _cast(seaport == _SEAPORT_V1_4) | _cast(seaport == _SEAPORT_V1_5) ==
             0
         ) {
             revert SeaportNotAllowed(seaport);

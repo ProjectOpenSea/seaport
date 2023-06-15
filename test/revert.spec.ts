@@ -5540,7 +5540,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
     });
 
     // Skip this test when testing the reference contract
-    if (!process.env.REFERENCE) {
+    if (!process.env.REFERENCE && !(hre as any).__SOLIDITY_COVERAGE_RUNNING) {
       it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
         const recipient = await (
           await ethers.getContractFactory("ExcessReturnDataRecipient")

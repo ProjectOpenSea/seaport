@@ -3,19 +3,21 @@ pragma solidity ^0.8.13;
 
 import {
     ERC20Interface
-} from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-contract AdjustedAmountOfferer is ContractOffererInterface {
+contract AdjustedAmountOfferer is ContractOffererInterface, ERC165 {
     int256 immutable offerAmountAdjust;
     int256 immutable considerationAmountAdjust;
 
@@ -120,6 +122,20 @@ contract AdjustedAmountOfferer is ContractOffererInterface {
         uint256 /* contractNonce */
     ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return AdjustedAmountOfferer.ratifyOrder.selector;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**

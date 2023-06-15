@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
@@ -10,18 +10,15 @@ import { DifferentialTest } from "../utils/DifferentialTest.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import {
-    ItemType,
-    OrderType
-} from "../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -30,11 +27,11 @@ import {
     CriteriaResolver,
     SpentItem,
     ReceivedItem
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ContractOffererInterface
-} from "../../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import {
     TestContractOffererNativeToken

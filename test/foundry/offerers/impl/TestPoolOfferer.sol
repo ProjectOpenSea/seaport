@@ -3,31 +3,29 @@ pragma solidity ^0.8.7;
 
 import {
     ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../../../../contracts/lib/ConsiderationEnums.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     EnumerableSet
-} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {
-    IERC721
-} from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-import {
-    IERC20
-} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract TestPoolOfferer is ContractOffererInterface, Ownable {
+contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
     using EnumerableSet for EnumerableSet.UintSet;
 
     error OnlySeaport();
@@ -190,6 +188,20 @@ contract TestPoolOfferer is ContractOffererInterface, Ownable {
         uint256 /* contractNonce */
     ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return ContractOffererInterface.ratifyOrder.selector;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**

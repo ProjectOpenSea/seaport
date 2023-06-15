@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ERC721Interface } from "../interfaces/AbridgedTokenInterfaces.sol";
+import {
+    ERC721Interface
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract TestBadContractOfferer is ContractOffererInterface {
     error IntentionalRevert();
@@ -120,6 +122,12 @@ contract TestBadContractOfferer is ContractOffererInterface {
         uint256 /* contractNonce */
     ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return TestBadContractOfferer.ratifyOrder.selector;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ContractOffererInterface) returns (bool) {
+        return interfaceId == type(ContractOffererInterface).interfaceId;
     }
 
     /**

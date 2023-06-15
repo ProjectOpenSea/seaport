@@ -5,12 +5,12 @@ pragma solidity ^0.8.17;
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     NonMatchSelector_MagicMask,
     NonMatchSelector_InvalidErrorValue
-} from "../../contracts/lib/ConsiderationConstants.sol";
+} from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 import { Test } from "forge-std/Test.sol";
 

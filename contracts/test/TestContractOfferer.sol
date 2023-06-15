@@ -5,19 +5,20 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ItemType } from "../lib/ConsiderationEnums.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
  * @title TestContractOfferer
@@ -28,7 +29,7 @@ import {
  *         an order. The offered item is placed into this contract as part of
  *         deployment and the corresponding token approvals are set for Seaport.
  */
-contract TestContractOfferer is ContractOffererInterface {
+contract TestContractOfferer is ERC165, ContractOffererInterface {
     error OrderUnavailable();
 
     address private immutable _SEAPORT;
@@ -52,6 +53,20 @@ contract TestContractOfferer is ContractOffererInterface {
     }
 
     receive() external payable {}
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC165, ContractOffererInterface)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`

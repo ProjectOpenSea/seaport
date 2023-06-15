@@ -2,14 +2,11 @@
 
 pragma solidity ^0.8.17;
 
-import {
-    OrderType,
-    ItemType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     Order,
@@ -17,7 +14,7 @@ import {
     OrderParameters,
     ConsiderationItem,
     OrderComponents
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -274,7 +271,7 @@ contract FulfillOrderTest is BaseOrderTest {
             startTime + 1000,
             false // don't round up offers
         );
-        vm.expectEmit(true, true, true, false, address(token1));
+        vm.expectEmit(true, true, false, true, address(token1));
         emit Transfer(alice, address(this), expectedAmount);
         context.consideration.fulfillOrder{ value: 1000 }(
             Order(orderParameters, signature),
@@ -350,7 +347,7 @@ contract FulfillOrderTest is BaseOrderTest {
             true // round up considerations
         );
         token1.mint(address(this), expectedAmount);
-        vm.expectEmit(true, true, true, false, address(token1));
+        vm.expectEmit(true, true, false, true, address(token1));
         emit Transfer(address(this), address(alice), expectedAmount);
         context.consideration.fulfillOrder(
             Order(orderParameters, signature),
