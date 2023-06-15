@@ -30,6 +30,9 @@ import {
     FulfillmentsHelper
 } from "../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
 import {
+    SuggestedActionHelper
+} from "../contracts/helpers/navigator/lib/SuggestedActionHelper.sol";
+import {
     ExecutionsHelper
 } from "../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
 import {
@@ -137,6 +140,10 @@ contract NavigatorDeployer is Script {
             "FulfillmentsHelper",
             type(FulfillmentsHelper).creationCode
         );
+        address suggestedActionHelper = deploy(
+            "SuggestedActionHelper",
+            type(SuggestedActionHelper).creationCode
+        );
         address executionsHelper = deploy(
             "ExecutionsHelper",
             type(ExecutionsHelper).creationCode
@@ -152,6 +159,7 @@ contract NavigatorDeployer is Script {
                     validatorHelper,
                     orderDetailsHelper,
                     fulfillmentsHelper,
+                    suggestedActionHelper,
                     executionsHelper
                 )
             )
