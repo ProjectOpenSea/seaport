@@ -126,15 +126,15 @@ struct NavigatorResponse {
      */
     CriteriaResolver[] criteriaResolvers;
     /**
-     * @dev Selector of the suggested Seaport fulfillment method for the
-     *      provided orders.
-     */
-    bytes4 suggestedAction;
-    /**
      * @dev Human-readable name of the suggested Seaport fulfillment method for
      *      the provided orders.
      */
     string suggestedActionName;
+    /**
+     * @dev Encoded calldata for the suggested Seaport fulfillment method,
+     *      provided orders, and context args.
+     */
+    bytes suggestedCallData;
     /**
      * @dev Array of errors and warnings returned by SeaportValidator for the
      *      provided orders, by order index in the orders array.

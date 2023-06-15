@@ -12,7 +12,8 @@ import {
     ItemType,
     SeaportInterface,
     Side,
-    CriteriaResolver
+    CriteriaResolver,
+    ConsiderationInterface
 } from "seaport-sol/src/SeaportSol.sol";
 
 import {
@@ -35,6 +36,12 @@ import {
 } from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 import {
+    NavigatorOfferItem,
+    NavigatorConsiderationItem,
+    NavigatorOrderParameters
+} from "../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
+
+import {
     TokenIdNotFound
 } from "../../../contracts/helpers/navigator/lib/CriteriaHelperLib.sol";
 
@@ -42,6 +49,9 @@ import {
     NavigatorAdvancedOrder,
     NavigatorAdvancedOrderLib
 } from "../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
+import {
+    OrderStructureLib
+} from "../../../contracts/helpers/navigator/lib/OrderStructureLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
@@ -65,6 +75,8 @@ contract SeaportNavigatorTestSuite is
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
     using AdvancedOrderLib for AdvancedOrder;
+    using OrderStructureLib for AdvancedOrder;
+    using NavigatorAdvancedOrderLib for NavigatorAdvancedOrder;
 
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
     string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =
@@ -165,14 +177,21 @@ contract SeaportNavigatorTestSuite is
             })
         );
         assertEq(
-            res.suggestedAction,
-            seaport.fulfillBasicOrder_efficient_6GL6yc.selector,
-            "unexpected action selected"
-        );
-        assertEq(
             res.suggestedActionName,
             "fulfillBasicOrder_efficient_6GL6yc",
             "unexpected actionName selected"
+        );
+        assertEq(
+            res.suggestedCallData,
+            abi.encodeCall(
+                ConsiderationInterface.fulfillBasicOrder_efficient_6GL6yc,
+                (
+                    advancedOrder.toBasicOrderParameters(
+                        advancedOrder.getBasicOrderType()
+                    )
+                )
+            ),
+            "unexpected suggested calldata"
         );
         assertEq(
             res.validationErrors.length,
@@ -269,14 +288,17 @@ contract SeaportNavigatorTestSuite is
             })
         );
         assertEq(
-            res.suggestedAction,
-            seaport.fulfillOrder.selector,
-            "unexpected action selected"
-        );
-        assertEq(
             res.suggestedActionName,
             "fulfillOrder",
             "unexpected actionName selected"
+        );
+        assertEq(
+            res.suggestedCallData,
+            abi.encodeCall(
+                ConsiderationInterface.fulfillOrder,
+                (advancedOrder.toOrder(), bytes32(0))
+            ),
+            "unexpected suggested calldata"
         );
         assertEq(
             res.validationErrors.length,

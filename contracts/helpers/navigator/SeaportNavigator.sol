@@ -45,6 +45,7 @@ contract SeaportNavigator is SeaportNavigatorInterface {
     HelperInterface public immutable validatorHelper;
     HelperInterface public immutable orderDetailsHelper;
     HelperInterface public immutable fulfillmentsHelper;
+    HelperInterface public immutable suggestedActionHelper;
     HelperInterface public immutable executionsHelper;
 
     HelperInterface[] public helpers;
@@ -55,6 +56,7 @@ contract SeaportNavigator is SeaportNavigatorInterface {
         address _validatorHelper,
         address _orderDetailsHelper,
         address _fulfillmentsHelper,
+        address _suggestedActionHelper,
         address _executionsHelper
     ) {
         requestValidator = HelperInterface(_requestValidator);
@@ -71,6 +73,9 @@ contract SeaportNavigator is SeaportNavigatorInterface {
 
         fulfillmentsHelper = HelperInterface(_fulfillmentsHelper);
         helpers.push(fulfillmentsHelper);
+
+        suggestedActionHelper = HelperInterface(_suggestedActionHelper);
+        helpers.push(suggestedActionHelper);
 
         executionsHelper = HelperInterface(_executionsHelper);
         helpers.push(executionsHelper);
