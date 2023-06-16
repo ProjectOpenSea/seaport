@@ -124,13 +124,14 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
 
         // Declare a variable to store the sum of all items across transfers.
         uint256 sumOfItemsAcrossAllTransfers;
+        TransferHelperItemsWithRecipient calldata transfer;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each transfer.
             for (uint256 i = 0; i < numTransfers; ++i) {
                 // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
+                transfer = transfers[
                     i
                 ];
 
@@ -147,36 +148,40 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
 
         // Declare an index for storing ConduitTransfers in conduitTransfers.
         uint256 itemIndex;
+        TransferHelperItem[] calldata transferItems;
+        bool callERC721Receiver;
+        TransferHelperItem calldata item;
+        uint256 numItemsInTransfer;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each transfer.
             for (uint256 i = 0; i < numTransfers; ++i) {
                 // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
+                transfer = transfers[
                     i
                 ];
 
                 // Retrieve the items of the transfer in question.
-                TransferHelperItem[] calldata transferItems = transfer.items;
+                transferItems = transfer.items;
 
                 // Ensure recipient is not the zero address.
                 _checkRecipientIsNotZeroAddress(transfer.recipient);
 
                 // Create a boolean indicating whether validateERC721Receiver
                 // is true and recipient is a contract.
-                bool callERC721Receiver = transfer.validateERC721Receiver &&
+                callERC721Receiver = transfer.validateERC721Receiver &&
                     transfer.recipient.code.length != 0;
 
                 // Retrieve the total number of items in the transfer and
                 // place on stack.
-                uint256 numItemsInTransfer = transferItems.length;
+                numItemsInTransfer = transferItems.length;
 
                 // Iterate over each item in the transfer to create a
                 // corresponding ConduitTransfer.
                 for (uint256 j = 0; j < numItemsInTransfer; ++j) {
                     // Retrieve the item from the transfer.
-                    TransferHelperItem calldata item = transferItems[j];
+                    item = transferItems[j];
 
                     if (item.itemType == ConduitItemType.ERC20) {
                         // Ensure that the identifier of an ERC20 token is 0.
