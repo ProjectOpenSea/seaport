@@ -12,7 +12,7 @@ contract ExecutionsHelper is HelperInterface {
 
     function prepare(
         NavigatorContext memory context
-    ) public view returns (NavigatorContext memory) {
+    ) public pure returns (NavigatorContext memory) {
         return context.withExecutions();
     }
 }

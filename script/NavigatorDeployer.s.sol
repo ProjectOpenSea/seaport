@@ -63,53 +63,20 @@ contract NavigatorDeployer is Script {
     address private constant CONDUIT_CONTROLLER =
         0x00000000F9490004C11Cef243f5400493c00Ad63;
 
-    bytes32 private constant SALT = bytes32(uint256(0x1));
-
-    function deploy(
-        string memory name,
-        bytes memory initCode
-    ) internal returns (address) {
-        bytes32 initCodeHash = keccak256(initCode);
-        address deploymentAddress = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            address(IMMUTABLE_CREATE2_FACTORY),
-                            SALT,
-                            initCodeHash
-                        )
-                    )
-                )
-            )
-        );
-        bool deployed;
-        if (!IMMUTABLE_CREATE2_FACTORY.hasBeenDeployed(deploymentAddress)) {
-            deploymentAddress = IMMUTABLE_CREATE2_FACTORY.safeCreate2(
-                SALT,
-                initCode
-            );
-            deployed = true;
-        }
-        console.log(
-            _pad(deployed ? "Deploying" : "Found", 10),
-            _pad(name, 23),
-            _pad(LibString.toHexString(deploymentAddress), 43),
-            LibString.toHexString(uint256(initCodeHash))
-        );
-        return deploymentAddress;
-    }
+    bytes32 private constant DEFAULT_SALT = bytes32(uint256(0x1));
+    bytes32 private constant SEAPORT_VALIDATOR_SALT =
+        bytes32(uint256(0x459b42ee5b5e5000d96491ce));
+    bytes32 private constant SEAPORT_NAVIGATOR_SALT =
+        bytes32(uint256(0x9237ec96f90d12013e58e484));
 
     function run() public {
-        vm.startBroadcast();
         console.log(
-            _pad("State", 10),
-            _pad("Name", 23),
-            _pad("Address", 43),
+            pad("State", 10),
+            pad("Name", 23),
+            pad("Address", 43),
             "Initcode hash"
         );
-
+        vm.startBroadcast();
         address seaportValidatorHelper = deploy(
             "SeaportValidatorHelper",
             type(SeaportValidatorHelper).creationCode
@@ -120,6 +87,7 @@ contract NavigatorDeployer is Script {
         );
         deploy(
             "SeaportValidator",
+            SEAPORT_VALIDATOR_SALT,
             bytes.concat(
                 type(SeaportValidator).creationCode,
                 abi.encode(
@@ -161,6 +129,7 @@ contract NavigatorDeployer is Script {
 
         deploy(
             "SeaportNavigator",
+            SEAPORT_NAVIGATOR_SALT,
             bytes.concat(
                 type(SeaportNavigator).creationCode,
                 abi.encode(
@@ -176,7 +145,51 @@ contract NavigatorDeployer is Script {
         );
     }
 
-    function _pad(
+    function deploy(
+        string memory name,
+        bytes memory initCode
+    ) internal returns (address) {
+        return deploy(name, DEFAULT_SALT, initCode);
+    }
+
+    function deploy(
+        string memory name,
+        bytes32 salt,
+        bytes memory initCode
+    ) internal returns (address) {
+        bytes32 initCodeHash = keccak256(initCode);
+        address deploymentAddress = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex"ff",
+                            address(IMMUTABLE_CREATE2_FACTORY),
+                            salt,
+                            initCodeHash
+                        )
+                    )
+                )
+            )
+        );
+        bool deploying;
+        if (!IMMUTABLE_CREATE2_FACTORY.hasBeenDeployed(deploymentAddress)) {
+            deploymentAddress = IMMUTABLE_CREATE2_FACTORY.safeCreate2(
+                salt,
+                initCode
+            );
+            deploying = true;
+        }
+        console.log(
+            pad(deploying ? "Deploying" : "Found", 10),
+            pad(name, 23),
+            pad(LibString.toHexString(deploymentAddress), 43),
+            LibString.toHexString(uint256(initCodeHash))
+        );
+        return deploymentAddress;
+    }
+
+    function pad(
         string memory name,
         uint256 n
     ) internal pure returns (string memory) {
