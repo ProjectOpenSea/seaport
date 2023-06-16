@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
 
+import { LibString } from "solady/src/utils/LibString.sol";
+
 import {
     ReadOnlyOrderValidator
 } from "../contracts/helpers/order-validator/lib/ReadOnlyOrderValidator.sol";
@@ -67,6 +69,7 @@ contract NavigatorDeployer is Script {
         string memory name,
         bytes memory initCode
     ) internal returns (address) {
+        bytes32 initCodeHash = keccak256(initCode);
         address deploymentAddress = address(
             uint160(
                 uint256(
@@ -75,7 +78,7 @@ contract NavigatorDeployer is Script {
                             hex"ff",
                             address(IMMUTABLE_CREATE2_FACTORY),
                             SALT,
-                            keccak256(initCode)
+                            initCodeHash
                         )
                     )
                 )
@@ -92,13 +95,20 @@ contract NavigatorDeployer is Script {
         console.log(
             _pad(deployed ? "Deploying" : "Found", 10),
             _pad(name, 23),
-            deploymentAddress
+            _pad(LibString.toHexString(deploymentAddress), 43),
+            LibString.toHexString(uint256(initCodeHash))
         );
         return deploymentAddress;
     }
 
     function run() public {
         vm.startBroadcast();
+        console.log(
+            _pad("State", 10),
+            _pad("Name", 23),
+            _pad("Address", 43),
+            "Initcode hash"
+        );
 
         address seaportValidatorHelper = deploy(
             "SeaportValidatorHelper",
