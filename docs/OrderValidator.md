@@ -4,27 +4,33 @@ The SeaportValidator contract offers various validation methods to ensure that s
 
 See below for the full list of Errors and Warnings.
 
-The contract has been verified and deployed to the following addresses:
+The contract is deployed to the following addresses:
 
 <table>
 <tr>
 <th>Contract</th>
 <th>Canonical Cross-chain Deployment Address</th>
 </tr>
+<td>SeaportValidator</td>
+<td><code>0x00e5F120f500006757E984F1DED400fc00370000</code></td>
+</tr>
 <tr>
-<td>SeaportValidator 1.1</td>
+<td>SeaportValidator 1.1 (legacy)</td>
 <td><code>0xF75194740067D6E4000000003b350688DD770000</code></td>
 </tr>
 <tr>
-<td>SeaportValidator 1.4</td>
+<td>SeaportValidator 1.4 (legacy)</td>
 <td><code>0x00000000BE3Af6882A06323fd3f400A9e6A0DC42</code></td>
 </tr>
-<td>SeaportValidator 1.5</td>
+<td>SeaportValidator 1.5 (legacy)</td>
 <td><code>0x000000000DD1F1B245b936b2771408555CF8B8af</code></td>
 </tr>
 </table>
 
-Special thanks to [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code).
+Special thanks to:
+- [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code)
+- [stephankmin](https://github.com/stephankmin), who extended the SeaportValidator contract to support more errors/warnings and arbitary Seaport instances with compatible versions
+- [horsefacts](https://github.com/horsefacts), who implemented support for a ready-only version of the helper contract
 
 ## Errors and Warnings
 | Code | Issue |
