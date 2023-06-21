@@ -431,7 +431,7 @@ Not deployed
 
 </td><td>
 
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://gnossiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://gnosisscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td><td>
 
