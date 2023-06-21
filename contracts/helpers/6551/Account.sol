@@ -150,8 +150,10 @@ contract Account is
         if (_isApproval(data)) {
             ApprovalType memory approvalType = _getApprovalType(data);
             // TODO: get approvedAddress and approvedAmount
-            address approvedAddress;
-            uint256 approvedAmount;
+            if (approvalType == ApprovalType.ERC20_APPROVE) {
+                address approvedAddress = address(bytes20(data[4:24]));
+                uint256 approvedAmount = uint256(bytes32(data[24:56]));
+            }
             _trackApprovals(approvalType, to, approvedAddress, approvedAmount);
         }
 

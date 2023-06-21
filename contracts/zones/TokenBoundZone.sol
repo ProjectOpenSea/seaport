@@ -48,11 +48,21 @@ contract TBAZone is ERC165, ZoneInterface {
     // Revert if hash of extraData does not match zoneHash.
     error InvalidExtraData();
 
+    // Revert if msg.sender is not the owner of the TBA.
+    error InvalidAccountOwner(address tba, address msgSender);
+
     // Set an immutable EIP-6551 registry to check for account nonce.
     IERC6551Registry internal immutable _erc6551Registry;
 
     // Set an address for the account implementation to pass into the call to the registry.
     address internal _accountImplementation;
+
+    modifier onlyAccountOwner(address tba) {
+        if (msg.sender != IERC6551Account(tba).owner()) {
+            revert InvalidAccountOwner(tba, msg.sender);
+        }
+        _;
+    }
 
     constructor(address erc6551Registry, address accountImplementation) {
         _erc6551Registry = IERC6551Registry(erc6551Registry);
@@ -122,6 +132,26 @@ contract TBAZone is ERC165, ZoneInterface {
 
         // Return magic value
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
+    }
+
+    function revokeAllTokenApprovals(
+        address tba
+    ) external onlyAccountOwner(tba) {
+        bytes calldata extraData = zoneParameters.extraData;
+        address tba;
+        uint32 expectedAccountNonce;
+
+        // Get the TBA address
+        assembly {
+            tba := shr(TBA_EXTRADATA_RSHIFT, calldataload(extraData.offset))
+            expectedAccountNonce := shr(
+                NONCE_RSHIFT,
+                calldataload(extraData.offset)
+            )
+        }
+
+        // Get the owner of the TBA
+        address owner = IERC6551Account(tba).owner();
     }
 
     function getSeaportMetadata()
