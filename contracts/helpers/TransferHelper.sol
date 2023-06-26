@@ -152,6 +152,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         bool callERC721Receiver;
         TransferHelperItem calldata item;
         uint256 numItemsInTransfer;
+        uint256 j;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
@@ -179,7 +180,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
 
                 // Iterate over each item in the transfer to create a
                 // corresponding ConduitTransfer.
-                for (uint256 j = 0; j < numItemsInTransfer; ++j) {
+                for (j = 0; j < numItemsInTransfer; ++j) {
                     // Retrieve the item from the transfer.
                     item = transferItems[j];
 
