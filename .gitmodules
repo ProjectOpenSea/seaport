@@ -30,3 +30,6 @@
 [submodule "lib/seaport-sol"]
 	path = lib/seaport-sol
 	url = https://github.com/projectopensea/seaport-sol
+[submodule "lib/account-abstraction"]
+	path = lib/account-abstraction
+	url = https://github.com/eth-infinitism/account-abstraction

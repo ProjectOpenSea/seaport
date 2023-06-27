@@ -34,7 +34,6 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 /**
- * TODO: update title
  * @title  TBAZone
  * @author stephankmin
  * @notice TokenBoundZone is a zone implementation that validates Token Bound Accounts (TBAs)
@@ -137,21 +136,8 @@ contract TBAZone is ERC165, ZoneInterface {
     function revokeAllTokenApprovals(
         address tba
     ) external onlyAccountOwner(tba) {
-        bytes calldata extraData = zoneParameters.extraData;
-        address tba;
-        uint32 expectedAccountNonce;
-
-        // Get the TBA address
-        assembly {
-            tba := shr(TBA_EXTRADATA_RSHIFT, calldataload(extraData.offset))
-            expectedAccountNonce := shr(
-                NONCE_RSHIFT,
-                calldataload(extraData.offset)
-            )
-        }
-
-        // Get the owner of the TBA
-        address owner = IERC6551Account(tba).owner();
+        // Revoke approvals for all tokens owned by the TBA.
+        IERC20(tokenAddress).approve(msg.sender, 0);
     }
 
     function getSeaportMetadata()

@@ -12,12 +12,15 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-
+import {
+    EnumerableMap,
+    EnumerableSet
+} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {
     BaseAccount as BaseERC4337Account,
     IEntryPoint,
     UserOperation
-} from "account-abstraction/core/BaseAccount.sol";
+} from "lib/account-abstraction/contracts/core/BaseAccount.sol";
 
 import "./interfaces/IAccountGuardian.sol";
 
@@ -49,10 +52,7 @@ contract Account is
     BaseERC4337Account
 {
     using ECDSA for bytes32;
-    using EnumerableSet for EnumerableSet.UintSet;
-    using EnumerableSet for EnumerableSet.AddressSet;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
-    using EnumerableMap for EnumerableMap.UintToAddressMap;
+    using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
 
     // bytes4(keccak256("approve(address,uint256)"))
     uint256 constant IERC20_721_APPROVE_SELECTOR =
@@ -79,12 +79,15 @@ contract Account is
     /// @dev mapping from owner => caller => has permissions
     mapping(address => mapping(address => bool)) public permissions;
 
-    EnumerableSet.AddressSet _approvedErc20s;
-    EnumerableSet.AddressSet _approvedErc721s;
-    EnumerableSet.AddressSet _approvedForAll;
-    mapping(address => EnumerableMap.AddressToUintMap) _approvalsForAll;
-    mapping(address => EnumerableMap.AddressToUintMap) _erc20ApprovalsMap;
-    mapping(address => EnumerableMap.UintToAddressMap) _erc721ApprovalsMap;
+    /// @dev enumerable map from token address => operator (if erc20/erc1155) or tokenId (if erc721)
+    EnumerableMap.Bytes32ToBytes32Map _approvals;
+
+    // EnumerableSet.AddressSet _approvedErc20s;
+    // EnumerableSet.AddressSet _approvedErc721s;
+    // EnumerableSet.AddressSet _approvedForAll;
+    // mapping(address => EnumerableMap.Bytes32ToBytes32Map) _approvalsForAll;
+    // mapping(address => EnumerableMap.AddressToUintMap) _erc20ApprovalsMap;
+    // mapping(address => EnumerableMap.UintToAddressMap) _erc721ApprovalsMap;
 
     event OverrideUpdated(
         address owner,
@@ -114,10 +117,6 @@ contract Account is
         _;
     }
 
-    modifier notApproval(bytes calldata data) {
-        if (_isApproval(data)) revert UseApprovalSpecificMethods();
-    }
-
     constructor(address _guardian, address entryPoint_) {
         if (_guardian == address(0) || entryPoint_ == address(0))
             revert InvalidInput();
@@ -137,16 +136,19 @@ contract Account is
     }
 
     /// @dev executes a low-level call against an account if the caller is authorized to make calls
-    ///      call will revert if it includes approval
+    ///      enumerable map of approvals will be updated in storage if call includes approval
     function executeCall(
         address to,
         uint256 value,
         bytes calldata data
     ) external payable onlyAuthorized onlyUnlocked returns (bytes memory) {
+        // Emit an event indicating a transaction has been executed.
         emit TransactionExecuted(to, value, data);
 
+        // Increment the account nonce.
         _incrementNonce();
 
+        // If the call is an approval, get the approved address and approved amount.
         if (_isApproval(data)) {
             ApprovalType memory approvalType = _getApprovalType(data);
             // TODO: get approvedAddress and approvedAmount
@@ -154,6 +156,8 @@ contract Account is
                 address approvedAddress = address(bytes20(data[4:24]));
                 uint256 approvedAmount = uint256(bytes32(data[24:56]));
             }
+
+            // Update the enumerable map of approvals.
             _trackApprovals(approvalType, to, approvedAddress, approvedAmount);
         }
 
@@ -464,16 +468,14 @@ contract Account is
     ) internal {
         if (approvalType == ApprovalType.ERC20_APPROVE) {
             _updateApprovedOperator(
-                _approvedErc20s,
-                _erc20ApprovalsMap[target],
+                _approvals,
                 target,
                 approvedAddress,
                 approvedValue
             );
         } else if (approvalType == ApprovalType.SET_APPROVAL_FOR_ALL) {
             _updateApprovedOperator(
-                _approvedForAll,
-                _approvalsForAll[target],
+                _approvals,
                 target,
                 approvedAddress,
                 approvedValue
@@ -503,8 +505,7 @@ contract Account is
                 }
                 uint256 newValue = currentValue + approvedValue;
                 _updateApprovedOperator(
-                    _approvedErc20s,
-                    _erc20ApprovalsMap[target],
+                    _approvals,
                     target,
                     approvedAddress,
                     newValue
@@ -515,29 +516,26 @@ contract Account is
     }
 
     function _updateApprovedOperator(
-        EnumerableSet.AddressSet storage toUpdate,
-        EnumerableMap.AddressToUintMap storage toAddOrRemove,
+        EnumerableMap.Bytes32ToBytes32Map storage approvals,
         address target,
         address operator,
         uint256 value
     ) internal {
         if (value == 0) {
-            _removeAndUpdateTracked(toUpdate, toAddOrRemove, operator);
+            // Remove operator if approvals are being revoked.
+            _removeOperator(approvals, target);
         } else {
-            toUpdate.add(target);
-            toAddOrRemove.set(operator, value);
+            // Add the operator to the approvals map.
+            approvals.add(target);
         }
     }
 
-    function _removeAndUpdateTracked(
-        EnumerableSet.AddressSet storage toUpdate,
-        EnumerableMap.AddressToUintMap storage toRemove,
+    function _removeOperator(
+        EnumerableMap.Bytes32ToBytes32Map storage approvals,
         address target
     ) internal {
-        bool removed = toRemove.remove(target);
-        if (removed && toRemove.length() == 0) {
-            toUpdate.remove(target);
-        }
+        bytes32 memory targetBytes32 = bytes32(uint256(target));
+        bool removed = approvals.remove(targetBytes32);
     }
 
     /// @dev checks if a low-level call is an approval
@@ -560,6 +558,7 @@ contract Account is
         }
     }
 
+    /// @dev Gets approval type from the function selector
     function _getApprovalType(
         bytes calldata callData
     ) internal pure returns (ApprovalType approvalType) {
