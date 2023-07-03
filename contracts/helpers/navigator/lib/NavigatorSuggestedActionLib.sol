@@ -94,7 +94,9 @@ library NavigatorSuggestedActionLib {
 
         bool hasUnavailable = context.request.maximumFulfilled <
             context.response.orders.length;
-        for (uint256 i = 0; i < context.response.orderDetails.length; ++i) {
+        uint256 contextResponseOrderDetailsLength =
+            context.response.orderDetails.length;
+        for (uint256 i = 0; i < contextResponseOrderDetailsLength; ++i) {
             if (
                 context.response.orderDetails[i].unavailableReason !=
                 UnavailableReason.AVAILABLE
@@ -110,31 +112,9 @@ library NavigatorSuggestedActionLib {
             }
 
             if (structure == Structure.ADVANCED) {
-                return
-                    abi.encodeCall(
-                        ConsiderationInterface.fulfillAvailableAdvancedOrders,
-                        (
-                            context.response.orders,
-                            context.response.criteriaResolvers,
-                            context.response.offerFulfillments,
-                            context.response.considerationFulfillments,
-                            context.request.fulfillerConduitKey,
-                            context.request.recipient,
-                            context.request.maximumFulfilled
-                        )
-                    );
+                return _doFulfillAvailableAdvancedOrders(context);
             } else {
-                return
-                    abi.encodeCall(
-                        ConsiderationInterface.fulfillAvailableOrders,
-                        (
-                            context.response.orders.toOrders(),
-                            context.response.offerFulfillments,
-                            context.response.considerationFulfillments,
-                            context.request.fulfillerConduitKey,
-                            context.request.maximumFulfilled
-                        )
-                    );
+                return _doFulfillAvailableOrders(context);
             }
         }
 
@@ -191,56 +171,16 @@ library NavigatorSuggestedActionLib {
 
         if (cannotMatch) {
             if (structure == Structure.ADVANCED) {
-                return
-                    abi.encodeCall(
-                        ConsiderationInterface.fulfillAvailableAdvancedOrders,
-                        (
-                            context.response.orders,
-                            context.response.criteriaResolvers,
-                            context.response.offerFulfillments,
-                            context.response.considerationFulfillments,
-                            context.request.fulfillerConduitKey,
-                            context.request.recipient,
-                            context.request.maximumFulfilled
-                        )
-                    );
+                return _doFulfillAvailableAdvancedOrders(context);
             } else {
-                return
-                    abi.encodeCall(
-                        ConsiderationInterface.fulfillAvailableOrders,
-                        (
-                            context.response.orders.toOrders(),
-                            context.response.offerFulfillments,
-                            context.response.considerationFulfillments,
-                            context.request.fulfillerConduitKey,
-                            context.request.maximumFulfilled
-                        )
-                    );
+                return _doFulfillAvailableOrders(context);
             }
         } else if (invalidOfferItemsLocated) {
             if (structure == Structure.ADVANCED) {
-                return
-                    abi.encodeCall(
-                        ConsiderationInterface.fulfillAvailableAdvancedOrders,
-                        (
-                            context.response.orders,
-                            context.response.criteriaResolvers,
-                            context.response.offerFulfillments,
-                            context.response.considerationFulfillments,
-                            context.request.fulfillerConduitKey,
-                            context.request.recipient,
-                            context.request.maximumFulfilled
-                        )
-                    );
+                return _doFulfillAvailableAdvancedOrders(context);
             } else {
-                return
-                    abi.encodeCall(
-                        ConsiderationInterface.matchOrders,
-                        (
-                            context.response.orders.toOrders(),
-                            context.response.fulfillments
-                        )
-                    );
+                return _doMatchOrders(context);
+                    
             }
         } else {
             if (structure == Structure.ADVANCED) {
@@ -256,43 +196,13 @@ library NavigatorSuggestedActionLib {
                             )
                         );
                 } else {
-                    return
-                        abi.encodeCall(
-                            ConsiderationInterface
-                                .fulfillAvailableAdvancedOrders,
-                            (
-                                context.response.orders,
-                                context.response.criteriaResolvers,
-                                context.response.offerFulfillments,
-                                context.response.considerationFulfillments,
-                                context.request.fulfillerConduitKey,
-                                context.request.recipient,
-                                context.request.maximumFulfilled
-                            )
-                        );
+                    return _doFulfillAvailableAdvancedOrders(context);
                 }
             } else {
                 if (context.request.preferMatch) {
-                    return
-                        abi.encodeCall(
-                            ConsiderationInterface.matchOrders,
-                            (
-                                context.response.orders.toOrders(),
-                                context.response.fulfillments
-                            )
-                        );
+                    return _doMatchOrders(context);
                 } else {
-                    return
-                        abi.encodeCall(
-                            ConsiderationInterface.fulfillAvailableOrders,
-                            (
-                                context.response.orders.toOrders(),
-                                context.response.offerFulfillments,
-                                context.response.considerationFulfillments,
-                                context.request.fulfillerConduitKey,
-                                context.request.maximumFulfilled
-                            )
-                        );
+                    return _doFulfillAvailableOrders(context);
                 }
             }
         }
@@ -302,19 +212,24 @@ library NavigatorSuggestedActionLib {
      * @dev Return whether the provided orders must be matched using matchOrders
      *      or matchAdvancedOrders.
      */
-    function mustUseMatch(
-        NavigatorContext memory context
-    ) internal pure returns (bool) {
+    function mustUseMatch(NavigatorContext memory context)
+        internal
+        pure
+        returns (bool)
+    {
         OrderDetails[] memory orders = context.response.orderDetails;
 
-        for (uint256 i = 0; i < orders.length; ++i) {
+        uint256 ordersLength = orders.length;
+
+        for (uint256 i = 0; i < ordersLength; ++i) {
             OrderDetails memory order = orders[i];
 
             if (order.isContract) {
                 continue;
             }
 
-            for (uint256 j = 0; j < order.offer.length; ++j) {
+            uint256 orderOfferLength = order.offer.length;
+            for (uint256 j = 0; j < orderOfferLength; ++j) {
                 if (order.offer[j].itemType == ItemType.NATIVE) {
                     return true;
                 }
@@ -325,30 +240,32 @@ library NavigatorSuggestedActionLib {
             return false;
         }
 
-        for (uint256 i = 0; i < orders.length; ++i) {
+        uint256 ordersLength = orders.length;
+        for (uint256 i = 0; i < ordersLength; ++i) {
             OrderDetails memory order = orders[i];
 
-            for (uint256 j = 0; j < order.offer.length; ++j) {
+            uint256 orderOfferLength = order.offer.length;
+            for (uint256 j = 0; j < orderOfferLength; ++j) {
                 SpentItem memory item = order.offer[j];
 
                 if (item.itemType != ItemType.ERC721) {
                     continue;
                 }
 
-                for (uint256 k = 0; k < orders.length; ++k) {
+                for (uint256 k = 0; k < ordersLength; ++k) {
                     OrderDetails memory comparisonOrder = orders[k];
                     for (
                         uint256 l = 0;
                         l < comparisonOrder.consideration.length;
                         ++l
                     ) {
-                        ReceivedItem memory considerationItem = comparisonOrder
-                            .consideration[l];
+                        ReceivedItem memory considerationItem =
+                            comparisonOrder.consideration[l];
 
                         if (
-                            considerationItem.itemType == ItemType.ERC721 &&
-                            considerationItem.identifier == item.identifier &&
-                            considerationItem.token == item.token
+                            considerationItem.itemType == ItemType.ERC721
+                                && considerationItem.identifier == item.identifier
+                                && considerationItem.token == item.token
                         ) {
                             return true;
                         }
@@ -359,4 +276,63 @@ library NavigatorSuggestedActionLib {
 
         return false;
     }
+
+    /**
+     * @dev Helper to fulfill the provided orders using the fulfillAvailableAdvancedOrders method.
+     */
+    function _doFulfillAvailableAdvancedOrders(NavigatorContext memory context)
+        private
+        view
+        returns (bytes memory)
+    {
+        return abi.encodeCall(
+            ConsiderationInterface.fulfillAvailableAdvancedOrders,
+            (
+                context.response.orders,
+                context.response.criteriaResolvers,
+                context.response.offerFulfillments,
+                context.response.considerationFulfillments,
+                context.request.fulfillerConduitKey,
+                context.request.recipient,
+                context.request.maximumFulfilled
+            )
+        );
+    }
+
+    /**
+     * @dev Helper to fulfill the provided orders using the fulfillAvailableOrders method.
+     */
+    function _doFulfillAvailableOrders(NavigatorContext memory context)
+        private
+        view
+        returns (bytes memory)
+    {
+        return abi.encodeCall(
+            ConsiderationInterface.fulfillAvailableOrders,
+            (
+                context.response.orders.toOrders(),
+                context.response.offerFulfillments,
+                context.response.considerationFulfillments,
+                context.request.fulfillerConduitKey,
+                context.request.maximumFulfilled
+            )
+        );
+    }
+
+    /**
+     * @dev Helper to fulfill the provided orders using the matchOrders method.
+     */
+    function _doMatchOrders(NavigatorContext memory context)
+        private
+        view
+        returns (bytes memory){
+            return 
+                abi.encodeCall(
+                    ConsiderationInterface.matchOrders,
+                    (
+                        context.response.orders.toOrders(),
+                        context.response.fulfillments
+                    )
+                );
+        }
 }
