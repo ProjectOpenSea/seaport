@@ -98,7 +98,7 @@ Special thanks to:
 | 1302 | Native token insufficient balance |
 | 1400 | Zone is invalid |
 | 1401 | Zone rejected order. This order must be fulfilled by the zone. |
-| 1401 | Zone not set. Order unfulfillable |
+| 1402 | Zone not set. Order unfulfillable |
 | 1500 | Merkle input only has one leaf |
 | 1501 | Merkle input not sorted correctly |
 | 1600 | Contract offerer is invalid |
