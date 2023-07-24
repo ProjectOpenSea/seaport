@@ -240,7 +240,6 @@ library NavigatorSuggestedActionLib {
             return false;
         }
 
-        uint256 ordersLength = orders.length;
         for (uint256 i = 0; i < ordersLength; ++i) {
             OrderDetails memory order = orders[i];
 
@@ -282,7 +281,7 @@ library NavigatorSuggestedActionLib {
      */
     function _doFulfillAvailableAdvancedOrders(NavigatorContext memory context)
         private
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encodeCall(
@@ -304,7 +303,7 @@ library NavigatorSuggestedActionLib {
      */
     function _doFulfillAvailableOrders(NavigatorContext memory context)
         private
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encodeCall(
@@ -324,7 +323,7 @@ library NavigatorSuggestedActionLib {
      */
     function _doMatchOrders(NavigatorContext memory context)
         private
-        view
+        pure
         returns (bytes memory){
             return 
                 abi.encodeCall(
