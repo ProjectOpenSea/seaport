@@ -55,7 +55,8 @@ library CriteriaHelperLib {
             uint256 idx;
             bool found;
             bytes32[] memory idHashes = toSortedHashes(tokenIds);
-            for (; idx < idHashes.length; idx++) {
+            uint256 idHashesLength = idHashes.length;
+            for (; idx < idHashesLength; idx++) {
                 if (idHashes[idx] == idHash) {
                     found = true;
                     break;
@@ -72,10 +73,11 @@ library CriteriaHelperLib {
     function sortByHash(
         uint256[] memory tokenIds
     ) internal pure returns (uint256[] memory sortedIds) {
+        uint256 tokenIdsLength = tokenIds.length;
         HashAndIntTuple[] memory toSort = new HashAndIntTuple[](
-            tokenIds.length
-        );
-        for (uint256 i = 0; i < tokenIds.length; i++) {
+            tokenIdsLength
+        );        
+        for (uint256 i = 0; i < tokenIdsLength; i++) {
             toSort[i] = HashAndIntTuple(
                 tokenIds[i],
                 keccak256(abi.encode(tokenIds[i]))
@@ -84,8 +86,8 @@ library CriteriaHelperLib {
 
         _quickSort(toSort, 0, int256(toSort.length - 1));
 
-        sortedIds = new uint256[](tokenIds.length);
-        for (uint256 i = 0; i < tokenIds.length; i++) {
+        sortedIds = new uint256[](tokenIdsLength);
+        for (uint256 i = 0; i < tokenIdsLength; i++) {
             sortedIds[i] = toSort[i].num;
         }
     }
@@ -99,7 +101,8 @@ library CriteriaHelperLib {
     ) internal pure returns (bytes32[] memory hashes) {
         hashes = new bytes32[](tokenIds.length);
         uint256[] memory ids = sortByHash(tokenIds);
-        for (uint256 i; i < ids.length; ++i) {
+        uint256 idsLength = ids.length;
+        for (uint256 i; i < idsLength; ++i) {
             hashes[i] = keccak256(abi.encode(ids[i]));
         }
     }
