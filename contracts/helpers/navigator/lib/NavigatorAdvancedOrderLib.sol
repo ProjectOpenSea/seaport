@@ -39,33 +39,45 @@ library NavigatorAdvancedOrderLib {
     function fromAdvancedOrder(
         AdvancedOrder memory order
     ) internal pure returns (NavigatorAdvancedOrder memory) {
+        uint256 orderParamtersOfferLength = order.parameters.offer.length;
+        uint256 orderParamtersConsiderationLength = order
+            .parameters
+            .consideration
+            .length;
+
         NavigatorOfferItem[] memory offerItems = new NavigatorOfferItem[](
-            order.parameters.offer.length
+            orderParamtersOfferLength
         );
-        for (uint256 i; i < order.parameters.offer.length; i++) {
-            OfferItem memory item = order.parameters.offer[i];
+
+        OfferItem memory offerItem;
+
+        for (uint256 i; i < orderParamtersOfferLength; i++) {
+            offerItem = order.parameters.offer[i];
             offerItems[i] = NavigatorOfferItem({
-                itemType: item.itemType,
-                token: item.token,
-                identifier: item.identifierOrCriteria,
-                startAmount: item.startAmount,
-                endAmount: item.endAmount,
+                itemType: offerItem.itemType,
+                token: offerItem.token,
+                identifier: offerItem.identifierOrCriteria,
+                startAmount: offerItem.startAmount,
+                endAmount: offerItem.endAmount,
                 candidateIdentifiers: new uint256[](0)
             });
         }
+
+        
         NavigatorConsiderationItem[]
             memory considerationItems = new NavigatorConsiderationItem[](
-                order.parameters.consideration.length
+                orderParamtersConsiderationLength
             );
-        for (uint256 i; i < order.parameters.consideration.length; i++) {
-            ConsiderationItem memory item = order.parameters.consideration[i];
+        ConsiderationItem memory considerationItem;
+        for (uint256 i; i < orderParamtersConsiderationLength; i++) {
+            considerationItem = order.parameters.consideration[i];
             considerationItems[i] = NavigatorConsiderationItem({
-                itemType: item.itemType,
-                token: item.token,
-                identifier: item.identifierOrCriteria,
-                startAmount: item.startAmount,
-                endAmount: item.endAmount,
-                recipient: item.recipient,
+                itemType: considerationItem.itemType,
+                token: considerationItem.token,
+                identifier: considerationItem.identifierOrCriteria,
+                startAmount: considerationItem.startAmount,
+                endAmount: considerationItem.endAmount,
+                recipient: considerationItem.recipient,
                 candidateIdentifiers: new uint256[](0)
             });
         }
@@ -97,84 +109,93 @@ library NavigatorAdvancedOrderLib {
         NavigatorAdvancedOrder memory order,
         uint256 orderIndex
     ) internal pure returns (AdvancedOrder memory, CriteriaResolver[] memory) {
+        uint256 orderParamtersOfferLength = order.parameters.offer.length;
+        uint256 orderParamtersConsiderationLength = order
+            .parameters
+            .consideration
+            .length;
+
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
-            order.parameters.offer.length +
-                order.parameters.consideration.length
+            orderParamtersOfferLength +
+                orderParamtersConsiderationLength
         );
         uint256 criteriaResolverLen;
         OfferItem[] memory offer = new OfferItem[](
-            order.parameters.offer.length
+            orderParamtersOfferLength
         );
-        for (uint256 i; i < order.parameters.offer.length; i++) {
-            NavigatorOfferItem memory item = order.parameters.offer[i];
-            if (item.hasCriteria()) {
-                item.validate();
+
+        NavigatorOfferItem memory navigatorOfferItem;
+        for (uint256 i; i < orderParamtersOfferLength; i++) {
+            navigatorOfferItem = order.parameters.offer[i];
+            if (navigatorOfferItem.hasCriteria()) {
+                navigatorOfferItem.validate();
                 offer[i] = OfferItem({
-                    itemType: item.normalizeType(),
-                    token: item.token,
+                    itemType: navigatorOfferItem.normalizeType(),
+                    token: navigatorOfferItem.token,
                     identifierOrCriteria: uint256(
-                        item.candidateIdentifiers.criteriaRoot()
+                        navigatorOfferItem.candidateIdentifiers.criteriaRoot()
                     ),
-                    startAmount: item.startAmount,
-                    endAmount: item.endAmount
+                    startAmount: navigatorOfferItem.startAmount,
+                    endAmount: navigatorOfferItem.endAmount
                 });
                 criteriaResolvers[criteriaResolverLen] = CriteriaResolver({
                     orderIndex: orderIndex,
                     side: Side.OFFER,
                     index: i,
-                    identifier: item.identifier,
-                    criteriaProof: item.candidateIdentifiers.criteriaProof(
-                        item.identifier
+                    identifier: navigatorOfferItem.identifier,
+                    criteriaProof: navigatorOfferItem.candidateIdentifiers.criteriaProof(
+                        navigatorOfferItem.identifier
                     )
                 });
                 criteriaResolverLen++;
             } else {
                 offer[i] = OfferItem({
-                    itemType: item.itemType,
-                    token: item.token,
-                    identifierOrCriteria: item.identifier,
-                    startAmount: item.startAmount,
-                    endAmount: item.endAmount
+                    itemType: navigatorOfferItem.itemType,
+                    token: navigatorOfferItem.token,
+                    identifierOrCriteria: navigatorOfferItem.identifier,
+                    startAmount: navigatorOfferItem.startAmount,
+                    endAmount: navigatorOfferItem.endAmount
                 });
             }
         }
         ConsiderationItem[] memory consideration = new ConsiderationItem[](
-            order.parameters.consideration.length
+            orderParamtersConsiderationLength
         );
-        for (uint256 i; i < order.parameters.consideration.length; i++) {
-            NavigatorConsiderationItem memory item = order
+        NavigatorConsiderationItem memory navigatorConsiderationItem;
+        for (uint256 i; i < orderParamtersConsiderationLength; i++) {
+            navigatorConsiderationItem = order
                 .parameters
                 .consideration[i];
-            if (item.hasCriteria()) {
-                item.validate();
+            if (navigatorConsiderationItem.hasCriteria()) {
+                navigatorConsiderationItem.validate();
                 consideration[i] = ConsiderationItem({
-                    itemType: item.normalizeType(),
-                    token: item.token,
+                    itemType: navigatorConsiderationItem.normalizeType(),
+                    token: navigatorConsiderationItem.token,
                     identifierOrCriteria: uint256(
-                        item.candidateIdentifiers.criteriaRoot()
+                        navigatorConsiderationItem.candidateIdentifiers.criteriaRoot()
                     ),
-                    startAmount: item.startAmount,
-                    endAmount: item.endAmount,
-                    recipient: item.recipient
+                    startAmount: navigatorConsiderationItem.startAmount,
+                    endAmount: navigatorConsiderationItem.endAmount,
+                    recipient: navigatorConsiderationItem.recipient
                 });
                 criteriaResolvers[criteriaResolverLen] = CriteriaResolver({
                     orderIndex: orderIndex,
                     side: Side.CONSIDERATION,
                     index: i,
-                    identifier: item.identifier,
-                    criteriaProof: item.candidateIdentifiers.criteriaProof(
-                        item.identifier
+                    identifier: navigatorConsiderationItem.identifier,
+                    criteriaProof: navigatorConsiderationItem.candidateIdentifiers.criteriaProof(
+                        navigatorConsiderationItem.identifier
                     )
                 });
                 criteriaResolverLen++;
             } else {
                 consideration[i] = ConsiderationItem({
-                    itemType: item.itemType,
-                    token: item.token,
-                    identifierOrCriteria: item.identifier,
-                    startAmount: item.startAmount,
-                    endAmount: item.endAmount,
-                    recipient: item.recipient
+                    itemType: navigatorConsiderationItem.itemType,
+                    token: navigatorConsiderationItem.token,
+                    identifierOrCriteria: navigatorConsiderationItem.identifier,
+                    startAmount: navigatorConsiderationItem.startAmount,
+                    endAmount: navigatorConsiderationItem.endAmount,
+                    recipient: navigatorConsiderationItem.recipient
                 });
             }
         }
@@ -214,12 +235,14 @@ library NavigatorAdvancedOrderLib {
         pure
         returns (AdvancedOrder[] memory, CriteriaResolver[] memory)
     {
+        uint256 ordersLength = orders.length;
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](
-            orders.length
+            ordersLength
         );
         uint256 maxCriteriaResolvers;
-        for (uint256 i; i < orders.length; i++) {
-            NavigatorOrderParameters memory parameters = orders[i].parameters;
+        NavigatorOrderParameters memory parameters;
+        for (uint256 i; i < ordersLength; i++) {
+            parameters = orders[i].parameters;
             maxCriteriaResolvers += (parameters.offer.length +
                 parameters.consideration.length);
         }
@@ -227,13 +250,14 @@ library NavigatorAdvancedOrderLib {
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
             maxCriteriaResolvers
         );
-        for (uint256 i = 0; i < orders.length; i++) {
+        for (uint256 i = 0; i < ordersLength; i++) {
             (
                 AdvancedOrder memory order,
                 CriteriaResolver[] memory orderResolvers
             ) = toAdvancedOrder(orders[i], i);
             advancedOrders[i] = order;
-            for (uint256 j; j < orderResolvers.length; j++) {
+            uint256 orderResolversLength = orderResolvers.length;
+            for (uint256 j; j < orderResolversLength; j++) {
                 criteriaResolvers[criteriaResolverIndex] = orderResolvers[j];
                 criteriaResolverIndex++;
             }

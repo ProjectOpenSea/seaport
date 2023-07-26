@@ -22,10 +22,12 @@ library NavigatorSeaportValidatorLib {
     ) internal view returns (NavigatorContext memory) {
         AdvancedOrder[] memory orders = context.response.orders;
 
+        uint256 ordersLength = orders.length;
+
         ErrorsAndWarnings[] memory errors = new ErrorsAndWarnings[](
-            orders.length
+           ordersLength
         );
-        for (uint256 i; i < orders.length; i++) {
+        for (uint256 i; i < ordersLength; i++) {
             errors[i] = context.request.validator.isValidOrder(
                 orders[i].toOrder(),
                 address(context.request.seaport)

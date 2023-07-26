@@ -88,7 +88,8 @@ contract SeaportNavigator is SeaportNavigatorInterface {
             .from(request)
             .withEmptyResponse();
 
-        for (uint256 i; i < helpers.length; i++) {
+        uint256 helpersLength = helpers.length;
+        for (uint256 i; i < helpersLength; i++) {
             context = helpers[i].prepare(context);
         }
 

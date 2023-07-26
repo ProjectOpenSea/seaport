@@ -555,19 +555,22 @@ contract SeaportValidator is
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        uint256 orderParametersOfferLength = orderParameters.offer.length;
+
         // Iterate over each offer item and validate it
-        for (uint256 i = 0; i < orderParameters.offer.length; i++) {
+        for (uint256 i = 0; i < orderParametersOfferLength; i++) {
             errorsAndWarnings.concat(
                 validateOfferItem(orderParameters, i, seaportAddress)
             );
 
             // Check for duplicate offer item
             OfferItem memory offerItem1 = orderParameters.offer[i];
+            OfferItem memory offerItem2;
 
-            for (uint256 j = i + 1; j < orderParameters.offer.length; j++) {
+            for (uint256 j = i + 1; j < orderParametersOfferLength; j++) {
                 // Iterate over each remaining offer item
                 // (previous items already check with this item)
-                OfferItem memory offerItem2 = orderParameters.offer[j];
+                offerItem2 = orderParameters.offer[j];
 
                 // Check if token and id are the same
                 if (
@@ -583,12 +586,12 @@ contract SeaportValidator is
         }
 
         // You must have an offer item
-        if (orderParameters.offer.length == 0) {
+        if (orderParametersOfferLength == 0) {
             errorsAndWarnings.addWarning(OfferIssue.ZeroItems.parseInt());
         }
 
         // Warning if there is more than one offer item
-        if (orderParameters.offer.length > 1) {
+        if (orderParametersOfferLength > 1) {
             errorsAndWarnings.addWarning(OfferIssue.MoreThanOneItem.parseInt());
         }
     }

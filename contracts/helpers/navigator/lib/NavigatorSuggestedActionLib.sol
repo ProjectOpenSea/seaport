@@ -94,8 +94,10 @@ library NavigatorSuggestedActionLib {
 
         bool hasUnavailable = context.request.maximumFulfilled <
             context.response.orders.length;
-        uint256 contextResponseOrderDetailsLength =
-            context.response.orderDetails.length;
+        uint256 contextResponseOrderDetailsLength = context
+            .response
+            .orderDetails
+            .length;
         for (uint256 i = 0; i < contextResponseOrderDetailsLength; ++i) {
             if (
                 context.response.orderDetails[i].unavailableReason !=
@@ -180,7 +182,6 @@ library NavigatorSuggestedActionLib {
                 return _doFulfillAvailableAdvancedOrders(context);
             } else {
                 return _doMatchOrders(context);
-                    
             }
         } else {
             if (structure == Structure.ADVANCED) {
@@ -212,17 +213,20 @@ library NavigatorSuggestedActionLib {
      * @dev Return whether the provided orders must be matched using matchOrders
      *      or matchAdvancedOrders.
      */
-    function mustUseMatch(NavigatorContext memory context)
-        internal
-        pure
-        returns (bool)
-    {
+    function mustUseMatch(
+        NavigatorContext memory context
+    ) internal pure returns (bool) {
         OrderDetails[] memory orders = context.response.orderDetails;
 
         uint256 ordersLength = orders.length;
+        OrderDetails memory order;
+        OrderDetails memory comparisonOrder;
+
+        SpentItem memory item;
+        ReceivedItem memory considerationItem;
 
         for (uint256 i = 0; i < ordersLength; ++i) {
-            OrderDetails memory order = orders[i];
+            order = orders[i];
 
             if (order.isContract) {
                 continue;
@@ -241,30 +245,29 @@ library NavigatorSuggestedActionLib {
         }
 
         for (uint256 i = 0; i < ordersLength; ++i) {
-            OrderDetails memory order = orders[i];
+            order = orders[i];
 
             uint256 orderOfferLength = order.offer.length;
             for (uint256 j = 0; j < orderOfferLength; ++j) {
-                SpentItem memory item = order.offer[j];
+                item = order.offer[j];
 
                 if (item.itemType != ItemType.ERC721) {
                     continue;
                 }
 
                 for (uint256 k = 0; k < ordersLength; ++k) {
-                    OrderDetails memory comparisonOrder = orders[k];
+                    comparisonOrder = orders[k];
                     for (
                         uint256 l = 0;
                         l < comparisonOrder.consideration.length;
                         ++l
                     ) {
-                        ReceivedItem memory considerationItem =
-                            comparisonOrder.consideration[l];
+                        considerationItem = comparisonOrder.consideration[l];
 
                         if (
-                            considerationItem.itemType == ItemType.ERC721
-                                && considerationItem.identifier == item.identifier
-                                && considerationItem.token == item.token
+                            considerationItem.itemType == ItemType.ERC721 &&
+                            considerationItem.identifier == item.identifier &&
+                            considerationItem.token == item.token
                         ) {
                             return true;
                         }
@@ -279,59 +282,56 @@ library NavigatorSuggestedActionLib {
     /**
      * @dev Helper to fulfill the provided orders using the fulfillAvailableAdvancedOrders method.
      */
-    function _doFulfillAvailableAdvancedOrders(NavigatorContext memory context)
-        private
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodeCall(
-            ConsiderationInterface.fulfillAvailableAdvancedOrders,
-            (
-                context.response.orders,
-                context.response.criteriaResolvers,
-                context.response.offerFulfillments,
-                context.response.considerationFulfillments,
-                context.request.fulfillerConduitKey,
-                context.request.recipient,
-                context.request.maximumFulfilled
-            )
-        );
+    function _doFulfillAvailableAdvancedOrders(
+        NavigatorContext memory context
+    ) private pure returns (bytes memory) {
+        return
+            abi.encodeCall(
+                ConsiderationInterface.fulfillAvailableAdvancedOrders,
+                (
+                    context.response.orders,
+                    context.response.criteriaResolvers,
+                    context.response.offerFulfillments,
+                    context.response.considerationFulfillments,
+                    context.request.fulfillerConduitKey,
+                    context.request.recipient,
+                    context.request.maximumFulfilled
+                )
+            );
     }
 
     /**
      * @dev Helper to fulfill the provided orders using the fulfillAvailableOrders method.
      */
-    function _doFulfillAvailableOrders(NavigatorContext memory context)
-        private
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodeCall(
-            ConsiderationInterface.fulfillAvailableOrders,
-            (
-                context.response.orders.toOrders(),
-                context.response.offerFulfillments,
-                context.response.considerationFulfillments,
-                context.request.fulfillerConduitKey,
-                context.request.maximumFulfilled
-            )
-        );
+    function _doFulfillAvailableOrders(
+        NavigatorContext memory context
+    ) private pure returns (bytes memory) {
+        return
+            abi.encodeCall(
+                ConsiderationInterface.fulfillAvailableOrders,
+                (
+                    context.response.orders.toOrders(),
+                    context.response.offerFulfillments,
+                    context.response.considerationFulfillments,
+                    context.request.fulfillerConduitKey,
+                    context.request.maximumFulfilled
+                )
+            );
     }
 
     /**
      * @dev Helper to fulfill the provided orders using the matchOrders method.
      */
-    function _doMatchOrders(NavigatorContext memory context)
-        private
-        pure
-        returns (bytes memory){
-            return 
-                abi.encodeCall(
-                    ConsiderationInterface.matchOrders,
-                    (
-                        context.response.orders.toOrders(),
-                        context.response.fulfillments
-                    )
-                );
-        }
+    function _doMatchOrders(
+        NavigatorContext memory context
+    ) private pure returns (bytes memory) {
+        return
+            abi.encodeCall(
+                ConsiderationInterface.matchOrders,
+                (
+                    context.response.orders.toOrders(),
+                    context.response.fulfillments
+                )
+            );
+    }
 }

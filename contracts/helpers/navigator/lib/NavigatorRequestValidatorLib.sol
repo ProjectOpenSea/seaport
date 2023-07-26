@@ -32,8 +32,10 @@ library NavigatorRequestValidatorLib {
     function validateNoContractOrders(
         NavigatorContext memory context
     ) internal pure returns (NavigatorContext memory) {
-        for (uint256 i; i < context.response.orders.length; i++) {
-            AdvancedOrder memory order = context.response.orders[i];
+        uint256 contextResponseOrdersLength = context.response.orders.length;
+        AdvancedOrder memory order;
+        for (uint256 i; i < contextResponseOrdersLength; i++) {
+            order = context.response.orders[i];
             if (order.getType() == Type.CONTRACT) {
                 revert ContractOrdersNotSupported();
             }

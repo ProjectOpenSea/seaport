@@ -21,9 +21,9 @@ contract Murky {
     ) internal pure returns (bool) {
         // proof length must be less than max array size
         bytes32 rollingHash = valueToProve;
-        uint256 length = proof.length;
+        uint256 proofLength = proof.length;
         unchecked {
-            for (uint256 i = 0; i < length; ++i) {
+            for (uint256 i = 0; i < proofLength; ++i) {
                 rollingHash = _hashLeafPairs(rollingHash, proof[i]);
             }
         }
@@ -324,7 +324,8 @@ contract Murky {
         sorted = true;
 
         // Hash inputs with keccak256
-        for (uint256 i = 0; i < data.length; ++i) {
+        uint256 dataLength = data.length;
+        for (uint256 i = 0; i < dataLength; ++i) {
             assembly {
                 mstore(
                     add(data, mul(0x20, add(1, i))),
@@ -357,8 +358,9 @@ contract Murky {
         pure
         returns (uint256[] memory sortedValues)
     {
-        HashAndIntTuple[] memory toSort = new HashAndIntTuple[](values.length);
-        for (uint256 i = 0; i < values.length; i++) {
+        uint256 valuesLength = values.length;
+        HashAndIntTuple[] memory toSort = new HashAndIntTuple[](valuesLength);
+        for (uint256 i = 0; i < valuesLength; i++) {
             toSort[i] = HashAndIntTuple(
                 values[i],
                 keccak256(abi.encode(values[i]))
@@ -367,8 +369,8 @@ contract Murky {
 
         _quickSort(toSort, 0, int256(toSort.length - 1));
 
-        sortedValues = new uint256[](values.length);
-        for (uint256 i = 0; i < values.length; i++) {
+        sortedValues = new uint256[](valuesLength);
+        for (uint256 i = 0; i < valuesLength; i++) {
             sortedValues[i] = toSort[i].num;
         }
     }

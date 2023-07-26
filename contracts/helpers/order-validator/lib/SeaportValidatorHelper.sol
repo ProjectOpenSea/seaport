@@ -22,7 +22,9 @@ import {
     ContractOffererInterface
 } from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "seaport-core/src/lib/GettersAndDerivers.sol";
+import {
+    GettersAndDerivers
+} from "seaport-core/src/lib/GettersAndDerivers.sol";
 import {
     SeaportValidatorInterface
 } from "../lib/SeaportValidatorInterface.sol";
@@ -207,8 +209,11 @@ contract SeaportValidatorHelper is Murky {
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
+        uint256 orderParametersConsiderationLength = orderParameters
+            .consideration
+            .length;
         // You must have a consideration item
-        if (orderParameters.consideration.length == 0) {
+        if (orderParametersConsiderationLength == 0) {
             errorsAndWarnings.addWarning(
                 ConsiderationIssue.ZeroItems.parseInt()
             );
@@ -220,14 +225,14 @@ contract SeaportValidatorHelper is Murky {
         bool offererReceivingAtLeastOneItem = false;
 
         // Iterate over each consideration item
-        for (uint256 i = 0; i < orderParameters.consideration.length; i++) {
+        ConsiderationItem memory considerationItem1;
+        for (uint256 i = 0; i < orderParametersConsiderationLength; i++) {
             // Validate consideration item
             errorsAndWarnings.concat(
                 validateConsiderationItem(orderParameters, i, seaportAddress)
             );
 
-            ConsiderationItem memory considerationItem1 = orderParameters
-                .consideration[i];
+            considerationItem1 = orderParameters.consideration[i];
 
             // Check if the offerer is the recipient
             if (!offererReceivingAtLeastOneItem) {
@@ -236,16 +241,17 @@ contract SeaportValidatorHelper is Murky {
                 }
             }
 
+            ConsiderationItem memory considerationItem2;
+
             // Check for duplicate consideration items
             for (
                 uint256 j = i + 1;
-                j < orderParameters.consideration.length;
+                j < orderParametersConsiderationLength;
                 j++
             ) {
                 // Iterate over each remaining consideration item
                 // (previous items already check with this item)
-                ConsiderationItem memory considerationItem2 = orderParameters
-                    .consideration[j];
+                considerationItem2 = orderParameters.consideration[j];
 
                 // Check if itemType, token, id, and recipient are the same
                 if (

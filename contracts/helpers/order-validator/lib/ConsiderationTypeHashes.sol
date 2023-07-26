@@ -221,16 +221,17 @@ contract ConsiderationTypeHashes {
         OrderParameters memory orderParameters,
         uint256 counter
     ) internal view returns (bytes32 orderHash) {
+        uint256 orderParametersOfferLength = orderParameters.offer.length;
         // Designate new memory regions for offer and consideration item hashes.
         bytes32[] memory offerHashes = new bytes32[](
-            orderParameters.offer.length
+            orderParametersOfferLength
         );
         bytes32[] memory considerationHashes = new bytes32[](
             orderParameters.totalOriginalConsiderationItems
         );
 
-        // Iterate over each offer on the order.
-        for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
+        // Iterate over each offer on the order.        
+        for (uint256 i = 0; i < orderParametersOfferLength; ++i) {
             // Hash the offer and place the result into memory.
             offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
         }
