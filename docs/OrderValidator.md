@@ -4,9 +4,33 @@ The SeaportValidator contract offers various validation methods to ensure that s
 
 See below for the full list of Errors and Warnings.
 
-The contract has been verified and deployed to [0x00000000be3af6882a06323fd3f400a9e6a0dc42](https://etherscan.io/address/0x00000000be3af6882a06323fd3f400a9e6a0dc42#code).
+The contract is deployed to the following addresses:
 
-Special thanks to [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code).
+<table>
+<tr>
+<th>Contract</th>
+<th>Canonical Cross-chain Deployment Address</th>
+</tr>
+<td>SeaportValidator</td>
+<td><code>0x00e5F120f500006757E984F1DED400fc00370000</code></td>
+</tr>
+<tr>
+<td>SeaportValidator 1.1 (legacy)</td>
+<td><code>0xF75194740067D6E4000000003b350688DD770000</code></td>
+</tr>
+<tr>
+<td>SeaportValidator 1.4 (legacy)</td>
+<td><code>0x00000000BE3Af6882A06323fd3f400A9e6A0DC42</code></td>
+</tr>
+<td>SeaportValidator 1.5 (legacy)</td>
+<td><code>0x000000000DD1F1B245b936b2771408555CF8B8af</code></td>
+</tr>
+</table>
+
+Special thanks to:
+- [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code)
+- [stephankmin](https://github.com/stephankmin), who extended the SeaportValidator contract to support more errors/warnings and arbitary Seaport instances with compatible versions
+- [horsefacts](https://github.com/horsefacts), who implemented support for a ready-only version of the helper contract
 
 ## Errors and Warnings
 | Code | Issue |
@@ -74,7 +98,7 @@ Special thanks to [arr00](https://github.com/arr00), who deployed an earlier ver
 | 1302 | Native token insufficient balance |
 | 1400 | Zone is invalid |
 | 1401 | Zone rejected order. This order must be fulfilled by the zone. |
-| 1401 | Zone not set. Order unfulfillable |
+| 1402 | Zone not set. Order unfulfillable |
 | 1500 | Merkle input only has one leaf |
 | 1501 | Merkle input not sorted correctly |
 | 1600 | Contract offerer is invalid |
