@@ -180,6 +180,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
 
                 // Iterate over each item in the transfer to create a
                 // corresponding ConduitTransfer.
+                address recipient = transfer.recipient;
                 for (j = 0; j < numItemsInTransfer; ++j) {
                     // Retrieve the item from the transfer.
                     item = transferItems[j];
@@ -199,7 +200,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
                             // onERC721Received for the given tokenId.
                             _checkERC721Receiver(
                                 conduit,
-                                transfer.recipient,
+                                recipient,
                                 item.identifier
                             );
                         }
@@ -211,7 +212,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
                         item.itemType,
                         item.token,
                         msg.sender,
-                        transfer.recipient,
+                        recipient,
                         item.identifier,
                         item.amount
                     );
