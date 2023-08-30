@@ -342,7 +342,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts
 [0x0000f00000627D293Ab4Dfb40082001724dB006F](https://nova.arbiscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
-<tr><td>Base Goerli</td><td>
+<tr><td>Base</td><td>
 
 [0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://basescan.org/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC)
 
