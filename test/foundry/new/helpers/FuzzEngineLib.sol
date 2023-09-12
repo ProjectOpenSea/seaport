@@ -113,7 +113,7 @@ library FuzzEngineLib {
     ) internal view returns (bytes4[] memory) {
         Family family = context.executionState.orders.getFamily();
 
-        bool invalidOfferItemsLocated = mustUseMatch(context);
+        bool containsOrderThatDemandsMatch = mustUseMatch(context);
 
         Structure structure = context.executionState.orders.getStructure(
             address(context.seaport)
@@ -136,7 +136,7 @@ library FuzzEngineLib {
         }
 
         if (hasUnavailable) {
-            if (invalidOfferItemsLocated) {
+            if (containsOrderThatDemandsMatch) {
                 revert(
                     "FuzzEngineLib: invalid native token + unavailable combination"
                 );
@@ -160,7 +160,7 @@ library FuzzEngineLib {
             }
         }
 
-        if (family == Family.SINGLE && !invalidOfferItemsLocated) {
+        if (family == Family.SINGLE && !containsOrderThatDemandsMatch) {
             if (structure == Structure.BASIC) {
                 bytes4[] memory selectors = new bytes4[](6);
                 selectors[0] = context.seaport.fulfillOrder.selector;
@@ -204,7 +204,7 @@ library FuzzEngineLib {
         bool cannotMatch = (context.executionState.hasRemainders ||
             hasUnavailable);
 
-        if (cannotMatch && invalidOfferItemsLocated) {
+        if (cannotMatch && containsOrderThatDemandsMatch) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
         }
 
@@ -227,7 +227,7 @@ library FuzzEngineLib {
                 //selectors[3] = context.seaport.validate.selector;
                 return selectors;
             }
-        } else if (invalidOfferItemsLocated) {
+        } else if (containsOrderThatDemandsMatch) {
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
                 selectors[0] = context.seaport.matchAdvancedOrders.selector;
