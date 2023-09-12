@@ -2,44 +2,54 @@
 pragma solidity ^0.8.4;
 
 import "forge-std/Script.sol";
+
 import "forge-std/console.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
 import {
+    CriteriaHelper
+} from "../contracts/helpers/navigator/lib/CriteriaHelper.sol";
+
+import {
+    ExecutionsHelper
+} from "../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
+
+import {
+    FulfillmentsHelper
+} from "../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
+
+import {
+    OrderDetailsHelper
+} from "../contracts/helpers/navigator/lib/OrderDetailsHelper.sol";
+
+import {
     ReadOnlyOrderValidator
 } from "../contracts/helpers/order-validator/lib/ReadOnlyOrderValidator.sol";
+
 import {
-    SeaportValidatorHelper
-} from "../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
+    RequestValidator
+} from "../contracts/helpers/navigator/lib/RequestValidator.sol";
+
+import {
+    SeaportNavigator
+} from "../contracts/helpers/navigator/SeaportNavigator.sol";
+
 import {
     SeaportValidator
 } from "../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
-    RequestValidator
-} from "../contracts/helpers/navigator/lib/RequestValidator.sol";
-import {
-    CriteriaHelper
-} from "../contracts/helpers/navigator/lib/CriteriaHelper.sol";
-import {
-    ValidatorHelper
-} from "../contracts/helpers/navigator/lib/ValidatorHelper.sol";
-import {
-    OrderDetailsHelper
-} from "../contracts/helpers/navigator/lib/OrderDetailsHelper.sol";
-import {
-    FulfillmentsHelper
-} from "../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
+    SeaportValidatorHelper
+} from "../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
+
 import {
     SuggestedActionHelper
 } from "../contracts/helpers/navigator/lib/SuggestedActionHelper.sol";
+
 import {
-    ExecutionsHelper
-} from "../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
-import {
-    SeaportNavigator
-} from "../contracts/helpers/navigator/SeaportNavigator.sol";
+    ValidatorHelper
+} from "../contracts/helpers/navigator/lib/ValidatorHelper.sol";
 
 interface ImmutableCreate2Factory {
     function hasBeenDeployed(
@@ -58,11 +68,14 @@ interface ImmutableCreate2Factory {
 }
 
 contract NavigatorDeployer is Script {
+    // Set up the immutable create2 factory and conduit controller addresses.
     ImmutableCreate2Factory private constant IMMUTABLE_CREATE2_FACTORY =
         ImmutableCreate2Factory(0x0000000000FFe8B47B3e2130213B802212439497);
     address private constant CONDUIT_CONTROLLER =
         0x00000000F9490004C11Cef243f5400493c00Ad63;
 
+    // Set up the default salt and the salt for the seaport validator and
+    // navigator.
     bytes32 private constant DEFAULT_SALT = bytes32(uint256(0x1));
     bytes32 private constant SEAPORT_VALIDATOR_SALT =
         bytes32(uint256(0x459b42ee5b5e5000d96491ce));
@@ -76,6 +89,8 @@ contract NavigatorDeployer is Script {
             pad("Address", 43),
             "Initcode hash"
         );
+
+        // Deploy the helpers, seaport validator, and navigator.
         vm.startBroadcast();
         address seaportValidatorHelper = deploy(
             "SeaportValidatorHelper",

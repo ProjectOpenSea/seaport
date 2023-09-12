@@ -5,14 +5,7 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import {
-    AdvancedOrder,
-    Execution,
-    SpentItem,
-    ReceivedItem
-} from "seaport-types/src/lib/ConsiderationStructs.sol";
-
-import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import { Execution } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     FulfillmentDetails
@@ -21,10 +14,6 @@ import {
 import {
     ExecutionHelper
 } from "seaport-sol/src/executions/ExecutionHelper.sol";
-
-import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
-
-import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
 import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 

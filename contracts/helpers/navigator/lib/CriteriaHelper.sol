@@ -2,10 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {
-    CriteriaResolver
-} from "seaport-types/src/lib/ConsiderationStructs.sol";
-
-import {
     NavigatorCriteriaResolverLib
 } from "./NavigatorCriteriaResolverLib.sol";
 

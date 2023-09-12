@@ -2,26 +2,25 @@
 pragma solidity ^0.8.4;
 
 import "forge-std/Script.sol";
-import "forge-std/console.sol";
 
 import {
-    SeaportNavigatorInterface,
-    NavigatorRequest,
     ConsiderationInterface,
+    NavigatorRequest,
+    SeaportNavigatorInterface,
     SeaportValidatorInterface
 } from "../contracts/helpers/navigator/SeaportNavigator.sol";
 
 import {
     NavigatorAdvancedOrder,
-    NavigatorOrderParameters,
+    NavigatorConsiderationItem,
     NavigatorOfferItem,
-    NavigatorConsiderationItem
+    NavigatorOrderParameters
 } from "../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
 import {
-    FulfillmentStrategy,
     AggregationStrategy,
     FulfillAvailableStrategy,
+    FulfillmentStrategy,
     MatchStrategy
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 

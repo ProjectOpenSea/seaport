@@ -4,14 +4,9 @@ pragma solidity ^0.8.17;
 import { BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
 
 import {
-    ConduitControllerInterface
-} from "seaport-sol/src/ConduitControllerInterface.sol";
-
-import {
-    SeaportValidatorHelper,
+    ReadOnlyOrderValidator,
     SeaportValidator,
-    SeaportValidatorInterface,
-    ReadOnlyOrderValidator
+    SeaportValidatorHelper
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 contract SeaportValidatorTest is BaseSeaportTest {
@@ -28,6 +23,7 @@ contract SeaportValidatorTest is BaseSeaportTest {
         seaportValidatorHelper = new SeaportValidatorHelper();
         vm.chainId(chainId);
 
+        // Initialize the validator.
         validator = new SeaportValidator(
             address(new ReadOnlyOrderValidator()),
             address(seaportValidatorHelper),

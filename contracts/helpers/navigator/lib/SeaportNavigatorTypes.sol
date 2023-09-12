@@ -2,11 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {
-    SeaportValidatorInterface,
-    ErrorsAndWarnings
-} from "../../order-validator/SeaportValidator.sol";
-
-import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
@@ -14,20 +9,12 @@ import {
     AdvancedOrder,
     CriteriaResolver,
     Execution,
-    Order,
-    OrderComponents,
-    OrderParameters,
-    ConsiderationItem,
-    OfferItem,
-    ReceivedItem,
-    SpentItem,
     Fulfillment,
     FulfillmentComponent
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ItemType,
-    Side,
     OrderType
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
@@ -35,14 +22,16 @@ import {
     MatchComponent
 } from "seaport-sol/src/lib/types/MatchComponentType.sol";
 
-import {
-    FulfillmentDetails,
-    OrderDetails
-} from "seaport-sol/src/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
 import {
     FulfillmentStrategy
 } from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+
+import {
+    SeaportValidatorInterface,
+    ErrorsAndWarnings
+} from "../../order-validator/SeaportValidator.sol";
 
 struct NavigatorAdvancedOrder {
     NavigatorOrderParameters parameters;

@@ -12,18 +12,20 @@ import {
 import { Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
+
 import { HelperItemLib } from "./HelperItemLib.sol";
+
 import {
     NavigatorAdvancedOrder,
-    NavigatorOrderParameters,
+    NavigatorConsiderationItem,
     NavigatorOfferItem,
-    NavigatorConsiderationItem
+    NavigatorOrderParameters
 } from "./SeaportNavigatorTypes.sol";
 
 library NavigatorAdvancedOrderLib {
     using CriteriaHelperLib for uint256[];
-    using HelperItemLib for NavigatorOfferItem;
     using HelperItemLib for NavigatorConsiderationItem;
+    using HelperItemLib for NavigatorOfferItem;
 
     function fromAdvancedOrders(
         AdvancedOrder[] memory orders
@@ -178,9 +180,16 @@ library NavigatorAdvancedOrderLib {
                 });
             }
         }
+
+        // This just encodes the length of the array that we gradually built up
+        // above. It's just a way of creating an array of arbitrary length. It's
+        // initialized to its longest possible length at the top, then populated
+        // partially or fully in the for loop above. Finally, the length is set
+        // here surgically.
         assembly {
             mstore(criteriaResolvers, criteriaResolverLen)
         }
+
         return (
             AdvancedOrder({
                 parameters: OrderParameters({
@@ -238,9 +247,16 @@ library NavigatorAdvancedOrderLib {
                 criteriaResolverIndex++;
             }
         }
+
+        // This just encodes the length of the array that we gradually built up
+        // above. It's just a way of creating an array of arbitrary length. It's
+        // initialized to its longest possible length at the top, then populated
+        // partially or fully in the for loop above. Finally, the length is set
+        // here surgically.
         assembly {
             mstore(criteriaResolvers, criteriaResolverIndex)
         }
+
         return (advancedOrders, criteriaResolvers);
     }
 }

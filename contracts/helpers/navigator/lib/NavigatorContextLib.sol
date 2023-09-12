@@ -2,36 +2,26 @@
 pragma solidity ^0.8.17;
 
 import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
-
-import {
     MatchComponent
 } from "seaport-sol/src/lib/types/MatchComponentType.sol";
+
 import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
 import {
     AdvancedOrder,
+    CriteriaResolver,
     Execution,
     Fulfillment,
-    FulfillmentComponent,
-    CriteriaResolver
+    FulfillmentComponent
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
-    NavigatorRequest,
-    NavigatorResponse,
     NavigatorContext,
-    NavigatorOfferItem,
-    NavigatorConsiderationItem,
-    NavigatorOrderParameters,
-    NavigatorAdvancedOrder
+    NavigatorRequest,
+    NavigatorResponse
 } from "./SeaportNavigatorTypes.sol";
 
-import {
-    SeaportValidatorInterface,
-    ErrorsAndWarnings
-} from "../../order-validator/SeaportValidator.sol";
+import { ErrorsAndWarnings } from "../../order-validator/SeaportValidator.sol";
 
 library NavigatorContextLib {
     function from(

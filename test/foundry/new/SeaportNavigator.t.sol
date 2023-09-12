@@ -2,18 +2,14 @@
 pragma solidity ^0.8.17;
 
 import {
+    AdvancedOrderLib,
+    ConsiderationInterface,
     ConsiderationItemLib,
+    CriteriaResolver,
     OfferItemLib,
-    OrderParametersLib,
     OrderComponentsLib,
     OrderLib,
-    OrderType,
-    AdvancedOrderLib,
-    ItemType,
-    SeaportInterface,
-    Side,
-    CriteriaResolver,
-    ConsiderationInterface
+    OrderParametersLib
 } from "seaport-sol/src/SeaportSol.sol";
 
 import {
@@ -25,21 +21,20 @@ import {
     AdvancedOrder
 } from "seaport-sol/src/SeaportStructs.sol";
 
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
+
 import {
-    SeaportValidatorInterface
-} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
+    AggregationStrategy,
+    FulfillAvailableStrategy,
+    FulfillmentStrategy,
+    MatchStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 import {
     NavigatorRequest,
     NavigatorResponse,
     SeaportNavigator
 } from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
-
-import {
-    NavigatorOfferItem,
-    NavigatorConsiderationItem,
-    NavigatorOrderParameters
-} from "../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
 import {
     TokenIdNotFound
@@ -49,34 +44,30 @@ import {
     NavigatorAdvancedOrder,
     NavigatorAdvancedOrderLib
 } from "../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
+
 import {
     OrderStructureLib
 } from "../../../contracts/helpers/navigator/lib/OrderStructureLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
-import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
-import { SeaportNavigatorTest } from "./SeaportNavigatorTest.sol";
 
-import {
-    FulfillmentStrategy,
-    AggregationStrategy,
-    FulfillAvailableStrategy,
-    MatchStrategy
-} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
+
+import { SeaportNavigatorTest } from "./SeaportNavigatorTest.sol";
 
 contract SeaportNavigatorTestSuite is
     BaseOrderTest,
     SeaportValidatorTest,
     SeaportNavigatorTest
 {
+    using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
+    using NavigatorAdvancedOrderLib for NavigatorAdvancedOrder;
     using OfferItemLib for OfferItem;
-    using OrderParametersLib for OrderParameters;
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
-    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
     using OrderStructureLib for AdvancedOrder;
-    using NavigatorAdvancedOrderLib for NavigatorAdvancedOrder;
 
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
     string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =

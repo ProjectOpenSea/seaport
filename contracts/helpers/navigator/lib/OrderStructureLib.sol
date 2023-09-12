@@ -4,8 +4,6 @@ pragma solidity ^0.8.17;
 import {
     AdvancedOrderLib,
     ConsiderationItemLib,
-    MatchComponent,
-    MatchComponentType,
     OfferItemLib,
     OrderComponentsLib,
     OrderLib,
@@ -14,25 +12,18 @@ import {
 
 import {
     AdvancedOrder,
-    CriteriaResolver,
-    Execution,
-    Order,
-    OrderComponents,
-    OrderParameters,
     ConsiderationItem,
     OfferItem,
-    ReceivedItem,
-    SpentItem,
-    Fulfillment,
-    FulfillmentComponent
+    Order,
+    OrderComponents,
+    OrderParameters
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     BasicOrderRouteType,
     BasicOrderType,
     ItemType,
-    OrderType,
-    Side
+    OrderType
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
@@ -101,13 +92,13 @@ enum State {
  *         for determining which fulfillment method to use.
  */
 library OrderStructureLib {
-    using OrderLib for Order;
-    using OrderComponentsLib for OrderComponents;
-    using OrderParametersLib for OrderParameters;
-    using OfferItemLib for OfferItem[];
-    using ConsiderationItemLib for ConsiderationItem[];
     using AdvancedOrderLib for AdvancedOrder;
     using AdvancedOrderLib for AdvancedOrder[];
+    using ConsiderationItemLib for ConsiderationItem[];
+    using OfferItemLib for OfferItem[];
+    using OrderComponentsLib for OrderComponents;
+    using OrderLib for Order;
+    using OrderParametersLib for OrderParameters;
 
     function getQuantity(
         AdvancedOrder[] memory orders
@@ -129,10 +120,15 @@ library OrderStructureLib {
         AdvancedOrder memory order,
         ConsiderationInterface seaport
     ) internal view returns (State) {
+        // Get the counter for the offerer.
         uint256 counter = seaport.getCounter(order.parameters.offerer);
+
+        // Use the counter to get the order hash.
         bytes32 orderHash = seaport.getOrderHash(
             order.parameters.toOrderComponents(counter)
         );
+
+        // Use the order hash to get the order status.
         (
             bool isValidated,
             bool isCancelled,
@@ -140,11 +136,18 @@ library OrderStructureLib {
             uint256 totalSize
         ) = seaport.getOrderStatus(orderHash);
 
-        if (totalFilled != 0 && totalSize != 0 && totalFilled == totalSize)
+        if (totalFilled != 0 && totalSize != 0 && totalFilled == totalSize) {
             return State.FULLY_FILLED;
-        if (totalFilled != 0 && totalSize != 0) return State.PARTIALLY_FILLED;
-        if (isCancelled) return State.CANCELLED;
-        if (isValidated) return State.VALIDATED;
+        }
+        if (totalFilled != 0 && totalSize != 0) {
+            return State.PARTIALLY_FILLED;
+        }
+        if (isCancelled) {
+            return State.CANCELLED;
+        }
+        if (isValidated) {
+            return State.VALIDATED;
+        }
         return State.UNUSED;
     }
 
