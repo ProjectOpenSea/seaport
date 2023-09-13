@@ -6,59 +6,91 @@ pragma solidity ^0.8.17;
  * Murky: https://github.com/dmfxyz/murky
  */
 library MerkleLib {
+    /**
+     * @dev Computes the Merkle tree hash of two child nodes.
+     *
+     * @param left The hash of the left child node.
+     * @param right The hash of the right child node.
+     *
+     * @return _hash The Merkle tree hash of the two input hashes.
+     */
     function merkleHash(
         bytes32 left,
         bytes32 right
     ) internal pure returns (bytes32 _hash) {
         assembly {
+            // Compare the left and right hash to order them lt(left, right)
+            // returns true if left is less than right
             switch lt(left, right)
+            // If left is not less than right, switch the order.
             case 0 {
                 mstore(0x0, right)
                 mstore(0x20, left)
             }
+            // If left is less than right, keep the order.
             default {
                 mstore(0x0, left)
                 mstore(0x20, right)
             }
+
+            // Compute the keccak256 hash of the 64-byte input (two concatenated
+            // 32-byte hashes) The result is stored in '_hash'
             _hash := keccak256(0x0, 0x40)
         }
     }
 
-    function xorkleHash(
-        bytes32 left,
-        bytes32 right
-    ) internal pure returns (bytes32 _hash) {
-        assembly {
-            mstore(0x0, xor(left, right))
-            _hash := keccak256(0x0, 0x20)
-        }
-    }
-
+    /**
+     * @dev Verifies a Merkle proof.
+     *
+     * @param root          The root of the Merkle tree.
+     * @param proof         An array containing the Merkle proof hashes.
+     * @param valueToProve  The leaf node value to prove membership for.
+     * @param hashLeafPairs A function to hash pairs of leaf nodes.
+     *
+     * @return True if the proof is valid, otherwise false.
+     */
     function verifyProof(
         bytes32 root,
         bytes32[] memory proof,
         bytes32 valueToProve,
         function(bytes32, bytes32) internal pure returns (bytes32) hashLeafPairs
     ) internal pure returns (bool) {
-        // proof length must be less than max array size
+        // Proof length must be less than max array size.
         bytes32 rollingHash = valueToProve;
         uint256 length = proof.length;
+
+        // Loop through each proof element to compute the rolling hash.
         unchecked {
             for (uint i = 0; i < length; ++i) {
                 rollingHash = hashLeafPairs(rollingHash, proof[i]);
             }
         }
+
+        // The final rolling hash must equal the Merkle root for the proof to be
+        // valid
         return root == rollingHash;
     }
 
+    /**
+     * @dev Computes the Merkle root from an array of leaf node hashes.
+     *
+     * @param data          An array containing the leaf node hashes.
+     * @param hashLeafPairs A function to hash pairs of leaf nodes.
+     *
+     * @return The Merkle root.
+     */
     function getRoot(
         bytes32[] memory data,
         function(bytes32, bytes32) internal pure returns (bytes32) hashLeafPairs
     ) internal pure returns (bytes32) {
         require(data.length > 1, "won't generate root for single leaf");
+
+        // Loop until only the Merkle root remains.
         while (data.length > 1) {
             data = hashLevel(data, hashLeafPairs);
         }
+
+        // Return the computed Merkle root.
         return data[0];
     }
 

@@ -72,9 +72,12 @@ library CriteriaHelperLib {
     function sortByHash(
         uint256[] memory tokenIds
     ) internal pure returns (uint256[] memory sortedIds) {
+        // Instantiate a new array of HashAndIntTuple structs.
         HashAndIntTuple[] memory toSort = new HashAndIntTuple[](
             tokenIds.length
         );
+
+        // Populate the array of HashAndIntTuple structs.
         for (uint256 i = 0; i < tokenIds.length; i++) {
             toSort[i] = HashAndIntTuple(
                 tokenIds[i],
@@ -82,8 +85,10 @@ library CriteriaHelperLib {
             );
         }
 
+        // Sort the array of HashAndIntTuple structs.
         _quickSort(toSort, 0, int256(toSort.length - 1));
 
+        // Populate the sortedIds array with the sorted token ids.
         sortedIds = new uint256[](tokenIds.length);
         for (uint256 i = 0; i < tokenIds.length; i++) {
             sortedIds[i] = toSort[i].num;
@@ -97,25 +102,52 @@ library CriteriaHelperLib {
     function toSortedHashes(
         uint256[] memory tokenIds
     ) internal pure returns (bytes32[] memory hashes) {
+        // Instantiate a new array of hashes.
         hashes = new bytes32[](tokenIds.length);
+
+        // Sort the token ids by their hashes.
         uint256[] memory ids = sortByHash(tokenIds);
+
+        // Hash each token id and store it in the hashes array.
         for (uint256 i; i < ids.length; ++i) {
             hashes[i] = keccak256(abi.encode(ids[i]));
         }
     }
 
+    /**
+     *  @dev This function performs the quick sort algorithm to sort an array of
+     *       HashAndIntTuple structs.
+     *
+     *  @param arr   The array of HashAndIntTuple structs to be sorted.
+     *  @param left  The starting index of the segment to be sorted.
+     *  @param right The ending index of the segment to be sorted.
+     */
     function _quickSort(
         HashAndIntTuple[] memory arr,
         int256 left,
         int256 right
     ) internal pure {
+        // Initialize pointers i and j to the left and right ends of the array
+        // segment.
         int256 i = left;
         int256 j = right;
+
+        // If the segment has one element or none, it's already sorted.
         if (i == j) return;
+
+        // Pick a 'pivot' element from the middle of the list.
         bytes32 pivot = arr[uint256(left + (right - left) / 2)].hash;
+
+        // The main loop to rearrange elements around the pivot.
         while (i <= j) {
+            // Find an element larger than or equal to the pivot from the left.
             while (arr[uint256(i)].hash < pivot) i++;
+
+            // Find an element smaller than or equal to the pivot from the
+            // right.
             while (pivot < arr[uint256(j)].hash) j--;
+
+            // Swap the elements at i and j if needed.
             if (i <= j) {
                 (arr[uint256(i)], arr[uint256(j)]) = (
                     arr[uint256(j)],
@@ -125,7 +157,11 @@ library CriteriaHelperLib {
                 j--;
             }
         }
+
+        // Recursively sort the segment before 'j'.
         if (left < j) _quickSort(arr, left, j);
+
+        // Recursively sort the segment after 'i'.
         if (i < right) _quickSort(arr, i, right);
     }
 }

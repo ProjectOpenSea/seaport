@@ -33,8 +33,12 @@ library NavigatorExecutionsLib {
     function withExecutions(
         NavigatorContext memory context
     ) internal pure returns (NavigatorContext memory) {
+        // Extract the suggested action from the response.
         bytes memory callData = context.response.suggestedCallData;
         bytes4 _suggestedAction = bytes4(callData);
+
+        // Create a struct to hold details necessary for fulfillment, populated
+        // from the context.
         FulfillmentDetails memory fulfillmentDetails = FulfillmentDetails({
             orders: context.response.orderDetails,
             recipient: payable(context.request.recipient),
@@ -44,12 +48,15 @@ library NavigatorExecutionsLib {
             seaport: address(context.request.seaport)
         });
 
+        // Initialize the execution arrays.
         Execution[] memory explicitExecutions;
         Execution[] memory implicitExecutions;
         Execution[] memory implicitExecutionsPre;
         Execution[] memory implicitExecutionsPost;
         uint256 nativeTokensReturned;
 
+        // Call the appropriate method on the FulfillmentDetails struct to get
+        // the executions.
         if (
             _suggestedAction ==
             ConsiderationInterface.fulfillAvailableOrders.selector ||
@@ -97,6 +104,8 @@ library NavigatorExecutionsLib {
         } else {
             revert UnknownAction();
         }
+
+        // Add the executions to the response.
         context.response.explicitExecutions = explicitExecutions;
         context.response.implicitExecutions = implicitExecutions;
         context.response.implicitExecutionsPre = implicitExecutionsPre;
