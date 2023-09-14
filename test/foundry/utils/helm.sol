@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
+// import { console2 as console } from "forge-std/console2.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
