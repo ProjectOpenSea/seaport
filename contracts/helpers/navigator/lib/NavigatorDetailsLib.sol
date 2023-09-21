@@ -2,9 +2,13 @@
 pragma solidity ^0.8.17;
 
 import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
+
 import { AdvancedOrder } from "seaport-types/src/lib/ConsiderationStructs.sol";
+
 import { AdvancedOrderLib } from "seaport-sol/src/lib/AdvancedOrderLib.sol";
+
 import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
+
 import { OrderAvailabilityLib } from "./OrderAvailabilityLib.sol";
 
 library NavigatorDetailsLib {

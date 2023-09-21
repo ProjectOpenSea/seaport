@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import { AdvancedOrder } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { Type, OrderStructureLib } from "./OrderStructureLib.sol";
+
 import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 
 library NavigatorRequestValidatorLib {

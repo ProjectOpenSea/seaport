@@ -2,18 +2,21 @@
 
 pragma solidity ^0.8.17;
 
-import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    ItemType,
+    OrderType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
-    Order,
-    OfferItem,
-    OrderParameters,
     ConsiderationItem,
-    OrderComponents
+    OfferItem,
+    Order,
+    OrderComponents,
+    OrderParameters
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
@@ -2548,6 +2551,10 @@ contract FulfillOrderTest is BaseOrderTest {
     function fulfillOrderRevertCounterIncremented(
         Context memory context
     ) external stateless {
+        // Roll to a high block to get a blockhash that's high enough to produce
+        // a non-0 value when right shifted by 128 bits.
+        vm.roll(type(uint248).max);
+
         test1155_1.mint(bob, 1, 1);
         addErc1155OfferItem(1, 1);
         addEthConsiderationItem(payable(bob), 1);

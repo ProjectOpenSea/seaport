@@ -12,19 +12,25 @@ import {
 import { Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { CriteriaHelperLib } from "./CriteriaHelperLib.sol";
+
 import { HelperItemLib } from "./HelperItemLib.sol";
+
 import {
     NavigatorAdvancedOrder,
-    NavigatorOrderParameters,
+    NavigatorConsiderationItem,
     NavigatorOfferItem,
-    NavigatorConsiderationItem
+    NavigatorOrderParameters
 } from "./SeaportNavigatorTypes.sol";
 
 library NavigatorAdvancedOrderLib {
     using CriteriaHelperLib for uint256[];
-    using HelperItemLib for NavigatorOfferItem;
     using HelperItemLib for NavigatorConsiderationItem;
+    using HelperItemLib for NavigatorOfferItem;
 
+    /*
+     * @dev Converts an array of AdvancedOrders to an array of
+     *      NavigatorAdvancedOrders.
+     */
     function fromAdvancedOrders(
         AdvancedOrder[] memory orders
     ) internal pure returns (NavigatorAdvancedOrder[] memory) {
@@ -36,9 +42,13 @@ library NavigatorAdvancedOrderLib {
         return helperOrders;
     }
 
+    /*
+     * @dev Converts an AdvancedOrder to a NavigatorAdvancedOrder.
+     */
     function fromAdvancedOrder(
         AdvancedOrder memory order
     ) internal pure returns (NavigatorAdvancedOrder memory) {
+        // Copy over the offer items.
         NavigatorOfferItem[] memory offerItems = new NavigatorOfferItem[](
             order.parameters.offer.length
         );
@@ -53,6 +63,8 @@ library NavigatorAdvancedOrderLib {
                 candidateIdentifiers: new uint256[](0)
             });
         }
+
+        // Copy over the consideration items.
         NavigatorConsiderationItem[]
             memory considerationItems = new NavigatorConsiderationItem[](
                 order.parameters.consideration.length
@@ -93,15 +105,26 @@ library NavigatorAdvancedOrderLib {
             });
     }
 
+    /*
+     * @dev Converts an array of NavigatorAdvancedOrders to an array of
+     *      AdvancedOrders and an array of CriteriaResolvers.
+     */
     function toAdvancedOrder(
         NavigatorAdvancedOrder memory order,
         uint256 orderIndex
     ) internal pure returns (AdvancedOrder memory, CriteriaResolver[] memory) {
+        // Create an array of CriteriaResolvers to be populated in the for loop
+        // below. It might be longer than it needs to be, but it gets trimmed in
+        // the assembly block below.
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
             order.parameters.offer.length +
                 order.parameters.consideration.length
         );
         uint256 criteriaResolverLen;
+
+        // Copy over the offer items, converting candidate identifiers to a
+        // criteria root if necessary and populating the criteria resolvers
+        // array.
         OfferItem[] memory offer = new OfferItem[](
             order.parameters.offer.length
         );
@@ -138,6 +161,10 @@ library NavigatorAdvancedOrderLib {
                 });
             }
         }
+
+        // Copy over the consideration items, converting candidate identifiers
+        // to a criteria root if necessary and populating the criteria resolvers
+        // array.
         ConsiderationItem[] memory consideration = new ConsiderationItem[](
             order.parameters.consideration.length
         );
@@ -178,9 +205,16 @@ library NavigatorAdvancedOrderLib {
                 });
             }
         }
+
+        // This just encodes the length of the array that we gradually built up
+        // above. It's just a way of creating an array of arbitrary length. It's
+        // initialized to its longest possible length at the top, then populated
+        // partially or fully in the for loop above. Finally, the length is set
+        // here surgically.
         assembly {
             mstore(criteriaResolvers, criteriaResolverLen)
         }
+
         return (
             AdvancedOrder({
                 parameters: OrderParameters({
@@ -207,6 +241,10 @@ library NavigatorAdvancedOrderLib {
         );
     }
 
+    /*
+     * @dev Converts an array of NavigatorAdvancedOrders to an array of
+     *      AdvancedOrders and an array of CriteriaResolvers.
+     */
     function toAdvancedOrders(
         NavigatorAdvancedOrder[] memory orders
     )
@@ -214,9 +252,15 @@ library NavigatorAdvancedOrderLib {
         pure
         returns (AdvancedOrder[] memory, CriteriaResolver[] memory)
     {
+        // Create an array of AdvancedOrders to be populated in the for loop
+        // below.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](
             orders.length
         );
+
+        // Create an array of CriteriaResolvers to be populated in the for loop
+        // below. It might be longer than it needs to be, but it gets trimmed in
+        // the assembly block below.
         uint256 maxCriteriaResolvers;
         for (uint256 i; i < orders.length; i++) {
             NavigatorOrderParameters memory parameters = orders[i].parameters;
@@ -227,6 +271,9 @@ library NavigatorAdvancedOrderLib {
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](
             maxCriteriaResolvers
         );
+
+        // Copy over the NavigatorAdvancedOrder[] orders to the AdvancedOrder[]
+        // array, converting and populating the criteria resolvers array.
         for (uint256 i = 0; i < orders.length; i++) {
             (
                 AdvancedOrder memory order,
@@ -238,9 +285,16 @@ library NavigatorAdvancedOrderLib {
                 criteriaResolverIndex++;
             }
         }
+
+        // This just encodes the length of the array that we gradually built up
+        // above. It's just a way of creating an array of arbitrary length. It's
+        // initialized to its longest possible length at the top, then populated
+        // partially or fully in the for loop above. Finally, the length is set
+        // here surgically.
         assembly {
             mstore(criteriaResolvers, criteriaResolverIndex)
         }
+
         return (advancedOrders, criteriaResolvers);
     }
 }
