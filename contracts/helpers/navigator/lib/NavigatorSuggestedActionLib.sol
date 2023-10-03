@@ -107,10 +107,13 @@ library NavigatorSuggestedActionLib {
             address(context.request.seaport)
         );
 
-        bool contextHasExcessOrders =
-            context.request.maximumFulfilled < context.response.orders.length;
         uint256 contextResponseOrderDetailsLength =
             context.response.orderDetails.length;
+
+        bool contextHasExcessOrders =
+            context.request.maximumFulfilled < context.response.orders.length;
+        
+        bool contextHasUnavailableOrders;
         for (uint256 i = 0; i < contextResponseOrderDetailsLength; ++i) {
             if (
                 context.response.orderDetails[i].unavailableReason
@@ -290,12 +293,12 @@ library NavigatorSuggestedActionLib {
         // match.
         for (uint256 i = 0; i < orders.length; ++i) {
             // Get the order.
-            OrderDetails memory order = orders[i];
+            order = orders[i];
 
             // Iterate over the offer items.
             for (uint256 j = 0; j < order.offer.length; ++j) {
                 // Get the item.
-                SpentItem memory item = order.offer[j];
+                item = order.offer[j];
 
                 // If the item is not an ERC721, skip it.
                 if (item.itemType != ItemType.ERC721) {
@@ -305,7 +308,7 @@ library NavigatorSuggestedActionLib {
                 // Iterate over the orders again.
                 for (uint256 k = 0; k < orders.length; ++k) {
                     // Get an order to compare `orders[i]` against.
-                    OrderDetails memory comparisonOrder = orders[k];
+                    comparisonOrder = orders[k];
 
                     // Iterate over the consideration items.
                     for (
@@ -314,7 +317,7 @@ library NavigatorSuggestedActionLib {
                         ++l
                     ) {
                         // Get the consideration item.
-                        ReceivedItem memory considerationItem =
+                        considerationItem =
                             comparisonOrder.consideration[l];
 
                         // If the consideration item is an ERC721, and the ID is
