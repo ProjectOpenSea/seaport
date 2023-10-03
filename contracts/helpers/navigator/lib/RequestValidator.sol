@@ -5,10 +5,7 @@ import {
     NavigatorRequestValidatorLib
 } from "./NavigatorRequestValidatorLib.sol";
 
-import {
-    NavigatorContext,
-    NavigatorResponse
-} from "./SeaportNavigatorTypes.sol";
+import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 
 import { HelperInterface } from "./HelperInterface.sol";
 

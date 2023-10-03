@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import { AdvancedOrder } from "seaport-types/src/lib/ConsiderationStructs.sol";
+
 import { AdvancedOrderLib } from "seaport-sol/src/lib/AdvancedOrderLib.sol";
 
 import { ErrorsAndWarnings } from "../../order-validator/SeaportValidator.sol";
@@ -10,8 +11,6 @@ import { NavigatorContext } from "./SeaportNavigatorTypes.sol";
 
 library NavigatorSeaportValidatorLib {
     using AdvancedOrderLib for AdvancedOrder;
-
-    error ValidatorReverted();
 
     /**
      * @dev Validate each order using SeaportValidator and add the results to

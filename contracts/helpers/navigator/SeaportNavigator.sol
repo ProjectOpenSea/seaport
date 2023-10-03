@@ -4,10 +4,6 @@ pragma solidity ^0.8.17;
 import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
-import {
-    AdvancedOrder,
-    CriteriaResolver
-} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     SeaportValidatorInterface
@@ -37,16 +33,16 @@ import { HelperInterface } from "./lib/HelperInterface.sol";
  *         and optionally generate criteria resolvers from provided token IDs.
  */
 contract SeaportNavigator is SeaportNavigatorInterface {
-    using NavigatorContextLib for NavigatorContext;
     using CriteriaHelperLib for uint256[];
+    using NavigatorContextLib for NavigatorContext;
 
-    HelperInterface public immutable requestValidator;
     HelperInterface public immutable criteriaHelper;
-    HelperInterface public immutable validatorHelper;
-    HelperInterface public immutable orderDetailsHelper;
-    HelperInterface public immutable fulfillmentsHelper;
-    HelperInterface public immutable suggestedActionHelper;
     HelperInterface public immutable executionsHelper;
+    HelperInterface public immutable fulfillmentsHelper;
+    HelperInterface public immutable orderDetailsHelper;
+    HelperInterface public immutable requestValidator;
+    HelperInterface public immutable suggestedActionHelper;
+    HelperInterface public immutable validatorHelper;
 
     HelperInterface[] public helpers;
 

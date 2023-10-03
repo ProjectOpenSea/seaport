@@ -2,11 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {
-    AdvancedOrder,
-    CriteriaResolver
-} from "seaport-types/src/lib/ConsiderationStructs.sol";
-
-import {
     NavigatorRequest,
     NavigatorResponse
 } from "./SeaportNavigatorTypes.sol";

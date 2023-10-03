@@ -20,29 +20,14 @@ import {
 } from "seaport-core/src/lib/SignatureVerification.sol";
 
 import {
+    _revertOrderAlreadyFilled,
     _revertOrderIsCancelled,
-    _revertOrderPartiallyFilled,
-    _revertOrderAlreadyFilled
+    _revertOrderPartiallyFilled
 } from "seaport-types/src/lib/ConsiderationErrors.sol";
 
 import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
-    EIP_712_PREFIX,
-    EIP712_DigestPayload_size,
-    EIP712_DomainSeparator_offset,
-    EIP712_OrderHash_offset,
-    BulkOrderProof_keyShift,
-    BulkOrderProof_keySize,
-    BulkOrderProof_lengthAdjustmentBeforeMask,
-    BulkOrderProof_lengthRangeAfterMask,
-    BulkOrderProof_minSize,
-    BulkOrderProof_rangeSize,
-    ECDSA_MaxLength,
-    OneWordShift,
-    ThirtyOneBytes,
-    OneWord,
-    TwoWords,
     BulkOrder_Typehash_Height_One,
     BulkOrder_Typehash_Height_Two,
     BulkOrder_Typehash_Height_Three,
@@ -66,7 +51,22 @@ import {
     BulkOrder_Typehash_Height_TwentyOne,
     BulkOrder_Typehash_Height_TwentyTwo,
     BulkOrder_Typehash_Height_TwentyThree,
-    BulkOrder_Typehash_Height_TwentyFour
+    BulkOrder_Typehash_Height_TwentyFour,
+    BulkOrderProof_keyShift,
+    BulkOrderProof_keySize,
+    BulkOrderProof_lengthAdjustmentBeforeMask,
+    BulkOrderProof_lengthRangeAfterMask,
+    BulkOrderProof_minSize,
+    BulkOrderProof_rangeSize,
+    ECDSA_MaxLength,
+    EIP_712_PREFIX,
+    EIP712_DigestPayload_size,
+    EIP712_DomainSeparator_offset,
+    EIP712_OrderHash_offset,
+    OneWord,
+    OneWordShift,
+    ThirtyOneBytes,
+    TwoWords
 } from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 contract ReadOnlyOrderValidator is SignatureVerification {

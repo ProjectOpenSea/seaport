@@ -2,18 +2,14 @@
 pragma solidity ^0.8.17;
 
 import {
+    AdvancedOrderLib,
+    ConsiderationInterface,
     ConsiderationItemLib,
+    CriteriaResolver,
     OfferItemLib,
-    OrderParametersLib,
     OrderComponentsLib,
     OrderLib,
-    OrderType,
-    AdvancedOrderLib,
-    ItemType,
-    SeaportInterface,
-    Side,
-    CriteriaResolver,
-    ConsiderationInterface
+    OrderParametersLib
 } from "seaport-sol/src/SeaportSol.sol";
 
 import {
@@ -25,21 +21,20 @@ import {
     AdvancedOrder
 } from "seaport-sol/src/SeaportStructs.sol";
 
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
+
 import {
-    SeaportValidatorInterface
-} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
+    AggregationStrategy,
+    FulfillAvailableStrategy,
+    FulfillmentStrategy,
+    MatchStrategy
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 import {
     NavigatorRequest,
     NavigatorResponse,
     SeaportNavigator
 } from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
-
-import {
-    NavigatorOfferItem,
-    NavigatorConsiderationItem,
-    NavigatorOrderParameters
-} from "../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
 import {
     TokenIdNotFound
@@ -49,34 +44,32 @@ import {
     NavigatorAdvancedOrder,
     NavigatorAdvancedOrderLib
 } from "../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
+
 import {
     OrderStructureLib
 } from "../../../contracts/helpers/navigator/lib/OrderStructureLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
+
 import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
+
 import { SeaportNavigatorTest } from "./SeaportNavigatorTest.sol";
 
-import {
-    FulfillmentStrategy,
-    AggregationStrategy,
-    FulfillAvailableStrategy,
-    MatchStrategy
-} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 contract SeaportNavigatorTestSuite is
     BaseOrderTest,
     SeaportValidatorTest,
     SeaportNavigatorTest
 {
+    using AdvancedOrderLib for AdvancedOrder;
     using ConsiderationItemLib for ConsiderationItem;
+    using NavigatorAdvancedOrderLib for NavigatorAdvancedOrder;
     using OfferItemLib for OfferItem;
-    using OrderParametersLib for OrderParameters;
     using OrderComponentsLib for OrderComponents;
     using OrderLib for Order;
-    using AdvancedOrderLib for AdvancedOrder;
+    using OrderParametersLib for OrderParameters;
     using OrderStructureLib for AdvancedOrder;
-    using NavigatorAdvancedOrderLib for NavigatorAdvancedOrder;
 
     string constant SINGLE_ERC721_SINGLE_ERC20 = "SINGLE_ERC721_SINGLE_ERC20";
     string constant SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA =
@@ -360,6 +353,156 @@ contract SeaportNavigatorTestSuite is
         assertEq(
             res.nativeTokensReturned,
             0,
+            "unexpected nativeTokensReturned amount"
+        );
+    }
+
+    function test_simpleOrderWithNativeReturned() public {
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
+            1
+        );
+
+        Order memory order = OrderLib.fromDefault(SINGLE_ERC721).copy();
+        AdvancedOrder memory advancedOrder = order.toAdvancedOrder(
+            1,
+            1,
+            "dummy"
+        );
+
+        address offerer = offerer1.addr;
+        OfferItem memory item = advancedOrder.parameters.offer[0];
+        TestERC721(item.token).mint(offerer, item.identifierOrCriteria);
+        vm.prank(offerer);
+        TestERC721(item.token).setApprovalForAll(address(seaport), true);
+
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+        consideration[0] = ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.NATIVE)
+            .withToken(address(0))
+            .withAmount(1 ether)
+            .withRecipient(offerer);
+
+        advancedOrder.parameters = advancedOrder
+            .parameters
+            .withTotalConsideration(consideration)
+            .withOfferer(offerer);
+
+        uint256 counter = getSeaport().getCounter(offerer1.addr);
+        bytes32 orderHash = getSeaport().getOrderHash(
+            advancedOrder.parameters.toOrderComponents(counter)
+        );
+        advancedOrder = advancedOrder.withSignature(
+            signOrder(getSeaport(), offerer1.key, orderHash)
+        );
+
+        orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
+
+        FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
+            aggregationStrategy: AggregationStrategy.MAXIMUM,
+            fulfillAvailableStrategy: FulfillAvailableStrategy.KEEP_ALL,
+            matchStrategy: MatchStrategy.MAX_INCLUSION
+        });
+
+        NavigatorResponse memory res = navigator.prepare(
+            NavigatorRequest({
+                seaport: seaport,
+                validator: validator,
+                orders: orders,
+                caller: address(this),
+                nativeTokensSupplied: 2 ether,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(this),
+                maximumFulfilled: 1,
+                seed: 0,
+                fulfillmentStrategy: fulfillmentStrategy,
+                criteriaResolvers: new CriteriaResolver[](0),
+                preferMatch: false
+            })
+        );
+
+        assertEq(
+            res.suggestedActionName,
+            "fulfillAdvancedOrder",
+            "unexpected actionName selected"
+        );
+        assertEq(
+            res.suggestedCallData,
+            abi.encodeCall(
+                ConsiderationInterface.fulfillAdvancedOrder,
+                (
+                    advancedOrder,
+                    new CriteriaResolver[](0),
+                    bytes32(0),
+                    address(this)
+                )
+            ),
+            "unexpected suggested calldata"
+        );
+        assertEq(
+            res.validationErrors.length,
+            1,
+            "unexpected validationErrors length"
+        );
+        assertEq(
+            res.validationErrors[0].errors.length,
+            0,
+            "unexpected validationErrors[0].errors length"
+        );
+        assertEq(res.orderDetails.length, 1, "unexpected orderDetails length");
+        assertEq(
+            res.offerFulfillments.length,
+            1,
+            "unexpected offerFulfillments length"
+        );
+        assertEq(
+            res.considerationFulfillments.length,
+            1,
+            "unexpected considerationFulfillments length"
+        );
+        assertEq(res.fulfillments.length, 0, "unexpected fulfillments length");
+        // Specific to match* methods.
+        assertEq(
+            res.unspentOfferComponents.length,
+            1,
+            "unexpected unspentOfferComponents length"
+        );
+        // Specific to match* methods.
+        assertEq(
+            res.unmetConsiderationComponents.length,
+            1,
+            "unexpected unmetConsiderationComponents length"
+        );
+        // No fulfillment related stuff in this case, so no explicit executions.
+        assertEq(
+            res.explicitExecutions.length,
+            0,
+            "unexpected explicitExecutions length"
+        );
+
+        // 2 ether to seaport
+        // ERC721 from seller to buyer
+        // 1 ether from seaport to buyer
+        // 1 ether from buyer to seller
+        assertEq(
+            res.implicitExecutions.length,
+            4,
+            "unexpected implicitExecutions length"
+        );
+
+        assertEq(
+            res.implicitExecutionsPre.length,
+            0,
+            "unexpected implicitExecutionsPre length"
+        );
+        assertEq(
+            res.implicitExecutionsPost.length,
+            0,
+            "unexpected implicitExecutionsPost length"
+        );
+        assertEq(
+            res.nativeTokensReturned,
+            1 ether,
             "unexpected nativeTokensReturned amount"
         );
     }

@@ -81,7 +81,7 @@ cast send --rpc-url ${RPC_URL} --private-key ${PK} 0x0000000000ffe8b47b3e2130213
 3. Validate deployments were successful by checking that `Seaport` is returned:
 
 ```
-cast --to-ascii $(cast call --rpc-url ${RPC_URL}  0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC 'name()')
+cast call --rpc-url ${RPC_URL} 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC 'name()(string)'
 ```
 
 ## Verifying Seaport and ConduitController
