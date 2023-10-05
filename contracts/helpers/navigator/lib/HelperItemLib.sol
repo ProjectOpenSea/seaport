@@ -147,7 +147,7 @@ library HelperItemLib {
         }
         // If the item has candidate identifiers, the item identifier must be
         // zero or wildcard for one of the candidates.
-        if (itemCandidateIdentifiersLength > 0) {
+        if (_hasCriteria) {
             bool identifierFound;
             for (uint256 i; i < itemCandidateIdentifiersLength; i++) {
                 if (candidateIdentifiers[i] == identifier) {
