@@ -139,76 +139,77 @@ jobs:
       - name: Run tests
         run: FOUNDRY_PROFILE=offerers forge test -vvv
 
-  forge-coverage:
-    name: Run Forge Coverage report on tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
+  # Temporary disabled while working out the kinks.
+  # forge-coverage:
+  #   name: Run Forge Coverage report on tests
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
+  #     - name: Install Foundry
+  #       uses: foundry-rs/foundry-toolchain@v1
+  #       with:
+  #         version: nightly
 
-      - name: Install forge dependencies
-        run: forge install
+  #     - name: Install forge dependencies
+  #       run: forge install
 
-      - name: Run coverage with lcov output
-        run: SEAPORT_COVERAGE=true forge coverage --report lcov
+  #     - name: Run coverage with lcov output
+  #       run: SEAPORT_COVERAGE=true forge coverage --report lcov
 
-      - uses: codecov/codecov-action@v3
-        with:
-          files: ./lcov.info
-          flags: foundry
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         files: ./lcov.info
+  #         flags: foundry
 
-  coverage:
-    name: Run Coverage Tests
-    runs-on: ubuntu-latest
+  # coverage:
+  #   name: Run Coverage Tests
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.15.1]
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.15.1]
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
-      - run: yarn coverage
-      - uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/lcov.info
-          flags: production
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Use Node.js
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: "yarn"
+  #     - run: yarn install
+  #     - run: yarn build
+  #     - run: yarn coverage
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         files: ./coverage/lcov.info
+  #         flags: production
 
-  reference-coverage:
-    name: Run Reference Coverage Tests
-    runs-on: ubuntu-latest
+  # reference-coverage:
+  #   name: Run Reference Coverage Tests
+  #   runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.15.1]
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.15.1]
 
-    env:
-      REFERENCE: true
+  #   env:
+  #     REFERENCE: true
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
-      - run: yarn build:ref
-      - run: yarn coverage:ref
-      - uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/lcov.info
-          flags: reference
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Use Node.js
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: "yarn"
+  #     - run: yarn install
+  #     - run: yarn build
+  #     - run: yarn build:ref
+  #     - run: yarn coverage:ref
+  #     - uses: codecov/codecov-action@v3
+  #       with:
+  #         files: ./coverage/lcov.info
+  #         flags: reference
