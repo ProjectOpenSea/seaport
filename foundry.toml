@@ -56,8 +56,6 @@ test ='contracts'
 
 [profile.test]
 src = 'test/foundry'
-solc = "./bin/solc-static-linux"
-cancun = true
 
 [profile.test.fuzz]
 runs = 1_000
