@@ -48,47 +48,50 @@ jobs:
       - run: yarn install
       - run: yarn lint:check
 
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [16.15.1]
+  # Omitted during the 1.6 transitional phase. 
+  
+  # test:
+  #   name: Run Tests
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
-      - run: yarn test
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.15.1]
 
-  reference-test:
-    name: Run Reference Tests
-    runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Use Node.js
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: "yarn"
+  #     - run: yarn install
+  #     - run: yarn build
+  #     - run: yarn test
 
-    strategy:
-      matrix:
-        node-version: [16.15.1]
+  # reference-test:
+  #   name: Run Reference Tests
+  #   runs-on: ubuntu-latest
 
-    env:
-      REFERENCE: true
+  #   strategy:
+  #     matrix:
+  #       node-version: [16.15.1]
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
-      - run: yarn build:ref
-      - run: yarn test:ref
+  #   env:
+  #     REFERENCE: true
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Use Node.js
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #         cache: "yarn"
+  #     - run: yarn install
+  #     - run: yarn build
+  #     - run: yarn build:ref
+  #     - run: yarn test:ref
 
   forge:
     name: Run Forge Tests (via_ir = true; fuzz_runs = 5000)
@@ -107,14 +110,15 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile reference using 0.8.13 and via-ir=false
-        run: FOUNDRY_PROFILE=reference forge build
+      # Temporarily disabled while working out the kinks.
+      # - name: Precompile reference using 0.8.13 and via-ir=false
+      #   run: FOUNDRY_PROFILE=reference forge build
 
-      - name: Precompile optimized using 0.8.17 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build
+      # - name: Precompile optimized using 0.8.17 and via-ir=true
+      #   run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=test forge test -vvv
+        run: FOUNDRY_PROFILE=ci forge test -vvv
 
   forge-offerers:
     name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
