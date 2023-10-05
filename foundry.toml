@@ -29,6 +29,23 @@ fs_permissions = [
 ]
 cancun = true
 
+[profile.use-seaport-with-tstore]
+# TODO: update this to the 1.6 branch instead of the tstore branch once stuff
+#       starts getting merged into 1.6.
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/'
+]
+
 [profile.validator]
 solc = '0.8.17'
 src = 'contracts/helpers/order-validator'
