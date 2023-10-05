@@ -62,6 +62,7 @@ runs = 1_000
 
 [profile.ci]
 src = 'test/foundry'
+out = 'out'
 solc = "./bin/solc-static-linux"
 cancun = true
 
