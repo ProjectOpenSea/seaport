@@ -386,6 +386,8 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         if (
             keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("default")) ||
+            keccak256(abi.encodePacked(profile)) ==
             keccak256(abi.encodePacked("optimized")) ||
             keccak256(abi.encodePacked(profile)) ==
             keccak256(abi.encodePacked("test")) ||
@@ -397,7 +399,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         require(
             readAccesses.length == expectedReadAccessCount,
-            "Expected a different number of read accesses."
+            string(abi.encodePacked("Expected a different number of read accesses. Got ", vm.toString(readAccesses.length), ". Expected ", vm.toString(expectedReadAccessCount)))
         );
 
         return readAccesses[0];
