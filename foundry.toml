@@ -65,7 +65,7 @@ script = 'reference'
 test = 'reference'
 
 [profile.optimized]
-via_ir = false
+via_ir = true
 out = 'optimized-out'
 script = 'contracts'
 bytecode_hash = 'none'
