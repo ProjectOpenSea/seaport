@@ -44,8 +44,10 @@ remappings = [
     'seaport-sol/=lib/seaport-sol/',
     'seaport-types/=lib/seaport-types/',
     'seaport-core/=lib/seaport-core-tstore/',
-    'seaport/=./contracts/'
+    'seaport/=./contracts/',
+    'seaport-sol/src/lib/seaport-core/=lib/seaport-core-tstore/'
 ]
+auto_detect_remappings = false
 
 [profile.validator]
 solc = '0.8.17'
@@ -78,19 +80,45 @@ src = 'test/foundry'
 [profile.test.fuzz]
 runs = 1_000
 
-[profile.ci-build]
+[profile.ci-tstore-build-optimized]
 src = 'contracts'
 out = 'optimized-out'
-via_ir = false
+via_ir = true
 solc = "./bin/solc-static-linux"
 cancun = true
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/'
+]
 
-[profile.ci]
+[profile.ci-tstore]
 src = 'test/foundry'
 out = 'optimized-out'
 via_ir = false
 solc = "./bin/solc-static-linux"
 cancun = true
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/'
+]
 
 [profile.lite]
 out = 'optimized-out'
