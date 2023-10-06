@@ -98,13 +98,9 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
      * @param conduitKey The conduit key referring to the conduit through
      *                   which the bulk transfer should occur.
      */
-    function _performTransfersWithConduit(
-        TransferHelperItemsWithRecipient[] calldata transfers,
-        bytes32 conduitKey
-    ) internal {
-        // Retrieve total number of transfers and place on stack.
-        uint256 numTransfers = transfers.length;
-
+    function _performTransfersWithConduit(TransferHelperItemsWithRecipient[] calldata transfers, bytes32 conduitKey)
+        internal
+    {
         // Derive the conduit address from the deployer, conduit key
         // and creation code hash.
         address conduit = address(
@@ -112,10 +108,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            bytes1(0xff),
-                            address(_CONDUIT_CONTROLLER),
-                            conduitKey,
-                            _CONDUIT_CREATION_CODE_HASH
+                            bytes1(0xff), address(_CONDUIT_CONTROLLER), conduitKey, _CONDUIT_CREATION_CODE_HASH
                         )
                     )
                 )
@@ -125,17 +118,14 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         // Declare a variable to store the sum of all items across transfers.
         uint256 sumOfItemsAcrossAllTransfers;
 
-        // Skip overflow checks: all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each transfer.
-            for (uint256 i = 0; i < numTransfers; ++i) {
-                // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
-                    i
-                ];
-
-                // Increment totalItems by the number of items in the transfer.
-                sumOfItemsAcrossAllTransfers += transfer.items.length;
+        {
+            // Skip overflow checks: all for loops are indexed starting at zero.
+            unchecked {
+                // Iterate over each transfer.
+                for (uint256 i = 0; i < transfers.length; ++i) {
+                    // Increment totalItems by the number of items in the transfer.
+                    sumOfItemsAcrossAllTransfers += transfers[i].items.length;
+                }
             }
         }
 
@@ -151,63 +141,44 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each transfer.
-            for (uint256 i = 0; i < numTransfers; ++i) {
-                // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
-                    i
-                ];
-
-                // Retrieve the items of the transfer in question.
-                TransferHelperItem[] calldata transferItems = transfer.items;
-
+            for (uint256 i; i < transfers.length; ++i) {
                 // Ensure recipient is not the zero address.
-                _checkRecipientIsNotZeroAddress(transfer.recipient);
+                _checkRecipientIsNotZeroAddress(transfers[i].recipient);
 
-                // Create a boolean indicating whether validateERC721Receiver
-                // is true and recipient is a contract.
-                bool callERC721Receiver = transfer.validateERC721Receiver &&
-                    transfer.recipient.code.length != 0;
-
+                // TODO: Kill this if stack still too dank.
                 // Retrieve the total number of items in the transfer and
                 // place on stack.
-                uint256 numItemsInTransfer = transferItems.length;
+                uint256 numItemsInTransfer = transfers[i].items.length;
 
                 // Iterate over each item in the transfer to create a
                 // corresponding ConduitTransfer.
-                for (uint256 j = 0; j < numItemsInTransfer; ++j) {
-                    // Retrieve the item from the transfer.
-                    TransferHelperItem calldata item = transferItems[j];
-
-                    if (item.itemType == ConduitItemType.ERC20) {
+                for (uint256 j; j < numItemsInTransfer; ++j) {
+                    if (transfers[i].items[j].itemType == ConduitItemType.ERC20) {
                         // Ensure that the identifier of an ERC20 token is 0.
-                        if (item.identifier != 0) {
+                        if (transfers[i].items[j].identifier != 0) {
                             revert InvalidERC20Identifier();
                         }
                     }
 
                     // If the item is an ERC721 token and
                     // callERC721Receiver is true...
-                    if (item.itemType == ConduitItemType.ERC721) {
-                        if (callERC721Receiver) {
+                    if (transfers[i].items[j].itemType == ConduitItemType.ERC721) {
+                        if (transfers[i].validateERC721Receiver && transfers[i].recipient.code.length != 0) {
                             // Check if the recipient implements
                             // onERC721Received for the given tokenId.
-                            _checkERC721Receiver(
-                                conduit,
-                                transfer.recipient,
-                                item.identifier
-                            );
+                            _checkERC721Receiver(conduit, transfers[i].recipient, transfers[i].items[j].identifier);
                         }
                     }
 
                     // Create a ConduitTransfer corresponding to each
                     // TransferHelperItem.
                     conduitTransfers[itemIndex] = ConduitTransfer(
-                        item.itemType,
-                        item.token,
+                        transfers[i].items[j].itemType,
+                        transfers[i].items[j].token,
                         msg.sender,
-                        transfer.recipient,
-                        item.identifier,
-                        item.amount
+                        transfers[i].recipient,
+                        transfers[i].items[j].identifier,
+                        transfers[i].items[j].amount
                     );
 
                     // Increment the index for storing ConduitTransfers.
@@ -217,9 +188,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         }
 
         // Attempt the external call to transfer tokens via the derived conduit.
-        try ConduitInterface(conduit).execute(conduitTransfers) returns (
-            bytes4 conduitMagicValue
-        ) {
+        try ConduitInterface(conduit).execute(conduitTransfers) returns (bytes4 conduitMagicValue) {
             // Check if the value returned from the external call matches
             // the conduit `execute` selector.
             if (conduitMagicValue != ConduitInterface.execute.selector) {
@@ -246,26 +215,21 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             // Utilize assembly to read first four bytes (if present) directly.
             assembly {
                 // Combine original mask with first four bytes of revert data.
-                customErrorSelector := and(
-                    mload(add(data, 0x20)), // Data begins after length offset.
-                    customErrorSelector
-                )
+                customErrorSelector :=
+                    and(
+                        mload(add(data, 0x20)), // Data begins after length offset.
+                        customErrorSelector
+                    )
             }
 
             // Pass through the custom error in question if the revert data is
             // the correct length and matches an expected custom error selector.
-            if (
-                data.length == 4 &&
-                customErrorSelector == InvalidItemType.selector
-            ) {
+            if (data.length == 4 && customErrorSelector == InvalidItemType.selector) {
                 // "Bubble up" the revert reason.
                 assembly {
                     revert(add(data, 0x20), 0x04)
                 }
-            } else if (
-                data.length == 36 &&
-                customErrorSelector == InvalidERC721TransferAmount.selector
-            ) {
+            } else if (data.length == 36 && customErrorSelector == InvalidERC721TransferAmount.selector) {
                 // "Bubble up" the revert reason.
                 assembly {
                     revert(add(data, 0x20), 0x24)

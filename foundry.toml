@@ -45,7 +45,6 @@ remappings = [
     'seaport-types/=lib/seaport-types/',
     'seaport-core/=lib/seaport-core-tstore/',
     'seaport/=./contracts/',
-    'seaport-sol/src/lib/seaport-core/=lib/seaport-core-tstore/'
 ]
 auto_detect_remappings = false
 
