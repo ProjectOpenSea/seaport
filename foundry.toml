@@ -28,11 +28,97 @@ fs_permissions = [
     { access = "write", path = "./assume-metrics.txt" },
     { access = "write", path = "./fuzz_debug.json" }
 ]
-cancun = true
 
-[profile.use-seaport-with-tstore]
 # TODO: update this to the 1.6 branch instead of the tstore branch once stuff
 #       starts getting merged into 1.6.
+[profile.tstore-default]
+solc = "./bin/solc"
+cancun = true
+via_ir = false
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    # This is the one that matters
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/',
+]
+fs_permissions = [
+    { access = "read", path = "./bin" },
+    { access = "read", path = "./out" },
+    { access = "read", path = "./optimized-out" },
+    { access = "read", path = "./reference-out" },
+    { access = "write", path = "./call-metrics.txt" },
+    { access = "write", path = "./mutation-metrics.txt" },
+    { access = "write", path = "./assume-metrics.txt" },
+    { access = "write", path = "./fuzz_debug.json" }
+]
+# Don't compile tests with 0.8.22 bc yul stack too dank.
+test = 'test/foundry'
+out = 'out'
+
+[profile.tstore-optimized]
+solc = "./bin/solc"
+cancun = true
+via_ir = true
+# Fewer runs to move quicker for now.
+optimizer_runs = 9_999_999
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    # This is the one that matters
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/',
+]
+# Don't compile tests with 0.8.22 bc yul stack too dank.
+test ='contracts'
+script = 'contracts'
+out = 'optimized-out'
+bytecode_hash = 'none'
+
+[profile.ci-tstore-build-optimized]
+solc = "./bin/solc-static-linux"
+cancun = true
+via_ir = true
+# Fewer runs to move quicker for now.
+optimizer_runs = 9_999_999
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    # This is the one that matters
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/',
+]
+# Don't compile tests with 0.8.22 bc yul stack too dank.
+test ='contracts'
+script = 'contracts'
+out = 'optimized-out'
+
+[profile.ci-tstore]
+src = 'test/foundry'
+via_ir = false
+solc = "./bin/solc-static-linux"
+cancun = true
 remappings = [
     '@rari-capital/solmate/=lib/solmate/',
     'ds-test/=lib/ds-test/src/',
@@ -44,9 +130,8 @@ remappings = [
     'seaport-sol/=lib/seaport-sol/',
     'seaport-types/=lib/seaport-types/',
     'seaport-core/=lib/seaport-core-tstore/',
-    'seaport/=./contracts/',
+    'seaport/=./contracts/'
 ]
-auto_detect_remappings = false
 
 [profile.validator]
 solc = '0.8.17'
@@ -78,46 +163,6 @@ src = 'test/foundry'
 
 [profile.test.fuzz]
 runs = 1_000
-
-[profile.ci-tstore-build-optimized]
-src = 'contracts'
-out = 'optimized-out'
-via_ir = true
-solc = "./bin/solc-static-linux"
-cancun = true
-remappings = [
-    '@rari-capital/solmate/=lib/solmate/',
-    'ds-test/=lib/ds-test/src/',
-    'forge-std/=lib/forge-std/src/',
-    'murky/=lib/murky/src/',
-    '@openzeppelin/=lib/openzeppelin-contracts/',
-    'solarray/=lib/solarray/src/',
-    'solady/=lib/solady/',
-    'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
-    'seaport-core/=lib/seaport-core-tstore/',
-    'seaport/=./contracts/'
-]
-
-[profile.ci-tstore]
-src = 'test/foundry'
-out = 'optimized-out'
-via_ir = false
-solc = "./bin/solc-static-linux"
-cancun = true
-remappings = [
-    '@rari-capital/solmate/=lib/solmate/',
-    'ds-test/=lib/ds-test/src/',
-    'forge-std/=lib/forge-std/src/',
-    'murky/=lib/murky/src/',
-    '@openzeppelin/=lib/openzeppelin-contracts/',
-    'solarray/=lib/solarray/src/',
-    'solady/=lib/solady/',
-    'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
-    'seaport-core/=lib/seaport-core-tstore/',
-    'seaport/=./contracts/'
-]
 
 [profile.lite]
 out = 'optimized-out'

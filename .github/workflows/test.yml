@@ -113,12 +113,8 @@ jobs:
       - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
-      # Temporarily disabled while working out the kinks.
-      # - name: Precompile optimized using 0.8.17 and via-ir=true
-      #   run: FOUNDRY_PROFILE=optimized forge build
-
       - name: Precompile using 0.8.22 and via-ir=false
-        run: FOUNDRY_PROFILE=ci-build forge build
+        run: FOUNDRY_PROFILE=ci-tstore-build-optimized forge build
 
       - name: Run tests
         run: FOUNDRY_PROFILE=ci forge test -vvv
