@@ -1,3 +1,12 @@
+---
+title: Interacting with Seaport
+category: 6520398b749af50013f52ff4
+slug: seaport-interactions
+parentDocSlug: seaport-overview
+order: 1
+hidden: false
+---
+
 # Seaport Documentation
 
 Documentation around creating orders, fulfillment, and interacting with Seaport.
