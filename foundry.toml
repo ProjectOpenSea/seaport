@@ -31,8 +31,12 @@ fs_permissions = [
 
 # TODO: update this to the 1.6 branch instead of the tstore branch once stuff
 #       starts getting merged into 1.6.
-[profile.tstore-default]
+[profile.tstore_default]
+src = 'contracts'
 solc = "./bin/solc"
+out = 'out'
+libs = ["node_modules", "lib"]
+test = 'test/foundry'
 cancun = true
 via_ir = false
 remappings = [
@@ -59,11 +63,46 @@ fs_permissions = [
     { access = "write", path = "./assume-metrics.txt" },
     { access = "write", path = "./fuzz_debug.json" }
 ]
-# Don't compile tests with 0.8.22 bc yul stack too dank.
-test = 'test/foundry'
-out = 'out'
+auto_detect_remappings = false
+optimizer = false
 
-[profile.tstore-optimized]
+[profile.tstore_debug]
+src = 'contracts'
+solc = "./bin/solc"
+out = 'out'
+libs = ["node_modules", "lib"]
+test = 'test/foundry'
+cancun = true
+via_ir = false
+remappings = [
+    '@rari-capital/solmate/=lib/solmate/',
+    'ds-test/=lib/ds-test/src/',
+    'forge-std/=lib/forge-std/src/',
+    'murky/=lib/murky/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+    'solarray/=lib/solarray/src/',
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    # This is the one that matters
+    'seaport-core/=lib/seaport-core-tstore/',
+    'seaport/=./contracts/',
+]
+fs_permissions = [
+    { access = "read", path = "./bin" },
+    { access = "read", path = "./out" },
+    { access = "read", path = "./optimized-out" },
+    { access = "read", path = "./reference-out" },
+    { access = "write", path = "./call-metrics.txt" },
+    { access = "write", path = "./mutation-metrics.txt" },
+    { access = "write", path = "./assume-metrics.txt" },
+    { access = "write", path = "./fuzz_debug.json" }
+]
+auto_detect_remappings = false
+optimizer = false
+
+
+[profile.tstore_optimized]
 solc = "./bin/solc"
 cancun = true
 via_ir = true
@@ -88,8 +127,9 @@ test ='contracts'
 script = 'contracts'
 out = 'optimized-out'
 bytecode_hash = 'none'
+auto_detect_remappings = false
 
-[profile.ci-tstore-build-optimized]
+[profile.ci_tstore_build_optimized]
 solc = "./bin/solc-static-linux"
 cancun = true
 via_ir = true
@@ -114,7 +154,7 @@ test ='contracts'
 script = 'contracts'
 out = 'optimized-out'
 
-[profile.ci-tstore]
+[profile.ci_tstore]
 src = 'test/foundry'
 via_ir = false
 solc = "./bin/solc-static-linux"

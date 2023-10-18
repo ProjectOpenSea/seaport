@@ -113,11 +113,11 @@ jobs:
       - name: Precompile reference using 0.8.13 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
-      - name: Precompile using 0.8.22 and via-ir=false
-        run: FOUNDRY_PROFILE=ci-tstore-build-optimized forge build
+      - name: Precompile using 0.8.22 and via-ir=true
+        run: FOUNDRY_PROFILE=ci_tstore_build_optimized forge build
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=ci forge test -vvv
+        run: FOUNDRY_PROFILE=ci_tstore forge test -vvv
 
   forge-offerers:
     name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)

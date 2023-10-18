@@ -58,7 +58,7 @@ contract BaseSeaportTest is DifferentialTest {
 
     function debugProfileEnabled() internal returns (bool) {
         string memory env = vm.envOr("FOUNDRY_PROFILE", string(""));
-        return stringEq(env, "debug") || stringEq(env, "moat_debug");
+        return stringEq(env, "debug") || stringEq(env, "moat_debug") || stringEq(env, "tstore_debug");
     }
 
     function setUp() public virtual {
