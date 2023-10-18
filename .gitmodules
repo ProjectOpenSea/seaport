@@ -30,3 +30,9 @@
 [submodule "lib/seaport-sol"]
 	path = lib/seaport-sol
 	url = https://github.com/projectopensea/seaport-sol
+[submodule "lib/seaport-types-tstore"]
+	path = lib/seaport-types-tstore
+	url = https://github.com/ProjectOpenSea/seaport-types
+[submodule "lib/seaport-core-tstore"]
+	path = lib/seaport-core-tstore
+	url = https://github.com/ProjectOpenSea/seaport-core
