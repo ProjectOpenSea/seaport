@@ -1,3 +1,12 @@
+---
+title: Seaport Zones
+category: 6520398b749af50013f52ff4
+slug: seaport-zones
+parentDocSlug: seaport-overview
+order: 2
+hidden: false
+---
+
 # Zone Documentation
 
 The `zone` of the order is an optional secondary account attached to the order with two additional privileges:
