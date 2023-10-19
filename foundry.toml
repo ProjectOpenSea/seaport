@@ -48,10 +48,8 @@ remappings = [
     'solarray/=lib/solarray/src/',
     'solady/=lib/solady/',
     'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
-    # This is the one that matters
     'seaport-core/=lib/seaport-core-tstore/',
-    'lib/seaport-core-tstore/lib/seaport-types/=lib/seaport-types-tstore/',
+    'seaport-types/=lib/seaport-types-tstore/',
     'seaport/=./contracts/',
 ]
 fs_permissions = [
@@ -84,10 +82,8 @@ remappings = [
     'solarray/=lib/solarray/src/',
     'solady/=lib/solady/',
     'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
-    # This is the one that matters
     'seaport-core/=lib/seaport-core-tstore/',
-    'lib/seaport-core-tstore/lib/seaport-types/=lib/seaport-types-tstore/',
+    'seaport-types/=lib/seaport-types-tstore/',
     'seaport/=./contracts/',
 ]
 fs_permissions = [
@@ -119,10 +115,8 @@ remappings = [
     'solarray/=lib/solarray/src/',
     'solady/=lib/solady/',
     'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
-    # This is the one that matters
     'seaport-core/=lib/seaport-core-tstore/',
-    'lib/seaport-core-tstore/lib/seaport-types/=lib/seaport-types-tstore/',
+    'seaport-types/=lib/seaport-types-tstore/',
     'seaport/=./contracts/',
 ]
 # Don't compile tests with 0.8.22 bc yul stack too dank.
@@ -147,10 +141,8 @@ remappings = [
     'solarray/=lib/solarray/src/',
     'solady/=lib/solady/',
     'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
-    # This is the one that matters
     'seaport-core/=lib/seaport-core-tstore/',
-    'lib/seaport-core-tstore/lib/seaport-types/=lib/seaport-types-tstore/',
+    'seaport-types/=lib/seaport-types-tstore/',
     'seaport/=./contracts/',
 ]
 # Don't compile tests with 0.8.22 bc yul stack too dank.
@@ -172,10 +164,9 @@ remappings = [
     'solarray/=lib/solarray/src/',
     'solady/=lib/solady/',
     'seaport-sol/=lib/seaport-sol/',
-    'seaport-types/=lib/seaport-types/',
     'seaport-core/=lib/seaport-core-tstore/',
-    'lib/seaport-core-tstore/lib/seaport-types/=lib/seaport-types-tstore/',
-    'seaport/=./contracts/'
+    'seaport-types/=lib/seaport-types-tstore/',
+    'seaport/=./contracts/',
 ]
 
 [profile.validator]
