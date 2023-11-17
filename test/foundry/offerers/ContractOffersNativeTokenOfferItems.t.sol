@@ -62,7 +62,7 @@ contract ContractOffersNativeTokenOfferItems is
 
     TestERC721 erc721;
 
-    function setUp() public override snapshotted {
+    function setUp() public override snapshotSetup {
         super.setUp();
         erc721 = new TestERC721();
     }

@@ -27,14 +27,14 @@ contract DifferentialTest is Test {
         revert RevertWithFailureStatus(readHevmFailureSlot());
     }
 
-    /// @notice setup the snapshot at the end of the setUp function
-    /// @dev apply modifier to `setUp` function, then run differential tests using `revertToSetup`
-    modifier snapshotted() {
+    /// @notice snapshot the chain state at the end of a `setUp` function
+    /// @dev apply modifier to the `setUp` function in order to use `revertToSetup` in differential tests
+    modifier snapshotSetup() {
         _;
         snapshot = vm.snapshot();
     }
 
-    /// @notice revert to the state at the end of setUp
+    /// @notice revert to chain state established in the `setUp` function
     function revertToSetup() public {
         vm.revertTo(snapshot);
     }
