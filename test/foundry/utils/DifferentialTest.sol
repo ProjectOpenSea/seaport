@@ -4,6 +4,9 @@ pragma solidity ^0.8.17;
 import { Test } from "forge-std/Test.sol";
 
 contract DifferentialTest is Test {
+    // identifier for a snapshot taken at the end of a setUp function for a differential test
+    uint256 snapshot;
+
     ///@dev error to supply
     error RevertWithFailureStatus(bool status);
     error DifferentialTestAssertionFailed();
@@ -22,6 +25,18 @@ contract DifferentialTest is Test {
     modifier stateless() {
         _;
         revert RevertWithFailureStatus(readHevmFailureSlot());
+    }
+
+    /// @notice setup the snapshot at the end of the setUp function
+    /// @dev apply modifier to `setUp` function, then run differential tests using `revertToSetup`
+    modifier snapshotted() {
+        _;
+        snapshot = vm.snapshot();
+    }
+
+    /// @notice revert to the state at the end of setUp
+    function revertToSetup() public {
+        vm.revertTo(snapshot);
     }
 
     ///@dev revert if the supplied bytes do not match the expected "passing" revert bytes

@@ -62,28 +62,20 @@ contract ContractOffersNativeTokenOfferItems is
 
     TestERC721 erc721;
 
-    function setUp() public override {
+    function setUp() public override snapshotted {
         super.setUp();
         erc721 = new TestERC721();
-    }
-
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
-            assertPass(reason);
-        }
     }
 
     function testEthForErc721(
         FuzzArgs memory args
     ) public validateInputs(args) {
-        test(this.ethForErc721, Context(consideration,args));
-        test(this.ethForErc721, Context(referenceConsideration,args));
+        ethForErc721(Context(consideration,args));
+        revertToSetup();
+        ethForErc721(Context(referenceConsideration,args));
     }
 
-    function ethForErc721(Context memory context) public stateless {
+    function ethForErc721(Context memory context) public {
         TestContractOffererNativeToken contractOfferer = new TestContractOffererNativeToken(
                 address(context.seaport)
             );
