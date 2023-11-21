@@ -101,7 +101,7 @@ After `Seaport` and `ConduitController` are deployed, they are verified as follo
 ```
 git clone https://github.com/ProjectOpenSea/seaport && cd seaport
 git checkout 821a049
-yarn build
+yarn install && yarn build
 ```
 
 3. Verify `ConduitController` by calling:
