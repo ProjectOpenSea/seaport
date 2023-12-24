@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ConduitController } from "seaport-core/src/conduit/ConduitController.sol";
+import {
+    ConduitController
+} from "seaport-core/src/conduit/ConduitController.sol";
 
 import {
     ReferenceConduitController
