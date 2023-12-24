@@ -65,7 +65,7 @@ contract ContractOffersNativeTokenOfferItems is
 
     TestERC721 erc721;
 
-    function setUp() public override snapshotSetup {
+    function setUp() public override setupSnapshot {
         super.setUp();
         erc721 = new TestERC721();
     }
@@ -74,7 +74,7 @@ contract ContractOffersNativeTokenOfferItems is
         FuzzArgs memory args
     ) public validateInputs(args) {
         ethForErc721(Context(consideration, args));
-        revertToSetup();
+        revertToSnapshot();
         ethForErc721(Context(referenceConsideration, args));
     }
 

@@ -28,14 +28,14 @@ contract DifferentialTest is Test {
     }
 
     /// @notice snapshot the chain state at the end of a `setUp` function
-    /// @dev apply modifier to the `setUp` function in order to use `revertToSetup` in differential tests
-    modifier snapshotSetup() {
+    /// @dev apply modifier to the `setUp` function in order to use `revertToSnapshot` in differential tests
+    modifier setupSnapshot() {
         _;
         snapshot = vm.snapshot();
     }
 
     /// @notice revert to chain state established in the `setUp` function
-    function revertToSetup() public {
+    function revertToSnapshot() public {
         vm.revertTo(snapshot);
     }
 
