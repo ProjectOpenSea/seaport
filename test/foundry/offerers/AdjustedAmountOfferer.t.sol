@@ -13,7 +13,10 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationItem,

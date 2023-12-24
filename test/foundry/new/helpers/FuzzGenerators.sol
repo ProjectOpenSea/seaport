@@ -161,9 +161,8 @@ library TestStateGenerator {
         for (uint256 i; i < totalOrders; ++i) {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
-                    ? UnavailableReason.AVAILABLE // Don't fuzz 5 (maxfulfilled satisfied), since it's a more // of a consequence (to be handled in derivers) than a
-                    : // target.
-                    UnavailableReason(
+                    ? UnavailableReason.AVAILABLE // Don't fuzz 5 (maxfulfilled satisfied), since it's a more // of a consequence (to be handled in derivers) than a // target.
+                    : UnavailableReason(
                         context.choice(Solarray.uint256s(1, 2, 3, 4, 6))
                     )
             );

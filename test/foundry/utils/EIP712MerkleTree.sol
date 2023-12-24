@@ -13,7 +13,9 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { OrderComponents } from "seaport-types/src/lib/ConsiderationStructs.sol";
+import {
+    OrderComponents
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 

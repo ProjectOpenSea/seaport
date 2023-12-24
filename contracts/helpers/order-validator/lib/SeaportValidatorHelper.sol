@@ -22,7 +22,9 @@ import {
     ContractOffererInterface
 } from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "seaport-core/src/lib/GettersAndDerivers.sol";
+import {
+    GettersAndDerivers
+} from "seaport-core/src/lib/GettersAndDerivers.sol";
 import {
     SeaportValidatorInterface
 } from "../lib/SeaportValidatorInterface.sol";
