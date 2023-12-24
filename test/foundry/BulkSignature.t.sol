@@ -26,8 +26,8 @@ contract BulkSignatureTest is BaseOrderTest {
 
     struct Context {
         ConsiderationInterface seaport;
-        bool useCompact2098;
         SparseArgs args;
+        bool useCompact2098;
     }
 
     struct SparseArgs {
@@ -35,51 +35,7 @@ contract BulkSignatureTest is BaseOrderTest {
         uint24 orderIndex;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
-            assertPass(reason);
-        }
-    }
-
-    function testBulkSignature() public {
-        test(
-            this.execBulkSignature,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignature,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignature,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
-        );
-        test(
-            this.execBulkSignature,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
-        );
-    }
-
-    function execBulkSignature(Context memory context) external stateless {
+    function execBulkSignature(Context memory context) public {
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
         addErc721OfferItem(1);
@@ -117,44 +73,17 @@ contract BulkSignatureTest is BaseOrderTest {
         context.seaport.fulfillOrder{ value: 1 }(order, bytes32(0));
     }
 
-    function testBulkSignatureSparse() public {
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
-        );
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
-        );
+    function testBulkSignature() public {
+        execBulkSignature(Context(consideration, _defaultArgs, false));
+        revertToSnapshot();
+        execBulkSignature(Context(referenceConsideration, _defaultArgs, false));
+        revertToSnapshot();
+        execBulkSignature(Context(consideration, _defaultArgs, true));
+        revertToSnapshot();
+        execBulkSignature(Context(referenceConsideration, _defaultArgs, true));
     }
 
-    function execBulkSignatureSparse(
-        Context memory context
-    ) external stateless {
+    function execBulkSignatureSparse(Context memory context) public {
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
         addErc721OfferItem(1);
@@ -190,50 +119,22 @@ contract BulkSignatureTest is BaseOrderTest {
         context.seaport.fulfillOrder{ value: 1 }(order, bytes32(0));
     }
 
-    function testBulkSignatureSparseFuzz(SparseArgs memory sparseArgs) public {
-        sparseArgs.height = uint8(bound(sparseArgs.height, 1, 24));
-        sparseArgs.orderIndex = uint24(
-            bound(sparseArgs.orderIndex, 0, 2 ** uint256(sparseArgs.height) - 1)
+    function testBulkSignatureSparse() public {
+        execBulkSignatureSparse(Context(consideration, _defaultArgs, false));
+        revertToSnapshot();
+        execBulkSignatureSparse(
+            Context(referenceConsideration, _defaultArgs, false)
         );
-
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: consideration,
-                args: sparseArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: referenceConsideration,
-                args: sparseArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: consideration,
-                args: sparseArgs,
-                useCompact2098: true
-            })
-        );
-        test(
-            this.execBulkSignatureSparse,
-            Context({
-                seaport: referenceConsideration,
-                args: sparseArgs,
-                useCompact2098: true
-            })
+        revertToSnapshot();
+        execBulkSignatureSparse(Context(consideration, _defaultArgs, true));
+        revertToSnapshot();
+        execBulkSignatureSparse(
+            Context(referenceConsideration, _defaultArgs, true)
         );
     }
 
     // This tests the "targeting" of orders in the out-of-range index case.
-    function execBulkSignatureIndexOutOfBounds(
-        Context memory context
-    ) external stateless {
+    function execBulkSignatureIndexOutOfBounds(Context memory context) public {
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
         addErc721OfferItem(1);
@@ -326,6 +227,25 @@ contract BulkSignatureTest is BaseOrderTest {
         assertEq(test721_1.ownerOf(2), address(this));
     }
 
+    function testBulkSignatureSparseFuzz(SparseArgs memory sparseArgs) public {
+        sparseArgs.height = uint8(bound(sparseArgs.height, 1, 24));
+        sparseArgs.orderIndex = uint24(
+            bound(sparseArgs.orderIndex, 0, 2 ** uint256(sparseArgs.height) - 1)
+        );
+
+        execBulkSignatureSparse(Context(consideration, sparseArgs, false));
+        revertToSnapshot();
+        execBulkSignatureSparse(
+            Context(referenceConsideration, sparseArgs, false)
+        );
+        revertToSnapshot();
+        execBulkSignatureSparse(Context(consideration, sparseArgs, true));
+        revertToSnapshot();
+        execBulkSignatureSparse(
+            Context(referenceConsideration, sparseArgs, true)
+        );
+    }
+
     // Pulled out bc of stacc2dank but can be moved or cleaned up in some better
     // way.
     function setUpSecondOrder(
@@ -373,45 +293,10 @@ contract BulkSignatureTest is BaseOrderTest {
         return (secondOrderParameters, secondOrderComponents);
     }
 
-    function testExecBulkSignatureIndexOutOfBounds() public {
-        test(
-            this.execBulkSignatureIndexOutOfBounds,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignatureIndexOutOfBounds,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
-        );
-        test(
-            this.execBulkSignatureIndexOutOfBounds,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
-        );
-        test(
-            this.execBulkSignatureIndexOutOfBounds,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
-        );
-    }
-
     // This tests the overflow behavior for trees of different heights.
     function execBulkSignatureSparseIndexOutOfBounds(
         Context memory context
-    ) external stateless {
+    ) public {
         // Set up the boilerplate for the offerer.
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
@@ -498,6 +383,24 @@ contract BulkSignatureTest is BaseOrderTest {
         context.seaport.fulfillOrder{ value: 1 }(order, bytes32(0));
     }
 
+    function testExecBulkSignatureIndexOutOfBounds() public {
+        execBulkSignatureIndexOutOfBounds(
+            Context(consideration, _defaultArgs, false)
+        );
+        revertToSnapshot();
+        execBulkSignatureIndexOutOfBounds(
+            Context(referenceConsideration, _defaultArgs, false)
+        );
+        revertToSnapshot();
+        execBulkSignatureIndexOutOfBounds(
+            Context(consideration, _defaultArgs, true)
+        );
+        revertToSnapshot();
+        execBulkSignatureIndexOutOfBounds(
+            Context(referenceConsideration, _defaultArgs, true)
+        );
+    }
+
     function testBulkSignatureSparseIndexOutOfBoundsFuzz(
         SparseArgs memory sparseArgs
     ) public {
@@ -506,37 +409,20 @@ contract BulkSignatureTest is BaseOrderTest {
             bound(sparseArgs.orderIndex, 0, 2 ** uint256(sparseArgs.height) - 1)
         );
 
-        test(
-            this.execBulkSignatureSparseIndexOutOfBounds,
-            Context({
-                seaport: consideration,
-                args: sparseArgs,
-                useCompact2098: false
-            })
+        execBulkSignatureSparseIndexOutOfBounds(
+            Context(consideration, sparseArgs, false)
         );
-        test(
-            this.execBulkSignatureSparseIndexOutOfBounds,
-            Context({
-                seaport: referenceConsideration,
-                args: sparseArgs,
-                useCompact2098: false
-            })
+        revertToSnapshot();
+        execBulkSignatureSparseIndexOutOfBounds(
+            Context(referenceConsideration, sparseArgs, false)
         );
-        test(
-            this.execBulkSignatureSparseIndexOutOfBounds,
-            Context({
-                seaport: consideration,
-                args: sparseArgs,
-                useCompact2098: true
-            })
+        revertToSnapshot();
+        execBulkSignatureSparseIndexOutOfBounds(
+            Context(consideration, sparseArgs, true)
         );
-        test(
-            this.execBulkSignatureSparseIndexOutOfBounds,
-            Context({
-                seaport: referenceConsideration,
-                args: sparseArgs,
-                useCompact2098: true
-            })
+        revertToSnapshot();
+        execBulkSignatureSparseIndexOutOfBounds(
+            Context(referenceConsideration, sparseArgs, true)
         );
     }
 
@@ -544,7 +430,7 @@ contract BulkSignatureTest is BaseOrderTest {
     // work.
     function execBulkSignatureSparseIndexOutOfBoundsNonHits(
         Context memory context
-    ) external stateless {
+    ) public {
         // Set up the boilerplate for the offerer.
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
@@ -655,37 +541,20 @@ contract BulkSignatureTest is BaseOrderTest {
     }
 
     function testBulkSignatureSparseIndexOutOfBoundsNonHits() public {
-        test(
-            this.execBulkSignatureSparseIndexOutOfBoundsNonHits,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
+        execBulkSignatureSparseIndexOutOfBoundsNonHits(
+            Context(consideration, _defaultArgs, false)
         );
-        test(
-            this.execBulkSignatureSparseIndexOutOfBoundsNonHits,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: false
-            })
+        revertToSnapshot();
+        execBulkSignatureSparseIndexOutOfBoundsNonHits(
+            Context(referenceConsideration, _defaultArgs, false)
         );
-        test(
-            this.execBulkSignatureSparseIndexOutOfBoundsNonHits,
-            Context({
-                seaport: consideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
+        revertToSnapshot();
+        execBulkSignatureSparseIndexOutOfBoundsNonHits(
+            Context(consideration, _defaultArgs, true)
         );
-        test(
-            this.execBulkSignatureSparseIndexOutOfBoundsNonHits,
-            Context({
-                seaport: referenceConsideration,
-                args: _defaultArgs,
-                useCompact2098: true
-            })
+        revertToSnapshot();
+        execBulkSignatureSparseIndexOutOfBoundsNonHits(
+            Context(referenceConsideration, _defaultArgs, true)
         );
     }
 }

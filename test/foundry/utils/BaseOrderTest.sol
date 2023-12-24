@@ -94,7 +94,7 @@ contract BaseOrderTest is OrderBuilder, AmountDeriver {
         return account;
     }
 
-    function setUp() public virtual override {
+    function setUp() public virtual override setupSnapshot {
         super.setUp();
 
         vm.label(alice, "alice");

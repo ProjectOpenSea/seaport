@@ -44,23 +44,13 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint8 numOriginalAdditional;
         uint8 numTips;
     }
+
     struct EthConsideration {
         address payable recipient;
         uint256 amount;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {
-            fail();
-        } catch (bytes memory reason) {
-            assertPass(reason);
-        }
-    }
-
-    function setUp() public override {
+    function setUp() public override setupSnapshot {
         super.setUp();
         conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
@@ -72,25 +62,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testAscendingAmount() public {
-        test(
-            this.execAscendingAmount,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execAscendingAmount,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
+        execAscendingAmount(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execAscendingAmount(Context(referenceConsideration, 0, 0));
     }
 
-    function execAscendingAmount(Context memory context) public stateless {
+    function execAscendingAmount(Context memory context) public {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -135,25 +112,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testResolvedCriteria() public {
-        test(
-            this.execResolvedCriteria,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execResolvedCriteria,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
+        execResolvedCriteria(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execResolvedCriteria(Context(referenceConsideration, 0, 0));
     }
 
-    function execResolvedCriteria(Context memory context) public stateless {
+    function execResolvedCriteria(Context memory context) public {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 0);
         considerationItems[0].itemType = ItemType.ERC721_WITH_CRITERIA;
@@ -206,25 +170,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testStateChange() public {
-        test(
-            this.execStateChange,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execStateChange,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
+        execStateChange(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execStateChange(Context(referenceConsideration, 0, 0));
     }
 
-    function execStateChange(Context memory context) public stateless {
+    function execStateChange(Context memory context) public {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 0);
         considerationItems[0].itemType = ItemType.ERC721_WITH_CRITERIA;
@@ -279,25 +230,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testBasicStateful() public {
-        test(
-            this.execBasicStateful,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execBasicStateful,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
+        execBasicStateful(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execBasicStateful(Context(referenceConsideration, 0, 0));
     }
 
-    function execBasicStateful(Context memory context) public stateless {
+    function execBasicStateful(Context memory context) public {
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);
         addErc20ConsiderationItem(bob, 1);
@@ -351,27 +289,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testExectBasicStatefulWithConduit() public {
-        test(
-            this.execBasicStatefulWithConduit,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execBasicStatefulWithConduit,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
+        execBasicStatefulWithConduit(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execBasicStatefulWithConduit(Context(referenceConsideration, 0, 0));
     }
 
-    function execBasicStatefulWithConduit(
-        Context memory context
-    ) public stateless {
+    function execBasicStatefulWithConduit(Context memory context) public {
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);
         addErc20ConsiderationItem(bob, 1);
@@ -428,25 +351,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         uint8 numOriginalAdditional,
         uint8 numTips
     ) public {
-        test(
-            this.execBasicStatefulFuzz,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: numOriginalAdditional,
-                numTips: numTips
-            })
-        );
-        test(
-            this.execBasicStatefulFuzz,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: numOriginalAdditional,
-                numTips: numTips
-            })
-        );
+        execBasicStatefulFuzz(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execBasicStatefulFuzz(Context(referenceConsideration, 0, 0));
     }
 
-    function execBasicStatefulFuzz(Context memory context) external stateless {
+    function execBasicStatefulFuzz(Context memory context) public {
         // keep track of each additional recipient so we can check their balances
         address[] memory allAdditional = new address[](
             uint256(context.numOriginalAdditional) + context.numTips
@@ -547,27 +457,16 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testFulfillAvailableAdvancedAscending() public {
-        test(
-            this.execFulfillAvailableAdvancedAscending,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execFulfillAvailableAdvancedAscending,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
+        execFulfillAvailableAdvancedAscending(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execFulfillAvailableAdvancedAscending(
+            Context(referenceConsideration, 0, 0)
         );
     }
 
     function execFulfillAvailableAdvancedAscending(
         Context memory context
-    ) external stateless {
+    ) public {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -629,27 +528,14 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
     }
 
     function testExecMatchAdvancedOrdersWithConduit() public {
-        test(
-            this.execMatchAdvancedOrdersWithConduit,
-            Context({
-                consideration: consideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
-        );
-        test(
-            this.execMatchAdvancedOrdersWithConduit,
-            Context({
-                consideration: referenceConsideration,
-                numOriginalAdditional: 0,
-                numTips: 0
-            })
+        execMatchAdvancedOrdersWithConduit(Context(consideration, 0, 0));
+        revertToSnapshot();
+        execMatchAdvancedOrdersWithConduit(
+            Context(referenceConsideration, 0, 0)
         );
     }
 
-    function execMatchAdvancedOrdersWithConduit(
-        Context memory context
-    ) external stateless {
+    function execMatchAdvancedOrdersWithConduit(Context memory context) public {
         TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
                 address(0)
             );
