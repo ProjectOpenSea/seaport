@@ -7,7 +7,10 @@ import {
     ContractOffererInterface
 } from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    ItemType,
+    OrderType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
