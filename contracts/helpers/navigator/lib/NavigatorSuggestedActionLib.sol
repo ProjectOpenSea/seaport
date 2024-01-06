@@ -296,8 +296,8 @@ library NavigatorSuggestedActionLib {
             order = orders[i];
 
             // Iterate over the offer items.
-            uint256 orderOfferLength2nditeration = order.offer.length;
-            for (uint256 j = 0; j < orderOfferLength2nditeration; ++j) {
+            uint256 orderOfferLength2ndIteration = order.offer.length;
+            for (uint256 j = 0; j < orderOfferLength2ndIteration; ++j) {
                 // Get the item.
                 item = order.offer[j];
 
