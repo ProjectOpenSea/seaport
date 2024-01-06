@@ -142,14 +142,17 @@ contract ReferenceOrderCombiner is
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Validate orders, apply amounts, & determine if they use conduits.
-        (bytes32[] memory orderHashes, bool containsNonOpen) = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            ordersToExecute,
-            criteriaResolvers,
-            false, // Signifies that invalid orders should NOT revert.
-            maximumFulfilled,
-            recipient
-        );
+        (
+            bytes32[] memory orderHashes,
+            bool containsNonOpen
+        ) = _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                ordersToExecute,
+                criteriaResolvers,
+                false, // Signifies that invalid orders should NOT revert.
+                maximumFulfilled,
+                recipient
+            );
 
         // Execute transfers.
         (availableOrders, executions) = _executeAvailableFulfillments(
@@ -908,14 +911,17 @@ contract ReferenceOrderCombiner is
             );
 
         // Validate orders, apply amounts, & determine if they utilize conduits.
-        (bytes32[] memory orderHashes, bool containsNonOpen) = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            ordersToExecute,
-            criteriaResolvers,
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length,
-            recipient
-        );
+        (
+            bytes32[] memory orderHashes,
+            bool containsNonOpen
+        ) = _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                ordersToExecute,
+                criteriaResolvers,
+                true, // Signifies that invalid orders should revert.
+                advancedOrders.length,
+                recipient
+            );
 
         // Emit OrdersMatched event.
         emit OrdersMatched(orderHashes);

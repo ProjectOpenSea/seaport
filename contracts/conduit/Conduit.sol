@@ -15,4 +15,6 @@ import { Conduit as CoreConduit } from "seaport-core/src/conduit/Conduit.sol";
  *         approved ERC20/721/1155 tokens to be taken immediately — be extremely
  *         cautious with what conduits you give token approvals to!*
  */
-contract LocalConduit is CoreConduit {}
+contract LocalConduit is CoreConduit {
+
+}

@@ -35,11 +35,10 @@ contract Murky {
      ********************/
 
     /// ascending sort and concat prior to hashing
-    function _hashLeafPairs(bytes32 left, bytes32 right)
-        internal
-        pure
-        returns (bytes32 _hash)
-    {
+    function _hashLeafPairs(
+        bytes32 left,
+        bytes32 right
+    ) internal pure returns (bytes32 _hash) {
         assembly {
             switch lt(left, right)
             case 0 {
@@ -58,7 +57,9 @@ contract Murky {
      * PROOF GENERATION *
      ********************/
 
-    function _getRoot(uint256[] memory data)
+    function _getRoot(
+        uint256[] memory data
+    )
         internal
         pure
         returns (bytes32 result, ErrorsAndWarnings memory errorsAndWarnings)
@@ -159,7 +160,10 @@ contract Murky {
         }
     }
 
-    function _getProof(uint256[] memory data, uint256 node)
+    function _getProof(
+        uint256[] memory data,
+        uint256 node
+    )
         internal
         pure
         returns (
@@ -316,11 +320,9 @@ contract Murky {
     /**
      * Hashes each element of the input array in place using keccak256
      */
-    function _processInput(uint256[] memory data)
-        private
-        pure
-        returns (bool sorted)
-    {
+    function _processInput(
+        uint256[] memory data
+    ) private pure returns (bool sorted) {
         sorted = true;
 
         // Hash inputs with keccak256
@@ -353,11 +355,9 @@ contract Murky {
         bytes32 hash;
     }
 
-    function _sortUint256ByHash(uint256[] memory values)
-        internal
-        pure
-        returns (uint256[] memory sortedValues)
-    {
+    function _sortUint256ByHash(
+        uint256[] memory values
+    ) internal pure returns (uint256[] memory sortedValues) {
         uint256 valuesLength = values.length;
         HashAndIntTuple[] memory toSort = new HashAndIntTuple[](valuesLength);
         for (uint256 i = 0; i < valuesLength; i++) {

@@ -7,7 +7,9 @@ import {
     ConduitInterface
 } from "seaport-types/src/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "seaport-types/src/conduit/lib/ConduitEnums.sol";
+import {
+    ConduitItemType
+} from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
 import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
@@ -46,7 +48,9 @@ import {
     TransferHelperErrors
 } from "seaport-types/src/interfaces/TransferHelperErrors.sol";
 
-import { IERC721Receiver } from "seaport-types/src/interfaces/IERC721Receiver.sol";
+import {
+    IERC721Receiver
+} from "seaport-types/src/interfaces/IERC721Receiver.sol";
 
 import {
     ERC721ReceiverMock

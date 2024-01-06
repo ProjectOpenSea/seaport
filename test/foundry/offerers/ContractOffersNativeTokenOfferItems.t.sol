@@ -16,7 +16,10 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    ItemType,
+    OrderType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
@@ -79,8 +82,8 @@ contract ContractOffersNativeTokenOfferItems is
     function testEthForErc721(
         FuzzArgs memory args
     ) public validateInputs(args) {
-        test(this.ethForErc721, Context(consideration,args));
-        test(this.ethForErc721, Context(referenceConsideration,args));
+        test(this.ethForErc721, Context(consideration, args));
+        test(this.ethForErc721, Context(referenceConsideration, args));
     }
 
     function ethForErc721(Context memory context) public stateless {
