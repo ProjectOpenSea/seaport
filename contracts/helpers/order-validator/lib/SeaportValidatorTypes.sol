@@ -497,7 +497,8 @@ library IssueStringHelpers {
     function toIssueString(
         uint16[] memory issueCodes
     ) internal pure returns (string memory issueString) {
-        for (uint256 i; i < issueCodes.length; i++) {
+        uint256 issueCodesLength = issueCodes.length;
+        for (uint256 i; i < issueCodesLength; i++) {
             issueString = string.concat(
                 issueString,
                 "\n    ",

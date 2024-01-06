@@ -251,10 +251,11 @@ contract TestTransferValidationZoneOfferer is
     function _convertSpentToReceived(
         SpentItem[] calldata spentItems
     ) internal view returns (ReceivedItem[] memory) {
+        uint256 spentItemsLength = spentItems.length;
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
+            spentItemsLength
         );
-        for (uint256 i = 0; i < spentItems.length; ++i) {
+        for (uint256 i = 0; i < spentItemsLength; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
@@ -280,8 +281,9 @@ contract TestTransferValidationZoneOfferer is
         ItemType itemType;
         ReceivedItem memory receivedItem;
 
+        uint256 receivedItemsLength = receivedItems.length;
         // Iterate over all received items.
-        for (uint256 i = 0; i < receivedItems.length; i++) {
+        for (uint256 i = 0; i < receivedItemsLength; i++) {
             // Check if the consideration item has been received.
             receivedItem = receivedItems[i];
             // Get the recipient of the consideration item.
@@ -326,8 +328,10 @@ contract TestTransferValidationZoneOfferer is
         SpentItem memory spentItem;
         ItemType itemType;
 
+        uint256 spentItemsLength = spentItems.length;
+
         // Iterate over all spent items.
-        for (uint256 i = 0; i < spentItems.length; i++) {
+        for (uint256 i = 0; i < spentItemsLength; i++) {
             // Check if the offer item has been spent.
             spentItem = spentItems[i];
             // Get item type.

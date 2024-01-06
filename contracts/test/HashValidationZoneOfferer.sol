@@ -192,8 +192,9 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         ReceivedItem[] memory items,
         ReceivedItem memory item
     ) internal pure returns (ReceivedItem[] memory newItems) {
-        newItems = new ReceivedItem[](items.length + 1);
-        for (uint256 i = 0; i < items.length; i++) {
+        uint256 itemsLength = items.length;
+        newItems = new ReceivedItem[](itemsLength + 1);
+        for (uint256 i = 0; i < itemsLength; i++) {
             newItems[i] = items[i];
         }
         newItems[items.length] = item;
@@ -316,21 +317,24 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
             c
         );
 
-        for (uint256 i; i < itemAmountMutations.length; i++) {
+        uint256 itemAmountMutationsLength = itemAmountMutations.length;
+        for (uint256 i; i < itemAmountMutationsLength; i++) {
             (offer, consideration) = applyItemAmountMutation(
                 offer,
                 consideration,
                 itemAmountMutations[i]
             );
         }
-        for (uint256 i; i < extraItemMutations.length; i++) {
+        uint256 extraItemMutationsLength = extraItemMutations.length;
+        for (uint256 i; i < extraItemMutationsLength; i++) {
             (offer, consideration) = applyExtraItemMutation(
                 offer,
                 consideration,
                 extraItemMutations[i]
             );
         }
-        for (uint256 i; i < dropItemMutations.length; i++) {
+        uint256 dropItemMutationsLength = dropItemMutations.length;
+        for (uint256 i; i < dropItemMutationsLength; i++) {
             (offer, consideration) = applyDropItemMutation(
                 offer,
                 consideration,
@@ -428,10 +432,11 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     function _convertSpentToReceived(
         SpentItem[] calldata spentItems
     ) internal view returns (ReceivedItem[] memory) {
+        uint256 spentItemsLength = spentItems.length;
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
+            spentItemsLength
         );
-        for (uint256 i = 0; i < spentItems.length; ++i) {
+        for (uint256 i = 0; i < spentItemsLength; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
@@ -457,8 +462,10 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         ItemType itemType;
         ReceivedItem memory receivedItem;
 
+        uint256 receivedItemsLength = receivedItems.length;
+
         // Iterate over all received items.
-        for (uint256 i = 0; i < receivedItems.length; i++) {
+        for (uint256 i = 0; i < receivedItemsLength; i++) {
             // Check if the consideration item has been received.
             receivedItem = receivedItems[i];
             // Get the recipient of the consideration item.
@@ -503,8 +510,10 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         SpentItem memory spentItem;
         ItemType itemType;
 
+        uint256 spentItemsLength = spentItems.length;
+
         // Iterate over all spent items.
-        for (uint256 i = 0; i < spentItems.length; i++) {
+        for (uint256 i = 0; i < spentItemsLength; i++) {
             // Check if the offer item has been spent.
             spentItem = spentItems[i];
             // Get item type.

@@ -205,11 +205,12 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         ReceivedItem[] memory items,
         ReceivedItem memory item
     ) internal pure returns (ReceivedItem[] memory newItems) {
-        newItems = new ReceivedItem[](items.length + 1);
-        for (uint256 i = 0; i < items.length; i++) {
+        uint256 itemsLength = items.length;
+        newItems = new ReceivedItem[](itemsLength + 1);
+        for (uint256 i = 0; i < itemsLength; i++) {
             newItems[i] = items[i];
         }
-        newItems[items.length] = item;
+        newItems[itemsLength] = item;
     }
 
     receive() external payable {}
@@ -315,7 +316,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
         (offer, consideration) = (a, _convertSpentToReceived(b));
 
-        for (uint256 i; i < itemAmountMutations.length; i++) {
+        uint256 itemAmountMutationsLength = itemAmountMutations.length;
+        for (uint256 i; i < itemAmountMutationsLength; i++) {
             if (itemAmountMutations[i].orderHash == orderHash) {
                 (offer, consideration) = applyItemAmountMutation(
                     offer,
@@ -324,7 +326,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
                 );
             }
         }
-        for (uint256 i; i < extraItemMutations.length; i++) {
+        uint256 extraItemMutationsLength = extraItemMutations.length;
+        for (uint256 i; i < extraItemMutationsLength; i++) {
             if (extraItemMutations[i].orderHash == orderHash) {
                 (offer, consideration) = applyExtraItemMutation(
                     offer,
@@ -333,7 +336,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
                 );
             }
         }
-        for (uint256 i; i < dropItemMutations.length; i++) {
+        uint256 dropItemMutationsLength = dropItemMutations.length;
+        for (uint256 i; i < dropItemMutationsLength; i++) {
             if (dropItemMutations[i].orderHash == orderHash) {
                 (offer, consideration) = applyDropItemMutation(
                     offer,
@@ -436,10 +440,11 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     function _convertSpentToReceived(
         SpentItem[] calldata spentItems
     ) internal view returns (ReceivedItem[] memory) {
+        uint256 spentItemsLength = spentItems.length;
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
+            spentItemsLength
         );
-        for (uint256 i = 0; i < spentItems.length; ++i) {
+        for (uint256 i = 0; i < spentItemsLength; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
@@ -461,7 +466,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
     function _getOfferedNativeTokens(
         SpentItem[] memory offer
     ) internal pure returns (uint256 amount) {
-        for (uint256 i = 0; i < offer.length; ++i) {
+        uint256 offerLength = offer.length;
+        for (uint256 i = 0; i < offerLength; ++i) {
             SpentItem memory item = offer[i];
             if (item.itemType == ItemType.NATIVE) {
                 amount += item.amount;

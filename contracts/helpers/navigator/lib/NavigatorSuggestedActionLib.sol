@@ -291,12 +291,13 @@ library NavigatorSuggestedActionLib {
         // This basically checks if there's an ERC721 in the offer of one order
         // that is also in the consideration of another order. If yes, must use
         // match.
-        for (uint256 i = 0; i < orders.length; ++i) {
+        for (uint256 i = 0; i < ordersLength; ++i) {
             // Get the order.
             order = orders[i];
 
             // Iterate over the offer items.
-            for (uint256 j = 0; j < order.offer.length; ++j) {
+            uint256 orderOfferLength2nditeration = order.offer.length;
+            for (uint256 j = 0; j < orderOfferLength2nditeration; ++j) {
                 // Get the item.
                 item = order.offer[j];
 
@@ -306,14 +307,15 @@ library NavigatorSuggestedActionLib {
                 }
 
                 // Iterate over the orders again.
-                for (uint256 k = 0; k < orders.length; ++k) {
+                for (uint256 k = 0; k < ordersLength; ++k) {
                     // Get an order to compare `orders[i]` against.
                     comparisonOrder = orders[k];
 
                     // Iterate over the consideration items.
+                    uint256 comparisonOrderConsiderationLength = comparisonOrder.consideration.length;
                     for (
                         uint256 l = 0;
-                        l < comparisonOrder.consideration.length;
+                        l < comparisonOrderConsiderationLength;
                         ++l
                     ) {
                         // Get the consideration item.

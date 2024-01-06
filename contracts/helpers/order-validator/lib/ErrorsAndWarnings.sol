@@ -248,21 +248,23 @@ library ErrorsAndWarningsLib {
         uint16[] memory array1,
         uint16[] memory array2
     ) private pure returns (uint16[] memory) {
-        if (array1.length == 0) {
+        uint256 array1Length = array1.length;
+        uint256 array2Length = array2.length;
+        if (array1Length == 0) {
             return array2;
-        } else if (array2.length == 0) {
+        } else if (array2Length == 0) {
             return array1;
         }
 
         uint16[] memory returnValue = new uint16[](
-            array1.length + array2.length
+            array1Length + array2Length
         );
 
-        for (uint256 i = 0; i < array1.length; i++) {
+        for (uint256 i = 0; i < array1Length; i++) {
             returnValue[i] = array1[i];
         }
-        for (uint256 i = 0; i < array2.length; i++) {
-            returnValue[i + array1.length] = array2[i];
+        for (uint256 i = 0; i < array2Length; i++) {
+            returnValue[i + array1Length] = array2[i];
         }
 
         return returnValue;
@@ -272,12 +274,13 @@ library ErrorsAndWarningsLib {
         uint16[] memory uint16Array,
         uint16 newValue
     ) internal pure returns (uint16[] memory) {
-        uint16[] memory returnValue = new uint16[](uint16Array.length + 1);
+        uint256 uint16ArrayLength = uint16Array.length;
+        uint16[] memory returnValue = new uint16[](uint16ArrayLength + 1);
 
-        for (uint256 i = 0; i < uint16Array.length; i++) {
+        for (uint256 i = 0; i < uint16ArrayLength; i++) {
             returnValue[i] = uint16Array[i];
         }
-        returnValue[uint16Array.length] = newValue;
+        returnValue[uint16ArrayLength] = newValue;
 
         return returnValue;
     }

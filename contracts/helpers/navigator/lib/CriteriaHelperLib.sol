@@ -108,7 +108,8 @@ library CriteriaHelperLib {
         // Sort the token ids by their hashes.
         uint256[] memory ids = sortByHash(tokenIds);
         // Hash each token id and store it in the hashes array.
-        for (uint256 i; i < ids.length; ++i) {
+        uint256 idsLength = ids.length;
+        for (uint256 i; i < idsLength; ++i) {
             hashes[i] = keccak256(abi.encode(ids[i]));
         }
     }

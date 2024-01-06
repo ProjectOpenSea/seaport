@@ -34,9 +34,10 @@ library NavigatorAdvancedOrderLib {
     function fromAdvancedOrders(
         AdvancedOrder[] memory orders
     ) internal pure returns (NavigatorAdvancedOrder[] memory) {
+        uint256 ordersLength = orders.length;
         NavigatorAdvancedOrder[]
-            memory helperOrders = new NavigatorAdvancedOrder[](orders.length);
-        for (uint256 i; i < orders.length; i++) {
+            memory helperOrders = new NavigatorAdvancedOrder[](ordersLength);
+        for (uint256 i; i < ordersLength; i++) {
             helperOrders[i] = fromAdvancedOrder(orders[i]);
         }
         return helperOrders;
