@@ -289,7 +289,7 @@ Not deployed
 
 </td><td>
 
-Not deployed
+[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.arbiscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
 <tr><td>Arbitrum Nova</td><td>
