@@ -117,31 +117,6 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](https://g
 [0x0000f00000627D293Ab4Dfb40082001724dB006F](https://etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
-<tr><td>Goerli</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://goerli.etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000000001ad428e4906aE43D8F9852d0dD6](https://goerli.etherscan.io/address/0x00000000000001ad428e4906aE43D8F9852d0dD6#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://goerli.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://goerli.etherscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://goerli.etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
 <tr><td>Sepolia</td><td>
 
 [0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
@@ -242,7 +217,7 @@ See the [documentation](docs/SeaportDocumentation.md), the [interface](https://g
 [0x0000f00000627D293Ab4Dfb40082001724dB006F](https://optimistic.etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
-<tr><td>Optimistic Sepolia</td><td>
+<tr><td>Optimism Sepolia</td><td>
 
 [0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia-optimism.etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
 
@@ -367,13 +342,9 @@ Not deployed
 [0x0000f00000627D293Ab4Dfb40082001724dB006F](https://basescan.org/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
-<tr><td>Base Goerli</td><td>
+<tr><td>Base Sepolia</td><td>
 
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://goerli.basescan.org/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.basescan.org/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
 
 </td><td>
 
@@ -381,15 +352,19 @@ Not deployed
 
 </td><td>
 
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://goerli.basescan.org/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+Not deployed
 
 </td><td>
 
-[0x00e5F120f500006757E984F1DED400fc00370000](https://goerli.basescan.org/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.basescan.org/address/0x00000000f9490004c11cef243f5400493c00ad63)
 
 </td><td>
 
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://goerli.basescan.org/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
+[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia.basescan.org/address/0x00e5f120f500006757e984f1ded400fc00370000)
+
+</td><td>
+
+[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.basescan.org/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
 <tr><td>Avalanche C-Chain</td><td>
@@ -718,6 +693,57 @@ Not deployed
 </td><td>
 
 Not deployed
+
+</td></tr>
+
+<tr><td>Zora</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://explorer.zora.energy/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://explorer.zora.energy/address/0x00000000f9490004c11cef243f5400493c00ad63)
+
+</td><td>
+
+[0x00e5F120f500006757E984F1DED400fc00370000](https://explorer.zora.energy/address/0x00e5f120f500006757e984f1ded400fc00370000)
+
+</td><td>
+
+[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://explorer.zora.energy/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
+
+</td></tr>
+<tr><td>Zora Sepolia</td><td>
+
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.explorer.zora.energy/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.explorer.zora.energy/address/0x00000000f9490004c11cef243f5400493c00ad63)
+
+</td><td>
+
+[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia.explorer.zora.energy/address/0x00e5f120f500006757e984f1ded400fc00370000)
+
+</td><td>
+
+[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.explorer.zora.energy/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
 </table>
