@@ -5,18 +5,18 @@ import { Consideration } from "seaport-core/src/lib/Consideration.sol";
 
 /**
  * @title Seaport
- * @custom:version 1.5
+ * @custom:version 1.6
  * @author 0age (0age.eth)
  * @custom:coauthor d1ll0n (d1ll0n.eth)
  * @custom:coauthor transmissions11 (t11s.eth)
  * @custom:coauthor James Wenzel (emo.eth)
+ * @custom:coauthor Daniel Viau (snotrocket.eth)
  * @custom:contributor Kartik (slokh.eth)
  * @custom:contributor LeFevre (lefevre.eth)
  * @custom:contributor Joseph Schiarizzi (CupOJoseph.eth)
  * @custom:contributor Aspyn Palatnick (stuckinaboot.eth)
  * @custom:contributor Stephan Min (stephanm.eth)
  * @custom:contributor Ryan Ghods (ralxz.eth)
- * @custom:contributor Daniel Viau (snotrocket.eth)
  * @custom:contributor hack3r-0m (hack3r-0m.eth)
  * @custom:contributor Diego Estevez (antidiego.eth)
  * @custom:contributor Chomtana (chomtana.eth)
