@@ -497,9 +497,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, 3);
+            assertEq(totalFilled, 6);
 
-            assertEq(totalSize, 5);
+            assertEq(totalSize, 10);
             assertEq(60, test1155_1.balanceOf(address(this), 1));
         }
     }
