@@ -5,9 +5,7 @@ import {
     ConduitInterface
 } from "seaport-types/src/interfaces/ConduitInterface.sol";
 
-import {
-    ConduitItemType
-} from "seaport-types/src/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
 import {
     ReferenceTokenTransferrer

@@ -7,10 +7,7 @@ import {
     ContractOffererInterface
 } from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import {
-    ItemType,
-    OrderType
-} from "seaport-types/src/lib/ConsiderationEnums.sol";
+import { ItemType, OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -33,6 +30,56 @@ import {
  * @notice ZoneInteraction contains logic related to interacting with zones.
  */
 contract ReferenceZoneInteraction is ZoneInteractionErrors {
+    function _assertRestrictedBasicOrderAuthorization(
+        bytes32 orderHash,
+        OrderType orderType,
+        BasicOrderParameters calldata basicOrderParameters,
+        ItemType offeredItemType,
+        ItemType receivedItemType
+    ) internal {
+        // Create a new array for the hash.
+        bytes32[] memory orderHashes = new bytes32[](0);
+
+        // Convert the order params and types to spent and received items.
+        (
+            SpentItem[] memory offer,
+            ReceivedItem[] memory consideration
+        ) = _convertToSpentAndReceivedItems(
+                basicOrderParameters,
+                offeredItemType,
+                receivedItemType
+            );
+
+        // Order types 2-3 require zone or offerer be caller or zone to approve.
+        // Note that in cases where fulfiller == zone, the restricted order
+        // validation will be skipped.
+        if (
+            (orderType == OrderType.FULL_RESTRICTED ||
+                orderType == OrderType.PARTIAL_RESTRICTED) &&
+            msg.sender != basicOrderParameters.zone
+        ) {
+            // Validate the order with the zone.
+            if (
+                ZoneInterface(basicOrderParameters.zone).authorizeOrder(
+                    ZoneParameters({
+                        orderHash: orderHash,
+                        fulfiller: msg.sender,
+                        offerer: basicOrderParameters.offerer,
+                        offer: offer,
+                        consideration: consideration,
+                        extraData: "",
+                        orderHashes: orderHashes,
+                        startTime: basicOrderParameters.startTime,
+                        endTime: basicOrderParameters.endTime,
+                        zoneHash: basicOrderParameters.zoneHash
+                    })
+                ) != ZoneInterface.authorizeOrder.selector
+            ) {
+                revert InvalidRestrictedOrder(orderHash);
+            }
+        }
+    }
+
     /**
      * @dev Internal view function to determine if an order has a restricted
      *      order type and, if so, to ensure that either the offerer or the zone
@@ -65,7 +112,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                 receivedItemType
             );
 
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
+        // Order types 2-3 require zone or offerer be caller or zone to approve.
         // Note that in cases where fulfiller == zone, the restricted order
         // validation will be skipped.
         if (
@@ -89,6 +136,129 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                         zoneHash: basicOrderParameters.zoneHash
                     })
                 ) != ZoneInterface.validateOrder.selector
+            ) {
+                revert InvalidRestrictedOrder(orderHash);
+            }
+        }
+    }
+
+    /**
+     * @dev Internal function to check if a restricted advanced order is
+     *      authorized by its zone or offerer, in cases where the caller is not
+     *      the zone or offerer.
+     *
+     * @param advancedOrder        The advanced order in question.
+     * @param orderToExecute       The order to execute.
+     * @param orderHashes          The order hashes of each order supplied
+     *                             alongside the current order as part of a
+                                   "match" or "fulfill available" variety of
+                                   order fulfillment.
+     * @param orderHash            The hash of the order to execute.
+     * @param revertOnUnauthorized A boolean indicating whether the function
+     *                             should revert if the order is invalid.
+     *
+     * @return authorized          A boolean indicating whether the order is
+     *                             authorized by the zone or offerer.
+     * @return checked             A boolean indicating whether the order has
+     *                             been checked for authorization.
+     */
+    function _checkRestrictedAdvancedOrderAuthorization(
+        AdvancedOrder memory advancedOrder,
+        OrderToExecute memory orderToExecute,
+        bytes32[] memory orderHashes,
+        bytes32 orderHash,
+        bool revertOnUnauthorized
+    ) internal returns (bool authorized, bool checked) {
+        // Order types 2-3 require zone or offerer be caller or zone to approve.
+        if (
+            (
+                advancedOrder.parameters.orderType == OrderType.FULL_RESTRICTED
+                    || advancedOrder.parameters.orderType
+                        == OrderType.PARTIAL_RESTRICTED
+            ) && msg.sender != advancedOrder.parameters.zone
+        ) {
+            // Authorize the order.
+            try ZoneInterface(advancedOrder.parameters.zone).authorizeOrder(
+                ZoneParameters({
+                    orderHash: orderHash,
+                    fulfiller: msg.sender,
+                    offerer: advancedOrder.parameters.offerer,
+                    offer: orderToExecute.spentItems,
+                    consideration: orderToExecute.receivedItems,
+                    extraData: advancedOrder.extraData,
+                    orderHashes: orderHashes,
+                    startTime: advancedOrder.parameters.startTime,
+                    endTime: advancedOrder.parameters.endTime,
+                    zoneHash: advancedOrder.parameters.zoneHash
+                })
+            ) returns (bytes4 selector) {
+                if (selector != ZoneInterface.authorizeOrder.selector) {
+                    revert InvalidRestrictedOrder(orderHash);
+                }
+
+                return (true, true);
+            } catch {
+                if (revertOnUnauthorized) {
+                    revert InvalidRestrictedOrder(orderHash);
+                }
+
+                return (false, false);
+            }
+        } else {
+            return (true, false);
+        }
+    }
+
+    /**
+     * @dev Internal function to validate that a restricted advanced order is
+     *      authorized by its zone or offerer, in cases where the caller is not
+     *      the zone or offerer.
+     *
+     * @param advancedOrder        The advanced order in question.
+     * @param orderToExecute       The order to execute.
+     * @param orderHashes          The order hashes of each order supplied
+     *                             alongside the current order as part of a
+                                   "match" or "fulfill available" variety of
+                                   order fulfillment.
+     * @param orderHash            The hash of the order to execute.
+     * @param zoneHash             The hash to provide upon calling the zone.
+     * @param orderType            The type of the order.
+     * @param offerer              The offerer in question.
+     * @param zone                 The zone in question.
+     */
+    function _assertRestrictedAdvancedOrderAuthorization(
+        AdvancedOrder memory advancedOrder,
+        OrderToExecute memory orderToExecute,
+        bytes32[] memory orderHashes,
+        bytes32 orderHash,
+        bytes32 zoneHash,
+        OrderType orderType,
+        address offerer,
+        address zone
+    ) internal {
+        // Order types 2-3 require zone or offerer be caller or zone to approve.
+        if (
+            (
+                orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED
+            ) && msg.sender != zone
+        ) {
+            // Authorize the order.
+            if (
+                ZoneInterface(zone).authorizeOrder(
+                    ZoneParameters({
+                        orderHash: orderHash,
+                        fulfiller: msg.sender,
+                        offerer: offerer,
+                        offer: orderToExecute.spentItems,
+                        consideration: orderToExecute.receivedItems,
+                        extraData: advancedOrder.extraData,
+                        orderHashes: orderHashes,
+                        startTime: advancedOrder.parameters.startTime,
+                        endTime: advancedOrder.parameters.endTime,
+                        zoneHash: zoneHash
+                    })
+                ) != ZoneInterface.authorizeOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
             }
@@ -120,7 +290,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         address offerer,
         address zone
     ) internal {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
+        // Order types 2-3 require zone or offerer be caller or zone to approve.
         if (
             (orderType == OrderType.FULL_RESTRICTED ||
                 orderType == OrderType.PARTIAL_RESTRICTED) && msg.sender != zone

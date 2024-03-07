@@ -79,12 +79,6 @@ contract ReferenceFulfillmentApplier is
 
         // Skip aggregating offer items if no consideration items are available.
         if (considerationItem.amount == 0) {
-            // Set the offerer and recipient to null address and item type to a
-            // non-native item type if execution amount is zero. This will cause
-            // the execution item to be skipped.
-            execution.offerer = address(0);
-            execution.item.recipient = payable(0);
-            execution.item.itemType = ItemType.ERC20;
             return execution;
         }
 
@@ -141,11 +135,14 @@ contract ReferenceFulfillmentApplier is
         }
 
         // Reuse execution struct with consideration amount and recipient.
+        // Only set the recipient if the item amount is non-zero.
         execution.item.amount = considerationItem.amount;
-        execution.item.recipient = considerationItem.recipient;
+        if (execution.item.amount != 0) {
+            execution.item.recipient = considerationItem.recipient;
+        }
 
         // Return the final execution that will be triggered for relevant items.
-        return execution; // Execution(considerationItem, offerer, conduitKey);
+        return execution; // Execution(execution, offerer, conduitKey);
     }
 
     /**
@@ -202,21 +199,6 @@ contract ReferenceFulfillmentApplier is
                 fulfillmentComponents,
                 fulfillerConduitKey
             );
-        }
-
-        if (execution.item.amount == 0) {
-            return
-                Execution(
-                    ReceivedItem(
-                        ItemType.ERC20,
-                        address(0),
-                        0,
-                        0,
-                        payable(address(0))
-                    ),
-                    address(0),
-                    bytes32(0)
-                );
         }
 
         return execution;
@@ -395,12 +377,21 @@ contract ReferenceFulfillmentApplier is
             )
         );
 
-        // Return execution for aggregated items provided by the fulfiller.
-        execution = Execution(
-            receiveConsiderationItem,
-            msg.sender,
-            fulfillerConduitKey
-        );
+        if (receiveConsiderationItem.amount != 0) {
+            // Return execution for aggregated items provided by the fulfiller.
+            execution = Execution(
+                receiveConsiderationItem,
+                msg.sender,
+                fulfillerConduitKey
+            );
+        } else {
+            // Return an empty execution if the received item amount is zero.
+            execution = Execution(
+                receiveConsiderationItem,
+                address(0),
+                bytes32(0)
+            );
+        }
     }
 
     /**
