@@ -16,7 +16,7 @@
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.12.1-ir.0",
     "merkletreejs": "^0.3.9",
-    "seaport-core": "1.6.2",
+    "seaport-core": "1.6.3",
     "seaport-sol": "1.6.0",
     "seaport-types": "github:ProjectOpenSea/seaport-types#d72955b25b6cf324bbf85ed59aca316f5329eb61",
     "solady": "^0.0.84"
