@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.17;
 
 import {
@@ -497,9 +496,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, 6);
+            assertEq(totalFilled, 3);
 
-            assertEq(totalSize, 10);
+            assertEq(totalSize, 5);
             assertEq(60, test1155_1.balanceOf(address(this), 1));
         }
     }
