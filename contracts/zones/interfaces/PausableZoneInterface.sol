@@ -92,10 +92,6 @@ interface PausableZoneInterface {
      */
     function pause() external;
 
-    function isPaused() external view returns (bool);
-
-    function controller() external view returns (address);
-
     /**
      * @notice Assign the given address with the ability to operate the zone.
      *
