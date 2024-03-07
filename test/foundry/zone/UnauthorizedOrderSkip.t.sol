@@ -351,42 +351,35 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             }
 
             if (
-                fuzzPrimeOfferer
-                    // If the fuzzPrimeOfferer and fuzzMirrorOfferer are the same
-                    // address, then the ERC20 transfers will be filtered.
-                    .addr != fuzzMirrorOfferer.addr
+                // When shouldIncludeNativeConsideration is false, there will be
+                // exactly one token1 consideration item per orderPairCount. And
+                // they'll all get aggregated into a single transfer.
+                !context.matchArgs.shouldIncludeNativeConsideration
             ) {
-                if (
-                    // When shouldIncludeNativeConsideration is false, there will be
-                    // exactly one token1 consideration item per orderPairCount. And
-                    // they'll all get aggregated into a single transfer.
-                    !context.matchArgs.shouldIncludeNativeConsideration
-                ) {
-                    // This checks that the ERC20 transfers were all aggregated into
-                    // a single transfer.
-                    vm.expectEmit(true, true, false, true, address(token1));
-                    emit Transfer(
-                        address(fuzzMirrorOfferer.addr), // from
-                        address(fuzzPrimeOfferer.addr), // to
-                        context.matchArgs.amount * context.matchArgs.orderPairCount
-                    );
-                }
+                // This checks that the ERC20 transfers were all aggregated into
+                // a single transfer.
+                vm.expectEmit(true, true, false, true, address(token1));
+                emit Transfer(
+                    address(fuzzMirrorOfferer.addr), // from
+                    address(fuzzPrimeOfferer.addr), // to
+                    context.matchArgs.amount * context.matchArgs.orderPairCount
+                );
+            }
 
-                if (
-                    context
-                        .matchArgs
-                        // When considerationItemsPerPrimeOrderCount is 3, there will be
-                        // exactly one token2 consideration item per orderPairCount.
-                        // And they'll all get aggregated into a single transfer.
-                        .considerationItemsPerPrimeOrderCount >= 3
-                ) {
-                    vm.expectEmit(true, true, false, true, address(token2));
-                    emit Transfer(
-                        address(fuzzMirrorOfferer.addr), // from
-                        address(fuzzPrimeOfferer.addr), // to
-                        context.matchArgs.amount * context.matchArgs.orderPairCount
-                    );
-                }
+            if (
+                context
+                    .matchArgs
+                    // When considerationItemsPerPrimeOrderCount is 3, there will be
+                    // exactly one token2 consideration item per orderPairCount.
+                    // And they'll all get aggregated into a single transfer.
+                    .considerationItemsPerPrimeOrderCount >= 3
+            ) {
+                vm.expectEmit(true, true, false, true, address(token2));
+                emit Transfer(
+                    address(fuzzMirrorOfferer.addr), // from
+                    address(fuzzPrimeOfferer.addr), // to
+                    context.matchArgs.amount * context.matchArgs.orderPairCount
+                );
             }
         }
 
