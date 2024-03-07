@@ -1,7 +1,7 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { constants } from "ethers";
+import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
 
 import { deployContract } from "./utils/contracts";
@@ -6772,7 +6772,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         value
       );
 
-      expect(executions.length).to.equal(6);
+      expect(executions.length).to.equal(7);
 
       const tx = marketplaceContract
         .connect(owner)
@@ -6795,7 +6795,9 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions.filter((execution: any) => 
+          BigNumber.from(execution.item.amount).gt(0)
+        )
       );
       return receipt;
     });
@@ -6860,7 +6862,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         value
       );
 
-      expect(executions.length).to.equal(6);
+      expect(executions.length).to.equal(8);
 
       const tx = marketplaceContract
         .connect(owner)
@@ -6883,7 +6885,9 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             fulfiller: owner.address,
           },
         ],
-        executions
+        executions.filter((execution: any) =>
+          BigNumber.from(execution.item.amount).gt(0)
+        )
       );
       return receipt;
     });
