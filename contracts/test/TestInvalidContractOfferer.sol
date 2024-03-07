@@ -11,7 +11,7 @@ import { TestContractOfferer } from "./TestContractOfferer.sol";
 contract TestInvalidContractOfferer is TestContractOfferer {
     error RevertWithData(bytes revertData);
 
-    constructor(address seaport) TestContractOfferer(seaport) {}
+    constructor(address seaport) TestContractOfferer(seaport) { }
 
     function generateOrder(
         address,

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {
-    ERC721Interface
-} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
+import { ERC721Interface } from
+    "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
@@ -29,7 +27,7 @@ contract TestBadContractOfferer is ContractOffererInterface {
         ERC721Interface(token).setApprovalForAll(seaport, true);
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
     /**
      * @dev Generates an order with the specified minimum and maximum spent items,
@@ -115,18 +113,22 @@ contract TestBadContractOfferer is ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */ ) {
         return TestBadContractOfferer.ratifyOrder.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ContractOffererInterface) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ContractOffererInterface)
+        returns (bool)
+    {
         return interfaceId == type(ContractOffererInterface).interfaceId;
     }
 

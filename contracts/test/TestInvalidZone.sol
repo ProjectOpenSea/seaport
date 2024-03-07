@@ -10,10 +10,20 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract TestInvalidZone is ERC165, ZoneInterface {
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
+        return this.authorizeOrder.selector;
+    }
+
     // Returns invalid magic value
-    function validateOrder(
-        ZoneParameters calldata
-    ) external pure returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata)
+        external
+        pure
+        returns (bytes4 validOrderMagicValue)
+    {
         return ZoneInterface.getSeaportMetadata.selector;
     }
 
@@ -36,11 +46,13 @@ contract TestInvalidZone is ERC165, ZoneInterface {
         return ("TestZone", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

@@ -7,9 +7,8 @@ import {
     ERC1155Interface
 } from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
@@ -43,7 +42,7 @@ contract TestInvalidContractOfferer165 {
         extraRequired = 0;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
     /// In case of criteria based orders and non-wildcard items, the member
     /// `available.identifier` would correspond to the `identifierOrCriteria`
@@ -68,11 +67,7 @@ contract TestInvalidContractOfferer165 {
             ERC1155Interface token = ERC1155Interface(available.token);
 
             token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                identifier,
-                available.amount,
-                ""
+                msg.sender, address(this), identifier, available.amount, ""
             );
 
             token.setApprovalForAll(_SEAPORT, true);
@@ -84,10 +79,10 @@ contract TestInvalidContractOfferer165 {
         ready = true;
     }
 
-    function activate(
-        SpentItem memory available,
-        SpentItem memory required
-    ) public payable {
+    function activate(SpentItem memory available, SpentItem memory required)
+        public
+        payable
+    {
         if (ready || fulfilled) {
             revert OrderUnavailable();
         }
@@ -157,10 +152,8 @@ contract TestInvalidContractOfferer165 {
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
         if (
-            !ready ||
-            fulfilled ||
-            msg.sender != _SEAPORT ||
-            context.length % 32 != 0
+            !ready || fulfilled || msg.sender != _SEAPORT
+                || context.length % 32 != 0
         ) {
             revert OrderUnavailable();
         }
@@ -200,10 +193,8 @@ contract TestInvalidContractOfferer165 {
     {
         // Ensure the caller is Seaport & the order has not yet been fulfilled.
         if (
-            !ready ||
-            fulfilled ||
-            caller != _SEAPORT ||
-            context.length % 32 != 0
+            !ready || fulfilled || caller != _SEAPORT
+                || context.length % 32 != 0
         ) {
             revert OrderUnavailable();
         }
@@ -251,17 +242,15 @@ contract TestInvalidContractOfferer165 {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
         bytes calldata context,
         bytes32[] calldata orderHashes,
         uint256 /* contractNonce */
-    ) external pure virtual returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external pure virtual returns (bytes4 /* ratifyOrderMagicValue */ ) {
         if (context.length > 32 && context.length % 32 == 0) {
-            bytes32[] memory expectedOrderHashes = abi.decode(
-                context,
-                (bytes32[])
-            );
+            bytes32[] memory expectedOrderHashes =
+                abi.decode(context, (bytes32[]));
 
             uint256 expectedLength = expectedOrderHashes.length;
 

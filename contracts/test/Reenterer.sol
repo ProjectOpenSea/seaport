@@ -22,9 +22,8 @@ contract Reenterer {
 
     receive() external payable {
         if (isPrepared) {
-            (bool success, bytes memory returnData) = target.call{
-                value: msgValue
-            }(callData);
+            (bool success, bytes memory returnData) =
+                target.call{ value: msgValue }(callData);
 
             if (!success) {
                 assembly {
@@ -39,7 +38,7 @@ contract Reenterer {
     }
 
     function execute(address to, uint256 value, bytes memory data) external {
-        (bool success, ) = payable(to).call{ value: value }(data);
+        (bool success,) = payable(to).call{ value: value }(data);
         if (!success) {
             assembly {
                 returndatacopy(0, 0, returndatasize())

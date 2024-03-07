@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {
-    SeaportInterface
-} from "seaport-types/src/interfaces/SeaportInterface.sol";
+import { SeaportInterface } from
+    "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,

@@ -6,9 +6,8 @@ import {
     ERC1155Interface
 } from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
@@ -45,12 +44,12 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
         extraRequired = 0;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
-    function activate(
-        SpentItem memory available,
-        SpentItem memory required
-    ) public payable {
+    function activate(SpentItem memory available, SpentItem memory required)
+        public
+        payable
+    {
         if (ready || fulfilled) {
             revert OrderUnavailable();
         }
@@ -84,11 +83,7 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
             ERC1155Interface token = ERC1155Interface(available.token);
 
             token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                identifier,
-                available.amount,
-                ""
+                msg.sender, address(this), identifier, available.amount, ""
             );
 
             token.setApprovalForAll(_SEAPORT, true);
@@ -134,9 +129,7 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
         consideration = new ReceivedItem[](1);
 
         // Send eth to Seaport.
-        (bool success, ) = _SEAPORT.call{ value: minimumReceived[0].amount }(
-            ""
-        );
+        (bool success,) = _SEAPORT.call{ value: minimumReceived[0].amount }("");
 
         // Revert if transaction fails.
         if (!success) {
@@ -222,17 +215,17 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata, /* offer */
+        ReceivedItem[] calldata, /* consideration */
+        bytes calldata, /* context */
+        bytes32[] calldata, /* orderHashes */
         uint256 /* contractNonce */
     )
         external
         pure
         virtual
         override
-        returns (bytes4 /* ratifyOrderMagicValue */)
+        returns (bytes4 /* ratifyOrderMagicValue */ )
     {
         return ContractOffererInterface.ratifyOrder.selector;
     }
@@ -247,18 +240,15 @@ contract TestContractOffererNativeToken is ContractOffererInterface, ERC165 {
         return bytes4(0xf23a6e61);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(ERC165, ContractOffererInterface)
         returns (bool)
     {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(ContractOffererInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     /**

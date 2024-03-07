@@ -3,15 +3,13 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
-import {
-    PausableZoneEventsAndErrors
-} from "./interfaces/PausableZoneEventsAndErrors.sol";
+import { PausableZoneEventsAndErrors } from
+    "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {
-    SeaportInterface
-} from "seaport-types/src/interfaces/SeaportInterface.sol";
+import { SeaportInterface } from
+    "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -121,9 +119,11 @@ contract PausableZone is
      *
      * @param operatorToAssign The address to assign as the operator.
      */
-    function assignOperator(
-        address operatorToAssign
-    ) external override isController {
+    function assignOperator(address operatorToAssign)
+        external
+        override
+        isController
+    {
         // Ensure the operator being assigned is not the null address.
         if (operatorToAssign == address(0)) {
             revert PauserCanNotBeSetAsZero();
@@ -165,10 +165,8 @@ contract PausableZone is
     {
         // Call matchOrders on Seaport and return the sequence of transfers
         // performed as part of matching the given orders.
-        executions = seaport.matchOrders{ value: msg.value }(
-            orders,
-            fulfillments
-        );
+        executions =
+            seaport.matchOrders{ value: msg.value }(orders, fulfillments);
     }
 
     /**
@@ -207,11 +205,16 @@ contract PausableZone is
         // Call matchAdvancedOrders on Seaport and return the sequence of
         // transfers performed as part of matching the given orders.
         executions = seaport.matchAdvancedOrders{ value: msg.value }(
-            orders,
-            criteriaResolvers,
-            fulfillments,
-            msg.sender
+            orders, criteriaResolvers, fulfillments, msg.sender
         );
+    }
+
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
+        return this.authorizeOrder.selector;
     }
 
     /**
@@ -258,11 +261,13 @@ contract PausableZone is
         return ("PausableZone", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }
