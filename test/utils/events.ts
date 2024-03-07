@@ -1,4 +1,5 @@
-import type { Contract, ContractTransaction } from "ethers";
+import type { ContractTransaction } from "ethers";
+import type { Interface } from "ethers/lib/utils";
 
 type DecodedTransactionEvent = {
   eventName: string;
@@ -7,7 +8,7 @@ type DecodedTransactionEvent = {
 
 type EventDecoder = {
   eventName: string;
-  contract: Contract;
+  contract: { interface: Interface };
 };
 
 export async function decodeEvents(
