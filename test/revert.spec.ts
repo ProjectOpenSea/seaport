@@ -8214,17 +8214,20 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       order.numerator = 1;
       order.denominator = 1;
       order.signature = "0x";
-      await expect(
-        marketplaceContract
-          .connect(buyer)
-          .fulfillAdvancedOrder(
-            order,
-            [],
-            toKey(0),
-            ethers.constants.AddressZero,
-            { value }
-          )
-      ).to.be.revertedWithCustomError(offererContract, "IntentionalRevert");
+
+      if (!process.env.REFERENCE) {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(0),
+              ethers.constants.AddressZero,
+              { value }
+            )
+        ).to.be.revertedWithCustomError(offererContract, "IntentionalRevert");
+      }
     });
     it("Fulfillment reverts if contract offerer returns with garbage data", async () => {
       // Contract offerer mints nft
