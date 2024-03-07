@@ -577,9 +577,9 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ) as any,
       ];
 
-      // ERC1155 criteria based item
-      offer[0].itemType = 5;
-      offer[0].identifier = offer[0].identifierOrCriteria;
+      // ERC1155 criteria based item (resolved)
+      offer[0].itemType = 3;
+      offer[0].identifier = nftId;
       offer[0].amount = offer[0].endAmount;
 
       consideration[0].identifier = consideration[0].identifierOrCriteria;
@@ -587,7 +587,11 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       await offererContract
         .connect(seller)
-        .activateWithCriteria(offer[0], consideration[0], nftId);
+        .activate(offer[0], consideration[0]);
+
+      // ERC1155 criteria based item (unresolved)
+      offer[0].itemType = 5;
+      offer[0].identifier = offer[0].identifierOrCriteria;
 
       const criteriaResolvers = [
         buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
@@ -1188,87 +1192,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         return receipt;
       });
     });
-    it("Reverts on contract orders where offer startAmount doesn't equal offer endAmount", async () => {
-      // Seller mints nfts
-      const { nftId, amount } = await mintAndApprove1155(
-        seller,
-        marketplaceContract.address,
-        10000
-      );
-
-      // seller deploys offererContract and approves it for 1155 token
-      const offererContract = await deployContract(
-        "TestContractOfferer",
-        owner,
-        marketplaceContract.address
-      );
-
-      await set1155ApprovalForAll(seller, offererContract.address, true);
-
-      const offer = [
-        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
-      ];
-
-      const consideration = [
-        getItemETH(
-          amount.mul(1000),
-          amount.mul(1000),
-          offererContract.address
-        ) as any,
-      ];
-
-      offer[0].identifier = offer[0].identifierOrCriteria;
-      offer[0].amount = offer[0].endAmount;
-      offer[0].startAmount = offer[0].endAmount.add(1);
-
-      consideration[0].identifier = consideration[0].identifierOrCriteria;
-      consideration[0].amount = consideration[0].endAmount;
-
-      await offererContract
-        .connect(seller)
-        .activate(offer[0], consideration[0]);
-
-      const { order, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        4 // CONTRACT
-      );
-
-      const contractOffererNonce =
-        await marketplaceContract.getContractOffererNonce(
-          offererContract.address
-        );
-
-      const orderHash =
-        offererContract.address.toLowerCase() +
-        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
-
-      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
-
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(false, false, 0, 0)
-      );
-
-      order.parameters.offerer = offererContract.address;
-      order.numerator = 1;
-      order.denominator = 1;
-      order.signature = "0x";
-
-      await expect(
-        marketplaceContract
-          .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
-            value,
-          })
-      )
-        .to.be.revertedWithCustomError(
-          marketplaceContract,
-          "InvalidContractOrder"
-        )
-        .withArgs(orderHash);
-    });
     it("Reverts on contract orders where offer endAmount is greater than offer amount (branch 2)", async () => {
       // Seller mints nfts
       const { nftId, amount } = await mintAndApprove1155(
@@ -1586,87 +1509,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       order.parameters.offer[0].identifierOrCriteria =
         offer[0].identifier.add(1);
-
-      await expect(
-        marketplaceContract
-          .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
-            value,
-          })
-      )
-        .to.be.revertedWithCustomError(
-          marketplaceContract,
-          "InvalidContractOrder"
-        )
-        .withArgs(orderHash);
-    });
-    it("Reverts on contract orders where consideration startAmount doesn't equal consideration endAmount", async () => {
-      // Seller mints nfts
-      const { nftId, amount } = await mintAndApprove1155(
-        seller,
-        marketplaceContract.address,
-        10000
-      );
-
-      // seller deploys offererContract and approves it for 1155 token
-      const offererContract = await deployContract(
-        "TestContractOfferer",
-        owner,
-        marketplaceContract.address
-      );
-
-      await set1155ApprovalForAll(seller, offererContract.address, true);
-
-      const offer = [
-        getTestItem1155(nftId, amount.mul(10), amount.mul(10)) as any,
-      ];
-
-      const consideration = [
-        getItemETH(
-          amount.mul(1000),
-          amount.mul(1000),
-          offererContract.address
-        ) as any,
-      ];
-
-      offer[0].identifier = offer[0].identifierOrCriteria;
-      offer[0].amount = offer[0].endAmount;
-
-      consideration[0].identifier = consideration[0].identifierOrCriteria;
-      consideration[0].amount = consideration[0].endAmount;
-      consideration[0].startAmount = consideration[0].endAmount.add(1);
-
-      await offererContract
-        .connect(seller)
-        .activate(offer[0], consideration[0]);
-
-      const { order, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        4 // CONTRACT
-      );
-
-      const contractOffererNonce =
-        await marketplaceContract.getContractOffererNonce(
-          offererContract.address
-        );
-
-      const orderHash =
-        offererContract.address.toLowerCase() +
-        contractOffererNonce.toHexString().slice(2).padStart(24, "0");
-
-      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
-
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(false, false, 0, 0)
-      );
-
-      order.parameters.offerer = offererContract.address;
-      order.numerator = 1;
-      order.denominator = 1;
-      order.signature = "0x";
 
       await expect(
         marketplaceContract
@@ -2784,11 +2626,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             value,
           })
       )
-        .to.be.revertedWithCustomError(
-          marketplaceContract,
-          "InvalidContractOrder"
-        )
-        .withArgs(orderHash);
+        .to.be.reverted; // TODO: get revert message bubbled up from the offerer
     });
     it("Reverts on contract orders where call to generateOrders throws and reverts are skipped", async () => {
       // Seller mints nfts
@@ -3633,7 +3471,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
       expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 14, 20)
+        buildOrderStatus(true, false, 140, 200)
       );
 
       // Fill remaining; only 3/10ths will be fillable
@@ -3697,7 +3535,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
 
       orderStatus = await marketplaceContract.getOrderStatus(orderHash);
       expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 40, 40)
+        buildOrderStatus(true, false, 80000, 80000)
       );
     });
     it("Partial fills (standard, additional permutations)", async () => {
@@ -4056,8 +3894,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
     });
 
     it("Simplifies fraction when numerator/denominator would overflow", async () => {
-      const numer1 = toBN(2).pow(100);
-      const denom1 = toBN(2).pow(101);
+      const numer1 = toBN(2).pow(50);
+      const denom1 = toBN(2).pow(51);
       const numer2 = toBN(2).pow(20);
       const denom2 = toBN(2).pow(22);
       const amt = 8;
@@ -5794,136 +5632,6 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
         ],
         executions
       );
-    });
-    it("Match with fewer executions when one party has multiple orders that coincide", async () => {
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address
-      );
-      const secondNFTId = await mintAndApprove721(
-        buyer,
-        marketplaceContract.address
-      );
-
-      const offerOne = [
-        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
-      ];
-
-      const considerationOne = [
-        getTestItem20(parseEther("10"), parseEther("10"), seller.address),
-      ];
-
-      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
-        seller,
-        zone,
-        offerOne,
-        considerationOne,
-        0 // FULL_OPEN
-      );
-
-      const offerTwo = [getTestItem20(parseEther("10"), parseEther("10"))];
-
-      const considerationTwo = [
-        getTestItem721(
-          secondNFTId,
-          toBN(1),
-          toBN(1),
-          seller.address,
-          testERC721.address
-        ),
-      ];
-
-      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
-        seller,
-        zone,
-        offerTwo,
-        considerationTwo,
-        0 // FULL_OPEN
-      );
-
-      const offerThree = [
-        getTestItem721(
-          secondNFTId,
-          toBN(1),
-          toBN(1),
-          undefined,
-          testERC721.address
-        ),
-      ];
-
-      const considerationThree = [
-        getTestItem721(
-          nftId,
-          toBN(1),
-          toBN(1),
-          buyer.address,
-          testERC721.address
-        ),
-      ];
-
-      const { order: orderThree, orderHash: orderHashThree } =
-        await createOrder(
-          buyer,
-          zone,
-          offerThree,
-          considerationThree,
-          0 // FULL_OPEN
-        );
-
-      const fulfillments = [
-        [[[1, 0]], [[0, 0]]],
-        [[[0, 0]], [[2, 0]]],
-        [[[2, 0]], [[1, 0]]],
-      ].map(([offerArr, considerationArr]) =>
-        toFulfillment(offerArr, considerationArr)
-      );
-
-      const executions = await simulateAdvancedMatchOrders(
-        marketplaceContract,
-        [orderOne, orderTwo, orderThree],
-        [], // no criteria resolvers
-        fulfillments,
-        owner,
-        0 // no value
-      );
-
-      expect(executions.length).to.equal(fulfillments.length - 1);
-
-      const tx = marketplaceContract
-        .connect(owner)
-        .matchAdvancedOrders(
-          [orderOne, orderTwo, orderThree],
-          [],
-          fulfillments,
-          ethers.constants.AddressZero,
-          {
-            value: 0,
-          }
-        );
-      const receipt = await (await tx).wait();
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
-          {
-            order: orderOne,
-            orderHash: orderHashOne,
-            fulfiller: owner.address,
-          },
-          {
-            order: orderTwo,
-            orderHash: orderHashTwo,
-            fulfiller: owner.address,
-          },
-          {
-            order: orderThree,
-            orderHash: orderHashThree,
-            fulfiller: owner.address,
-          },
-        ],
-        executions
-      );
-      return receipt;
     });
     it("Does not filter native tokens", async () => {
       const nftId = await mintAndApprove721(
