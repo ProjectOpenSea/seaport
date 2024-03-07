@@ -3,10 +3,10 @@
 pragma solidity ^0.8.17;
 
 contract CeilEquivalenceTest {
-    function testCeilEquivalence(
-        uint256 numerator,
-        uint256 denominator
-    ) public pure {
+    function testCeilEquivalence(uint256 numerator, uint256 denominator)
+        public
+        pure
+    {
         // There is intermediate overflow for the unoptimized ceil
         // but for the sake of this test we'll ignore those cases.
         numerator %= type(uint128).max;
@@ -15,10 +15,11 @@ contract CeilEquivalenceTest {
 
         uint256 optimized;
         assembly {
-            optimized := mul(
-                add(div(sub(numerator, 1), denominator), 1),
-                iszero(iszero(numerator))
-            )
+            optimized :=
+                mul(
+                    add(div(sub(numerator, 1), denominator), 1),
+                    iszero(iszero(numerator))
+                )
         }
 
         uint256 unoptimized;

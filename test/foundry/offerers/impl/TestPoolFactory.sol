@@ -41,9 +41,7 @@ contract TestPoolFactory {
         // contract.
         for (uint256 i; i < tokenIds.length; i++) {
             IERC721(erc721).transferFrom(
-                msg.sender,
-                address(newPool),
-                tokenIds[i]
+                msg.sender, address(newPool), tokenIds[i]
             );
         }
     }

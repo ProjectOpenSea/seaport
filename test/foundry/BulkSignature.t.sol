@@ -5,9 +5,8 @@ import { BaseOrderTest } from "./utils//BaseOrderTest.sol";
 
 import { EIP712MerkleTree } from "./utils/EIP712MerkleTree.sol";
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     ConsiderationItem,
@@ -35,11 +34,11 @@ contract BulkSignatureTest is BaseOrderTest {
         uint24 orderIndex;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -110,10 +109,8 @@ contract BulkSignatureTest is BaseOrderTest {
             uint24(0),
             context.useCompact2098
         );
-        Order memory order = Order({
-            parameters: baseOrderParameters,
-            signature: bulkSignature
-        });
+        Order memory order =
+            Order({ parameters: baseOrderParameters, signature: bulkSignature });
         context.seaport.fulfillOrder{ value: 1 }(order, bytes32(0));
     }
 
@@ -152,9 +149,10 @@ contract BulkSignatureTest is BaseOrderTest {
         );
     }
 
-    function execBulkSignatureSparse(
-        Context memory context
-    ) external stateless {
+    function execBulkSignatureSparse(Context memory context)
+        external
+        stateless
+    {
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
         addErc721OfferItem(1);
@@ -183,10 +181,8 @@ contract BulkSignatureTest is BaseOrderTest {
             context.args.orderIndex,
             context.useCompact2098
         );
-        Order memory order = Order({
-            parameters: baseOrderParameters,
-            signature: bulkSignature
-        });
+        Order memory order =
+            Order({ parameters: baseOrderParameters, signature: bulkSignature });
         context.seaport.fulfillOrder{ value: 1 }(order, bytes32(0));
     }
 
@@ -231,9 +227,10 @@ contract BulkSignatureTest is BaseOrderTest {
     }
 
     // This tests the "targeting" of orders in the out-of-range index case.
-    function execBulkSignatureIndexOutOfBounds(
-        Context memory context
-    ) external stateless {
+    function execBulkSignatureIndexOutOfBounds(Context memory context)
+        external
+        stateless
+    {
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
         addErc721OfferItem(1);
@@ -267,17 +264,11 @@ contract BulkSignatureTest is BaseOrderTest {
 
         // Get the signature for the order at index 0.
         bytes memory bulkSignature = merkleTree.signBulkOrder(
-            context.seaport,
-            key,
-            orderComponents,
-            0,
-            context.useCompact2098
+            context.seaport, key, orderComponents, 0, context.useCompact2098
         );
 
-        Order memory order = Order({
-            parameters: baseOrderParameters,
-            signature: bulkSignature
-        });
+        Order memory order =
+            Order({ parameters: baseOrderParameters, signature: bulkSignature });
 
         // Fulfill the order at index 0.
         context.seaport.fulfillOrder{ value: 1 }(order, bytes32(0));
@@ -285,30 +276,26 @@ contract BulkSignatureTest is BaseOrderTest {
 
         // Get the signature for the order at index 1.
         bulkSignature = merkleTree.signBulkOrder(
-            context.seaport,
-            key,
-            orderComponents,
-            1,
-            context.useCompact2098
+            context.seaport, key, orderComponents, 1, context.useCompact2098
         );
 
         uint256 signatureLength = context.useCompact2098 ? 64 : 65;
 
         // Swap in a fake index.  Here, we use 5 instead of 1.
         assembly {
-            let indexAndProofDataPointer := add(
-                signatureLength,
-                add(bulkSignature, 0x20)
-            )
+            let indexAndProofDataPointer :=
+                add(signatureLength, add(bulkSignature, 0x20))
             let indexAndProofData := mload(indexAndProofDataPointer)
-            let maskedProofData := and(
-                indexAndProofData,
-                0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-            )
-            let fakeIndexAndProofData := or(
-                maskedProofData,
-                0x0000050000000000000000000000000000000000000000000000000000000000
-            )
+            let maskedProofData :=
+                and(
+                    indexAndProofData,
+                    0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                )
+            let fakeIndexAndProofData :=
+                or(
+                    maskedProofData,
+                    0x0000050000000000000000000000000000000000000000000000000000000000
+                )
             mstore(indexAndProofDataPointer, fakeIndexAndProofData)
         }
 
@@ -328,10 +315,7 @@ contract BulkSignatureTest is BaseOrderTest {
 
     // Pulled out bc of stacc2dank but can be moved or cleaned up in some better
     // way.
-    function setUpSecondOrder(
-        Context memory context,
-        address addr
-    )
+    function setUpSecondOrder(Context memory context, address addr)
         public
         view
         returns (
@@ -340,13 +324,8 @@ contract BulkSignatureTest is BaseOrderTest {
         )
     {
         OfferItem memory secondOfferItem;
-        secondOfferItem = OfferItem(
-            ItemType.ERC721,
-            address(test721_1),
-            2,
-            1,
-            1
-        );
+        secondOfferItem =
+            OfferItem(ItemType.ERC721, address(test721_1), 2, 1, 1);
 
         OfferItem[] memory offerItems = new OfferItem[](1);
         offerItems[0] = secondOfferItem;
@@ -366,8 +345,7 @@ contract BulkSignatureTest is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters,
-            context.seaport.getCounter(addr)
+            secondOrderParameters, context.seaport.getCounter(addr)
         );
 
         return (secondOrderParameters, secondOrderComponents);
@@ -409,9 +387,10 @@ contract BulkSignatureTest is BaseOrderTest {
     }
 
     // This tests the overflow behavior for trees of different heights.
-    function execBulkSignatureSparseIndexOutOfBounds(
-        Context memory context
-    ) external stateless {
+    function execBulkSignatureSparseIndexOutOfBounds(Context memory context)
+        external
+        stateless
+    {
         // Set up the boilerplate for the offerer.
         string memory offerer = "offerer";
         (address addr, uint256 key) = makeAddrAndKey(offerer);
@@ -460,27 +439,27 @@ contract BulkSignatureTest is BaseOrderTest {
         // Use assembly to swap in a fake index.
         assembly {
             // Get the pointer to the index and proof data.
-            let indexAndProofDataPointer := add(
-                signatureLength,
-                add(bulkSignature, 0x20)
-            )
+            let indexAndProofDataPointer :=
+                add(signatureLength, add(bulkSignature, 0x20))
             // Load the index and proof data into memory.
             let indexAndProofData := mload(indexAndProofDataPointer)
             // Mask for the index.
-            let maskedProofData := and(
-                indexAndProofData,
-                0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-            )
+            let maskedProofData :=
+                and(
+                    indexAndProofData,
+                    0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                )
             // 256 - 24 = 232
             // Create a new value the same as the old value, except that it uses
             // the fake index.
-            let fakeIndexAndProofData := or(
-                maskedProofData,
-                // Shift the fake index left by 232 bits to produce a value to
-                // `or` with the `maskedProofData`.  For example:
-                // `0x000005000...`
-                shl(232, convertedIndex)
-            )
+            let fakeIndexAndProofData :=
+                or(
+                    maskedProofData,
+                    // Shift the fake index left by 232 bits to produce a value to
+                    // `or` with the `maskedProofData`.  For example:
+                    // `0x000005000...`
+                    shl(232, convertedIndex)
+                )
             // Store the fake index and proof data at the
             // indexAndProofDataPointer location.
             mstore(indexAndProofDataPointer, fakeIndexAndProofData)
@@ -488,10 +467,8 @@ contract BulkSignatureTest is BaseOrderTest {
 
         // Create an order using the `bulkSignature` that was modified in the
         // assembly block above.
-        Order memory order = Order({
-            parameters: baseOrderParameters,
-            signature: bulkSignature
-        });
+        Order memory order =
+            Order({ parameters: baseOrderParameters, signature: bulkSignature });
 
         // This should wrap around and fulfill the order at the index equal to
         // (the fake order index - (height ** 2)).
@@ -607,27 +584,27 @@ contract BulkSignatureTest is BaseOrderTest {
             // Use assembly to swap a fake index into the bulkSignature.
             assembly {
                 // Get the pointer to the index and proof data.
-                let indexAndProofDataPointer := add(
-                    signatureLength,
-                    add(bulkSignature, 0x20)
-                )
+                let indexAndProofDataPointer :=
+                    add(signatureLength, add(bulkSignature, 0x20))
                 // Load the index and proof data into memory.
                 let indexAndProofData := mload(indexAndProofDataPointer)
                 // Mask for the index.
-                let maskedProofData := and(
-                    indexAndProofData,
-                    0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-                )
+                let maskedProofData :=
+                    and(
+                        indexAndProofData,
+                        0x000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    )
                 // 256 - 24 = 232
                 // Create a new value the same as the old value, except that it
                 // uses the fake index.
-                let fakeIndexAndProofData := or(
-                    maskedProofData,
-                    // Shift the fake index left by 232 bits to produce a value
-                    // to `or` with the `maskedProofData`.  For example:
-                    // `0x000005000...`
-                    shl(232, convertedIndex)
-                )
+                let fakeIndexAndProofData :=
+                    or(
+                        maskedProofData,
+                        // Shift the fake index left by 232 bits to produce a value
+                        // to `or` with the `maskedProofData`.  For example:
+                        // `0x000005000...`
+                        shl(232, convertedIndex)
+                    )
                 // Store the fake index and proof data at the
                 // indexAndProofDataPointer location.
                 mstore(indexAndProofDataPointer, fakeIndexAndProofData)

@@ -38,10 +38,7 @@ contract TestPoolOffererTest is BaseOrderTest {
         token1.approve(address(factory), 1000);
         test721_1.setApprovalForAll(address(factory), true);
         offerer = factory.createPoolOfferer(
-            address(test721_1),
-            tokenIds,
-            address(token1),
-            1000
+            address(test721_1), tokenIds, address(token1), 1000
         );
 
         vm.label(address(factory), "factory");
@@ -63,7 +60,7 @@ contract TestPoolOffererTest is BaseOrderTest {
             token: address(token1),
             identifier: 0,
             amount: 300 // will not spend entire amount
-        });
+         });
 
         addOfferItem(ItemType.ERC721, 101, 1);
         addConsiderationItem(payable(address(offerer)), ItemType.ERC20, 0, 250);
@@ -180,16 +177,11 @@ contract TestPoolOffererTest is BaseOrderTest {
             token: address(token1),
             identifier: 0,
             amount: 300 // will not spend entire amount
-        });
+         });
 
         test721_1.mint(address(this), 106);
 
-        addConsiderationItem(
-            payable(address(offerer)),
-            ItemType.ERC721,
-            106,
-            1
-        );
+        addConsiderationItem(payable(address(offerer)), ItemType.ERC721, 106, 1);
         addOfferItem(ItemType.ERC20, 0, 166);
 
         _configureOrderParameters({
@@ -252,18 +244,8 @@ contract TestPoolOffererTest is BaseOrderTest {
             amount: 1000000
         });
 
-        addConsiderationItem(
-            payable(address(offerer)),
-            ItemType.ERC721,
-            106,
-            1
-        );
-        addConsiderationItem(
-            payable(address(offerer)),
-            ItemType.ERC721,
-            107,
-            1
-        );
+        addConsiderationItem(payable(address(offerer)), ItemType.ERC721, 106, 1);
+        addConsiderationItem(payable(address(offerer)), ItemType.ERC721, 107, 1);
         addOfferItem(ItemType.ERC20, 0, 286);
 
         _configureOrderParameters({

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
+import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
+import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
 import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
@@ -24,12 +24,13 @@ contract PreapprovedERC721 is CustomERC721 {
         return true;
     }
 
-    function isApprovedForAll(
-        address owner,
-        address operator
-    ) public view override returns (bool) {
-        return
-            preapprovals[operator] || super.isApprovedForAll(owner, operator);
+    function isApprovedForAll(address owner, address operator)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return preapprovals[operator] || super.isApprovedForAll(owner, operator);
     }
 
     function tokenURI(uint256) public pure override returns (string memory) {
@@ -72,9 +73,9 @@ contract TestTokenMinter is
 
     modifier only1155Receiver(address recipient) {
         vm.assume(
-            recipient != address(0) &&
-                recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1 &&
-                recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
+            recipient != address(0)
+                && recipient != 0x4c8D290a1B368ac4728d83a9e8321fC3af2b39b1
+                && recipient != 0x4e59b44847b379578588920cA78FbF26c0B4956C
         );
 
         if (recipient.code.length > 0) {
@@ -128,9 +129,10 @@ contract TestTokenMinter is
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
     }
 
-    function makeAddrWithAllocationsAndApprovals(
-        string memory label
-    ) internal returns (address) {
+    function makeAddrWithAllocationsAndApprovals(string memory label)
+        internal
+        returns (address)
+    {
         address addr = makeAddr(label);
         allocateTokensAndApprovals(addr, uint128(MAX_INT));
         return addr;
@@ -140,19 +142,15 @@ contract TestTokenMinter is
         mintErc721TokenTo(to, test721_1, id);
     }
 
-    function mintErc721TokenTo(
-        address to,
-        TestERC721 token,
-        uint256 id
-    ) internal {
+    function mintErc721TokenTo(address to, TestERC721 token, uint256 id)
+        internal
+    {
         token.mint(to, id);
     }
 
-    function mintTokensTo(
-        address to,
-        ItemType itemType,
-        uint256 amount
-    ) internal {
+    function mintTokensTo(address to, ItemType itemType, uint256 amount)
+        internal
+    {
         mintTokensTo(to, itemType, 1, amount);
     }
 
@@ -191,11 +189,9 @@ contract TestTokenMinter is
         }
     }
 
-    function mintErc1155TokensTo(
-        address to,
-        uint256 id,
-        uint256 amount
-    ) internal {
+    function mintErc1155TokensTo(address to, uint256 id, uint256 amount)
+        internal
+    {
         mintErc1155TokensTo(to, test1155_1, id, amount);
     }
 
@@ -212,11 +208,9 @@ contract TestTokenMinter is
         mintErc20TokensTo(to, token1, amount);
     }
 
-    function mintErc20TokensTo(
-        address to,
-        TestERC20 token,
-        uint256 amount
-    ) internal {
+    function mintErc20TokensTo(address to, TestERC20 token, uint256 amount)
+        internal
+    {
         token.mint(to, amount);
     }
 
@@ -244,7 +238,9 @@ contract TestTokenMinter is
     /**
      * @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s
      */
-    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
+    function allocateTokensAndApprovals(address _to, uint128 _amount)
+        internal
+    {
         vm.deal(_to, _amount);
         for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);
@@ -268,10 +264,7 @@ contract TestTokenMinter is
         }
         for (uint256 i = 0; i < erc1155s.length; ++i) {
             erc1155s[i].setApprovalForAll(address(consideration), true);
-            erc1155s[i].setApprovalForAll(
-                address(referenceConsideration),
-                true
-            );
+            erc1155s[i].setApprovalForAll(address(referenceConsideration), true);
             erc1155s[i].setApprovalForAll(address(conduit), true);
             erc1155s[i].setApprovalForAll(address(referenceConduit), true);
         }

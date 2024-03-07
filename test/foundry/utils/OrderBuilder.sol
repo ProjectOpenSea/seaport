@@ -22,9 +22,8 @@ import {
     BasicOrderType
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 contract OrderBuilder is OfferConsiderationItemAdder {
     uint256 internal globalSalt;
@@ -44,33 +43,37 @@ contract OrderBuilder is OfferConsiderationItemAdder {
     OrderParameters baseOrderParameters;
     OrderComponents baseOrderComponents;
 
-    function toSpentItem(
-        OfferItem memory _offerItem
-    ) internal pure returns (SpentItem memory) {
-        return
-            SpentItem({
-                itemType: _offerItem.itemType,
-                token: _offerItem.token,
-                identifier: _offerItem.identifierOrCriteria,
-                amount: _offerItem.startAmount
-            });
+    function toSpentItem(OfferItem memory _offerItem)
+        internal
+        pure
+        returns (SpentItem memory)
+    {
+        return SpentItem({
+            itemType: _offerItem.itemType,
+            token: _offerItem.token,
+            identifier: _offerItem.identifierOrCriteria,
+            amount: _offerItem.startAmount
+        });
     }
 
-    function toSpentItem(
-        ConsiderationItem memory _considerationItem
-    ) internal pure returns (SpentItem memory) {
-        return
-            SpentItem({
-                itemType: _considerationItem.itemType,
-                token: _considerationItem.token,
-                identifier: _considerationItem.identifierOrCriteria,
-                amount: _considerationItem.startAmount
-            });
+    function toSpentItem(ConsiderationItem memory _considerationItem)
+        internal
+        pure
+        returns (SpentItem memory)
+    {
+        return SpentItem({
+            itemType: _considerationItem.itemType,
+            token: _considerationItem.token,
+            identifier: _considerationItem.identifierOrCriteria,
+            amount: _considerationItem.startAmount
+        });
     }
 
-    function toSpentItems(
-        OfferItem[] memory _offerItems
-    ) internal pure returns (SpentItem[] memory) {
+    function toSpentItems(OfferItem[] memory _offerItems)
+        internal
+        pure
+        returns (SpentItem[] memory)
+    {
         SpentItem[] memory spentItems = new SpentItem[](_offerItems.length);
         for (uint256 i; i < _offerItems.length; ++i) {
             spentItems[i] = toSpentItem(_offerItems[i]);
@@ -78,9 +81,11 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         return spentItems;
     }
 
-    function toSpentItems(
-        ConsiderationItem[] memory _considerationItems
-    ) internal pure returns (SpentItem[] memory) {
+    function toSpentItems(ConsiderationItem[] memory _considerationItems)
+        internal
+        pure
+        returns (SpentItem[] memory)
+    {
         SpentItem[] memory spentItems = new SpentItem[](
             _considerationItems.length
         );
@@ -90,9 +95,11 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         return spentItems;
     }
 
-    function toHashedLeaves(
-        uint256[] memory identifiers
-    ) internal pure returns (bytes32[] memory) {
+    function toHashedLeaves(uint256[] memory identifiers)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
         bytes32[] memory hashedLeaves = new bytes32[](identifiers.length);
         for (uint256 i; i < identifiers.length; ++i) {
             hashedLeaves[i] = keccak256(abi.encode(identifiers[i]));
@@ -100,42 +107,40 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         return hashedLeaves;
     }
 
-    function toAdvancedOrder(
-        Order memory order
-    ) internal pure returns (AdvancedOrder memory) {
-        return
-            AdvancedOrder({
-                parameters: order.parameters,
-                numerator: 1,
-                denominator: 1,
-                signature: order.signature,
-                extraData: ""
-            });
+    function toAdvancedOrder(Order memory order)
+        internal
+        pure
+        returns (AdvancedOrder memory)
+    {
+        return AdvancedOrder({
+            parameters: order.parameters,
+            numerator: 1,
+            denominator: 1,
+            signature: order.signature,
+            extraData: ""
+        });
     }
 
-    function toAdvancedOrder(
-        Order memory order,
-        bytes memory extraData
-    ) internal pure returns (AdvancedOrder memory) {
-        return
-            AdvancedOrder({
-                parameters: order.parameters,
-                numerator: 1,
-                denominator: 1,
-                signature: order.signature,
-                extraData: extraData
-            });
+    function toAdvancedOrder(Order memory order, bytes memory extraData)
+        internal
+        pure
+        returns (AdvancedOrder memory)
+    {
+        return AdvancedOrder({
+            parameters: order.parameters,
+            numerator: 1,
+            denominator: 1,
+            signature: order.signature,
+            extraData: extraData
+        });
     }
 
     function createMirrorOrderAndFulfillments(
         ConsiderationInterface _consideration,
         OrderParameters memory order1
     ) internal returns (Order memory, Fulfillment[] memory) {
-        Order memory mirrorOrder = createSignedMirrorOrder(
-            _consideration,
-            order1,
-            "mirror offerer"
-        );
+        Order memory mirrorOrder =
+            createSignedMirrorOrder(_consideration, order1, "mirror offerer");
         return (
             mirrorOrder,
             createFulfillmentsFromMirrorOrders(order1, mirrorOrder.parameters)
@@ -150,28 +155,20 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         for (uint256 i; i < order1.offer.length; ++i) {
             createFulfillmentFromComponentsAndAddToFulfillments({
                 _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: i }),
-                _consideration: FulfillmentComponent({
-                    orderIndex: 1,
-                    itemIndex: i
-                })
+                _consideration: FulfillmentComponent({ orderIndex: 1, itemIndex: i })
             });
         }
         for (uint256 i; i < order2.offer.length; ++i) {
             createFulfillmentFromComponentsAndAddToFulfillments({
                 _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: i }),
-                _consideration: FulfillmentComponent({
-                    orderIndex: 0,
-                    itemIndex: i
-                })
+                _consideration: FulfillmentComponent({ orderIndex: 0, itemIndex: i })
             });
         }
 
         return fulfillments;
     }
 
-    function createFulfillments(
-        OrderParameters[] memory orders
-    )
+    function createFulfillments(OrderParameters[] memory orders)
         internal
         returns (
             FulfillmentComponent[][] memory,
@@ -265,16 +262,13 @@ contract OrderBuilder is OfferConsiderationItemAdder {
             OfferItem[] memory newOffer,
             ConsiderationItem[] memory newConsideration
         ) = mirrorOfferAndConsideration(
-                originalParameters.offer,
-                originalParameters.consideration,
-                offerer
-            );
+            originalParameters.offer, originalParameters.consideration, offerer
+        );
         baseOrderParameters.offerer = offerer;
         baseOrderParameters.zone = originalParameters.zone;
         setOfferItems(baseOrderParameters.offer, newOffer);
         setConsiderationItems(
-            baseOrderParameters.consideration,
-            newConsideration
+            baseOrderParameters.consideration, newConsideration
         );
         baseOrderParameters.orderType = originalParameters.orderType;
         baseOrderParameters.startTime = originalParameters.startTime;
@@ -282,9 +276,8 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         baseOrderParameters.zoneHash = originalParameters.zoneHash;
         baseOrderParameters.salt = globalSalt++;
         baseOrderParameters.conduitKey = originalParameters.conduitKey;
-        baseOrderParameters.totalOriginalConsiderationItems = originalParameters
-            .offer
-            .length;
+        baseOrderParameters.totalOriginalConsiderationItems =
+            originalParameters.offer.length;
 
         configureOrderComponents(_consideration);
         bytes32 orderHash = _consideration.getOrderHash(baseOrderComponents);
@@ -331,19 +324,19 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         return newConsideration;
     }
 
-    function mirrorOfferItem(
-        OfferItem memory _offer,
-        address payable recipient
-    ) internal pure returns (ConsiderationItem memory) {
-        return
-            ConsiderationItem({
-                itemType: _offer.itemType,
-                token: _offer.token,
-                identifierOrCriteria: _offer.identifierOrCriteria,
-                startAmount: _offer.startAmount,
-                endAmount: _offer.endAmount,
-                recipient: recipient
-            });
+    function mirrorOfferItem(OfferItem memory _offer, address payable recipient)
+        internal
+        pure
+        returns (ConsiderationItem memory)
+    {
+        return ConsiderationItem({
+            itemType: _offer.itemType,
+            token: _offer.token,
+            identifierOrCriteria: _offer.identifierOrCriteria,
+            startAmount: _offer.startAmount,
+            endAmount: _offer.endAmount,
+            recipient: recipient
+        });
     }
 
     function mirrorConsiderationItems(
@@ -356,27 +349,27 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         return newOffer;
     }
 
-    function mirrorConsiderationItem(
-        ConsiderationItem memory _consideration
-    ) internal pure returns (OfferItem memory) {
-        return
-            OfferItem({
-                itemType: _consideration.itemType,
-                token: _consideration.token,
-                identifierOrCriteria: _consideration.identifierOrCriteria,
-                startAmount: _consideration.startAmount,
-                endAmount: _consideration.endAmount
-            });
+    function mirrorConsiderationItem(ConsiderationItem memory _consideration)
+        internal
+        pure
+        returns (OfferItem memory)
+    {
+        return OfferItem({
+            itemType: _consideration.itemType,
+            token: _consideration.token,
+            identifierOrCriteria: _consideration.identifierOrCriteria,
+            startAmount: _consideration.startAmount,
+            endAmount: _consideration.endAmount
+        });
     }
 
     function configureOrderParameters(address offerer) internal {
         configureOrderParameters(offerer, address(0), bytes32(0));
     }
 
-    function configureOrderParameters(
-        address offerer,
-        OrderType orderType
-    ) internal {
+    function configureOrderParameters(address offerer, OrderType orderType)
+        internal
+    {
         configureOrderParameters(offerer, address(0), bytes32(0));
         baseOrderParameters.orderType = orderType;
     }
@@ -397,12 +390,7 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         bool useConduit
     ) internal {
         _configureOrderParameters(
-            offerer,
-            zone,
-            zoneHash,
-            salt,
-            OrderType.FULL_OPEN,
-            useConduit
+            offerer, zone, zoneHash, salt, OrderType.FULL_OPEN, useConduit
         );
     }
 
@@ -425,8 +413,8 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         baseOrderParameters.zoneHash = zoneHash;
         baseOrderParameters.salt = salt;
         baseOrderParameters.conduitKey = conduitKey;
-        baseOrderParameters.totalOriginalConsiderationItems = considerationItems
-            .length;
+        baseOrderParameters.totalOriginalConsiderationItems =
+            considerationItems.length;
     }
 
     function _configureOrderParametersSetEndTime(
@@ -441,9 +429,9 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         baseOrderParameters.endTime = endTime;
     }
 
-    function configureOrderComponents(
-        ConsiderationInterface _consideration
-    ) internal {
+    function configureOrderComponents(ConsiderationInterface _consideration)
+        internal
+    {
         configureOrderComponents(
             _consideration.getCounter(baseOrderParameters.offerer)
         );
@@ -470,8 +458,8 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         Order memory _order,
         BasicOrderType basicOrderType
     ) internal pure returns (BasicOrderParameters memory) {
-        AdditionalRecipient[]
-            memory additionalRecipients = new AdditionalRecipient[](
+        AdditionalRecipient[] memory additionalRecipients =
+        new AdditionalRecipient[](
                 _order.parameters.consideration.length - 1
             );
         for (uint256 i = 1; i < _order.parameters.consideration.length; i++) {
@@ -481,27 +469,26 @@ contract OrderBuilder is OfferConsiderationItemAdder {
             });
         }
 
-        return
-            BasicOrderParameters(
-                _order.parameters.consideration[0].token,
-                _order.parameters.consideration[0].identifierOrCriteria,
-                _order.parameters.consideration[0].endAmount,
-                payable(_order.parameters.offerer),
-                _order.parameters.zone,
-                _order.parameters.offer[0].token,
-                _order.parameters.offer[0].identifierOrCriteria,
-                _order.parameters.offer[0].endAmount,
-                basicOrderType,
-                _order.parameters.startTime,
-                _order.parameters.endTime,
-                _order.parameters.zoneHash,
-                _order.parameters.salt,
-                _order.parameters.conduitKey,
-                _order.parameters.conduitKey,
-                _order.parameters.totalOriginalConsiderationItems - 1,
-                additionalRecipients,
-                _order.signature
-            );
+        return BasicOrderParameters(
+            _order.parameters.consideration[0].token,
+            _order.parameters.consideration[0].identifierOrCriteria,
+            _order.parameters.consideration[0].endAmount,
+            payable(_order.parameters.offerer),
+            _order.parameters.zone,
+            _order.parameters.offer[0].token,
+            _order.parameters.offer[0].identifierOrCriteria,
+            _order.parameters.offer[0].endAmount,
+            basicOrderType,
+            _order.parameters.startTime,
+            _order.parameters.endTime,
+            _order.parameters.zoneHash,
+            _order.parameters.salt,
+            _order.parameters.conduitKey,
+            _order.parameters.conduitKey,
+            _order.parameters.totalOriginalConsiderationItems - 1,
+            additionalRecipients,
+            _order.signature
+        );
     }
 
     function toBasicOrderParameters(
@@ -509,26 +496,25 @@ contract OrderBuilder is OfferConsiderationItemAdder {
         BasicOrderType basicOrderType,
         bytes memory signature
     ) internal pure returns (BasicOrderParameters memory) {
-        return
-            BasicOrderParameters(
-                _order.consideration[0].token,
-                _order.consideration[0].identifierOrCriteria,
-                _order.consideration[0].endAmount,
-                payable(_order.offerer),
-                _order.zone,
-                _order.offer[0].token,
-                _order.offer[0].identifierOrCriteria,
-                _order.offer[0].endAmount,
-                basicOrderType,
-                _order.startTime,
-                _order.endTime,
-                _order.zoneHash,
-                _order.salt,
-                _order.conduitKey,
-                _order.conduitKey,
-                0,
-                new AdditionalRecipient[](0),
-                signature
-            );
+        return BasicOrderParameters(
+            _order.consideration[0].token,
+            _order.consideration[0].identifierOrCriteria,
+            _order.consideration[0].endAmount,
+            payable(_order.offerer),
+            _order.zone,
+            _order.offer[0].token,
+            _order.offer[0].identifierOrCriteria,
+            _order.offer[0].endAmount,
+            basicOrderType,
+            _order.startTime,
+            _order.endTime,
+            _order.zoneHash,
+            _order.salt,
+            _order.conduitKey,
+            _order.conduitKey,
+            0,
+            new AdditionalRecipient[](0),
+            signature
+        );
     }
 }

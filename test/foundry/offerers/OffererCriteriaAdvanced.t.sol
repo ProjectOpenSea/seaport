@@ -12,9 +12,8 @@ import {
     ERC721Interface
 } from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     OrderType,
@@ -29,13 +28,11 @@ import {
     CriteriaResolver
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import {
-    ConsiderationEventsAndErrors
-} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
+import { ConsiderationEventsAndErrors } from
+    "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
-import {
-    ZoneInteractionErrors
-} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
+import { ZoneInteractionErrors } from
+    "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 contract OffererCriteriaAdvancedTest is
     BaseOrderTest,
@@ -65,11 +62,11 @@ contract OffererCriteriaAdvancedTest is
         test721_1.mint(address(offerer), 2);
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -77,10 +74,7 @@ contract OffererCriteriaAdvancedTest is
     function testOnlyWholeFractional1() public {
         setUpOnlyWholeFractional();
 
-        test(
-            this.execOnlyWholeFractional1,
-            Context({ seaport: consideration })
-        );
+        test(this.execOnlyWholeFractional1, Context({ seaport: consideration }));
         test(
             this.execOnlyWholeFractional1,
             Context({ seaport: referenceConsideration })
@@ -112,9 +106,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execOnlyWholeFractional1(
-        Context memory context
-    ) external stateless {
+    function execOnlyWholeFractional1(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(test721_1.ownerOf(2), address(this));
     }
@@ -123,19 +118,17 @@ contract OffererCriteriaAdvancedTest is
     function testOnlyWholeFractional0() public {
         setUpOnlyWholeFractional();
 
-        test(
-            this.execOnlyWholeFractional0,
-            Context({ seaport: consideration })
-        );
+        test(this.execOnlyWholeFractional0, Context({ seaport: consideration }));
         test(
             this.execOnlyWholeFractional0,
             Context({ seaport: referenceConsideration })
         );
     }
 
-    function execOnlyWholeFractional0(
-        Context memory context
-    ) external stateless {
+    function execOnlyWholeFractional0(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(BadFraction.selector);
         fulfillAdvanced(context, configureAdvancedOrder(0, 1));
     }
@@ -144,19 +137,17 @@ contract OffererCriteriaAdvancedTest is
     function testOnlyWholeFractional2() public {
         setUpOnlyWholeFractional();
 
-        test(
-            this.execOnlyWholeFractional2,
-            Context({ seaport: consideration })
-        );
+        test(this.execOnlyWholeFractional2, Context({ seaport: consideration }));
         test(
             this.execOnlyWholeFractional2,
             Context({ seaport: referenceConsideration })
         );
     }
 
-    function execOnlyWholeFractional2(
-        Context memory context
-    ) external stateless {
+    function execOnlyWholeFractional2(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(BadFraction.selector);
         fulfillAdvanced(context, configureAdvancedOrder(2, 2));
     }
@@ -185,19 +176,17 @@ contract OffererCriteriaAdvancedTest is
     function testZeroReceiverWildcard() public {
         setUpNormalOrder(address(0));
 
-        test(
-            this.execZeroReceiverWildcard,
-            Context({ seaport: consideration })
-        );
+        test(this.execZeroReceiverWildcard, Context({ seaport: consideration }));
         test(
             this.execZeroReceiverWildcard,
             Context({ seaport: referenceConsideration })
         );
     }
 
-    function execZeroReceiverWildcard(
-        Context memory context
-    ) external stateless {
+    function execZeroReceiverWildcard(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder(1, 1));
         assertEq(test721_1.ownerOf(2), address(this));
     }
@@ -212,7 +201,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execMismatchedReceiver(Context memory context) external stateless {
+    function execMismatchedReceiver(Context memory context)
+        external
+        stateless
+    {
         vm.expectRevert(
             abi.encodeWithSelector(
                 InvalidContractOrder.selector,
@@ -267,9 +259,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execCriteriaMinimumReceived(
-        Context memory context
-    ) external stateless {
+    function execCriteriaMinimumReceived(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(test721_1.ownerOf(2), address(this));
     }
@@ -277,10 +270,7 @@ contract OffererCriteriaAdvancedTest is
     function testCriteriaMaximumSpent() public {
         setUpCriteriaMaximumSpent();
 
-        test(
-            this.execCriteriaMaximumSpent,
-            Context({ seaport: consideration })
-        );
+        test(this.execCriteriaMaximumSpent, Context({ seaport: consideration }));
         test(
             this.execCriteriaMaximumSpent,
             Context({ seaport: referenceConsideration })
@@ -323,9 +313,10 @@ contract OffererCriteriaAdvancedTest is
         );
     }
 
-    function execCriteriaMaximumSpent(
-        Context memory context
-    ) external stateless {
+    function execCriteriaMaximumSpent(Context memory context)
+        external
+        stateless
+    {
         fulfillAdvanced(context, configureAdvancedOrder());
         assertEq(test721_1.ownerOf(1), address(offerer));
     }
@@ -334,21 +325,17 @@ contract OffererCriteriaAdvancedTest is
         return configureAdvancedOrder(1, 1);
     }
 
-    function configureAdvancedOrder(
-        uint120 numer,
-        uint120 denom
-    ) internal returns (AdvancedOrder memory) {
-        return
-            AdvancedOrder({
-                parameters: getOrderParameters(
-                    address(offerer),
-                    OrderType.CONTRACT
-                ),
-                numerator: numer,
-                denominator: denom,
-                signature: "",
-                extraData: ""
-            });
+    function configureAdvancedOrder(uint120 numer, uint120 denom)
+        internal
+        returns (AdvancedOrder memory)
+    {
+        return AdvancedOrder({
+            parameters: getOrderParameters(address(offerer), OrderType.CONTRACT),
+            numerator: numer,
+            denominator: denom,
+            signature: "",
+            extraData: ""
+        });
     }
 
     function fulfillAdvanced(
@@ -363,9 +350,10 @@ contract OffererCriteriaAdvancedTest is
         });
     }
 
-    function getRootAndProof(
-        uint256 identifier
-    ) internal returns (bytes32 root, bytes32[] memory proof) {
+    function getRootAndProof(uint256 identifier)
+        internal
+        returns (bytes32 root, bytes32[] memory proof)
+    {
         Merkle tree = new Merkle();
         bytes32[] memory leaves = generateLeaves();
         root = tree.getRoot(leaves);

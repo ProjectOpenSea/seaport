@@ -6,9 +6,8 @@ import {
     ERC721Interface
 } from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ContractOffererInterface
-} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ContractOffererInterface } from
+    "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
@@ -185,18 +184,16 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata orderHashes /* orderHashes */,
+        SpentItem[] calldata minimumReceived, /* offer */
+        ReceivedItem[] calldata maximumSpent, /* consideration */
+        bytes calldata context, /* context */
+        bytes32[] calldata orderHashes, /* orderHashes */
         uint256 /* contractNonce */
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+    ) external override returns (bytes4 /* ratifyOrderMagicValue */ ) {
         // check that the length matches what is expected
         if (minimumReceived.length != numOffersToReturn) {
             revert IncorrectLength(
-                Side.OFFER,
-                minimumReceived.length,
-                numOffersToReturn
+                Side.OFFER, minimumReceived.length, numOffersToReturn
             );
         }
         // Check that all minimumReceived items are of type ERC20.
@@ -204,18 +201,14 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
         for (uint256 i = 0; i < minimumReceived.length; i++) {
             if (minimumReceived[i].itemType != ItemType.ERC20) {
                 revert IncorrectItemType(
-                    minimumReceived[i].itemType,
-                    ItemType.ERC20
+                    minimumReceived[i].itemType, ItemType.ERC20
                 );
             }
 
             // Check that the token address for each minimumReceived item is
             // correct.
             if (minimumReceived[i].token != address(token1)) {
-                revert IncorrectToken(
-                    minimumReceived[i].token,
-                    address(token1)
-                );
+                revert IncorrectToken(minimumReceived[i].token, address(token1));
             }
 
             // Check that the value of each minimumReceived item is correct.
@@ -232,8 +225,7 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
         for (uint256 i; i < maximumSpent.length; i++) {
             if (maximumSpent[i].itemType != ItemType.ERC721) {
                 revert IncorrectItemType(
-                    maximumSpent[i].itemType,
-                    ItemType.ERC721
+                    maximumSpent[i].itemType, ItemType.ERC721
                 );
             }
             if (maximumSpent[i].token != address(token2)) {
@@ -261,18 +253,15 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(ERC165, ContractOffererInterface)
         returns (bool)
     {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(ContractOffererInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     /**

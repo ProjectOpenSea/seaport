@@ -3,15 +3,11 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
-import { TestZone } from "./impl/TestZone.sol";
+import { TestTransferValidationZoneOfferer } from
+    "seaport/test/TestTransferValidationZoneOfferer.sol";
 
-import {
-    TestTransferValidationZoneOfferer
-} from "seaport/test/TestTransferValidationZoneOfferer.sol";
-
-import {
-    PostFulfillmentStatefulTestZone
-} from "./impl/PostFullfillmentStatefulTestZone.sol";
+import { StatefulTestZone } from
+    "./impl/StatefulTestZone.sol";
 
 import {
     AdditionalRecipient,
@@ -30,29 +26,22 @@ import {
     Side
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-contract PostFulfillmentCheckTest is BaseOrderTest {
-    TestZone zone = new TestZone();
-    PostFulfillmentStatefulTestZone statefulZone =
-        new PostFulfillmentStatefulTestZone(50);
+contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
+    StatefulTestZone statefulZone =
+        new StatefulTestZone(50);
 
     struct Context {
         ConsiderationInterface consideration;
         uint8 numOriginalAdditional;
         uint8 numTips;
     }
-    struct EthConsideration {
-        address payable recipient;
-        uint256 amount;
-    }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -64,11 +53,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         super.setUp();
         conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(this),
-            true
+            address(referenceConduit), address(this), true
         );
-        vm.label(address(zone), "TestZone");
+        vm.label(address(statefulZone), "TestZone");
     }
 
     function testAscendingAmount() public {
@@ -108,14 +95,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -172,14 +155,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -243,14 +222,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -275,7 +250,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             recipient: address(0)
         });
 
-        assertTrue(statefulZone.called());
+        assertTrue(statefulZone.authorizeCalled());
+        assertTrue(statefulZone.validateCalled());
     }
 
     function testBasicStateful() public {
@@ -317,32 +293,24 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
-        BasicOrderParameters
-            memory basicOrderParameters = toBasicOrderParameters(
-                baseOrderComponents,
-                BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
-                signature
-            );
+        BasicOrderParameters memory basicOrderParameters =
+        toBasicOrderParameters(
+            baseOrderComponents,
+            BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
+            signature
+        );
         basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
             2
         );
-        basicOrderParameters.additionalRecipients[0] = AdditionalRecipient({
-            recipient: bob,
-            amount: 1
-        });
-        basicOrderParameters.additionalRecipients[1] = AdditionalRecipient({
-            recipient: cal,
-            amount: 1
-        });
+        basicOrderParameters.additionalRecipients[0] =
+            AdditionalRecipient({ recipient: bob, amount: 1 });
+        basicOrderParameters.additionalRecipients[1] =
+            AdditionalRecipient({ recipient: cal, amount: 1 });
         basicOrderParameters.totalOriginalAdditionalRecipients = 2;
         vm.warp(50);
         context.consideration.fulfillBasicOrder({
@@ -369,9 +337,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         );
     }
 
-    function execBasicStatefulWithConduit(
-        Context memory context
-    ) public stateless {
+    function execBasicStatefulWithConduit(Context memory context)
+        public
+        stateless
+    {
         addErc20OfferItem(50);
         addErc721ConsiderationItem(alice, 42);
         addErc20ConsiderationItem(bob, 1);
@@ -391,32 +360,24 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
-        BasicOrderParameters
-            memory basicOrderParameters = toBasicOrderParameters(
-                baseOrderComponents,
-                BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
-                signature
-            );
+        BasicOrderParameters memory basicOrderParameters =
+        toBasicOrderParameters(
+            baseOrderComponents,
+            BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
+            signature
+        );
         basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
             2
         );
-        basicOrderParameters.additionalRecipients[0] = AdditionalRecipient({
-            recipient: bob,
-            amount: 1
-        });
-        basicOrderParameters.additionalRecipients[1] = AdditionalRecipient({
-            recipient: cal,
-            amount: 1
-        });
+        basicOrderParameters.additionalRecipients[0] =
+            AdditionalRecipient({ recipient: bob, amount: 1 });
+        basicOrderParameters.additionalRecipients[1] =
+            AdditionalRecipient({ recipient: cal, amount: 1 });
         basicOrderParameters.totalOriginalAdditionalRecipients = 2;
         vm.warp(50);
         context.consideration.fulfillBasicOrder({
@@ -424,10 +385,9 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function testBasicStateful(
-        uint8 numOriginalAdditional,
-        uint8 numTips
-    ) public {
+    function testBasicStateful(uint8 numOriginalAdditional, uint8 numTips)
+        public
+    {
         test(
             this.execBasicStatefulFuzz,
             Context({
@@ -453,7 +413,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         );
         // make new stateful zone with a larger amount so each additional
         // recipient can receive
-        statefulZone = new PostFulfillmentStatefulTestZone(5000);
+        statefulZone = new StatefulTestZone(5000);
         // clear storage array just in case
         delete additionalRecipients;
 
@@ -480,9 +440,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         // do the same with additional recipients
         for (uint256 i = 0; i < context.numTips; i++) {
             // create specific labeled address
-            address payable recipient = payable(
-                makeAddr(string.concat("additional ", vm.toString(i)))
-            );
+            address payable recipient =
+                payable(makeAddr(string.concat("additional ", vm.toString(i))));
             // add to all additional
             allAdditional[i + context.numOriginalAdditional] = recipient;
             // do not add to consideration items that will be hashed with order
@@ -511,32 +470,29 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
 
         // configure order components for signing
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         // convert to basic order parameters
-        BasicOrderParameters
-            memory basicOrderParameters = toBasicOrderParameters(
-                baseOrderComponents,
-                BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
-                signature
-            );
+        BasicOrderParameters memory basicOrderParameters =
+        toBasicOrderParameters(
+            baseOrderComponents,
+            BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED,
+            signature
+        );
         // update additional recipients
         basicOrderParameters.additionalRecipients = additionalRecipients;
-        basicOrderParameters.totalOriginalAdditionalRecipients = context
-            .numOriginalAdditional;
+        basicOrderParameters.totalOriginalAdditionalRecipients =
+            context.numOriginalAdditional;
         context.consideration.fulfillBasicOrder({
             parameters: basicOrderParameters
         });
 
         // assertions
-        assertTrue(statefulZone.called());
+        assertTrue(statefulZone.authorizeCalled());
+        assertTrue(statefulZone.validateCalled());
         for (uint256 i = 0; i < allAdditional.length; i++) {
             assertEq(
                 token1.balanceOf(allAdditional[i]),
@@ -565,9 +521,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         );
     }
 
-    function execFulfillAvailableAdvancedAscending(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableAdvancedAscending(Context memory context)
+        external
+        stateless
+    {
         addErc20OfferItem(1, 101);
         addErc721ConsiderationItem(alice, 42);
         test721_1.mint(address(this), 42);
@@ -585,14 +542,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -625,7 +578,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             recipient: address(0),
             maximumFulfilled: 1
         });
-        assertTrue(statefulZone.called());
+        assertTrue(statefulZone.authorizeCalled());
+        assertTrue(statefulZone.validateCalled());
     }
 
     function testExecMatchAdvancedOrdersWithConduit() public {
@@ -647,10 +601,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         );
     }
 
-    function execMatchAdvancedOrdersWithConduit(
-        Context memory context
-    ) external stateless {
-        TestTransferValidationZoneOfferer transferValidationZone = new TestTransferValidationZoneOfferer(
+    function execMatchAdvancedOrdersWithConduit(Context memory context)
+        external
+        stateless
+    {
+        TestTransferValidationZoneOfferer transferValidationZone =
+        new TestTransferValidationZoneOfferer(
                 address(0)
             );
 
@@ -667,15 +623,11 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.FULL_RESTRICTED;
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
 
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -685,12 +637,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             extraData: "context"
         });
 
-        AdvancedOrder memory mirror = createMirrorOrder(
-            context,
-            "mirroroooor",
-            order,
-            true
-        );
+        AdvancedOrder memory mirror =
+            createMirrorOrder(context, "mirroroooor", order, true);
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
@@ -700,18 +648,12 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         //match first order offer to second order consideration
         createFulfillmentFromComponentsAndAddToFulfillments({
             _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 1,
-                itemIndex: 0
-            })
+            _consideration: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
         });
         // match second order first offer to first order first consideration
         createFulfillmentFromComponentsAndAddToFulfillments({
             _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 0
-            })
+            _consideration: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
         });
 
         context.consideration.matchAdvancedOrders({
@@ -753,14 +695,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             });
         }
         // do the same for considerationItem -> offerItem
-        for (
-            uint256 i;
-            i < advancedOrder.parameters.consideration.length;
-            i++
-        ) {
-            ConsiderationItem memory _considerationItem = advancedOrder
-                .parameters
-                .consideration[i];
+        for (uint256 i; i < advancedOrder.parameters.consideration.length; i++)
+        {
+            ConsiderationItem memory _considerationItem =
+                advancedOrder.parameters.consideration[i];
 
             addOfferItem({
                 itemType: _considerationItem.itemType,
@@ -780,14 +718,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            pkey,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, pkey, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
@@ -839,14 +773,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             });
         }
         // do the same for considerationItem -> offerItem
-        for (
-            uint256 i;
-            i < advancedOrder.parameters.consideration.length;
-            i++
-        ) {
-            ConsiderationItem memory _considerationItem = advancedOrder
-                .parameters
-                .consideration[i];
+        for (uint256 i; i < advancedOrder.parameters.consideration.length; i++)
+        {
+            ConsiderationItem memory _considerationItem =
+                advancedOrder.parameters.consideration[i];
 
             addOfferItem({
                 itemType: _considerationItem.itemType,
@@ -866,14 +796,10 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            pkey,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, pkey, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,

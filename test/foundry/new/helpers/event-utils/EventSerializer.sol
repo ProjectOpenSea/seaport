@@ -21,10 +21,10 @@ struct ERC721TransferEvent {
     address from;
     address to;
     uint256 identifier;
-    // bytes32 topicHash;
-    // bytes32 dataHash;
-    // bytes32 eventHash;
 }
+// bytes32 topicHash;
+// bytes32 dataHash;
+// bytes32 eventHash;
 
 struct ERC1155TransferEvent {
     string kind;
@@ -34,10 +34,10 @@ struct ERC1155TransferEvent {
     address to;
     uint256 identifier;
     uint256 amount;
-    // bytes32 topicHash;
-    // bytes32 dataHash;
-    // bytes32 eventHash;
 }
+// bytes32 topicHash;
+// bytes32 dataHash;
+// bytes32 eventHash;
 
 struct OrderFulfilledEvent {
     bytes32 orderHash;
@@ -160,11 +160,8 @@ library EventSerializer {
         serializeAddress(obj, "token", value.token);
         serializeAddress(obj, "from", value.from);
         serializeAddress(obj, "to", value.to);
-        string memory finalJson = serializeUint256(
-            obj,
-            "identifier",
-            value.identifier
-        );
+        string memory finalJson =
+            serializeUint256(obj, "identifier", value.identifier);
         // serializeUint256(obj, "identifier", value.identifier);
         // serializeBytes32(obj, "topicHash", value.topicHash);
         // serializeBytes32(obj, "dataHash", value.dataHash);

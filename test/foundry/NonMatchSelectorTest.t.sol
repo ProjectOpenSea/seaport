@@ -3,9 +3,8 @@
 
 pragma solidity ^0.8.17;
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     NonMatchSelector_MagicMask,
@@ -17,8 +16,7 @@ import { Test } from "forge-std/Test.sol";
 contract NonMatchSelectorTest is Test {
     function testNonMatchSelectorMagicMaskAndInvalidErrorValue() public {
         assertEq(
-            NonMatchSelector_MagicMask + 1,
-            NonMatchSelector_InvalidErrorValue
+            NonMatchSelector_MagicMask + 1, NonMatchSelector_InvalidErrorValue
         );
     }
 
@@ -28,22 +26,19 @@ contract NonMatchSelectorTest is Test {
 
     function testSelectorMatchAdvancedOrders() public {
         _testSelector(
-            ConsiderationInterface.matchAdvancedOrders.selector,
-            false
+            ConsiderationInterface.matchAdvancedOrders.selector, false
         );
     }
 
     function testSelectorFulfillAvailableOrders() public {
         _testSelector(
-            ConsiderationInterface.fulfillAvailableOrders.selector,
-            true
+            ConsiderationInterface.fulfillAvailableOrders.selector, true
         );
     }
 
     function testSelectorFulfillAvailableAdvancedOrders() public {
         _testSelector(
-            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector,
-            true
+            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector, true
         );
     }
 
@@ -51,10 +46,11 @@ contract NonMatchSelectorTest is Test {
         bool isSelected;
 
         assembly {
-            isSelected := eq(
-                NonMatchSelector_MagicMask,
-                and(NonMatchSelector_MagicMask, selector)
-            )
+            isSelected :=
+                eq(
+                    NonMatchSelector_MagicMask,
+                    and(NonMatchSelector_MagicMask, selector)
+                )
         }
 
         assertEq(isSelected, shouldBeSelected);

@@ -29,13 +29,11 @@ import {
 
 import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
-import {
-    ConduitControllerInterface
-} from "seaport-sol/src/ConduitControllerInterface.sol";
+import { ConduitControllerInterface } from
+    "seaport-sol/src/ConduitControllerInterface.sol";
 
-import {
-    ConduitControllerInterface
-} from "seaport-sol/src/ConduitControllerInterface.sol";
+import { ConduitControllerInterface } from
+    "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { BaseOrderTest } from "../BaseOrderTest.sol";
 import { SeaportValidatorTest } from "../SeaportValidatorTest.sol";
@@ -86,19 +84,16 @@ import { logMutation } from "./Metrics.sol";
 import {
     ErrorsAndWarnings,
     ValidationConfiguration
-} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
+} from "../../../../src/main/helpers/order-validator/SeaportValidator.sol";
 
-import {
-    IssueStringHelpers
-} from "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+import { IssueStringHelpers } from
+    "../../../../src/main/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
-import {
-    NavigatorRequest
-} from "../../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
+import { NavigatorRequest } from
+    "../../../../src/main/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
-import {
-    NavigatorAdvancedOrderLib
-} from "../../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
+import { NavigatorAdvancedOrderLib } from
+    "../../../../src/main/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
 
 import {
     FulfillmentStrategy,
@@ -294,9 +289,10 @@ contract FuzzEngine is
      *
      * @param fuzzParams A FuzzParams struct containing fuzzed values.
      */
-    function generate(
-        FuzzParams memory fuzzParams
-    ) internal returns (FuzzTestContext memory) {
+    function generate(FuzzParams memory fuzzParams)
+        internal
+        returns (FuzzTestContext memory)
+    {
         // JAN_1_2023_UTC
         vm.warp(1672531200);
 
@@ -309,13 +305,13 @@ contract FuzzEngine is
         // the rest of the lifecycle.
         FuzzGeneratorContext memory generatorContext = FuzzGeneratorContextLib
             .from({
-                vm: vm,
-                seaport: getSeaport(),
-                conduitController: conduitController_,
-                erc20s: erc20s,
-                erc721s: erc721s,
-                erc1155s: erc1155s
-            });
+            vm: vm,
+            seaport: getSeaport(),
+            conduitController: conduitController_,
+            erc20s: erc20s,
+            erc721s: erc721s,
+            erc1155s: erc1155s
+        });
 
         // Generate a pseudorandom order space. The `AdvancedOrdersSpace` is
         // made up of an `OrderComponentsSpace` array and an `isMatchable` bool.
@@ -331,49 +327,39 @@ contract FuzzEngine is
             generatorContext
         );
 
-        generatorContext.caller = AdvancedOrdersSpaceGenerator.generateCaller(
-            space,
-            generatorContext
-        );
+        generatorContext.caller =
+            AdvancedOrdersSpaceGenerator.generateCaller(space, generatorContext);
 
         // Generate orders from the space. These are the actual orders that will
         // be used in the test.
-        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
-            space,
-            generatorContext
+        AdvancedOrder[] memory orders =
+            AdvancedOrdersSpaceGenerator.generate(space, generatorContext);
+
+        FuzzTestContext memory context = FuzzTestContextLib.from({
+            orders: orders,
+            seaport: getSeaport()
+        }).withConduitController(conduitController_).withSeaportValidator(
+            validator
+        ).withSeaportNavigator(navigator).withFuzzParams(fuzzParams)
+            .withMaximumFulfilled(space.maximumFulfilled).withPreExecOrderStatuses(
+            space
         );
 
-        FuzzTestContext memory context = FuzzTestContextLib
-            .from({ orders: orders, seaport: getSeaport() })
-            .withConduitController(conduitController_)
-            .withSeaportValidator(validator)
-            .withSeaportNavigator(navigator)
-            .withFuzzParams(fuzzParams)
-            .withMaximumFulfilled(space.maximumFulfilled)
-            .withPreExecOrderStatuses(space);
-
         // This is on a separate line to avoid stack too deep.
-        context = context
-            .withCounter(generatorContext.counter)
+        context = context.withCounter(generatorContext.counter)
             .withContractOffererNonce(generatorContext.contractOffererNonce)
-            .withCaller(generatorContext.caller)
-            .withFulfillerConduitKey(
-                AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
-                    space,
-                    generatorContext
-                )
+            .withCaller(generatorContext.caller).withFulfillerConduitKey(
+            AdvancedOrdersSpaceGenerator.generateFulfillerConduitKey(
+                space, generatorContext
             )
-            .withGeneratorContext(generatorContext)
-            .withSpace(space);
+        ).withGeneratorContext(generatorContext).withSpace(space);
 
         // If it's an advanced order, generate and add a top-level recipient.
-        if (
-            orders.getStructure(address(context.seaport)) == Structure.ADVANCED
-        ) {
+        if (orders.getStructure(address(context.seaport)) == Structure.ADVANCED)
+        {
             context = context.withRecipient(
                 AdvancedOrdersSpaceGenerator.generateRecipient(
-                    space,
-                    generatorContext
+                    space, generatorContext
                 )
             );
         }
@@ -412,14 +398,10 @@ contract FuzzEngine is
      * @param context A Fuzz test context.
      */
     function runDerivers(FuzzTestContext memory context) internal {
-        context = context
-            .withDerivedCriteriaResolvers()
-            .withDerivedOrderDetails()
-            .withDetectedRemainders()
-            .withDerivedFulfillments()
-            .withDerivedCallValue()
-            .withDerivedExecutions()
-            .withDerivedOrderDetails();
+        context = context.withDerivedCriteriaResolvers().withDerivedOrderDetails(
+        ).withDetectedRemainders().withDerivedFulfillments()
+            .withDerivedCallValue().withDerivedExecutions().withDerivedOrderDetails(
+        );
     }
 
     /**
@@ -480,22 +462,18 @@ contract FuzzEngine is
 
         logMutation(name);
 
-        bytes memory callData = abi.encodeWithSelector(
-            mutationSelector,
-            context,
-            mutationState
-        );
+        bytes memory callData =
+            abi.encodeWithSelector(mutationSelector, context, mutationState);
         (bool success, bytes memory data) = address(mutations).call(callData);
 
         assertFalse(
-            success,
-            string.concat("Mutation ", name, " did not revert")
+            success, string.concat("Mutation ", name, " did not revert")
         );
 
         if (
-            data.length == 4 &&
-            abi.decode(abi.encodePacked(data, uint224(0)), (bytes4)) ==
-            MutationEligibilityLib.NoEligibleIndexFound.selector
+            data.length == 4
+                && abi.decode(abi.encodePacked(data, uint224(0)), (bytes4))
+                    == MutationEligibilityLib.NoEligibleIndexFound.selector
         ) {
             assertTrue(
                 false,
@@ -537,17 +515,17 @@ contract FuzzEngine is
                 context.executionState.validationErrors[i] = context
                     .seaportValidator
                     .isValidOrderWithConfiguration(
-                        ValidationConfiguration({
-                            seaport: address(context.seaport),
-                            primaryFeeRecipient: address(0),
-                            primaryFeeBips: 0,
-                            checkCreatorFee: false,
-                            skipStrictValidation: true,
-                            shortOrderDuration: 30 minutes,
-                            distantOrderExpiration: 26 weeks
-                        }),
-                        order
-                    );
+                    ValidationConfiguration({
+                        seaport: address(context.seaport),
+                        primaryFeeRecipient: address(0),
+                        primaryFeeBips: 0,
+                        checkCreatorFee: false,
+                        skipStrictValidation: true,
+                        shortOrderDuration: 30 minutes,
+                        distantOrderExpiration: 26 weeks
+                    }),
+                    order
+                );
             }
         }
     }
@@ -563,8 +541,8 @@ contract FuzzEngine is
             bool isContractOrder;
             for (uint256 i; i < context.executionState.orders.length; i++) {
                 if (
-                    context.executionState.orders[i].parameters.orderType ==
-                    OrderType.CONTRACT
+                    context.executionState.orders[i].parameters.orderType
+                        == OrderType.CONTRACT
                 ) {
                     isContractOrder = true;
                     break;
@@ -572,34 +550,30 @@ contract FuzzEngine is
             }
 
             if (!isContractOrder) {
-                FulfillmentStrategy
-                    memory fulfillmentStrategy = FulfillmentStrategy({
-                        aggregationStrategy: AggregationStrategy.RANDOM,
-                        fulfillAvailableStrategy: FulfillAvailableStrategy
-                            .DROP_RANDOM_OFFER,
-                        matchStrategy: MatchStrategy.MAX_INCLUSION
-                    });
+                FulfillmentStrategy memory fulfillmentStrategy =
+                FulfillmentStrategy({
+                    aggregationStrategy: AggregationStrategy.RANDOM,
+                    fulfillAvailableStrategy: FulfillAvailableStrategy
+                        .DROP_RANDOM_OFFER,
+                    matchStrategy: MatchStrategy.MAX_INCLUSION
+                });
                 context.seaportNavigator.prepare(
                     NavigatorRequest({
                         seaport: context.seaport,
                         validator: context.seaportValidator,
                         orders: NavigatorAdvancedOrderLib.fromAdvancedOrders(
                             context.executionState.orders
-                        ),
+                            ),
                         caller: context.executionState.caller,
                         nativeTokensSupplied: context.executionState.value,
                         fulfillerConduitKey: context
                             .executionState
                             .fulfillerConduitKey,
                         recipient: context.executionState.recipient,
-                        maximumFulfilled: context
-                            .executionState
-                            .maximumFulfilled,
+                        maximumFulfilled: context.executionState.maximumFulfilled,
                         seed: context.fuzzParams.seed,
                         fulfillmentStrategy: fulfillmentStrategy,
-                        criteriaResolvers: context
-                            .executionState
-                            .criteriaResolvers,
+                        criteriaResolvers: context.executionState.criteriaResolvers,
                         preferMatch: true
                     })
                 );

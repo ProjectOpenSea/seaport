@@ -18,19 +18,15 @@ import {
     _revertInvalidNativeOfferItem,
     _revertInvalidProof,
     _revertInvalidTime,
-    _revertMismatchedFulfillmentOfferAndConsiderationComponents,
     _revertMissingFulfillmentComponentOnAggregation,
     _revertMissingOriginalConsiderationItems,
     _revertNoReentrantCalls,
     _revertNoSpecifiedOrdersAvailable,
-    _revertOfferAndConsiderationRequiredOnFulfillment,
     _revertOrderAlreadyFilled,
     _revertOrderCriteriaResolverOutOfRange,
     _revertOrderIsCancelled,
     _revertOrderPartiallyFilled,
     _revertPartialFillsNotEnabledForOrder,
-    _revertUnresolvedConsiderationCriteria,
-    _revertUnresolvedOfferCriteria,
     _revertUnusedItemParameters
 } from "seaport-types/src/lib/ConsiderationErrors.sol";
 
@@ -60,9 +56,7 @@ contract ConsiderationErrorsWrapper {
         uint256 shortfallAmount
     ) external pure {
         _revertConsiderationNotMet(
-            orderIndex,
-            considerationIndex,
-            shortfallAmount
+            orderIndex, considerationIndex, shortfallAmount
         );
     }
 
@@ -108,10 +102,10 @@ contract ConsiderationErrorsWrapper {
      * @param conduitKey    The key of the invalid conduit.
      * @param conduit       The address of the invalid conduit.
      */
-    function __revertInvalidConduit(
-        bytes32 conduitKey,
-        address conduit
-    ) external pure {
+    function __revertInvalidConduit(bytes32 conduitKey, address conduit)
+        external
+        pure
+    {
         _revertInvalidConduit(conduitKey, conduit);
     }
 
@@ -121,7 +115,10 @@ contract ConsiderationErrorsWrapper {
      *
      * @param amount The invalid amount.
      */
-    function __revertInvalidERC721TransferAmount(uint256 amount) external pure {
+    function __revertInvalidERC721TransferAmount(uint256 amount)
+        external
+        pure
+    {
         _revertInvalidERC721TransferAmount(amount);
     }
 
@@ -168,26 +165,11 @@ contract ConsiderationErrorsWrapper {
      * @param startTime       The time at which the order becomes active.
      * @param endTime         The time at which the order becomes inactive.
      */
-    function __revertInvalidTime(
-        uint256 startTime,
-        uint256 endTime
-    ) external pure {
+    function __revertInvalidTime(uint256 startTime, uint256 endTime)
+        external
+        pure
+    {
         _revertInvalidTime(startTime, endTime);
-    }
-
-    /**
-     * @dev Reverts execution with a
-     *      "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
-     *
-     * @param fulfillmentIndex         The index of the fulfillment that caused the
-     *                                 error.
-     */
-    function __revertMismatchedFulfillmentOfferAndConsiderationComponents(
-        uint256 fulfillmentIndex
-    ) external pure {
-        _revertMismatchedFulfillmentOfferAndConsiderationComponents(
-            fulfillmentIndex
-        );
     }
 
     /**
@@ -198,9 +180,10 @@ contract ConsiderationErrorsWrapper {
      *             offer, 1 for consideration).
      *
      */
-    function __revertMissingFulfillmentComponentOnAggregation(
-        Side side
-    ) external pure {
+    function __revertMissingFulfillmentComponentOnAggregation(Side side)
+        external
+        pure
+    {
         _revertMissingFulfillmentComponentOnAggregation(side);
     }
 
@@ -224,17 +207,6 @@ contract ConsiderationErrorsWrapper {
      */
     function __revertNoSpecifiedOrdersAvailable() external pure {
         _revertNoSpecifiedOrdersAvailable();
-    }
-
-    /**
-     * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment"
-     *      error message.
-     */
-    function __revertOfferAndConsiderationRequiredOnFulfillment()
-        external
-        pure
-    {
-        _revertOfferAndConsiderationRequiredOnFulfillment();
     }
 
     /**
@@ -282,27 +254,6 @@ contract ConsiderationErrorsWrapper {
      */
     function __revertPartialFillsNotEnabledForOrder() external pure {
         _revertPartialFillsNotEnabledForOrder();
-    }
-
-    /**
-     * @dev Reverts execution with an "UnresolvedConsiderationCriteria" error
-     *      message.
-     */
-    function __revertUnresolvedConsiderationCriteria(
-        uint256 orderIndex,
-        uint256 considerationIndex
-    ) external pure {
-        _revertUnresolvedConsiderationCriteria(orderIndex, considerationIndex);
-    }
-
-    /**
-     * @dev Reverts execution with an "UnresolvedOfferCriteria" error message.
-     */
-    function __revertUnresolvedOfferCriteria(
-        uint256 orderIndex,
-        uint256 offerIndex
-    ) external pure {
-        _revertUnresolvedOfferCriteria(orderIndex, offerIndex);
     }
 
     /**

@@ -121,11 +121,8 @@ contract FuzzCoverageTestSuite is FuzzEngine {
                 maxOfferItems: bound(maxOfferItems, 0, 10),
                 maxConsiderationItems: bound(maxConsiderationItems, 0, 10),
                 seedInput: abi.encodePacked(
-                    seed,
-                    totalOrders,
-                    maxOfferItems,
-                    maxConsiderationItems
-                )
+                    seed, totalOrders, maxOfferItems, maxConsiderationItems
+                    )
             })
         );
     }

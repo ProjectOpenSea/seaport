@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17;
 
-import {
-    EnumerableSet
-} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {
-    EnumerableMap
-} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import { EnumerableSet } from
+    "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableMap } from
+    "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
@@ -59,17 +57,17 @@ struct ERC1155AccountDump {
     address account;
     uint256[] identifiers;
     uint256[] balances;
-    // ERC1155IdentifierDump[] identifiers;
 }
+// ERC1155IdentifierDump[] identifiers;
 
 struct ERC1155TokenDump {
     address token;
     ERC1155AccountDump[] accounts;
-    // address[] accounts;
-    // uint256[][] accountIdentifiers;
-    // uint256[][] accountBalances;
-    // ERC1155AccountDump[] accounts;
 }
+// address[] accounts;
+// uint256[][] accountIdentifiers;
+// uint256[][] accountBalances;
+// ERC1155AccountDump[] accounts;
 
 struct ExpectedBalancesDump {
     ERC20TokenDump[] erc20;
@@ -88,19 +86,18 @@ library BalanceErrorMessages {
         uint256 expected,
         uint256 actual
     ) internal pure returns (string memory) {
-        return
-            string.concat(
-                errorSummary,
-                "\n token: ",
-                withLabel(token),
-                "\n account: ",
-                withLabel(account),
-                "\n expected: ",
-                LibString.toString(expected),
-                "\n actual: ",
-                LibString.toString(actual),
-                "\n"
-            );
+        return string.concat(
+            errorSummary,
+            "\n token: ",
+            withLabel(token),
+            "\n account: ",
+            withLabel(account),
+            "\n expected: ",
+            LibString.toString(expected),
+            "\n actual: ",
+            LibString.toString(actual),
+            "\n"
+        );
     }
 
     function unexpectedAmountErrorMessage(
@@ -111,21 +108,20 @@ library BalanceErrorMessages {
         uint256 expected,
         uint256 actual
     ) internal pure returns (string memory) {
-        return
-            string.concat(
-                errorSummary,
-                "\n token: ",
-                withLabel(token),
-                "\n identifier: ",
-                LibString.toString(identifier),
-                "\n account: ",
-                withLabel(account),
-                "\n expected: ",
-                LibString.toString(expected),
-                "\n actual: ",
-                LibString.toString(actual),
-                "\n"
-            );
+        return string.concat(
+            errorSummary,
+            "\n token: ",
+            withLabel(token),
+            "\n identifier: ",
+            LibString.toString(identifier),
+            "\n account: ",
+            withLabel(account),
+            "\n expected: ",
+            LibString.toString(expected),
+            "\n actual: ",
+            LibString.toString(actual),
+            "\n"
+        );
     }
 
     function nativeUnexpectedBalance(
@@ -133,14 +129,13 @@ library BalanceErrorMessages {
         uint256 expectedBalance,
         uint256 actualBalance
     ) internal pure returns (string memory) {
-        return
-            unexpectedAmountErrorMessage(
-                "ExpectedBalances: Unexpected native balance",
-                address(0),
-                account,
-                expectedBalance,
-                actualBalance
-            );
+        return unexpectedAmountErrorMessage(
+            "ExpectedBalances: Unexpected native balance",
+            address(0),
+            account,
+            expectedBalance,
+            actualBalance
+        );
     }
 
     function erc20UnexpectedBalance(
@@ -149,14 +144,13 @@ library BalanceErrorMessages {
         uint256 expectedBalance,
         uint256 actualBalance
     ) internal pure returns (string memory) {
-        return
-            unexpectedAmountErrorMessage(
-                "ExpectedBalances: Unexpected ERC20 balance",
-                token,
-                account,
-                expectedBalance,
-                actualBalance
-            );
+        return unexpectedAmountErrorMessage(
+            "ExpectedBalances: Unexpected ERC20 balance",
+            token,
+            account,
+            expectedBalance,
+            actualBalance
+        );
     }
 
     function erc721UnexpectedBalance(
@@ -165,14 +159,13 @@ library BalanceErrorMessages {
         uint256 expectedBalance,
         uint256 actualBalance
     ) internal pure returns (string memory) {
-        return
-            unexpectedAmountErrorMessage(
-                "ExpectedBalances: Unexpected ERC721 balance",
-                token,
-                account,
-                expectedBalance,
-                actualBalance
-            );
+        return unexpectedAmountErrorMessage(
+            "ExpectedBalances: Unexpected ERC721 balance",
+            token,
+            account,
+            expectedBalance,
+            actualBalance
+        );
     }
 
     function erc1155UnexpectedBalance(
@@ -182,15 +175,14 @@ library BalanceErrorMessages {
         uint256 expectedBalance,
         uint256 actualBalance
     ) internal pure returns (string memory) {
-        return
-            unexpectedAmountErrorMessage(
-                "ExpectedBalances: Unexpected ERC1155 balance for ID",
-                token,
-                identifier,
-                account,
-                expectedBalance,
-                actualBalance
-            );
+        return unexpectedAmountErrorMessage(
+            "ExpectedBalances: Unexpected ERC1155 balance for ID",
+            token,
+            identifier,
+            account,
+            expectedBalance,
+            actualBalance
+        );
     }
 
     function insufficientBalance(
@@ -201,19 +193,18 @@ library BalanceErrorMessages {
         uint256 amount,
         bool derived
     ) internal pure returns (string memory) {
-        return
-            string.concat(
-                prefix,
-                "\n from: ",
-                withLabel(account),
-                derived ? "\n balance (derived): " : "\n balance (actual): ",
-                LibString.toString(balance),
-                "\n transfer amount: ",
-                LibString.toString(amount),
-                "\n to: ",
-                withLabel(recipient),
-                "\n"
-            );
+        return string.concat(
+            prefix,
+            "\n from: ",
+            withLabel(account),
+            derived ? "\n balance (derived): " : "\n balance (actual): ",
+            LibString.toString(balance),
+            "\n transfer amount: ",
+            LibString.toString(amount),
+            "\n to: ",
+            withLabel(recipient),
+            "\n"
+        );
     }
 
     function insufficientNativeBalance(
@@ -223,15 +214,14 @@ library BalanceErrorMessages {
         uint256 amount,
         bool derived
     ) internal pure returns (string memory) {
-        return
-            insufficientBalance(
-                "ExpectedBalances: Insufficient native balance for transfer",
-                account,
-                recipient,
-                balance,
-                amount,
-                derived
-            );
+        return insufficientBalance(
+            "ExpectedBalances: Insufficient native balance for transfer",
+            account,
+            recipient,
+            balance,
+            amount,
+            derived
+        );
     }
 
     function insufficientERC20Balance(
@@ -242,18 +232,17 @@ library BalanceErrorMessages {
         uint256 amount,
         bool derived
     ) internal pure returns (string memory) {
-        return
-            insufficientBalance(
-                string.concat(
-                    "ExpectedBalances: Insufficient ERC20 balance for transfer\n token: ",
-                    withLabel(token)
-                ),
-                account,
-                recipient,
-                balance,
-                amount,
-                derived
-            );
+        return insufficientBalance(
+            string.concat(
+                "ExpectedBalances: Insufficient ERC20 balance for transfer\n token: ",
+                withLabel(token)
+            ),
+            account,
+            recipient,
+            balance,
+            amount,
+            derived
+        );
     }
 
     function insufficientERC1155Balance(
@@ -265,20 +254,19 @@ library BalanceErrorMessages {
         uint256 amount,
         bool derived
     ) internal pure returns (string memory) {
-        return
-            insufficientBalance(
-                string.concat(
-                    "ExpectedBalances: Insufficient ERC1155 balance for transfer\n token: ",
-                    withLabel(token),
-                    "\n identifier: ",
-                    LibString.toString(identifier)
-                ),
-                account,
-                recipient,
-                balance,
-                amount,
-                derived
-            );
+        return insufficientBalance(
+            string.concat(
+                "ExpectedBalances: Insufficient ERC1155 balance for transfer\n token: ",
+                withLabel(token),
+                "\n identifier: ",
+                LibString.toString(identifier)
+            ),
+            account,
+            recipient,
+            balance,
+            amount,
+            derived
+        );
     }
 }
 
@@ -308,22 +296,16 @@ contract NativeBalances {
         if (balance < amount) {
             revert(
                 BalanceErrorMessages.insufficientNativeBalance(
-                    account,
-                    recipient,
-                    balance,
-                    amount,
-                    derived
+                    account, recipient, balance, amount, derived
                 )
             );
         }
         return balance - amount;
     }
 
-    function addNativeTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) public {
+    function addNativeTransfer(address from, address to, uint256 amount)
+        public
+    {
         (bool fromExists, uint256 fromBalance) = accountsMap.tryGet(from);
         if (!fromExists) {
             fromBalance = from.balance;
@@ -347,9 +329,7 @@ contract NativeBalances {
             if (expectedBalance != actualBalance) {
                 revert(
                     BalanceErrorMessages.nativeUnexpectedBalance(
-                        account,
-                        expectedBalance,
-                        actualBalance
+                        account, expectedBalance, actualBalance
                     )
                 );
             }
@@ -365,10 +345,8 @@ contract NativeBalances {
         accountBalances = new NativeAccountDump[](accounts.length);
         for (uint256 i; i < accounts.length; i++) {
             address account = accounts[i];
-            accountBalances[i] = NativeAccountDump(
-                account,
-                accountsMap.get(account)
-            );
+            accountBalances[i] =
+                NativeAccountDump(account, accountsMap.get(account));
         }
     }
 }
@@ -394,12 +372,7 @@ contract ERC20Balances {
         if (balance < amount) {
             revert(
                 BalanceErrorMessages.insufficientERC20Balance(
-                    token,
-                    account,
-                    recipient,
-                    balance,
-                    amount,
-                    derived
+                    token, account, recipient, balance, amount, derived
                 )
             );
         }
@@ -420,8 +393,7 @@ contract ERC20Balances {
             fromBalance = IERC20(token).balanceOf(from);
         }
         accounts.set(
-            from,
-            sub(token, from, to, fromBalance, amount, fromExists)
+            from, sub(token, from, to, fromBalance, amount, fromExists)
         );
 
         (bool toExists, uint256 toBalance) = accounts.tryGet(to);
@@ -435,9 +407,8 @@ contract ERC20Balances {
         uint256 length = tokens.length();
         for (uint256 i; i < length; i++) {
             address token = tokens.at(i);
-            EnumerableMap.AddressToUintMap storage accountsMap = tokenAccounts[
-                token
-            ];
+            EnumerableMap.AddressToUintMap storage accountsMap =
+                tokenAccounts[token];
             address[] memory accounts = accountsMap.keys();
             uint256 accountsLength = accounts.length;
             for (uint256 j; j < accountsLength; j++) {
@@ -447,10 +418,7 @@ contract ERC20Balances {
                 if (expectedBalance != actualBalance) {
                     revert(
                         BalanceErrorMessages.erc20UnexpectedBalance(
-                            token,
-                            account,
-                            expectedBalance,
-                            actualBalance
+                            token, account, expectedBalance, actualBalance
                         )
                     );
                 }
@@ -467,9 +435,8 @@ contract ERC20Balances {
         tokenDumps = new ERC20TokenDump[](length);
         for (uint256 i; i < length; i++) {
             address token = tokens.at(i);
-            EnumerableMap.AddressToUintMap storage accountsMap = tokenAccounts[
-                token
-            ];
+            EnumerableMap.AddressToUintMap storage accountsMap =
+                tokenAccounts[token];
             address[] memory accounts = accountsMap.keys();
             ERC20TokenDump memory tokenDump = ERC20TokenDump({
                 token: token,
@@ -498,6 +465,7 @@ contract ERC721Balances {
         EnumerableSet.UintSet touchedIdentifiers;
         EnumerableMap.AddressToUintMap accountBalances;
     }
+
     EnumerableSet.AddressSet private tokens;
     mapping(address => TokenData721) private tokenDatas;
 
@@ -510,9 +478,8 @@ contract ERC721Balances {
         tokens.add(token);
         TokenData721 storage tokenData = tokenDatas[token];
 
-        (bool fromExists, uint256 fromBalance) = tokenData
-            .accountBalances
-            .tryGet(from);
+        (bool fromExists, uint256 fromBalance) =
+            tokenData.accountBalances.tryGet(from);
         if (!fromExists) {
             fromBalance = IERC721(token).balanceOf(from);
         }
@@ -523,9 +490,8 @@ contract ERC721Balances {
 
         tokenData.accountBalances.set(from, fromBalance - 1);
 
-        (bool toExists, uint256 toBalance) = tokenData.accountBalances.tryGet(
-            to
-        );
+        (bool toExists, uint256 toBalance) =
+            tokenData.accountBalances.tryGet(to);
         if (!toExists) {
             toBalance = IERC721(token).balanceOf(to);
         }
@@ -568,25 +534,20 @@ contract ERC721Balances {
                 address account = accounts[j];
 
                 {
-                    uint256 expectedBalance = tokenData.accountBalances.get(
-                        account
-                    );
+                    uint256 expectedBalance =
+                        tokenData.accountBalances.get(account);
                     uint256 actualBalance = IERC721(token).balanceOf(account);
                     if (actualBalance != expectedBalance) {
                         revert(
                             BalanceErrorMessages.erc721UnexpectedBalance(
-                                token,
-                                account,
-                                expectedBalance,
-                                actualBalance
+                                token, account, expectedBalance, actualBalance
                             )
                         );
                     }
                 }
 
-                uint256[] memory identifiers = tokenData
-                    .accountIdentifiers[account]
-                    .values();
+                uint256[] memory identifiers =
+                    tokenData.accountIdentifiers[account].values();
 
                 uint256 identifiersLength = identifiers.length;
 
@@ -614,9 +575,11 @@ contract ERC721Balances {
         }
     }
 
-    function dumpERC721Token(
-        address token
-    ) internal view returns (ERC721TokenDump memory dump) {
+    function dumpERC721Token(address token)
+        internal
+        view
+        returns (ERC721TokenDump memory dump)
+    {
         TokenData721 storage tokenData = tokenDatas[token];
 
         dump.accounts = tokenData.accountBalances.keys();
@@ -626,9 +589,8 @@ contract ERC721Balances {
         for (uint256 i; i < accountsLength; i++) {
             address account = dump.accounts[i];
 
-            dump.accountIdentifiers[i] = tokenData
-                .accountIdentifiers[account]
-                .values();
+            dump.accountIdentifiers[i] =
+                tokenData.accountIdentifiers[account].values();
         }
     }
 }
@@ -687,33 +649,28 @@ contract ERC1155Balances {
         tokenData.accounts.add(details.to);
 
         {
-            EnumerableMap.UintToUintMap storage fromIdentifiers = tokenData
-                .accountIdentifiers[details.from];
-            (bool fromExists, uint256 fromBalance) = fromIdentifiers.tryGet(
-                details.identifier
-            );
+            EnumerableMap.UintToUintMap storage fromIdentifiers =
+                tokenData.accountIdentifiers[details.from];
+            (bool fromExists, uint256 fromBalance) =
+                fromIdentifiers.tryGet(details.identifier);
             if (!fromExists) {
                 fromBalance = IERC1155(details.token).balanceOf(
-                    details.from,
-                    details.identifier
+                    details.from, details.identifier
                 );
             }
             fromIdentifiers.set(
-                details.identifier,
-                sub(details, fromBalance, fromExists)
+                details.identifier, sub(details, fromBalance, fromExists)
             );
         }
 
         {
-            EnumerableMap.UintToUintMap storage toIdentifiers = tokenData
-                .accountIdentifiers[details.to];
-            (bool toExists, uint256 toBalance) = toIdentifiers.tryGet(
-                details.identifier
-            );
+            EnumerableMap.UintToUintMap storage toIdentifiers =
+                tokenData.accountIdentifiers[details.to];
+            (bool toExists, uint256 toBalance) =
+                toIdentifiers.tryGet(details.identifier);
             if (!toExists) {
                 toBalance = IERC1155(details.token).balanceOf(
-                    details.to,
-                    details.identifier
+                    details.to, details.identifier
                 );
             }
             toIdentifiers.set(details.identifier, toBalance + details.amount);
@@ -739,10 +696,8 @@ contract ERC1155Balances {
             for (uint256 j; j < accountsLength; j++) {
                 address account = accounts[j];
 
-                EnumerableMap.UintToUintMap
-                    storage accountIdentifiers = tokenData.accountIdentifiers[
-                        account
-                    ];
+                EnumerableMap.UintToUintMap storage accountIdentifiers =
+                    tokenData.accountIdentifiers[account];
 
                 uint256[] memory identifiers = accountIdentifiers.keys();
 
@@ -752,13 +707,9 @@ contract ERC1155Balances {
                 // assert their balance matches the expected balance.
                 for (uint256 k; k < identifiersLength; k++) {
                     uint256 identifier = identifiers[k];
-                    uint256 expectedBalance = accountIdentifiers.get(
-                        identifier
-                    );
-                    uint256 actualBalance = IERC1155(token).balanceOf(
-                        account,
-                        identifier
-                    );
+                    uint256 expectedBalance = accountIdentifiers.get(identifier);
+                    uint256 actualBalance =
+                        IERC1155(token).balanceOf(account, identifier);
                     if (expectedBalance != actualBalance) {
                         revert(
                             BalanceErrorMessages.erc1155UnexpectedBalance(
@@ -799,10 +750,8 @@ contract ERC1155Balances {
             for (uint256 j; j < accountsLength; j++) {
                 address account = tokenData.accounts.at(j);
 
-                EnumerableMap.UintToUintMap
-                    storage accountIdentifiers = tokenData.accountIdentifiers[
-                        account
-                    ];
+                EnumerableMap.UintToUintMap storage accountIdentifiers =
+                    tokenData.accountIdentifiers[account];
 
                 uint256[] memory identifiers = accountIdentifiers.keys();
 
@@ -818,9 +767,7 @@ contract ERC1155Balances {
                 for (uint256 k; k < identifiersLength; k++) {
                     uint256 identifier = identifiers[k];
                     accountDump.identifiers[k] = identifier;
-                    accountDump.balances[k] = accountIdentifiers.get(
-                        identifier
-                    );
+                    accountDump.balances[k] = accountIdentifiers.get(identifier);
                 }
             }
         }
@@ -839,42 +786,30 @@ contract ExpectedBalances is
     function addTransfer(Execution calldata execution) public {
         ReceivedItem memory item = execution.item;
         if (item.itemType == ItemType.NATIVE) {
-            return
-                addNativeTransfer(
-                    execution.offerer,
-                    item.recipient,
-                    item.amount
-                );
+            return addNativeTransfer(
+                execution.offerer, item.recipient, item.amount
+            );
         }
         if (item.itemType == ItemType.ERC20) {
-            return
-                addERC20Transfer(
-                    item.token,
-                    execution.offerer,
-                    item.recipient,
-                    item.amount
-                );
+            return addERC20Transfer(
+                item.token, execution.offerer, item.recipient, item.amount
+            );
         }
         if (item.itemType == ItemType.ERC721) {
-            return
-                addERC721Transfer(
+            return addERC721Transfer(
+                item.token, execution.offerer, item.recipient, item.identifier
+            );
+        }
+        if (item.itemType == ItemType.ERC1155) {
+            return addERC1155Transfer(
+                ERC1155TransferDetails(
                     item.token,
                     execution.offerer,
                     item.recipient,
-                    item.identifier
-                );
-        }
-        if (item.itemType == ItemType.ERC1155) {
-            return
-                addERC1155Transfer(
-                    ERC1155TransferDetails(
-                        item.token,
-                        execution.offerer,
-                        item.recipient,
-                        item.identifier,
-                        item.amount
-                    )
-                );
+                    item.identifier,
+                    item.amount
+                )
+            );
         }
     }
 

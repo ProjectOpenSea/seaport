@@ -15,8 +15,7 @@ import {
 } from "seaport-sol/src/SeaportStructs.sol";
 
 import {
-    OrderStatusEnum,
-    UnavailableReason
+    OrderStatusEnum, UnavailableReason
 } from "seaport-sol/src/SpaceEnums.sol";
 
 import { FuzzHelpers } from "./FuzzHelpers.sol";
@@ -25,13 +24,11 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
-import {
-    TestCalldataHashContractOfferer
-} from "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
+import { TestCalldataHashContractOfferer } from
+    "../../../../src/main/test/TestCalldataHashContractOfferer.sol";
 
-import {
-    HashValidationZoneOfferer
-} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
+import { HashValidationZoneOfferer } from
+    "../../../../src/main/test/HashValidationZoneOfferer.sol";
 
 /**
  * @dev Check functions are the post-execution assertions we want to validate.
@@ -104,8 +101,8 @@ abstract contract FuzzChecks is Test {
 
         for (uint256 i; i < context.executionState.orderDetails.length; i++) {
             if (
-                context.executionState.orderDetails[i].unavailableReason ==
-                UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason
+                    == UnavailableReason.AVAILABLE
             ) {
                 assertEq(
                     context.returnValues.availableOrders[i],
@@ -116,38 +113,79 @@ abstract contract FuzzChecks is Test {
         }
     }
 
-    /**
-     * @dev Check that the zone is getting the right calldata.
+     /**
+     * @dev Check that the zone is getting the right calldata in authorizeOrder.
      *
      * @param context A Fuzz test context.
      */
-    function check_validateOrderExpectedDataHash(
-        FuzzTestContext memory context
-    ) public {
+    function check_authorizeOrderExpectedDataHash(FuzzTestContext memory context)
+        public
+    {
         // Iterate over the orders.
         for (uint256 i; i < context.executionState.orders.length; i++) {
-            OrderParameters memory order = context
-                .executionState
-                .orders[i]
-                .parameters;
+            OrderParameters memory order =
+                context.executionState.orders[i].parameters;
+
 
             // If the order is restricted, check the calldata.
             if (
-                order.orderType == OrderType.FULL_RESTRICTED ||
-                order.orderType == OrderType.PARTIAL_RESTRICTED
+                order.orderType == OrderType.FULL_RESTRICTED
+                    || order.orderType == OrderType.PARTIAL_RESTRICTED
             ) {
                 testZone = payable(order.zone);
 
                 // Each order has a calldata hash, indexed to orders, that is
                 // expected to be returned by the zone.
-                bytes32 expectedCalldataHash = context
-                    .expectations
-                    .expectedZoneCalldataHash[i];
+                bytes32 expectedCalldataHash =
+                    context.expectations.expectedZoneAuthorizeCalldataHashes[i];
 
-                bytes32 orderHash = context
-                    .executionState
-                    .orderDetails[i]
-                    .orderHash;
+                bytes32 orderHash =
+                    context.executionState.orderDetails[i].orderHash;
+
+                // Use order hash to get the expected calldata hash from zone.
+                // TODO: fix this in cases where contract orders are part of
+                // orderHashes (the hash calculation is most likely incorrect).
+                bytes32 actualCalldataHash = HashValidationZoneOfferer(testZone)
+                    .orderHashToAuthorizeOrderDataHash(orderHash);
+
+                // Check that the expected calldata hash matches the actual
+                // calldata hash.
+                assertEq(
+                    actualCalldataHash,
+                    expectedCalldataHash,
+                    "check_authorizeOrderExpectedDataHash: actualCalldataHash != expectedCalldataHash"
+                );
+            }
+        }
+    }
+
+    /**
+     * @dev Check that the zone is getting the right calldata.
+     *
+     * @param context A Fuzz test context.
+     */
+    function check_validateOrderExpectedDataHash(FuzzTestContext memory context)
+        public
+    {
+        // Iterate over the orders.
+        for (uint256 i; i < context.executionState.orders.length; i++) {
+            OrderParameters memory order =
+                context.executionState.orders[i].parameters;
+
+            // If the order is restricted, check the calldata.
+            if (
+                order.orderType == OrderType.FULL_RESTRICTED
+                    || order.orderType == OrderType.PARTIAL_RESTRICTED
+            ) {
+                testZone = payable(order.zone);
+
+                // Each order has a calldata hash, indexed to orders, that is
+                // expected to be returned by the zone.
+                bytes32 expectedCalldataHash =
+                    context.expectations.expectedZoneValidateCalldataHashes[i];
+
+                bytes32 orderHash =
+                    context.executionState.orderDetails[i].orderHash;
 
                 // Use order hash to get the expected calldata hash from zone.
                 // TODO: fix this in cases where contract orders are part of
@@ -175,36 +213,31 @@ abstract contract FuzzChecks is Test {
     function check_contractOrderExpectedDataHashes(
         FuzzTestContext memory context
     ) public {
-        bytes32[2][] memory expectedCalldataHashes = context
-            .expectations
-            .expectedContractOrderCalldataHashes;
+        bytes32[2][] memory expectedCalldataHashes =
+            context.expectations.expectedContractOrderCalldataHashes;
 
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
 
             if (order.parameters.orderType == OrderType.CONTRACT) {
-                bytes32 orderHash = context
-                    .executionState
-                    .orderDetails[i]
-                    .orderHash;
+                bytes32 orderHash =
+                    context.executionState.orderDetails[i].orderHash;
 
-                bytes32 expectedGenerateOrderCalldataHash = expectedCalldataHashes[
-                        i
-                    ][0];
+                bytes32 expectedGenerateOrderCalldataHash =
+                    expectedCalldataHashes[i][0];
 
-                bytes32 expectedRatifyOrderCalldataHash = expectedCalldataHashes[
-                        i
-                    ][1];
+                bytes32 expectedRatifyOrderCalldataHash =
+                    expectedCalldataHashes[i][1];
 
                 contractOfferer = payable(order.parameters.offerer);
 
-                bytes32 actualGenerateOrderCalldataHash = TestCalldataHashContractOfferer(
-                        contractOfferer
-                    ).orderHashToGenerateOrderDataHash(orderHash);
+                bytes32 actualGenerateOrderCalldataHash =
+                TestCalldataHashContractOfferer(contractOfferer)
+                    .orderHashToGenerateOrderDataHash(orderHash);
 
-                bytes32 actualRatifyOrderCalldataHash = TestCalldataHashContractOfferer(
-                        contractOfferer
-                    ).orderHashToRatifyOrderDataHash(orderHash);
+                bytes32 actualRatifyOrderCalldataHash =
+                TestCalldataHashContractOfferer(contractOfferer)
+                    .orderHashToRatifyOrderDataHash(orderHash);
 
                 assertEq(
                     expectedGenerateOrderCalldataHash,
@@ -246,14 +279,15 @@ abstract contract FuzzChecks is Test {
 
         for (
             uint256 i;
-            (i < context.expectations.expectedExplicitExecutions.length &&
-                i < context.returnValues.executions.length);
+            (
+                i < context.expectations.expectedExplicitExecutions.length
+                    && i < context.returnValues.executions.length
+            );
             i++
         ) {
             Execution memory actual = context.returnValues.executions[i];
-            Execution memory expected = context
-                .expectations
-                .expectedExplicitExecutions[i];
+            Execution memory expected =
+                context.expectations.expectedExplicitExecutions[i];
             assertEq(
                 uint256(actual.item.itemType),
                 uint256(expected.item.itemType),
@@ -285,9 +319,7 @@ abstract contract FuzzChecks is Test {
                 "check_executions: conduitKey"
             );
             assertEq(
-                actual.offerer,
-                expected.offerer,
-                "check_executions: offerer"
+                actual.offerer, expected.offerer, "check_executions: offerer"
             );
         }
     }
@@ -297,9 +329,9 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_expectedTransferEventsEmitted(
-        FuzzTestContext memory context
-    ) public {
+    function check_expectedTransferEventsEmitted(FuzzTestContext memory context)
+        public
+    {
         ExpectedEventsUtil.checkExpectedTransferEvents(context);
     }
 
@@ -308,9 +340,9 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_expectedSeaportEventsEmitted(
-        FuzzTestContext memory context
-    ) public {
+    function check_expectedSeaportEventsEmitted(FuzzTestContext memory context)
+        public
+    {
         ExpectedEventsUtil.checkExpectedSeaportEvents(context);
     }
 
@@ -319,9 +351,10 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_expectedBalances(
-        FuzzTestContext memory context
-    ) public view {
+    function check_expectedBalances(FuzzTestContext memory context)
+        public
+        view
+    {
         context.testHelpers.balanceChecker().checkBalances();
     }
 
@@ -330,24 +363,20 @@ abstract contract FuzzChecks is Test {
      *
      * @param context A Fuzz test context.
      */
-    function check_orderStatusFullyFilled(
-        FuzzTestContext memory context
-    ) public {
+    function check_orderStatusFullyFilled(FuzzTestContext memory context)
+        public
+    {
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
 
-            bytes32 orderHash = context
-                .executionState
-                .orderDetails[i]
-                .orderHash;
+            bytes32 orderHash = context.executionState.orderDetails[i].orderHash;
 
-            (, , uint256 totalFilled, uint256 totalSize) = context
-                .seaport
-                .getOrderStatus(orderHash);
+            (,, uint256 totalFilled, uint256 totalSize) =
+                context.seaport.getOrderStatus(orderHash);
 
             if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.FULFILLED
+                context.executionState.preExecOrderStatuses[i]
+                    == OrderStatusEnum.FULFILLED
             ) {
                 assertEq(
                     totalFilled,
@@ -355,55 +384,45 @@ abstract contract FuzzChecks is Test {
                     "check_orderStatusFullyFilled: totalFilled != 1"
                 );
                 assertEq(
-                    totalSize,
-                    1,
-                    "check_orderStatusFullyFilled: totalSize != 1"
+                    totalSize, 1, "check_orderStatusFullyFilled: totalSize != 1"
                 );
             } else if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.PARTIAL
+                context.executionState.preExecOrderStatuses[i]
+                    == OrderStatusEnum.PARTIAL
             ) {
                 if (
-                    context.executionState.orderDetails[i].unavailableReason ==
-                    UnavailableReason.AVAILABLE
+                    context.executionState.orderDetails[i].unavailableReason
+                        == UnavailableReason.AVAILABLE
                 ) {
                     assertEq(
                         totalFilled,
-                        context
-                            .expectations
-                            .expectedFillFractions[i]
+                        context.expectations.expectedFillFractions[i]
                             .finalFilledNumerator,
                         "check_orderStatusFullyFilled: totalFilled != expected partial"
                     );
                     assertEq(
                         totalSize,
-                        context
-                            .expectations
-                            .expectedFillFractions[i]
+                        context.expectations.expectedFillFractions[i]
                             .finalFilledDenominator,
                         "check_orderStatusFullyFilled: totalSize != expected partial"
                     );
                 } else {
                     assertEq(
                         totalFilled,
-                        context
-                            .expectations
-                            .expectedFillFractions[i]
+                        context.expectations.expectedFillFractions[i]
                             .originalStatusNumerator,
                         "check_orderStatusFullyFilled: totalFilled != expected partial (skipped)"
                     );
                     assertEq(
                         totalSize,
-                        context
-                            .expectations
-                            .expectedFillFractions[i]
+                        context.expectations.expectedFillFractions[i]
                             .originalStatusDenominator,
                         "check_orderStatusFullyFilled: totalSize != expected partial (skipped)"
                     );
                 }
             } else if (
-                context.executionState.orderDetails[i].unavailableReason ==
-                UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason
+                    == UnavailableReason.AVAILABLE
             ) {
                 if (order.parameters.orderType == OrderType.CONTRACT) {
                     // TODO: This just checks the nonce has been incremented
@@ -417,8 +436,8 @@ abstract contract FuzzChecks is Test {
 
                     uint256 contractOffererSpecificContractNonce = context
                         .executionState
-                        .contractOffererNonce +
-                        uint256(uint160(order.parameters.offerer));
+                        .contractOffererNonce
+                        + uint256(uint160(order.parameters.offerer));
 
                     assertTrue(
                         currentNonce - contractOffererSpecificContractNonce > 0,
@@ -436,10 +455,7 @@ abstract contract FuzzChecks is Test {
                         "FuzzChecks: totalSize != denominator"
                     );
                     assertTrue(totalSize != 0, "FuzzChecks: totalSize != 0");
-                    assertTrue(
-                        totalFilled != 0,
-                        "FuzzChecks: totalFilled != 0"
-                    );
+                    assertTrue(totalFilled != 0, "FuzzChecks: totalFilled != 0");
                 }
             } else {
                 assertTrue(
@@ -466,16 +482,12 @@ abstract contract FuzzChecks is Test {
         ) {
             // Only check orders that were validated pre-execution.
             if (
-                context.executionState.preExecOrderStatuses[i] ==
-                OrderStatusEnum.VALIDATED
+                context.executionState.preExecOrderStatuses[i]
+                    == OrderStatusEnum.VALIDATED
             ) {
-                bytes32 orderHash = context
-                    .executionState
-                    .orderDetails[i]
-                    .orderHash;
-                (bool isValid, , , ) = context.seaport.getOrderStatus(
-                    orderHash
-                );
+                bytes32 orderHash =
+                    context.executionState.orderDetails[i].orderHash;
+                (bool isValid,,,) = context.seaport.getOrderStatus(orderHash);
                 assertTrue(isValid, "check_ordersValidated: !isValid");
             }
         }

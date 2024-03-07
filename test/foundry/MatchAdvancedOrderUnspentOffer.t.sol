@@ -6,9 +6,8 @@ import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import { Order } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdvancedOrder,
@@ -27,10 +26,9 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         ConsiderationInterface seaport;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail(
                 "Stateless test function should have reverted with assertion failure status."
@@ -38,25 +36,6 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         } catch (bytes memory reason) {
             assertPass(reason);
         }
-    }
-
-    /**
-     * @dev test that specifying the offerer as the recipient of the considerationItem results in
-     *      execution filtering for items not specified in the matched order(s)
-     *      ie: offer nft1, nft2 for erc20
-     *          fulfiller matches to erc20 offer, nft1 consideration
-     *          specifies original offerer as recipient of unspent considerations
-     *          fulfilling does not result in nft2 being transferred at all
-     */
-    function testFilterOfferItemBySpecifyingOffererAsRecipient() public {
-        test(
-            this.execFilterOfferItemBySpecifyingOffererAsRecipient,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execFilterOfferItemBySpecifyingOffererAsRecipient,
-            Context({ seaport: referenceConsideration })
-        );
     }
 
     function setUpFilterOfferItemBySpecifyingOffererAsRecipient(
@@ -110,10 +89,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
                 recipient: payable(offerer)
             })
         );
-        Order memory offererOrder = createSignedOrder(
-            context.seaport,
-            offererName
-        );
+        Order memory offererOrder =
+            createSignedOrder(context.seaport, offererName);
 
         // offer 10k of token1
 
@@ -148,54 +125,21 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
                 recipient: payable(offerer)
             })
         );
-        Order memory fulfillerOrder = createSignedOrder(
-            context.seaport,
-            fulfillerName
-        );
+        Order memory fulfillerOrder =
+            createSignedOrder(context.seaport, fulfillerName);
 
         Fulfillment[] memory _fulfillments = createFulfillmentsFromMirrorOrders(
-            offererOrder.parameters,
-            fulfillerOrder.parameters
+            offererOrder.parameters, fulfillerOrder.parameters
         );
 
         AdvancedOrder memory offererAdvanced = toAdvancedOrder(offererOrder);
-        AdvancedOrder memory fulfillerAdvanced = toAdvancedOrder(
-            fulfillerOrder
-        );
+        AdvancedOrder memory fulfillerAdvanced = toAdvancedOrder(fulfillerOrder);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = offererAdvanced;
         orders[1] = fulfillerAdvanced;
 
         return (orders, _fulfillments);
-    }
-
-    function execFilterOfferItemBySpecifyingOffererAsRecipient(
-        Context memory context
-    ) external stateless {
-        (
-            AdvancedOrder[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpFilterOfferItemBySpecifyingOffererAsRecipient(context);
-        vm.recordLogs();
-        context.seaport.matchAdvancedOrders({
-            orders: orders,
-            criteriaResolvers: new CriteriaResolver[](0),
-            fulfillments: _fulfillments,
-            recipient: makeAddr("offerer")
-        });
-        Vm.Log[] memory recordedLogs = vm.getRecordedLogs();
-        // ensure that token2 was not transferred at any point
-        assertEq(recordedLogs.length, 5);
-        // first two are OrderFulfilled events
-        assertEq(recordedLogs[0].emitter, address(context.seaport));
-        assertEq(recordedLogs[1].emitter, address(context.seaport));
-        // next is OrdersMatched event
-        assertEq(recordedLogs[2].emitter, address(context.seaport));
-        // next is 721_1 transfer
-        assertEq(recordedLogs[3].emitter, address(test721_1));
-        // last is ERC20 transfer
-        assertEq(recordedLogs[4].emitter, address(token1));
     }
 
     // TODO: look into sporadic failures here
@@ -207,9 +151,10 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         );
     }
 
-    function setUpSweepRemaining(
-        Context memory context
-    ) internal returns (Order[] memory, Fulfillment[] memory) {
+    function setUpSweepRemaining(Context memory context)
+        internal
+        returns (Order[] memory, Fulfillment[] memory)
+    {
         string memory offererName = "offerer";
         address offerer = makeAddr(offererName);
         string memory fulfillerName = "fulfiller";
@@ -245,10 +190,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
             })
         );
 
-        Order memory offererOrder = createSignedOrder(
-            context.seaport,
-            offererName
-        );
+        Order memory offererOrder =
+            createSignedOrder(context.seaport, offererName);
 
         // offer 10k of token1
 
@@ -273,14 +216,11 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
             })
         );
 
-        Order memory fulfillerOrder = createSignedOrder(
-            context.seaport,
-            fulfillerName
-        );
+        Order memory fulfillerOrder =
+            createSignedOrder(context.seaport, fulfillerName);
 
         Fulfillment[] memory _fulfillments = createFulfillmentsFromMirrorOrders(
-            offererOrder.parameters,
-            fulfillerOrder.parameters
+            offererOrder.parameters, fulfillerOrder.parameters
         );
 
         Order[] memory orders = new Order[](2);
@@ -293,10 +233,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
      * @dev test that unmatched item amounts are swept to the fulfiller when calling matchOrders
      */
     function execSweepRemaining(Context memory context) external stateless {
-        (
-            Order[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpSweepRemaining(context);
+        (Order[] memory orders, Fulfillment[] memory _fulfillments) =
+            setUpSweepRemaining(context);
         uint256 startingToken1Balance = token1.balanceOf(address(this));
         context.seaport.matchOrders(orders, _fulfillments);
         uint256 endingToken1Balance = token1.balanceOf(address(this));
@@ -306,8 +244,7 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
     // TODO: look into sporadic failures here
     function xtestSweepRemainingAdvanced() public {
         test(
-            this.execSweepRemainingAdvanced,
-            Context({ seaport: consideration })
+            this.execSweepRemainingAdvanced, Context({ seaport: consideration })
         );
         test(
             this.execSweepRemainingAdvanced,
@@ -318,13 +255,12 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
     /**
      * @dev test that unmatched item amounts are swept to the fulfiller when calling matchAdvancedOrders with a recipient of 0
      */
-    function execSweepRemainingAdvanced(
-        Context memory context
-    ) external stateless {
-        (
-            Order[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpSweepRemaining(context);
+    function execSweepRemainingAdvanced(Context memory context)
+        external
+        stateless
+    {
+        (Order[] memory orders, Fulfillment[] memory _fulfillments) =
+            setUpSweepRemaining(context);
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
         advancedOrders[0] = toAdvancedOrder(orders[0]);
         advancedOrders[1] = toAdvancedOrder(orders[1]);

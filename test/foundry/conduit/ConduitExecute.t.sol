@@ -5,9 +5,9 @@ import {
     ConduitTransfer,
     ConduitItemType
 } from "seaport-types/src/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
+import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
+import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
 import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
@@ -21,11 +21,11 @@ contract ConduitExecuteTest is BaseConduitTest {
         ConduitTransfer[] transfers;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -61,8 +61,7 @@ contract ConduitExecuteTest is BaseConduitTest {
             } else if (itemType == ConduitItemType.ERC1155) {
                 assertEq(
                     TestERC1155(transfer.token).balanceOf(
-                        transfer.to,
-                        transfer.identifier
+                        transfer.to, transfer.identifier
                     ),
                     getExpectedTokenBalance(transfer)
                 );

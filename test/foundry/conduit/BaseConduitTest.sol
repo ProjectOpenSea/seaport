@@ -7,21 +7,21 @@ import {
     ConduitItemType,
     ConduitBatch1155Transfer
 } from "seaport-types/src/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
+import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
+import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
 import { ERC721Recipient } from "../utils/ERC721Recipient.sol";
 import { ERC1155Recipient } from "../utils/ERC1155Recipient.sol";
-import {
-    ERC1155TokenReceiver
-} from "@rari-capital/solmate/src/tokens/ERC1155.sol";
+import { ERC1155TokenReceiver } from
+    "@rari-capital/solmate/src/tokens/ERC1155.sol";
 
 contract BaseConduitTest is
     BaseConsiderationTest,
     ERC1155Recipient,
     ERC721Recipient
 {
-    mapping(address => mapping(address => mapping(uint256 => uint256))) userToExpectedTokenIdentifierBalance;
+    mapping(address => mapping(address => mapping(uint256 => uint256)))
+        userToExpectedTokenIdentifierBalance;
 
     struct ConduitTransferIntermediate {
         uint8 itemType;
@@ -48,9 +48,7 @@ contract BaseConduitTest is
         super.setUp();
         conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(this),
-            true
+            address(referenceConduit), address(this), true
         );
     }
 
@@ -68,22 +66,21 @@ contract BaseConduitTest is
                     ""
                 )
             );
-            return
-                success &&
-                keccak256(returnData) ==
-                keccak256(
-                    abi.encode(ERC1155TokenReceiver.onERC1155Received.selector)
-                );
+            return success
+                && keccak256(returnData)
+                    == keccak256(
+                        abi.encode(ERC1155TokenReceiver.onERC1155Received.selector)
+                    );
         } else {
             return true;
         }
     }
 
     ///@dev helper to coerce a fuzzed address into one that can accept tokens if necessary
-    function receiver(
-        address addr,
-        ConduitItemType itemType
-    ) internal returns (address) {
+    function receiver(address addr, ConduitItemType itemType)
+        internal
+        returns (address)
+    {
         // 0 address is not valid mint or origin address
         if (addr == address(0)) {
             return address(1);
@@ -111,12 +108,7 @@ contract BaseConduitTest is
         if (itemType == ConduitItemType.ERC20) {
             transfers = new ConduitTransfer[](1);
             transfers[0] = ConduitTransfer(
-                itemType,
-                tokenAddress,
-                from,
-                to,
-                0,
-                intermediate.amount
+                itemType, tokenAddress, from, to, 0, intermediate.amount
             );
             return transfers;
         }
@@ -166,8 +158,8 @@ contract BaseConduitTest is
         ConduitBatch1155Transfer[] memory original,
         ConduitBatch1155Transfer[] memory extension
     ) internal pure returns (ConduitBatch1155Transfer[] memory) {
-        ConduitBatch1155Transfer[]
-            memory transfers = new ConduitBatch1155Transfer[](
+        ConduitBatch1155Transfer[] memory transfers =
+        new ConduitBatch1155Transfer[](
                 original.length + extension.length
             );
         for (uint256 i = 0; i < original.length; ++i) {
@@ -186,9 +178,8 @@ contract BaseConduitTest is
     function deployTokenAndCreateConduitTransfers(
         ConduitTransferIntermediate memory intermediate
     ) internal returns (ConduitTransfer[] memory) {
-        ConduitItemType itemType = ConduitItemType(
-            (intermediate.itemType % 3) + 1
-        );
+        ConduitItemType itemType =
+            ConduitItemType((intermediate.itemType % 3) + 1);
         address token;
         if (itemType == ConduitItemType.ERC20) {
             token = address(new TestERC20());
@@ -198,14 +189,9 @@ contract BaseConduitTest is
             token = address(new TestERC721());
         }
 
-        return
-            createNumTokenIdsConduitTransfers(
-                intermediate,
-                token,
-                itemType,
-                intermediate.from,
-                intermediate.to
-            );
+        return createNumTokenIdsConduitTransfers(
+            intermediate, token, itemType, intermediate.from, intermediate.to
+        );
     }
 
     function deployTokenAndCreateConduitBatch1155Transfer(
@@ -228,13 +214,8 @@ contract BaseConduitTest is
         address to = batchIntermediate.to;
 
         batchTransfers = new ConduitBatch1155Transfer[](1);
-        batchTransfers[0] = ConduitBatch1155Transfer(
-            address(erc1155),
-            from,
-            to,
-            ids,
-            amounts
-        );
+        batchTransfers[0] =
+            ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
         return batchTransfers;
     }
 
@@ -258,10 +239,7 @@ contract BaseConduitTest is
     ) internal {
         for (uint256 i; i < batchTransfers.length; ++i) {
             ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
-            address from = receiver(
-                batchTransfer.from,
-                ConduitItemType.ERC1155
-            );
+            address from = receiver(batchTransfer.from, ConduitItemType.ERC1155);
             address to = receiver(batchTransfer.to, ConduitItemType.ERC1155);
             batchTransfer.from = from;
             batchTransfer.to = to;
@@ -312,9 +290,7 @@ contract BaseConduitTest is
             TestERC1155 erc1155 = TestERC1155(token);
             for (uint256 n = 0; n < batchTransfer.ids.length; ++n) {
                 erc1155.mint(
-                    from,
-                    batchTransfer.ids[n],
-                    batchTransfer.amounts[n]
+                    from, batchTransfer.ids[n], batchTransfer.amounts[n]
                 );
             }
             vm.startPrank(from);
@@ -324,13 +300,13 @@ contract BaseConduitTest is
         }
     }
 
-    function getExpectedTokenBalance(
-        ConduitTransfer memory transfer
-    ) internal view returns (uint256) {
-        return
-            userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
-                transfer.identifier
-            ];
+    function getExpectedTokenBalance(ConduitTransfer memory transfer)
+        internal
+        view
+        returns (uint256)
+    {
+        return userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][transfer
+            .identifier];
     }
 
     function getExpectedBatchTokenBalances(
@@ -340,16 +316,15 @@ contract BaseConduitTest is
             batchTransfer.ids.length
         );
         for (uint256 i = 0; i < batchTransfer.ids.length; ++i) {
-            batchTokenBalances[i] = userToExpectedTokenIdentifierBalance[
-                batchTransfer.to
-            ][batchTransfer.token][batchTransfer.ids[i]];
+            batchTokenBalances[i] = userToExpectedTokenIdentifierBalance[batchTransfer
+                .to][batchTransfer.token][batchTransfer.ids[i]];
         }
         return batchTokenBalances;
     }
 
-    function updateExpectedTokenBalances(
-        ConduitTransfer[] memory transfers
-    ) internal {
+    function updateExpectedTokenBalances(ConduitTransfer[] memory transfers)
+        internal
+    {
         for (uint256 i = 0; i < transfers.length; ++i) {
             ConduitTransfer memory transfer = transfers[i];
             ConduitItemType itemType = transfer.itemType;
@@ -368,18 +343,16 @@ contract BaseConduitTest is
     }
 
     function updateExpectedBalance(ConduitTransfer memory transfer) internal {
-        userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
-            transfer.identifier
-        ] += transfer.amount;
+        userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][transfer
+            .identifier] += transfer.amount;
     }
 
     function updateExpectedBatchBalances(
         ConduitBatch1155Transfer memory batchTransfer
     ) internal {
         for (uint256 i = 0; i < batchTransfer.ids.length; ++i) {
-            userToExpectedTokenIdentifierBalance[batchTransfer.to][
-                batchTransfer.token
-            ][batchTransfer.ids[i]] += batchTransfer.amounts[i];
+            userToExpectedTokenIdentifierBalance[batchTransfer.to][batchTransfer
+                .token][batchTransfer.ids[i]] += batchTransfer.amounts[i];
         }
     }
 }

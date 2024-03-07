@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.17;
 
-import {
-    ERC1155TokenReceiver
-} from "@rari-capital/solmate/src/tokens/ERC1155.sol";
+import { ERC1155TokenReceiver } from
+    "@rari-capital/solmate/src/tokens/ERC1155.sol";
 
 contract ERC1155Recipient is ERC1155TokenReceiver {
     function onERC1155Received(

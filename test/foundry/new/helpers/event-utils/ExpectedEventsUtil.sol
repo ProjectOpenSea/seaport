@@ -6,7 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import {
     ArrayHelpers,
     MemoryPointer
-} from "../../../../../contracts/helpers/ArrayHelpers.sol";
+} from "../../../../../src/main/helpers/ArrayHelpers.sol";
 
 import { Execution } from "seaport-sol/src/SeaportStructs.sol";
 
@@ -28,8 +28,10 @@ import { OrdersMatchedEventsLib } from "./OrdersMatchedEventsLib.sol";
 
 import { dumpTransfers } from "../DebugUtil.sol";
 
-bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
-bytes32 constant Topic0_ERC1155_TransferSingle = 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
+bytes32 constant Topic0_ERC20_ERC721_Transfer =
+    0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
+bytes32 constant Topic0_ERC1155_TransferSingle =
+    0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
 
 struct ReduceInput {
     Vm.Log[] logsArray;
@@ -102,27 +104,40 @@ library ExpectedEventsUtil {
      *
      * @param context The test context
      */
-    function setExpectedTransferEventHashes(
-        FuzzTestContext memory context
-    ) internal {
-        Execution[] memory executions = context
-            .expectations
-            .allExpectedExecutions;
+    function setExpectedTransferEventHashes(FuzzTestContext memory context)
+        internal
+    {
+        Execution[] memory executions =
+            context.expectations.allExpectedExecutions;
         require(
-            executions.length ==
-                context.expectations.expectedImplicitPreExecutions.length +
-                    context.expectations.expectedExplicitExecutions.length +
-                    context.expectations.expectedImplicitPostExecutions.length,
+            executions.length
+                == context.expectations.expectedImplicitPreExecutions.length
+                    + context.expectations.expectedExplicitExecutions.length
+                    + context.expectations.expectedImplicitPostExecutions.length,
             "ExpectedEventsUtil: executions length mismatch"
         );
+
+        Execution[] memory filteredExecutions = new Execution[](executions.length);
+
+        uint256 filteredExecutionIndex = 0;
+
+        for (uint256 i = 0; i < executions.length; ++i) {
+            if (
+                executions[i].item.amount > 0
+            ) {
+                filteredExecutions[filteredExecutionIndex++] = executions[i];
+            }
+        }
+
+        assembly {
+            mstore(filteredExecutions, filteredExecutionIndex)
+        }
 
         context.expectations.expectedTransferEventHashes = ArrayHelpers
             .filterMapWithArg
             .asExecutionsFilterMap()(
-                executions,
-                TransferEventsLib.getTransferEventHash,
-                context
-            );
+            filteredExecutions, TransferEventsLib.getTransferEventHash, context
+        );
 
         vm.serializeBytes32(
             "root",
@@ -131,22 +146,19 @@ library ExpectedEventsUtil {
         );
     }
 
-    function setExpectedSeaportEventHashes(
-        FuzzTestContext memory context
-    ) internal {
-        bool isMatch = context.action() ==
-            context.seaport.matchAdvancedOrders.selector ||
-            context.action() == context.seaport.matchOrders.selector;
+    function setExpectedSeaportEventHashes(FuzzTestContext memory context)
+        internal
+    {
+        bool isMatch = context.action()
+            == context.seaport.matchAdvancedOrders.selector
+            || context.action() == context.seaport.matchOrders.selector;
 
         uint256 totalExpectedEventHashes = isMatch ? 1 : 0;
-        for (
-            uint256 i = 0;
-            i < context.executionState.orderDetails.length;
-            ++i
-        ) {
+        for (uint256 i = 0; i < context.executionState.orderDetails.length; ++i)
+        {
             if (
-                context.executionState.orderDetails[i].unavailableReason ==
-                UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason
+                    == UnavailableReason.AVAILABLE
             ) {
                 ++totalExpectedEventHashes;
             }
@@ -159,19 +171,17 @@ library ExpectedEventsUtil {
         totalExpectedEventHashes = 0;
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
             if (
-                context.executionState.orderDetails[i].unavailableReason ==
-                UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason
+                    == UnavailableReason.AVAILABLE
             ) {
-                context.expectations.expectedSeaportEventHashes[
-                    totalExpectedEventHashes++
-                ] = context.getOrderFulfilledEventHash(i);
+                context.expectations.expectedSeaportEventHashes[totalExpectedEventHashes++]
+                = context.getOrderFulfilledEventHash(i);
             }
         }
 
         if (isMatch) {
-            context.expectations.expectedSeaportEventHashes[
-                totalExpectedEventHashes
-            ] = context.getOrdersMatchedEventHash();
+            context.expectations.expectedSeaportEventHashes[totalExpectedEventHashes]
+            = context.getOrdersMatchedEventHash();
         }
 
         vm.serializeBytes32(
@@ -194,20 +204,19 @@ library ExpectedEventsUtil {
      *
      * @param context The test context
      */
-    function checkExpectedTransferEvents(
-        FuzzTestContext memory context
-    ) internal {
+    function checkExpectedTransferEvents(FuzzTestContext memory context)
+        internal
+    {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes memory callData = abi.encodeCall(FuzzEngine.setLogs, (logs));
-        (bool ok, ) = address(this).call(callData);
+        (bool ok,) = address(this).call(callData);
         if (!ok) {
             revert("ExpectedEventsUtil: log registration failed");
         }
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
-        bytes32[] memory expectedTransferEventHashes = context
-            .expectations
-            .expectedTransferEventHashes;
+        bytes32[] memory expectedTransferEventHashes =
+            context.expectations.expectedTransferEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
@@ -231,9 +240,9 @@ library ExpectedEventsUtil {
         }
     }
 
-    function checkExpectedSeaportEvents(
-        FuzzTestContext memory context
-    ) internal {
+    function checkExpectedSeaportEvents(FuzzTestContext memory context)
+        internal
+    {
         // TODO: set these upstream (this expects checkExpectedTransferEvents to run first)
         bytes memory callData = abi.encodeCall(FuzzEngine.getLogs, ());
         (, bytes memory returnData) = address(this).call(callData);
@@ -251,9 +260,8 @@ library ExpectedEventsUtil {
         }
 
         // MemoryPointer expectedEvents = toMemoryPointer(eventHashes);
-        bytes32[] memory expectedSeaportEventHashes = context
-            .expectations
-            .expectedSeaportEventHashes;
+        bytes32[] memory expectedSeaportEventHashes =
+            context.expectations.expectedSeaportEventHashes;
 
         // For each expected event, verify that it matches the next log
         // in `logs` that has a topic0 matching one of the watched events.
@@ -284,22 +292,24 @@ library ExpectedEventsUtil {
      *
      * @return True if the log is a watched event, false otherwise
      */
-    function isWatchedTransferEvent(
-        Vm.Log memory log
-    ) internal pure returns (bool) {
+    function isWatchedTransferEvent(Vm.Log memory log)
+        internal
+        pure
+        returns (bool)
+    {
         bytes32 topic0 = log.getTopic0();
-        return
-            topic0 == Topic0_ERC20_ERC721_Transfer ||
-            topic0 == Topic0_ERC1155_TransferSingle;
+        return topic0 == Topic0_ERC20_ERC721_Transfer
+            || topic0 == Topic0_ERC1155_TransferSingle;
     }
 
-    function isWatchedSeaportEvent(
-        Vm.Log memory log
-    ) internal pure returns (bool) {
+    function isWatchedSeaportEvent(Vm.Log memory log)
+        internal
+        pure
+        returns (bool)
+    {
         bytes32 topic0 = log.getTopic0();
-        return
-            topic0 == OrderFulfilled.selector ||
-            topic0 == OrdersMatched.selector;
+        return topic0 == OrderFulfilled.selector
+            || topic0 == OrdersMatched.selector;
     }
 
     /**
@@ -320,18 +330,14 @@ library ExpectedEventsUtil {
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
             .asLogsFindIndex()(
-                input.logsArray,
-                isWatchedTransferEvent,
-                lastLogIndex
-            );
+            input.logsArray, isWatchedTransferEvent, lastLogIndex
+        );
 
         // Dump the events data and revert if there are no remaining transfer events
         if (nextWatchedEventIndex == -1) {
             vm.serializeUint("root", "failingIndex", lastLogIndex - 1);
             vm.serializeBytes32(
-                "root",
-                "expectedEventHash",
-                bytes32(expectedEventHash)
+                "root", "expectedEventHash", bytes32(expectedEventHash)
             );
             dumpTransfers(input.context);
             revert(
@@ -373,19 +379,13 @@ library ExpectedEventsUtil {
         // Get the index of the next watched event in the logs array
         int256 nextWatchedEventIndex = ArrayHelpers
             .findIndexFrom
-            .asLogsFindIndex()(
-                input.logsArray,
-                isWatchedSeaportEvent,
-                lastLogIndex
-            );
+            .asLogsFindIndex()(input.logsArray, isWatchedSeaportEvent, lastLogIndex);
 
         // Dump the events data and revert if there are no remaining transfer events
         if (nextWatchedEventIndex == -1) {
             vm.serializeUint("root", "failingIndex", lastLogIndex - 1);
             vm.serializeBytes32(
-                "root",
-                "expectedEventHash",
-                bytes32(expectedEventHash)
+                "root", "expectedEventHash", bytes32(expectedEventHash)
             );
             revert(
                 "ExpectedEvents: seaport event not found - info written to fuzz_debug.json"
@@ -424,11 +424,8 @@ library Casts {
         internal
         pure
         returns (
-            function(
-                Vm.Log[] memory,
-                function(Vm.Log memory) internal pure returns (bool),
-                uint256
-            ) internal pure returns (int256) fnOut
+            function( Vm.Log[] memory, function(Vm.Log memory) internal pure returns (bool), uint256) internal pure returns (int256)
+                fnOut
         )
     {
         assembly {
@@ -449,16 +446,8 @@ library Casts {
         internal
         pure
         returns (
-            function(
-                bytes32[] memory,
-                function(
-                    uint256,
-                    uint256,
-                    ReduceInput memory //Vm.Log[] memory)
-                ) internal returns (uint256),
-                uint256,
-                ReduceInput memory //Vm.Log[] memory
-            ) internal returns (uint256) fnOut
+            function(bytes32[] memory, function( uint256, uint256, ReduceInput memory) internal returns (uint256), uint256, ReduceInput memory) internal returns (uint256)
+                fnOut
         )
     {
         assembly {
@@ -479,13 +468,8 @@ library Casts {
         internal
         pure
         returns (
-            function(
-                Execution[] memory,
-                function(Execution memory, FuzzTestContext memory)
-                    internal
-                    returns (bytes32),
-                FuzzTestContext memory
-            ) internal pure returns (bytes32[] memory) fnOut
+            function(Execution[] memory, function(Execution memory, FuzzTestContext memory) internal returns (bytes32), FuzzTestContext memory) internal pure returns (bytes32[] memory)
+                fnOut
         )
     {
         assembly {
@@ -493,33 +477,41 @@ library Casts {
         }
     }
 
-    function toMemoryPointer(
-        Execution[] memory arr
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(Execution[] memory arr)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := arr
         }
     }
 
-    function toMemoryPointer(
-        FuzzTestContext memory context
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(FuzzTestContext memory context)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := context
         }
     }
 
-    function toMemoryPointer(
-        Vm.Log[] memory arr
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(Vm.Log[] memory arr)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := arr
         }
     }
 
-    function toMemoryPointer(
-        bytes32[] memory arr
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(bytes32[] memory arr)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := arr
         }

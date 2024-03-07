@@ -89,10 +89,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         // Populate the raw synthetic storage values.  These are the storage
         // values produced by using the inscription helpers.
         _setRawSyntheticStorageValues(
-            orderHash,
-            context,
-            advancedOrder,
-            rawStorageValues
+            orderHash, context, advancedOrder, rawStorageValues
         );
 
         _compareOrganicAndSyntheticRawStorageValues(rawStorageValues);
@@ -106,27 +103,19 @@ contract FuzzHelpersTest is BaseOrderTest {
             caller: address(this)
         });
 
-        bytes32 contractNonceStorageSlot = _getStorageSlotForContractNonce(
-            address(this),
-            context
-        );
-        bytes32 rawContractOffererNonceValue = vm.load(
-            address(context.seaport),
-            contractNonceStorageSlot
-        );
+        bytes32 contractNonceStorageSlot =
+            _getStorageSlotForContractNonce(address(this), context);
+        bytes32 rawContractOffererNonceValue =
+            vm.load(address(context.seaport), contractNonceStorageSlot);
 
         assertEq(rawContractOffererNonceValue, bytes32(0));
 
         FuzzInscribers.inscribeContractOffererNonce(
-            address(this),
-            1,
-            context.seaport
+            address(this), 1, context.seaport
         );
 
-        bytes32 newContractOffererNonceValue = vm.load(
-            address(context.seaport),
-            contractNonceStorageSlot
-        );
+        bytes32 newContractOffererNonceValue =
+            vm.load(address(context.seaport), contractNonceStorageSlot);
 
         assertEq(newContractOffererNonceValue, bytes32(uint256(1)));
     }
@@ -138,23 +127,17 @@ contract FuzzHelpersTest is BaseOrderTest {
             caller: address(this)
         });
 
-        bytes32 counterStorageSlot = _getStorageSlotForCounter(
-            address(this),
-            context
-        );
-        bytes32 rawCounterValue = vm.load(
-            address(context.seaport),
-            counterStorageSlot
-        );
+        bytes32 counterStorageSlot =
+            _getStorageSlotForCounter(address(this), context);
+        bytes32 rawCounterValue =
+            vm.load(address(context.seaport), counterStorageSlot);
 
         assertEq(rawCounterValue, bytes32(0));
 
         FuzzInscribers.inscribeCounter(address(this), 1, context.seaport);
 
-        bytes32 newCounterValue = vm.load(
-            address(context.seaport),
-            counterStorageSlot
-        );
+        bytes32 newCounterValue =
+            vm.load(address(context.seaport), counterStorageSlot);
 
         assertEq(newCounterValue, bytes32(uint256(1)));
     }
@@ -170,32 +153,24 @@ contract FuzzHelpersTest is BaseOrderTest {
     {
         // Set up the order.
         OfferItem[] memory offerItems = new OfferItem[](1);
-        OfferItem memory offerItem = OfferItemLib
-            .empty()
-            .withItemType(ItemType.ERC20)
-            .withToken(address(erc20s[0]))
-            .withAmount(10e34);
+        OfferItem memory offerItem = OfferItemLib.empty().withItemType(
+            ItemType.ERC20
+        ).withToken(address(erc20s[0])).withAmount(10e34);
 
         offerItems[0] = offerItem;
 
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
             1
         );
-        ConsiderationItem memory considerationItem = ConsiderationItemLib
-            .empty()
-            .withItemType(ItemType.NATIVE)
-            .withAmount(10e34);
+        ConsiderationItem memory considerationItem = ConsiderationItemLib.empty(
+        ).withItemType(ItemType.NATIVE).withAmount(10e34);
 
         considerationItems[0] = considerationItem;
 
-        OrderComponents memory orderComponents = OrderComponentsLib
-            .empty()
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 100)
-            .withOrderType(OrderType.PARTIAL_OPEN)
-            .withOfferer(offerer1.addr)
-            .withOffer(offerItems)
-            .withConsideration(considerationItems);
+        OrderComponents memory orderComponents = OrderComponentsLib.empty()
+            .withStartTime(block.timestamp).withEndTime(block.timestamp + 100)
+            .withOrderType(OrderType.PARTIAL_OPEN).withOfferer(offerer1.addr)
+            .withOffer(offerItems).withConsideration(considerationItems);
 
         // Set this up to use later for canceling.
         OrderComponents[] memory orderComponentsArray = new OrderComponents[](
@@ -241,21 +216,15 @@ contract FuzzHelpersTest is BaseOrderTest {
     ) internal {
         // Populate the raw organic storage values.  These are the storage
         // values produced by actualy calling Seaport.
-        bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
-            orderHash,
-            context
-        );
-        rawStorageValues.rawOrganicOrderStatusBeforeCalls = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        bytes32 orderHashStorageSlot =
+            _getStorageSlotForOrderHash(orderHash, context);
+        rawStorageValues.rawOrganicOrderStatusBeforeCalls =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         advancedOrder.validateTipNeutralizedOrder(context);
 
-        rawStorageValues.rawOrganicOrderStatusAfterValidation = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawOrganicOrderStatusAfterValidation =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         context.seaport.fulfillAdvancedOrder{ value: 10e34 / 2 }({
             advancedOrder: advancedOrder,
@@ -264,10 +233,8 @@ contract FuzzHelpersTest is BaseOrderTest {
             recipient: address(this)
         });
 
-        rawStorageValues.rawOrganicOrderStatusAfterPartialFulfillment = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawOrganicOrderStatusAfterPartialFulfillment =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         context.seaport.fulfillAdvancedOrder{ value: 10e34 / 2 }({
             advancedOrder: advancedOrder,
@@ -276,18 +243,14 @@ contract FuzzHelpersTest is BaseOrderTest {
             recipient: address(this)
         });
 
-        rawStorageValues.rawOrganicOrderStatusAfterFullFulfillment = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawOrganicOrderStatusAfterFullFulfillment =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         vm.prank(address(offerer1.addr));
         context.seaport.cancel(orderComponentsArray);
 
-        rawStorageValues.rawOrganicOrderStatusAfterCancellation = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawOrganicOrderStatusAfterCancellation =
+            vm.load(address(context.seaport), orderHashStorageSlot);
     }
 
     function _setRawSyntheticStorageValues(
@@ -298,42 +261,32 @@ contract FuzzHelpersTest is BaseOrderTest {
     ) internal {
         // Populate the raw organic storage values.  These are the storage
         // values produced by actualy calling Seaport.
-        bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
-            orderHash,
-            context
-        );
-        rawStorageValues.rawSyntheticOrderStatusBeforeCalls = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        bytes32 orderHashStorageSlot =
+            _getStorageSlotForOrderHash(orderHash, context);
+        rawStorageValues.rawSyntheticOrderStatusBeforeCalls =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         advancedOrder.inscribeOrderStatusValidated(true, context.seaport);
 
-        rawStorageValues.rawSyntheticOrderStatusAfterValidation = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawSyntheticOrderStatusAfterValidation =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         advancedOrder.inscribeOrderStatusNumerator(10e34 / 2, context.seaport);
         advancedOrder.inscribeOrderStatusDenominator(10e34, context.seaport);
 
-        rawStorageValues.rawSyntheticOrderStatusAfterPartialFulfillment = vm
-            .load(address(context.seaport), orderHashStorageSlot);
+        rawStorageValues.rawSyntheticOrderStatusAfterPartialFulfillment =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         advancedOrder.inscribeOrderStatusNumerator(10e34, context.seaport);
         advancedOrder.inscribeOrderStatusDenominator(10e34, context.seaport);
 
-        rawStorageValues.rawSyntheticOrderStatusAfterFullFulfillment = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawSyntheticOrderStatusAfterFullFulfillment =
+            vm.load(address(context.seaport), orderHashStorageSlot);
 
         advancedOrder.inscribeOrderStatusCancelled(true, context.seaport);
 
-        rawStorageValues.rawSyntheticOrderStatusAfterCancellation = vm.load(
-            address(context.seaport),
-            orderHashStorageSlot
-        );
+        rawStorageValues.rawSyntheticOrderStatusAfterCancellation =
+            vm.load(address(context.seaport), orderHashStorageSlot);
     }
 
     function _compareOrganicAndSyntheticRawStorageValues(
@@ -373,24 +326,21 @@ contract FuzzHelpersTest is BaseOrderTest {
     ) internal returns (bytes32) {
         vm.record();
         context.seaport.getOrderStatus(orderHash);
-        (bytes32[] memory readAccesses, ) = vm.accesses(
-            address(context.seaport)
-        );
+        (bytes32[] memory readAccesses,) = vm.accesses(address(context.seaport));
 
         uint256 expectedReadAccessCount = 4;
 
-        string memory profile = vm.envOr(
-            "FOUNDRY_PROFILE",
-            string("optimized")
-        );
+        string memory profile = vm.envOr("FOUNDRY_PROFILE", string("optimized"));
 
         if (
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("optimized")) ||
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("test")) ||
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("lite"))
+            keccak256(abi.encodePacked(profile))
+                == keccak256(abi.encodePacked("optimized"))
+                || keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("test"))
+                || keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("lite"))
+                || keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("reference"))
         ) {
             expectedReadAccessCount = 1;
         }
@@ -409,9 +359,7 @@ contract FuzzHelpersTest is BaseOrderTest {
     ) private returns (bytes32) {
         vm.record();
         context.seaport.getContractOffererNonce(contractOfferer);
-        (bytes32[] memory readAccesses, ) = vm.accesses(
-            address(context.seaport)
-        );
+        (bytes32[] memory readAccesses,) = vm.accesses(address(context.seaport));
 
         require(readAccesses.length == 1, "Expected 1 read access.");
 
@@ -424,9 +372,7 @@ contract FuzzHelpersTest is BaseOrderTest {
     ) private returns (bytes32) {
         vm.record();
         context.seaport.getCounter(offerer);
-        (bytes32[] memory readAccesses, ) = vm.accesses(
-            address(context.seaport)
-        );
+        (bytes32[] memory readAccesses,) = vm.accesses(address(context.seaport));
 
         require(readAccesses.length == 1, "Expected 1 read access.");
 

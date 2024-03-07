@@ -10,9 +10,8 @@ import {
     ERC721Interface
 } from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import {
-    ConsiderationInterface
-} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from
+    "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     OfferItem,
@@ -33,11 +32,11 @@ contract StatefulOffererTest is BaseOrderTest {
         uint8 numToAdd;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -111,7 +110,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execCancelAdvancedRevert(Context memory context) public stateless {
+    function execCancelAdvancedRevert(Context memory context)
+        public
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -153,10 +155,7 @@ contract StatefulOffererTest is BaseOrderTest {
         );
         test(
             this.execFulfillAdvancedFuzz,
-            Context({
-                consideration: referenceConsideration,
-                numToAdd: numToAdd
-            })
+            Context({ consideration: referenceConsideration, numToAdd: numToAdd })
         );
     }
 
@@ -218,9 +217,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execMatchAdvancedOrders(
-        Context memory context
-    ) external stateless {
+    function execMatchAdvancedOrders(Context memory context)
+        external
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -251,11 +251,8 @@ contract StatefulOffererTest is BaseOrderTest {
             extraData: "context"
         });
 
-        AdvancedOrder memory mirror = createMirrorContractOffererOrder(
-            context,
-            "mirroroooor",
-            order
-        );
+        AdvancedOrder memory mirror =
+            createMirrorContractOffererOrder(context, "mirroroooor", order);
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
@@ -265,34 +262,22 @@ contract StatefulOffererTest is BaseOrderTest {
         //match first order offer to second order consideration
         createFulfillmentFromComponentsAndAddToFulfillments({
             _offer: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 1,
-                itemIndex: 0
-            })
+            _consideration: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
         });
         // match second order first offer to first order first consideration
         createFulfillmentFromComponentsAndAddToFulfillments({
             _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 0
-            })
+            _consideration: FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
         });
         // match second order second offer to first order second consideration
         createFulfillmentFromComponentsAndAddToFulfillments({
             _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 1 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 1
-            })
+            _consideration: FulfillmentComponent({ orderIndex: 0, itemIndex: 1 })
         });
         // match second order third offer to first order third consideration
         createFulfillmentFromComponentsAndAddToFulfillments({
             _offer: FulfillmentComponent({ orderIndex: 1, itemIndex: 2 }),
-            _consideration: FulfillmentComponent({
-                orderIndex: 0,
-                itemIndex: 2
-            })
+            _consideration: FulfillmentComponent({ orderIndex: 0, itemIndex: 2 })
         });
 
         context.consideration.matchAdvancedOrders({
@@ -315,9 +300,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execFulfillAvailableAdvancedOrders(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableAdvancedOrders(Context memory context)
+        external
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -415,14 +401,10 @@ contract StatefulOffererTest is BaseOrderTest {
             });
         }
         // do the same for considerationItem -> offerItem
-        for (
-            uint256 i;
-            i < advancedOrder.parameters.consideration.length;
-            i++
-        ) {
-            ConsiderationItem memory _considerationItem = advancedOrder
-                .parameters
-                .consideration[i];
+        for (uint256 i; i < advancedOrder.parameters.consideration.length; i++)
+        {
+            ConsiderationItem memory _considerationItem =
+                advancedOrder.parameters.consideration[i];
 
             addOfferItem({
                 itemType: _considerationItem.itemType,
@@ -442,14 +424,10 @@ contract StatefulOffererTest is BaseOrderTest {
         });
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            pkey,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, pkey, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,
