@@ -3,13 +3,15 @@ pragma solidity ^0.8.13;
 
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
-import { PausableZoneEventsAndErrors } from
-    "./interfaces/PausableZoneEventsAndErrors.sol";
+import {
+    PausableZoneEventsAndErrors
+} from "./interfaces/PausableZoneEventsAndErrors.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { SeaportInterface } from
-    "seaport-types/src/interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -118,7 +120,7 @@ contract PausableZone is
     /**
      * @notice Pause this contract, safely stopping orders from using
      *         the contract as a zone. Restricted orders with this address as a
-     *         zone will not be fulfillable unless the zone is unpaused.
+     *         zone will no longer be fulfillable.
      */
     function pause() external override isController {
         // Emit an event signifying that the zone is paused.
@@ -133,11 +135,9 @@ contract PausableZone is
      *
      * @param operatorToAssign The address to assign as the operator.
      */
-    function assignOperator(address operatorToAssign)
-        external
-        override
-        isController
-    {
+    function assignOperator(
+        address operatorToAssign
+    ) external override isController {
         // Ensure the operator being assigned is not the null address.
         if (operatorToAssign == address(0)) {
             revert PauserCanNotBeSetAsZero();
@@ -180,8 +180,10 @@ contract PausableZone is
     {
         // Call matchOrders on Seaport and return the sequence of transfers
         // performed as part of matching the given orders.
-        executions =
-            seaport.matchOrders{ value: msg.value }(orders, fulfillments);
+        executions = seaport.matchOrders{ value: msg.value }(
+            orders,
+            fulfillments
+        );
     }
 
     /**
@@ -221,16 +223,16 @@ contract PausableZone is
         // Call matchAdvancedOrders on Seaport and return the sequence of
         // transfers performed as part of matching the given orders.
         executions = seaport.matchAdvancedOrders{ value: msg.value }(
-            orders, criteriaResolvers, fulfillments, msg.sender
+            orders,
+            criteriaResolvers,
+            fulfillments,
+            msg.sender
         );
     }
 
-    function authorizeOrder(ZoneParameters calldata)
-        public
-        view
-        isNotPaused
-        returns (bytes4)
-    {
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) external view isNotPaused returns (bytes4) {
         return this.authorizeOrder.selector;
     }
 
@@ -259,6 +261,14 @@ contract PausableZone is
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
     /**
      * @dev Returns the metadata for this zone.
      */
@@ -276,15 +286,5 @@ contract PausableZone is
         schemas[0].metadata = new bytes(0);
 
         return ("PausableZone", schemas);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165, ZoneInterface)
-        returns (bool)
-    {
-        return interfaceId == type(ZoneInterface).interfaceId
-            || super.supportsInterface(interfaceId);
     }
 }

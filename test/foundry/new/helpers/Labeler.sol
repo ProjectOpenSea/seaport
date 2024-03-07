@@ -4,8 +4,9 @@ pragma solidity ^0.8.17;
 import { vm } from "./VmUtils.sol";
 import { LibString } from "solady/src/utils/LibString.sol";
 
-address constant LABELER_ADDRESS =
-    address(uint160(uint256(keccak256(".labeler"))));
+address constant LABELER_ADDRESS = address(
+    uint160(uint256(keccak256(".labeler")))
+);
 
 function setLabel(address account, string memory _label) {
     vm.store(
@@ -32,8 +33,10 @@ function getLabel(address account) pure returns (string memory) {
 }
 
 function getLabelView(address account) view returns (string memory _label) {
-    bytes32 storedLabel =
-        vm.load(LABELER_ADDRESS, bytes32(uint256(uint160(account))));
+    bytes32 storedLabel = vm.load(
+        LABELER_ADDRESS,
+        bytes32(uint256(uint160(account)))
+    );
     if (storedLabel != bytes32(0)) {
         return LibString.unpackOne(storedLabel);
     }

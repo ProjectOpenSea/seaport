@@ -39,10 +39,11 @@ contract StructCopier {
         dest.salt = src.salt;
         dest.offererConduitKey = src.offererConduitKey;
         dest.fulfillerConduitKey = src.fulfillerConduitKey;
-        dest.totalOriginalAdditionalRecipients =
-            src.totalOriginalAdditionalRecipients;
+        dest.totalOriginalAdditionalRecipients = src
+            .totalOriginalAdditionalRecipients;
         setAdditionalRecipients(
-            dest.additionalRecipients, src.additionalRecipients
+            dest.additionalRecipients,
+            src.additionalRecipients
         );
         dest.signature = src.signature;
     }
@@ -76,9 +77,10 @@ contract StructCopier {
         }
     }
 
-    function setBytes32Array(bytes32[] storage dest, bytes32[] memory src)
-        internal
-    {
+    function setBytes32Array(
+        bytes32[] storage dest,
+        bytes32[] memory src
+    ) internal {
         while (dest.length != 0) {
             dest.pop();
         }
@@ -156,13 +158,14 @@ contract StructCopier {
         dest.zoneHash = src.zoneHash;
         dest.salt = src.salt;
         dest.conduitKey = src.conduitKey;
-        dest.totalOriginalConsiderationItems =
-            src.totalOriginalConsiderationItems;
+        dest.totalOriginalConsiderationItems = src
+            .totalOriginalConsiderationItems;
     }
 
-    function setOfferItems(OfferItem[] storage dest, OfferItem[] memory src)
-        internal
-    {
+    function setOfferItems(
+        OfferItem[] storage dest,
+        OfferItem[] memory src
+    ) internal {
         while (dest.length != 0) {
             dest.pop();
         }
@@ -183,12 +186,14 @@ contract StructCopier {
         }
     }
 
-    function setFulfillment(Fulfillment storage dest, Fulfillment memory src)
-        internal
-    {
+    function setFulfillment(
+        Fulfillment storage dest,
+        Fulfillment memory src
+    ) internal {
         setFulfillmentComponents(dest.offerComponents, src.offerComponents);
         setFulfillmentComponents(
-            dest.considerationComponents, src.considerationComponents
+            dest.considerationComponents,
+            src.considerationComponents
         );
     }
 
@@ -256,11 +261,9 @@ contract StructCopier {
         return considerationItems;
     }
 
-    function toOfferItems(ConsiderationItem[] memory _considerationItems)
-        internal
-        pure
-        returns (OfferItem[] memory)
-    {
+    function toOfferItems(
+        ConsiderationItem[] memory _considerationItems
+    ) internal pure returns (OfferItem[] memory) {
         OfferItem[] memory _offerItems = new OfferItem[](
             _considerationItems.length
         );
@@ -282,10 +285,13 @@ contract StructCopier {
         address zone,
         bytes32 conduitKey
     ) public pure returns (OrderParameters memory) {
-        OfferItem[] memory _offerItems =
-            toOfferItems(orderParameters.consideration);
-        ConsiderationItem[] memory _considerationItems =
-            toConsiderationItems(orderParameters.offer, offerer);
+        OfferItem[] memory _offerItems = toOfferItems(
+            orderParameters.consideration
+        );
+        ConsiderationItem[] memory _considerationItems = toConsiderationItems(
+            orderParameters.offer,
+            offerer
+        );
 
         OrderParameters memory _mirrorOrderParameters = OrderParameters(
             offerer,

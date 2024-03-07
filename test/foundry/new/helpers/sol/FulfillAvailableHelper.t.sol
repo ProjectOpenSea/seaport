@@ -19,8 +19,9 @@ import {
 
 import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
-import { FulfillAvailableHelper } from
-    "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";
+import {
+    FulfillAvailableHelper
+} from "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";
 
 contract FulfillAvailableHelperTest is Test {
     using ConsiderationItemLib for ConsiderationItem;
@@ -34,33 +35,42 @@ contract FulfillAvailableHelperTest is Test {
     }
 
     function testNaive() public {
-        OrderParameters memory orderParameters = OrderParametersLib.empty()
+        OrderParameters memory orderParameters = OrderParametersLib
+            .empty()
             .withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC721).withToken(
-                    address(1234)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(5678)
+                SeaportArrays.OfferItems(
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1234)),
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(5678)
+                    )
                 )
             )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-                    .withToken(address(1234)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC20)
-                    .withToken(address(5678)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(9101112))
-            )
-        );
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1234)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC20)
+                        .withToken(address(5678)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(9101112))
+                )
+            );
 
         (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         ) = test.getNaiveFulfillmentComponents(
-            SeaportArrays.OrderParametersArray(orderParameters)
-        );
+                SeaportArrays.OrderParametersArray(orderParameters)
+            );
 
         assertEq(offer.length, 2);
         assertEq(offer[0].length, 1);
@@ -80,27 +90,35 @@ contract FulfillAvailableHelperTest is Test {
         assertEq(consideration[2][0].orderIndex, 0);
         assertEq(consideration[2][0].itemIndex, 2);
 
-        OrderParameters memory parameters2 = OrderParametersLib.empty()
+        OrderParameters memory parameters2 = OrderParametersLib
+            .empty()
             .withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC721).withToken(
-                    address(1235)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(5679)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC1155).withToken(
-                    address(9101113)
+                SeaportArrays.OfferItems(
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1235)),
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(5679)
+                    ),
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(9101113))
                 )
             )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-                    .withToken(address(1235)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC20)
-                    .withToken(address(5679))
-            )
-        );
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1235)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC20)
+                        .withToken(address(5679))
+                )
+            );
 
         (offer, consideration) = test.getNaiveFulfillmentComponents(
             SeaportArrays.OrderParametersArray(orderParameters, parameters2)
@@ -140,35 +158,45 @@ contract FulfillAvailableHelperTest is Test {
     }
 
     function testAggregated_single() public {
-        OrderParameters memory parameters = OrderParametersLib.empty().withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC721).withToken(
-                    address(1235)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
+        OrderParameters memory parameters = OrderParametersLib
+            .empty()
+            .withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    ),
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1235)),
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    )
                 )
             )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-                    .withToken(address(1234)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678))
-            )
-        );
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1234)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
+            );
 
         (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         ) = test.getAggregatedFulfillmentComponents(
-            SeaportArrays.OrderParametersArray(parameters)
-        );
+                SeaportArrays.OrderParametersArray(parameters)
+            );
         assertEq(offer.length, 2, "offer length incorrect");
         assertEq(offer[0].length, 2, "offer index 0 length incorrect");
         assertEq(
@@ -205,7 +233,9 @@ contract FulfillAvailableHelperTest is Test {
 
         assertEq(consideration.length, 2, "consideration length incorrect");
         assertEq(
-            consideration[0].length, 1, "consideration index 0 length incorrect"
+            consideration[0].length,
+            1,
+            "consideration index 0 length incorrect"
         );
         assertEq(
             consideration[0][0].orderIndex,
@@ -218,7 +248,9 @@ contract FulfillAvailableHelperTest is Test {
             "consideration index 0 index 0 item index incorrect"
         );
         assertEq(
-            consideration[1].length, 2, "consideration index 1 length incorrect"
+            consideration[1].length,
+            2,
+            "consideration index 1 length incorrect"
         );
         assertEq(
             consideration[1][0].orderIndex,
@@ -243,53 +275,70 @@ contract FulfillAvailableHelperTest is Test {
     }
 
     function testAggregated_multi() public {
-        OrderParameters memory parameters = OrderParametersLib.empty().withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC721).withToken(
-                    address(1235)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                )
-            )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-                    .withToken(address(1234)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678))
-            )
-        );
-        OrderParameters memory parameters2 = OrderParametersLib.empty()
+        OrderParameters memory parameters = OrderParametersLib
+            .empty()
             .withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC1155).withToken(
-                    address(5678)
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    ),
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1235)),
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    )
                 )
             )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678))
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1234)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
+            );
+        OrderParameters memory parameters2 = OrderParametersLib
+            .empty()
+            .withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    ),
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
             )
-        );
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
+            );
 
         (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         ) = test.getAggregatedFulfillmentComponents(
-            SeaportArrays.OrderParametersArray(parameters, parameters2)
-        );
+                SeaportArrays.OrderParametersArray(parameters, parameters2)
+            );
 
         assertEq(offer.length, 3, "offer length incorrect");
         assertEq(offer[0].length, 3, "offer index 0 length incorrect");
@@ -350,7 +399,9 @@ contract FulfillAvailableHelperTest is Test {
 
         assertEq(consideration.length, 2, "consideration length incorrect");
         assertEq(
-            consideration[0].length, 1, "consideration index 0 length incorrect"
+            consideration[0].length,
+            1,
+            "consideration index 0 length incorrect"
         );
         assertEq(
             consideration[0][0].orderIndex,
@@ -364,7 +415,9 @@ contract FulfillAvailableHelperTest is Test {
         );
 
         assertEq(
-            consideration[1].length, 4, "consideration index 1 length incorrect"
+            consideration[1].length,
+            4,
+            "consideration index 1 length incorrect"
         );
         assertEq(
             consideration[1][0].orderIndex,
@@ -409,53 +462,71 @@ contract FulfillAvailableHelperTest is Test {
     }
 
     function testAggregated_multi_conduitKey() public {
-        OrderParameters memory parameters = OrderParametersLib.empty().withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC721).withToken(
-                    address(1235)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                )
-            )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-                    .withToken(address(1234)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678))
-            )
-        );
-        OrderParameters memory parameters2 = OrderParametersLib.empty()
+        OrderParameters memory parameters = OrderParametersLib
+            .empty()
             .withOffer(
-            SeaportArrays.OfferItems(
-                OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
-                    address(1234)
-                ),
-                OfferItemLib.empty().withItemType(ItemType.ERC1155).withToken(
-                    address(5678)
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    ),
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1235)),
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    )
                 )
             )
-        ).withConsideration(
-            SeaportArrays.ConsiderationItems(
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678)),
-                ConsiderationItemLib.empty().withItemType(ItemType.ERC1155)
-                    .withToken(address(5678))
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC721)
+                        .withToken(address(1234)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
+            );
+        OrderParameters memory parameters2 = OrderParametersLib
+            .empty()
+            .withOffer(
+                SeaportArrays.OfferItems(
+                    OfferItemLib.empty().withItemType(ItemType.ERC20).withToken(
+                        address(1234)
+                    ),
+                    OfferItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
             )
-        ).withConduitKey(bytes32(uint256(1)));
+            .withConsideration(
+                SeaportArrays.ConsiderationItems(
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678)),
+                    ConsiderationItemLib
+                        .empty()
+                        .withItemType(ItemType.ERC1155)
+                        .withToken(address(5678))
+                )
+            )
+            .withConduitKey(bytes32(uint256(1)));
 
         (
             FulfillmentComponent[][] memory offer,
             FulfillmentComponent[][] memory consideration
         ) = test.getAggregatedFulfillmentComponents(
-            SeaportArrays.OrderParametersArray(parameters, parameters2)
-        );
+                SeaportArrays.OrderParametersArray(parameters, parameters2)
+            );
 
         assertEq(offer.length, 4, "offer length incorrect");
         assertEq(offer[0].length, 2, "offer index 0 length incorrect");
@@ -528,7 +599,9 @@ contract FulfillAvailableHelperTest is Test {
 
         assertEq(consideration.length, 2, "consideration length incorrect");
         assertEq(
-            consideration[0].length, 1, "consideration index 0 length incorrect"
+            consideration[0].length,
+            1,
+            "consideration index 0 length incorrect"
         );
         assertEq(
             consideration[0][0].orderIndex,
@@ -542,7 +615,9 @@ contract FulfillAvailableHelperTest is Test {
         );
 
         assertEq(
-            consideration[1].length, 4, "consideration index 1 length incorrect"
+            consideration[1].length,
+            4,
+            "consideration index 1 length incorrect"
         );
         assertEq(
             consideration[1][0].orderIndex,

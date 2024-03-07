@@ -24,8 +24,9 @@ import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
-import { ConduitControllerInterface } from
-    "seaport-sol/src/ConduitControllerInterface.sol";
+import {
+    ConduitControllerInterface
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { TestHelpers } from "./FuzzTestContextLib.sol";
 
@@ -35,16 +36,19 @@ import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 
-import { HashValidationZoneOfferer } from
-    "../../../../contracts/test/HashValidationZoneOfferer.sol";
+import {
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
-import { HashCalldataContractOfferer } from
-    "../../../../contracts/test/HashCalldataContractOfferer.sol";
+import {
+    HashCalldataContractOfferer
+} from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
-import { HashValidationZoneOfferer } from
-    "../../../../contracts/test/HashValidationZoneOfferer.sol";
+import {
+    HashValidationZoneOfferer
+} from "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { setLabel } from "./Labeler.sol";
 
@@ -99,38 +103,42 @@ library FuzzGeneratorContextLib {
 
         TestHelpers testHelpers = TestHelpers(address(this));
 
-        return FuzzGeneratorContext({
-            vm: Vm(address(0)),
-            seaport: SeaportInterface(address(0)),
-            conduitController: ConduitControllerInterface(address(0)),
-            erc20s: new TestERC20[](0),
-            erc721s: new TestERC721[](0),
-            erc1155s: new TestERC1155[](0),
-            prng: prng,
-            testHelpers: testHelpers,
-            timestamp: block.timestamp,
-            validatorZone: new HashValidationZoneOfferer(address(0)),
-            contractOfferer: new HashCalldataContractOfferer(address(0)),
-            eip1271Offerer: new EIP1271Offerer(),
-            self: address(this),
-            caller: address(this),
-            alice: testHelpers.makeAccountWrapper("alice"),
-            bob: testHelpers.makeAccountWrapper("bob"),
-            carol: testHelpers.makeAccountWrapper("carol"),
-            dillon: testHelpers.makeAccountWrapper("dillon"),
-            eve: testHelpers.makeAccountWrapper("eve"),
-            frank: testHelpers.makeAccountWrapper("frank"),
-            conduits: new TestConduit[](2),
-            starting721offerIndex: 0,
-            starting721considerationIndex: 0,
-            potential1155TokenIds: potential1155TokenIds,
-            basicOrderCategory: BasicOrderCategory.NONE,
-            basicOfferSpace: OfferItemSpace(
-                ItemType.NATIVE, TokenIndex.ONE, Criteria.MERKLE, Amount.FIXED
+        return
+            FuzzGeneratorContext({
+                vm: Vm(address(0)),
+                seaport: SeaportInterface(address(0)),
+                conduitController: ConduitControllerInterface(address(0)),
+                erc20s: new TestERC20[](0),
+                erc721s: new TestERC721[](0),
+                erc1155s: new TestERC1155[](0),
+                prng: prng,
+                testHelpers: testHelpers,
+                timestamp: block.timestamp,
+                validatorZone: new HashValidationZoneOfferer(address(0)),
+                contractOfferer: new HashCalldataContractOfferer(address(0)),
+                eip1271Offerer: new EIP1271Offerer(),
+                self: address(this),
+                caller: address(this),
+                alice: testHelpers.makeAccountWrapper("alice"),
+                bob: testHelpers.makeAccountWrapper("bob"),
+                carol: testHelpers.makeAccountWrapper("carol"),
+                dillon: testHelpers.makeAccountWrapper("dillon"),
+                eve: testHelpers.makeAccountWrapper("eve"),
+                frank: testHelpers.makeAccountWrapper("frank"),
+                conduits: new TestConduit[](2),
+                starting721offerIndex: 0,
+                starting721considerationIndex: 0,
+                potential1155TokenIds: potential1155TokenIds,
+                basicOrderCategory: BasicOrderCategory.NONE,
+                basicOfferSpace: OfferItemSpace(
+                    ItemType.NATIVE,
+                    TokenIndex.ONE,
+                    Criteria.MERKLE,
+                    Amount.FIXED
                 ),
-            counter: 0,
-            contractOffererNonce: 0
-        });
+                counter: 0,
+                contractOffererNonce: 0
+            });
     }
 
     /**
@@ -165,8 +173,7 @@ library FuzzGeneratorContextLib {
         HashValidationZoneOfferer validatorZone = new HashValidationZoneOfferer(
             address(0)
         );
-        HashCalldataContractOfferer contractOfferer =
-        new HashCalldataContractOfferer(
+        HashCalldataContractOfferer contractOfferer = new HashCalldataContractOfferer(
                 address(seaport)
             );
         EIP1271Offerer eip1271Offerer = new EIP1271Offerer();
@@ -175,38 +182,42 @@ library FuzzGeneratorContextLib {
         setLabel(address(contractOfferer), "contractOfferer");
         setLabel(address(eip1271Offerer), "eip1271Offerer");
 
-        return FuzzGeneratorContext({
-            vm: vm,
-            seaport: seaport,
-            conduitController: conduitController,
-            erc20s: erc20s,
-            erc721s: erc721s,
-            erc1155s: erc1155s,
-            prng: prng,
-            testHelpers: testHelpers,
-            timestamp: block.timestamp,
-            validatorZone: validatorZone,
-            contractOfferer: contractOfferer,
-            eip1271Offerer: eip1271Offerer,
-            self: address(this),
-            caller: address(this),
-            alice: testHelpers.makeAccountWrapper("alice"),
-            bob: testHelpers.makeAccountWrapper("bob"),
-            carol: testHelpers.makeAccountWrapper("carol"),
-            dillon: testHelpers.makeAccountWrapper("dillon"),
-            eve: testHelpers.makeAccountWrapper("eve"),
-            frank: testHelpers.makeAccountWrapper("frank"),
-            conduits: conduits,
-            starting721offerIndex: 0,
-            starting721considerationIndex: 0,
-            potential1155TokenIds: potential1155TokenIds,
-            basicOrderCategory: BasicOrderCategory.NONE,
-            basicOfferSpace: OfferItemSpace(
-                ItemType.NATIVE, TokenIndex.ONE, Criteria.MERKLE, Amount.FIXED
+        return
+            FuzzGeneratorContext({
+                vm: vm,
+                seaport: seaport,
+                conduitController: conduitController,
+                erc20s: erc20s,
+                erc721s: erc721s,
+                erc1155s: erc1155s,
+                prng: prng,
+                testHelpers: testHelpers,
+                timestamp: block.timestamp,
+                validatorZone: validatorZone,
+                contractOfferer: contractOfferer,
+                eip1271Offerer: eip1271Offerer,
+                self: address(this),
+                caller: address(this),
+                alice: testHelpers.makeAccountWrapper("alice"),
+                bob: testHelpers.makeAccountWrapper("bob"),
+                carol: testHelpers.makeAccountWrapper("carol"),
+                dillon: testHelpers.makeAccountWrapper("dillon"),
+                eve: testHelpers.makeAccountWrapper("eve"),
+                frank: testHelpers.makeAccountWrapper("frank"),
+                conduits: conduits,
+                starting721offerIndex: 0,
+                starting721considerationIndex: 0,
+                potential1155TokenIds: potential1155TokenIds,
+                basicOrderCategory: BasicOrderCategory.NONE,
+                basicOfferSpace: OfferItemSpace(
+                    ItemType.NATIVE,
+                    TokenIndex.ONE,
+                    Criteria.MERKLE,
+                    Amount.FIXED
                 ),
-            counter: 0,
-            contractOffererNonce: 0
-        });
+                counter: 0,
+                contractOffererNonce: 0
+            });
     }
 
     /**
@@ -217,12 +228,17 @@ library FuzzGeneratorContextLib {
         SeaportInterface seaport,
         uint96 conduitSalt
     ) internal returns (TestConduit memory) {
-        bytes32 conduitKey =
-            abi.decode(abi.encodePacked(address(this), conduitSalt), (bytes32));
-        Conduit conduit =
-            Conduit(conduitController.createConduit(conduitKey, address(this)));
+        bytes32 conduitKey = abi.decode(
+            abi.encodePacked(address(this), conduitSalt),
+            (bytes32)
+        );
+        Conduit conduit = Conduit(
+            conduitController.createConduit(conduitKey, address(this))
+        );
         conduitController.updateChannel(
-            address(conduit), address(seaport), true
+            address(conduit),
+            address(seaport),
+            true
         );
         return TestConduit({ addr: address(conduit), key: conduitKey });
     }

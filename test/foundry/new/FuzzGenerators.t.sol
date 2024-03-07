@@ -47,11 +47,13 @@ import { TestHelpers } from "./helpers/FuzzTestContextLib.sol";
 
 import { EIP1271Offerer } from "../new/helpers/EIP1271Offerer.sol";
 
-import { HashValidationZoneOfferer } from
-    "../../../contracts/test/HashValidationZoneOfferer.sol";
+import {
+    HashValidationZoneOfferer
+} from "../../../contracts/test/HashValidationZoneOfferer.sol";
 
-import { HashCalldataContractOfferer } from
-    "../../../contracts/test/HashCalldataContractOfferer.sol";
+import {
+    HashCalldataContractOfferer
+} from "../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import {
     DefaultFulfillmentGeneratorLib,
@@ -73,38 +75,42 @@ contract FuzzGeneratorsTest is BaseOrderTest {
         potential1155TokenIds[1] = 2;
         potential1155TokenIds[2] = 3;
 
-        return FuzzGeneratorContext({
-            vm: vm,
-            testHelpers: TestHelpers(address(this)),
-            prng: prng,
-            timestamp: block.timestamp,
-            seaport: getSeaport(),
-            conduitController: getConduitController(),
-            validatorZone: new HashValidationZoneOfferer(address(0)),
-            contractOfferer: new HashCalldataContractOfferer(address(0)),
-            eip1271Offerer: new EIP1271Offerer(),
-            erc20s: erc20s,
-            erc721s: erc721s,
-            erc1155s: erc1155s,
-            self: address(this),
-            caller: address(this),
-            alice: makeAccountWrapper("alice"),
-            bob: makeAccountWrapper("bob"),
-            carol: makeAccountWrapper("carol"),
-            dillon: makeAccountWrapper("dillon"),
-            eve: makeAccountWrapper("eve"),
-            frank: makeAccountWrapper("frank"),
-            starting721offerIndex: 1,
-            starting721considerationIndex: 1,
-            potential1155TokenIds: potential1155TokenIds,
-            conduits: new TestConduit[](2),
-            basicOrderCategory: BasicOrderCategory.NONE,
-            basicOfferSpace: OfferItemSpace(
-                ItemType.NATIVE, TokenIndex.ONE, Criteria.MERKLE, Amount.FIXED
+        return
+            FuzzGeneratorContext({
+                vm: vm,
+                testHelpers: TestHelpers(address(this)),
+                prng: prng,
+                timestamp: block.timestamp,
+                seaport: getSeaport(),
+                conduitController: getConduitController(),
+                validatorZone: new HashValidationZoneOfferer(address(0)),
+                contractOfferer: new HashCalldataContractOfferer(address(0)),
+                eip1271Offerer: new EIP1271Offerer(),
+                erc20s: erc20s,
+                erc721s: erc721s,
+                erc1155s: erc1155s,
+                self: address(this),
+                caller: address(this),
+                alice: makeAccountWrapper("alice"),
+                bob: makeAccountWrapper("bob"),
+                carol: makeAccountWrapper("carol"),
+                dillon: makeAccountWrapper("dillon"),
+                eve: makeAccountWrapper("eve"),
+                frank: makeAccountWrapper("frank"),
+                starting721offerIndex: 1,
+                starting721considerationIndex: 1,
+                potential1155TokenIds: potential1155TokenIds,
+                conduits: new TestConduit[](2),
+                basicOrderCategory: BasicOrderCategory.NONE,
+                basicOfferSpace: OfferItemSpace(
+                    ItemType.NATIVE,
+                    TokenIndex.ONE,
+                    Criteria.MERKLE,
+                    Amount.FIXED
                 ),
-            counter: 0,
-            contractOffererNonce: 0
-        });
+                counter: 0,
+                contractOffererNonce: 0
+            });
     }
 
     // NOTE: empty order space is not supported for now
@@ -117,18 +123,21 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: DefaultFulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
-        AdvancedOrder[] memory orders =
-            AdvancedOrdersSpaceGenerator.generate(space, context);
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            context
+        );
         assertEq(orders.length, 0);
     }
 
     function test_emptyOfferConsideration() public {
         FuzzGeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](0);
-        ConsiderationItemSpace[] memory consideration =
-            new ConsiderationItemSpace[](0);
+        ConsiderationItemSpace[]
+            memory consideration = new ConsiderationItemSpace[](0);
 
         OrderComponentsSpace memory component = OrderComponentsSpace({
             offerer: Offerer.ALICE,
@@ -161,10 +170,13 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: DefaultFulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
-        AdvancedOrder[] memory orders =
-            AdvancedOrdersSpaceGenerator.generate(space, context);
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            context
+        );
         assertEq(orders.length, 1);
         assertEq(orders[0].parameters.offer.length, 0);
         // Empty order groups have a consideration item inserted on some order
@@ -180,8 +192,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             criteria: Criteria.MERKLE,
             amount: Amount.FIXED
         });
-        ConsiderationItemSpace[] memory consideration =
-            new ConsiderationItemSpace[](0);
+        ConsiderationItemSpace[]
+            memory consideration = new ConsiderationItemSpace[](0);
 
         OrderComponentsSpace memory component = OrderComponentsSpace({
             offerer: Offerer.ALICE,
@@ -214,10 +226,13 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: DefaultFulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
-        AdvancedOrder[] memory orders =
-            AdvancedOrdersSpaceGenerator.generate(space, context);
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            context
+        );
         assertEq(orders.length, 1);
         assertEq(orders[0].parameters.offer.length, 1);
 
@@ -237,8 +252,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
     function test_emptyOffer_singleConsideration() public {
         FuzzGeneratorContext memory context = createContext();
         OfferItemSpace[] memory offer = new OfferItemSpace[](0);
-        ConsiderationItemSpace[] memory consideration =
-            new ConsiderationItemSpace[](1);
+        ConsiderationItemSpace[]
+            memory consideration = new ConsiderationItemSpace[](1);
         consideration[0] = ConsiderationItemSpace({
             itemType: ItemType.ERC20,
             tokenIndex: TokenIndex.ONE,
@@ -278,10 +293,13 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: DefaultFulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
-        AdvancedOrder[] memory orders =
-            AdvancedOrdersSpaceGenerator.generate(space, context);
+        AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
+            space,
+            context
+        );
         assertEq(orders.length, 1);
         assertEq(orders[0].parameters.offer.length, 0);
         assertEq(orders[0].parameters.consideration.length, 1);
@@ -296,7 +314,10 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             orders[0].parameters.offerer
         );
 
-        assertEq(orders[0].parameters.consideration[0].itemType, ItemType.ERC20);
+        assertEq(
+            orders[0].parameters.consideration[0].itemType,
+            ItemType.ERC20
+        );
     }
 
     function assertEq(ItemType a, ItemType b) internal {

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { MemoryPointer } from "../../../../../contracts/helpers/ArrayHelpers.sol";
+import {
+    MemoryPointer
+} from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import {
     AdvancedOrder,
@@ -22,7 +24,11 @@ import { AdvancedOrderLib } from "seaport-sol/src/lib/AdvancedOrderLib.sol";
 
 import { OrderParametersLib } from "seaport-sol/src/lib/OrderParametersLib.sol";
 
-import { OrderFulfilledEvent, EventSerializer, vm } from "./EventSerializer.sol";
+import {
+    OrderFulfilledEvent,
+    EventSerializer,
+    vm
+} from "./EventSerializer.sol";
 
 library OrderFulfilledEventsLib {
     using { toBytes32 } for address;
@@ -72,28 +78,32 @@ library OrderFulfilledEventsLib {
         FuzzTestContext memory context,
         uint256 orderIndex
     ) internal pure returns (bytes32 eventHash) {
-        OrderParameters memory orderParams =
-            context.executionState.orders[orderIndex].parameters;
+        OrderParameters memory orderParams = context
+            .executionState
+            .orders[orderIndex]
+            .parameters;
 
-        OrderDetails memory details =
-            (context.executionState.orderDetails[orderIndex]);
-
-        return getEventHashWithTopics(
-            address(context.seaport), // emitter
-            OrderFulfilled.selector, // topic0
-            orderParams.offerer.toBytes32(), // topic1 - offerer
-            orderParams.zone.toBytes32(), // topic2 - zone
-            keccak256(
-                abi.encode(
-                    details.orderHash,
-                    context.executionState.recipient == address(0)
-                        ? context.executionState.caller
-                        : context.executionState.recipient,
-                    details.offer,
-                    details.consideration
-                )
-            ) // dataHash
+        OrderDetails memory details = (
+            context.executionState.orderDetails[orderIndex]
         );
+
+        return
+            getEventHashWithTopics(
+                address(context.seaport), // emitter
+                OrderFulfilled.selector, // topic0
+                orderParams.offerer.toBytes32(), // topic1 - offerer
+                orderParams.zone.toBytes32(), // topic2 - zone
+                keccak256(
+                    abi.encode(
+                        details.orderHash,
+                        context.executionState.recipient == address(0)
+                            ? context.executionState.caller
+                            : context.executionState.recipient,
+                        details.offer,
+                        details.consideration
+                    )
+                ) // dataHash
+            );
     }
 }
 

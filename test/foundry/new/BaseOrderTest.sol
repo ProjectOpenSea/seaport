@@ -5,11 +5,13 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
-import { FulfillAvailableHelper } from
-    "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";
+import {
+    FulfillAvailableHelper
+} from "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";
 
-import { MatchFulfillmentHelper } from
-    "seaport-sol/src/fulfillments/match/MatchFulfillmentHelper.sol";
+import {
+    MatchFulfillmentHelper
+} from "seaport-sol/src/fulfillments/match/MatchFulfillmentHelper.sol";
 
 import {
     AdvancedOrderLib,
@@ -172,59 +174,103 @@ contract BaseOrderTest is
      *      tests.
      */
     function _configureStructDefaults() internal {
-        OfferItemLib.empty().withItemType(ItemType.ERC721).withStartAmount(1)
-            .withEndAmount(1).saveDefault(SINGLE_ERC721);
-        ConsiderationItemLib.empty().withItemType(ItemType.ERC721)
-            .withStartAmount(1).withEndAmount(1).saveDefault(SINGLE_ERC721);
+        OfferItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withStartAmount(1)
+            .withEndAmount(1)
+            .saveDefault(SINGLE_ERC721);
+        ConsiderationItemLib
+            .empty()
+            .withItemType(ItemType.ERC721)
+            .withStartAmount(1)
+            .withEndAmount(1)
+            .saveDefault(SINGLE_ERC721);
 
-        OrderComponentsLib.empty().withOrderType(OrderType.FULL_OPEN)
-            .withStartTime(block.timestamp).withEndTime(block.timestamp + 100)
+        OrderComponentsLib
+            .empty()
+            .withOrderType(OrderType.FULL_OPEN)
+            .withStartTime(block.timestamp)
+            .withEndTime(block.timestamp + 100)
             .saveDefault(STANDARD);
 
-        OrderComponentsLib.fromDefault(STANDARD).withConduitKey(conduitKey)
+        OrderComponentsLib
+            .fromDefault(STANDARD)
+            .withConduitKey(conduitKey)
             .saveDefault(STANDARD_CONDUIT);
 
-        AdvancedOrderLib.empty().withNumerator(1).withDenominator(1).saveDefault(
-            FULL
-        );
+        AdvancedOrderLib
+            .empty()
+            .withNumerator(1)
+            .withDenominator(1)
+            .saveDefault(FULL);
 
-        FulfillmentComponentLib.empty().withOrderIndex(0).withItemIndex(0)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(0)
+            .withItemIndex(0)
             .saveDefault(FIRST_FIRST);
-        FulfillmentComponentLib.empty().withOrderIndex(0).withItemIndex(1)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(0)
+            .withItemIndex(1)
             .saveDefault(FIRST_SECOND);
-        FulfillmentComponentLib.empty().withOrderIndex(1).withItemIndex(0)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(1)
+            .withItemIndex(0)
             .saveDefault(SECOND_FIRST);
-        FulfillmentComponentLib.empty().withOrderIndex(1).withItemIndex(1)
+        FulfillmentComponentLib
+            .empty()
+            .withOrderIndex(1)
+            .withItemIndex(1)
             .saveDefault(SECOND_SECOND);
 
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(FIRST_FIRST)
-        ).saveDefaultMany(FIRST_FIRST);
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(FIRST_SECOND)
-        ).saveDefaultMany(FIRST_SECOND);
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(SECOND_FIRST)
-        ).saveDefaultMany(SECOND_FIRST);
-        SeaportArrays.FulfillmentComponents(
-            FulfillmentComponentLib.fromDefault(SECOND_SECOND)
-        ).saveDefaultMany(SECOND_SECOND);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(FIRST_FIRST)
+            )
+            .saveDefaultMany(FIRST_FIRST);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(FIRST_SECOND)
+            )
+            .saveDefaultMany(FIRST_SECOND);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(SECOND_FIRST)
+            )
+            .saveDefaultMany(SECOND_FIRST);
+        SeaportArrays
+            .FulfillmentComponents(
+                FulfillmentComponentLib.fromDefault(SECOND_SECOND)
+            )
+            .saveDefaultMany(SECOND_SECOND);
 
-        FulfillmentLib.empty().withOfferComponents(
-            FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-        ).withConsiderationComponents(
-            FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-        ).saveDefault(SF_FF);
-        FulfillmentLib.empty().withOfferComponents(
-            FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
-        ).withConsiderationComponents(
-            FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
-        ).saveDefault(FF_SF);
+        FulfillmentLib
+            .empty()
+            .withOfferComponents(
+                FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+            )
+            .withConsiderationComponents(
+                FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+            )
+            .saveDefault(SF_FF);
+        FulfillmentLib
+            .empty()
+            .withOfferComponents(
+                FulfillmentComponentLib.fromDefaultMany(FIRST_FIRST)
+            )
+            .withConsiderationComponents(
+                FulfillmentComponentLib.fromDefaultMany(SECOND_FIRST)
+            )
+            .saveDefault(FF_SF);
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {
             fail("Differential test should have reverted with failure status");
         } catch (bytes memory reason) {
@@ -237,10 +283,9 @@ contract BaseOrderTest is
      *      instead of internal visibility, so that we can access it in
      *      libraries.
      */
-    function makeAccountWrapper(string memory name)
-        public
-        returns (Account memory)
-    {
+    function makeAccountWrapper(
+        string memory name
+    ) public returns (Account memory) {
         return makeAccount(name);
     }
 
@@ -248,10 +293,9 @@ contract BaseOrderTest is
      * @dev Convenience wrapper for makeAddrAndKey that also allocates tokens,
      *      ether, and approvals.
      */
-    function makeAndAllocateAccount(string memory name)
-        internal
-        returns (Account memory)
-    {
+    function makeAndAllocateAccount(
+        string memory name
+    ) internal returns (Account memory) {
         Account memory account = makeAccountWrapper(name);
         allocateTokensAndApprovals(account.addr, type(uint128).max);
         return account;
@@ -260,10 +304,9 @@ contract BaseOrderTest is
     /**
      * @dev Sets up a new address and sets up token approvals for it.
      */
-    function makeAddrWithAllocationsAndApprovals(string memory label)
-        internal
-        returns (address)
-    {
+    function makeAddrWithAllocationsAndApprovals(
+        string memory label
+    ) internal returns (address) {
         address addr = makeAddr(label);
         allocateTokensAndApprovals(addr, type(uint128).max);
         return addr;
@@ -300,7 +343,10 @@ contract BaseOrderTest is
         i = erc721s.length;
         TestERC721 token = new TestERC721();
         erc721s.push(token);
-        setLabel(address(token), string.concat("ERC721", LibString.toString(i)));
+        setLabel(
+            address(token),
+            string.concat("ERC721", LibString.toString(i))
+        );
     }
 
     /**
@@ -312,7 +358,8 @@ contract BaseOrderTest is
         TestERC1155 token = new TestERC1155();
         erc1155s.push(token);
         setLabel(
-            address(token), string.concat("ERC1155", LibString.toString(i))
+            address(token),
+            string.concat("ERC1155", LibString.toString(i))
         );
     }
 
@@ -357,5 +404,5 @@ contract BaseOrderTest is
         vm.stopPrank();
     }
 
-    receive() external payable virtual { }
+    receive() external payable virtual {}
 }

@@ -3,11 +3,13 @@
 pragma solidity ^0.8.17;
 
 import {
-    OrderType, ItemType
+    OrderType,
+    ItemType
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { ConsiderationInterface } from
-    "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     Order,
@@ -50,8 +52,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
     modifier validateInputs(FuzzInputs memory inputs) {
         vm.assume(
-            inputs.paymentAmts[0] > 0 && inputs.paymentAmts[1] > 0
-                && inputs.paymentAmts[2] > 0
+            inputs.paymentAmts[0] > 0 &&
+                inputs.paymentAmts[1] > 0 &&
+                inputs.paymentAmts[2] > 0
         );
         vm.assume(
             inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
@@ -61,18 +64,18 @@ contract FulfillAvailableOrder is BaseOrderTest {
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
-        try fn(context) { }
-        catch (bytes memory reason) {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
+        try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testNoNativeOffersFulfillAvailable(uint8[8] memory itemTypes)
-        public
-    {
+    function testNoNativeOffersFulfillAvailable(
+        uint8[8] memory itemTypes
+    ) public {
         uint256 tokenId;
         for (uint256 i; i < 8; i++) {
             ItemType itemType = ItemType(itemTypes[i] % 4);
@@ -105,17 +108,20 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function noNativeOfferItemsFulfillAvailable(Context memory context)
-        external
-        stateless
-    {
+    function noNativeOfferItemsFulfillAvailable(
+        Context memory context
+    ) external stateless {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
         configureOrderComponents(counter);
-        bytes32 orderHash =
-            context.consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature =
-            signOrder(context.consideration, alicePk, orderHash);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
 
         Order[] memory orders = new Order[](2);
         orders[1] = Order(baseOrderParameters, signature);
@@ -133,10 +139,14 @@ contract FulfillAvailableOrder is BaseOrderTest {
         configureOrderParameters(alice);
         counter = context.consideration.getCounter(alice);
         configureOrderComponents(counter);
-        bytes32 orderHash2 =
-            context.consideration.getOrderHash(baseOrderComponents);
-        bytes memory signature2 =
-            signOrder(context.consideration, alicePk, orderHash2);
+        bytes32 orderHash2 = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature2 = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash2
+        );
         offerComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
@@ -211,8 +221,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         args.paymentAmts[1] = uint120(args.paymentAmts[1].mul(2));
         args.paymentAmts[2] = uint120(args.paymentAmts[2].mul(2));
         vm.assume(
-            args.paymentAmts[0] > 0 && args.paymentAmts[1] > 0
-                && args.paymentAmts[2] > 0
+            args.paymentAmts[0] > 0 &&
+                args.paymentAmts[1] > 0 &&
+                args.paymentAmts[2] > 0
         );
         test(
             this
@@ -226,10 +237,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableOrdersOverflowOfferSide(Context memory context)
-        external
-        stateless
-    {
+    function fulfillAvailableOrdersOverflowOfferSide(
+        Context memory context
+    ) external stateless {
         // mint consideration nfts to the test contract
         test721_1.mint(address(this), 1);
         test721_1.mint(address(this), 2);
@@ -252,7 +262,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            orderParameters, context.consideration.getCounter(alice)
+            orderParameters,
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -282,7 +293,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters, context.consideration.getCounter(alice)
+            secondOrderParameters,
+            context.consideration.getCounter(alice)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -339,7 +351,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            orderParameters, context.consideration.getCounter(alice)
+            orderParameters,
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -370,7 +383,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters, context.consideration.getCounter(bob)
+            secondOrderParameters,
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -407,13 +421,18 @@ contract FulfillAvailableOrder is BaseOrderTest {
     function singleOrderViaFulfillAvailableOrdersEthToSingleErc721(
         Context memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
+                ItemType.ERC721,
+                address(test721_1),
+                context.args.id,
+                1,
+                1
             )
         );
         considerationItems.push(
@@ -462,7 +481,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters, context.consideration.getCounter(alice)
+            orderParameters,
+            context.consideration.getCounter(alice)
         );
 
         bytes memory signature = signOrder(
@@ -493,8 +513,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         assertTrue(considerationComponentsArray.length == 3);
 
         context.consideration.fulfillAvailableOrders{
-            value: context.args.paymentAmts[0] + context.args.paymentAmts[1]
-                + context.args.paymentAmts[2]
+            value: context.args.paymentAmts[0] +
+                context.args.paymentAmts[1] +
+                context.args.paymentAmts[2]
         }(
             orders,
             offerComponentsArray,
@@ -507,8 +528,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
     function fulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
         Context memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.args.amount.mul(2));
 
@@ -566,7 +588,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
             considerationItems.length
         );
         OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters, context.consideration.getCounter(alice)
+            orderParameters,
+            context.consideration.getCounter(alice)
         );
 
         bytes memory signature = signOrder(
@@ -590,7 +613,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters, context.consideration.getCounter(alice)
+            secondOrderParameters,
+            context.consideration.getCounter(alice)
         );
 
         bytes memory secondOrderSignature = signOrder(
@@ -625,8 +649,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         emit log_string("about to add");
 
         context.consideration.fulfillAvailableOrders{
-            value: context.args.paymentAmts[0] + context.args.paymentAmts[1]
-                + context.args.paymentAmts[2]
+            value: context.args.paymentAmts[0] +
+                context.args.paymentAmts[1] +
+                context.args.paymentAmts[2]
         }(
             orders,
             offerComponentsArray,

@@ -2625,8 +2625,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
           .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
-      )
-        .to.be.reverted; // TODO: get revert message bubbled up from the offerer
+      ).to.be.reverted; // TODO: get revert message bubbled up from the offerer
     });
     it("Reverts on contract orders where call to generateOrders throws and reverts are skipped", async () => {
       // Seller mints nfts
@@ -6503,7 +6502,7 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             fulfiller: owner.address,
           },
         ],
-        executions.filter((execution: any) => 
+        executions.filter((execution: any) =>
           BigNumber.from(execution.item.amount).gt(0)
         )
       );

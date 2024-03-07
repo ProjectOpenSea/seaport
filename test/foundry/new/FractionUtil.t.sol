@@ -22,9 +22,15 @@ contract FractionUtilTest is Test {
             denominatorToFill
         );
 
-        assertEq(results.realizedNumerator, 3, "Realized numerator should be 3");
         assertEq(
-            results.realizedDenominator, 12, "Realized denominator should be 12"
+            results.realizedNumerator,
+            3,
+            "Realized numerator should be 3"
+        );
+        assertEq(
+            results.realizedDenominator,
+            12,
+            "Realized denominator should be 12"
         );
         assertEq(
             results.finalFilledNumerator,
@@ -58,10 +64,14 @@ contract FractionUtilTest is Test {
         );
 
         assertEq(
-            results1.realizedNumerator, 2, "Realized numerator should be 2"
+            results1.realizedNumerator,
+            2,
+            "Realized numerator should be 2"
         );
         assertEq(
-            results1.realizedDenominator, 6, "Realized denominator should be 6"
+            results1.realizedDenominator,
+            6,
+            "Realized denominator should be 6"
         );
         assertEq(
             results1.finalFilledNumerator,
@@ -82,8 +92,8 @@ contract FractionUtilTest is Test {
 
     function testGetWholeFillResultsGCD() public {
         // Test for WHOLE_FILL_GCD
-        uint120 currentStatusDenominator =
-            type(uint120).max - (type(uint120).max % 3);
+        uint120 currentStatusDenominator = type(uint120).max -
+            (type(uint120).max % 3);
         uint120 currentStatusNumerator = (currentStatusDenominator / 3) * 2;
 
         uint120 numeratorToFill = 2;
@@ -97,10 +107,14 @@ contract FractionUtilTest is Test {
         );
 
         assertEq(
-            results2.realizedNumerator, 1, "Realized numerator should be 1"
+            results2.realizedNumerator,
+            1,
+            "Realized numerator should be 1"
         );
         assertEq(
-            results2.realizedDenominator, 3, "Realized denominator should be 3"
+            results2.realizedDenominator,
+            3,
+            "Realized denominator should be 3"
         );
         assertEq(
             results2.finalFilledNumerator,
@@ -121,8 +135,8 @@ contract FractionUtilTest is Test {
 
     function testGetPartialFillResultsGCD() public {
         // Test for PARTIAL_FILL_GCD
-        uint120 currentStatusDenominator =
-            type(uint120).max - (type(uint120).max % 3);
+        uint120 currentStatusDenominator = type(uint120).max -
+            (type(uint120).max % 3);
         uint120 currentStatusNumerator = (currentStatusDenominator / 3) * 2;
 
         uint120 numeratorToFill = 1;
@@ -136,10 +150,14 @@ contract FractionUtilTest is Test {
         );
 
         assertEq(
-            results3.realizedNumerator, 1, "Realized numerator should be 1"
+            results3.realizedNumerator,
+            1,
+            "Realized numerator should be 1"
         );
         assertEq(
-            results3.realizedDenominator, 3, "Realized denominator should be 3"
+            results3.realizedDenominator,
+            3,
+            "Realized denominator should be 3"
         );
         assertEq(
             results3.finalFilledNumerator,
@@ -176,10 +194,14 @@ contract FractionUtilTest is Test {
         );
 
         assertEq(
-            results4.realizedNumerator, 0, "Realized numerator should be 0"
+            results4.realizedNumerator,
+            0,
+            "Realized numerator should be 0"
         );
         assertEq(
-            results4.realizedDenominator, 0, "Realized denominator should be 0"
+            results4.realizedDenominator,
+            0,
+            "Realized denominator should be 0"
         );
         assertEq(
             results4.finalFilledNumerator,

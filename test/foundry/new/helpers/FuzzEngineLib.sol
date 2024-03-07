@@ -38,8 +38,9 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { FuzzDerivers } from "./FuzzDerivers.sol";
 
-import { DefaultFulfillmentGeneratorLib } from
-    "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
+import {
+    DefaultFulfillmentGeneratorLib
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 /**
  * @notice Stateless helpers for FuzzEngine. The FuzzEngine uses functions in
@@ -66,18 +67,15 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4 selector of a SeaportInterface function.
      */
-    function action(FuzzTestContext memory context)
-        internal
-        view
-        returns (bytes4)
-    {
+    function action(
+        FuzzTestContext memory context
+    ) internal view returns (bytes4) {
         if (context.actionSelected) return context._action;
         bytes4[] memory _actions = actions(context);
         context.actionSelected = true;
-        return (
-            context._action =
-                _actions[context.fuzzParams.seed % _actions.length]
-        );
+        return (context._action = _actions[
+            context.fuzzParams.seed % _actions.length
+        ]);
     }
 
     /**
@@ -86,11 +84,9 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return string name of the selected action.
      */
-    function actionName(FuzzTestContext memory context)
-        internal
-        view
-        returns (string memory)
-    {
+    function actionName(
+        FuzzTestContext memory context
+    ) internal view returns (string memory) {
         bytes4 selector = action(context);
         if (selector == 0xe7acab24) return "fulfillAdvancedOrder";
         if (selector == 0x87201b41) return "fulfillAvailableAdvancedOrders";
@@ -112,25 +108,27 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bytes4[] of SeaportInterface function selectors.
      */
-    function actions(FuzzTestContext memory context)
-        internal
-        view
-        returns (bytes4[] memory)
-    {
+    function actions(
+        FuzzTestContext memory context
+    ) internal view returns (bytes4[] memory) {
         Family family = context.executionState.orders.getFamily();
 
         bool containsOrderThatDemandsMatch = mustUseMatch(context);
 
-        Structure structure =
-            context.executionState.orders.getStructure(address(context.seaport));
+        Structure structure = context.executionState.orders.getStructure(
+            address(context.seaport)
+        );
 
-        bool hasUnavailable = context.executionState.maximumFulfilled
-            < context.executionState.orders.length;
-        for (uint256 i = 0; i < context.executionState.orderDetails.length; ++i)
-        {
+        bool hasUnavailable = context.executionState.maximumFulfilled <
+            context.executionState.orders.length;
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            ++i
+        ) {
             if (
-                context.executionState.orderDetails[i].unavailableReason
-                    != UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason !=
+                UnavailableReason.AVAILABLE
             ) {
                 hasUnavailable = true;
                 break;
@@ -146,14 +144,18 @@ library FuzzEngineLib {
 
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
-                selectors[0] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[0] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             } else {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
         }
@@ -164,11 +166,15 @@ library FuzzEngineLib {
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
                 selectors[2] = context.seaport.fulfillBasicOrder.selector;
-                selectors[3] =
-                    context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector;
+                selectors[3] = context
+                    .seaport
+                    .fulfillBasicOrder_efficient_6GL6yc
+                    .selector;
                 selectors[4] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[5] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[5] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
 
@@ -177,22 +183,26 @@ library FuzzEngineLib {
                 selectors[0] = context.seaport.fulfillOrder.selector;
                 selectors[1] = context.seaport.fulfillAdvancedOrder.selector;
                 selectors[2] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[3] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[3] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
 
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAdvancedOrder.selector;
-                selectors[1] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             }
         }
 
-        bool cannotMatch =
-            (context.executionState.hasRemainders || hasUnavailable);
+        bool cannotMatch = (context.executionState.hasRemainders ||
+            hasUnavailable);
 
         if (cannotMatch && containsOrderThatDemandsMatch) {
             revert("FuzzEngineLib: cannot fulfill provided combined order");
@@ -201,14 +211,18 @@ library FuzzEngineLib {
         if (cannotMatch) {
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](1);
-                selectors[0] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[0] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 return selectors;
             } else {
                 bytes4[] memory selectors = new bytes4[](2);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 //selectors[2] = context.seaport.cancel.selector;
                 //selectors[3] = context.seaport.validate.selector;
                 return selectors;
@@ -227,15 +241,19 @@ library FuzzEngineLib {
         } else {
             if (structure == Structure.ADVANCED) {
                 bytes4[] memory selectors = new bytes4[](2);
-                selectors[0] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[0] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 selectors[1] = context.seaport.matchAdvancedOrders.selector;
                 return selectors;
             } else {
                 bytes4[] memory selectors = new bytes4[](4);
                 selectors[0] = context.seaport.fulfillAvailableOrders.selector;
-                selectors[1] =
-                    context.seaport.fulfillAvailableAdvancedOrders.selector;
+                selectors[1] = context
+                    .seaport
+                    .fulfillAvailableAdvancedOrders
+                    .selector;
                 selectors[2] = context.seaport.matchOrders.selector;
                 selectors[3] = context.seaport.matchAdvancedOrders.selector;
                 //selectors[4] = context.seaport.cancel.selector;
@@ -253,11 +271,9 @@ library FuzzEngineLib {
      * @param context A Fuzz test context.
      * @return bool whether a matching function will be called.
      */
-    function mustUseMatch(FuzzTestContext memory context)
-        internal
-        pure
-        returns (bool)
-    {
+    function mustUseMatch(
+        FuzzTestContext memory context
+    ) internal pure returns (bool) {
         OrderDetails[] memory orders = context.executionState.orderDetails;
 
         for (uint256 i = 0; i < orders.length; ++i) {
@@ -295,13 +311,13 @@ library FuzzEngineLib {
                         l < comparisonOrder.consideration.length;
                         ++l
                     ) {
-                        ReceivedItem memory considerationItem =
-                            comparisonOrder.consideration[l];
+                        ReceivedItem memory considerationItem = comparisonOrder
+                            .consideration[l];
 
                         if (
-                            considerationItem.itemType == ItemType.ERC721
-                                && considerationItem.identifier == item.identifier
-                                && considerationItem.token == item.token
+                            considerationItem.itemType == ItemType.ERC721 &&
+                            considerationItem.identifier == item.identifier &&
+                            considerationItem.token == item.token
                         ) {
                             return true;
                         }
@@ -320,29 +336,33 @@ library FuzzEngineLib {
      * @return value The amount of native tokens to supply.
      * @return minimum The minimum amount of native tokens to supply.
      */
-    function getNativeTokensToSupply(FuzzTestContext memory context)
-        internal
-        returns (uint256 value, uint256 minimum)
-    {
-        bool isMatch = action(context)
-            == context.seaport.matchAdvancedOrders.selector
-            || action(context) == context.seaport.matchOrders.selector;
+    function getNativeTokensToSupply(
+        FuzzTestContext memory context
+    ) internal returns (uint256 value, uint256 minimum) {
+        bool isMatch = action(context) ==
+            context.seaport.matchAdvancedOrders.selector ||
+            action(context) == context.seaport.matchOrders.selector;
 
         uint256 valueToCreditBack = 0;
 
-        for (uint256 i = 0; i < context.executionState.orderDetails.length; ++i)
-        {
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            ++i
+        ) {
             OrderDetails memory order = context.executionState.orderDetails[i];
-            OrderParameters memory orderParams =
-                context.executionState.previewedOrders[i].parameters;
+            OrderParameters memory orderParams = context
+                .executionState
+                .previewedOrders[i]
+                .parameters;
 
             if (isMatch) {
                 for (uint256 j = 0; j < order.offer.length; ++j) {
                     SpentItem memory item = order.offer[j];
 
                     if (
-                        item.itemType == ItemType.NATIVE
-                            && orderParams.orderType != OrderType.CONTRACT
+                        item.itemType == ItemType.NATIVE &&
+                        orderParams.orderType != OrderType.CONTRACT
                     ) {
                         value += item.amount;
                     }
@@ -382,20 +402,19 @@ library FuzzEngineLib {
         }
     }
 
-    function getMinimumNativeTokensToSupply(FuzzTestContext memory context)
-        internal
-        returns (uint256)
-    {
+    function getMinimumNativeTokensToSupply(
+        FuzzTestContext memory context
+    ) internal returns (uint256) {
         bytes4 _action = action(context);
         if (
-            _action == context.seaport.fulfillBasicOrder.selector
-                || _action
-                    == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            _action == context.seaport.fulfillBasicOrder.selector ||
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             // TODO: handle OOR orders or items just in case
             if (
-                context.executionState.orderDetails[0].offer[0].itemType
-                    == ItemType.ERC20
+                context.executionState.orderDetails[0].offer[0].itemType ==
+                ItemType.ERC20
             ) {
                 // Basic order bids cannot supply any native tokens
                 return 0;
@@ -403,8 +422,9 @@ library FuzzEngineLib {
         }
 
         uint256 hugeCallValue = uint256(type(uint128).max);
-        (,,, uint256 nativeTokensReturned) =
-            context.getDerivedExecutions(hugeCallValue);
+        (, , , uint256 nativeTokensReturned) = context.getDerivedExecutions(
+            hugeCallValue
+        );
 
         if (nativeTokensReturned > hugeCallValue) {
             return 0;
@@ -416,13 +436,13 @@ library FuzzEngineLib {
     /**
      * @dev Determine whether or not an order configuration has remainders.
      */
-    function withDetectedRemainders(FuzzTestContext memory context)
-        internal
-        pure
-        returns (FuzzTestContext memory)
-    {
-        (,, MatchComponent[] memory remainders) =
-            context.executionState.orderDetails.getMatchedFulfillments();
+    function withDetectedRemainders(
+        FuzzTestContext memory context
+    ) internal pure returns (FuzzTestContext memory) {
+        (, , MatchComponent[] memory remainders) = context
+            .executionState
+            .orderDetails
+            .getMatchedFulfillments();
 
         context.executionState.hasRemainders = remainders.length != 0;
 

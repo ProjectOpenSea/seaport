@@ -150,7 +150,7 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             // Assign length totalItems to populate with each conduit transfer.
             conduitTransfers = new ConduitTransfer[](
                 sumOfItemsAcrossAllTransfers
-            );            
+            );
         }
 
         // Process the conduit transfers and prepare to execute them.
@@ -279,19 +279,13 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
     }
 
     /**
-     * @notice An internal function that reverts if the passed-in recipient
-     *         is the zero address.
+     * @notice An internal function that prepares conduit transfers.
      *
-     * @param recipient The recipient on which to perform the check.
+     * @param conduitTransfers The allocated conduit transfers array.
+     * @param transfers        The transfers in question.
+     * @param conduit          The conduit in question.
+     * @param numTransfers     The total number of transfers.
      */
-    function _checkRecipientIsNotZeroAddress(address recipient) internal pure {
-        // Revert if the recipient is the zero address.
-        if (recipient == address(0x0)) {
-            revert RecipientCannotBeZeroAddress();
-        }
-    }
-
-
     function _processConduitTransfers(
         ConduitTransfer[] memory conduitTransfers,
         TransferHelperItemsWithRecipient[] calldata transfers,
@@ -369,10 +363,10 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
     /**
      * @notice Internal view function to create a ConduitTransfer from a
      *         TransferHelperItem and a TransferHelperItemsWithRecipient.
-     * 
+     *
      * @param item     The item to transfer.
      * @param transfer The transfer to create a ConduitTransfer from.
-     * 
+     *
      * @return conduitTransfer The ConduitTransfer created from the item and
      *                         transfer.
      */
@@ -380,13 +374,27 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
         TransferHelperItem calldata item,
         TransferHelperItemsWithRecipient calldata transfer
     ) internal view returns (ConduitTransfer memory conduitTransfer) {
-        return ConduitTransfer(
-            item.itemType,
-            item.token,
-            msg.sender,
-            transfer.recipient,
-            item.identifier,
-            item.amount
-        );
+        return
+            ConduitTransfer(
+                item.itemType,
+                item.token,
+                msg.sender,
+                transfer.recipient,
+                item.identifier,
+                item.amount
+            );
+    }
+
+    /**
+     * @notice An internal function that reverts if the passed-in recipient
+     *         is the zero address.
+     *
+     * @param recipient The recipient on which to perform the check.
+     */
+    function _checkRecipientIsNotZeroAddress(address recipient) internal pure {
+        // Revert if the recipient is the zero address.
+        if (recipient == address(0x0)) {
+            revert RecipientCannotBeZeroAddress();
+        }
     }
 }

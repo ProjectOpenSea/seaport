@@ -3,7 +3,8 @@
 pragma solidity ^0.8.17;
 
 import {
-    OrderType, ItemType
+    OrderType,
+    ItemType
 } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
@@ -13,8 +14,9 @@ import {
     FulfillmentComponent
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ConsiderationInterface } from
-    "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -56,13 +58,15 @@ contract MatchOrders is BaseOrderTest {
 
     modifier validateInputs(Context memory context) {
         vm.assume(
-            context.args.paymentAmts[0] > 0 && context.args.paymentAmts[1] > 0
-                && context.args.paymentAmts[2] > 0
+            context.args.paymentAmts[0] > 0 &&
+                context.args.paymentAmts[1] > 0 &&
+                context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0])
-                + uint256(context.args.paymentAmts[1])
-                + uint256(context.args.paymentAmts[2]) <= 2 ** 128 - 1
+            uint256(context.args.paymentAmts[0]) +
+                uint256(context.args.paymentAmts[1]) +
+                uint256(context.args.paymentAmts[2]) <=
+                2 ** 128 - 1
         );
         _;
     }
@@ -76,11 +80,11 @@ contract MatchOrders is BaseOrderTest {
         _;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
-        try fn(context) { }
-        catch (bytes memory reason) {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
+        try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -89,8 +93,7 @@ contract MatchOrders is BaseOrderTest {
         function(ContextAscendingDescending memory) external fn,
         ContextAscendingDescending memory context
     ) internal {
-        try fn(context) { }
-        catch (bytes memory reason) {
+        try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -100,8 +103,7 @@ contract MatchOrders is BaseOrderTest {
         Context memory context,
         ItemType itemType
     ) internal {
-        try fn(context, itemType) { }
-        catch (bytes memory reason) {
+        try fn(context, itemType) {} catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -112,7 +114,11 @@ contract MatchOrders is BaseOrderTest {
         addErc721OfferItem(inputs.id);
         addEthConsiderationItem(alice, 1);
         _configureOrderParameters(
-            alice, inputs.zone, inputs.zoneHash, inputs.salt, inputs.useConduit
+            alice,
+            inputs.zone,
+            inputs.zoneHash,
+            inputs.salt,
+            inputs.useConduit
         );
         configureOrderComponents(consideration.getCounter(alice));
         test(
@@ -125,10 +131,9 @@ contract MatchOrders is BaseOrderTest {
         );
     }
 
-    function testMatchOrdersOverflowOfferSide(FuzzInputsCommon memory inputs)
-        public
-        validateInputs(Context(consideration, inputs))
-    {
+    function testMatchOrdersOverflowOfferSide(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs)) {
         for (uint256 i = 1; i < 4; ++i) {
             if (i == 2) {
                 continue;
@@ -291,8 +296,9 @@ contract MatchOrders is BaseOrderTest {
         Context memory context,
         ItemType itemType
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         addOfferItem(itemType, 1, 100);
         addErc721ConsiderationItem(alice, 1);
@@ -331,7 +337,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters, context.consideration.getCounter(bob)
+            secondOrderParameters,
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -363,7 +370,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
-            thirdOrderParameters, context.consideration.getCounter(alice)
+            thirdOrderParameters,
+            context.consideration.getCounter(alice)
         );
 
         bytes memory thirdSignature = signOrder(
@@ -423,8 +431,9 @@ contract MatchOrders is BaseOrderTest {
         Context memory context,
         ItemType itemType
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(alice, 1);
         addErc721OfferItem(1);
@@ -445,7 +454,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            firstOrderParameters, context.consideration.getCounter(alice)
+            firstOrderParameters,
+            context.consideration.getCounter(alice)
         );
         bytes memory firstSignature = signOrder(
             context.consideration,
@@ -475,7 +485,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters, context.consideration.getCounter(bob)
+            secondOrderParameters,
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -505,7 +516,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
-            thirdOrderParameters, context.consideration.getCounter(bob)
+            thirdOrderParameters,
+            context.consideration.getCounter(bob)
         );
 
         bytes memory thirdSignature = signOrder(
@@ -564,8 +576,9 @@ contract MatchOrders is BaseOrderTest {
     function matchOrdersSingleErc721OfferSingleEthConsideration(
         Context memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
@@ -575,13 +588,17 @@ contract MatchOrders is BaseOrderTest {
             context.consideration.getOrderHash(baseOrderComponents)
         );
 
-        OrderParameters memory mirrorOrderParameters =
-        createMirrorOrderParameters(
-            baseOrderParameters, cal, context.args.zone, conduitKey
-        );
+        OrderParameters
+            memory mirrorOrderParameters = createMirrorOrderParameters(
+                baseOrderParameters,
+                cal,
+                context.args.zone,
+                conduitKey
+            );
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
-            mirrorOrderParameters, context.consideration.getCounter(cal)
+            mirrorOrderParameters,
+            context.consideration.getCounter(cal)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -617,16 +634,18 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillment;
 
         context.consideration.matchOrders{
-            value: context.args.paymentAmts[0] + context.args.paymentAmts[1]
-                + context.args.paymentAmts[2]
+            value: context.args.paymentAmts[0] +
+                context.args.paymentAmts[1] +
+                context.args.paymentAmts[2]
         }(orders, fulfillments);
     }
 
     function matchOrdersAscendingOfferAmount(
         ContextAscendingDescending memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(bob, context.args.id);
 
@@ -667,7 +686,8 @@ contract MatchOrders is BaseOrderTest {
             considerationItems.length
         );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
-            mirrorOrderParameters, context.consideration.getCounter(bob)
+            mirrorOrderParameters,
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -714,8 +734,9 @@ contract MatchOrders is BaseOrderTest {
     function matchOrdersAscendingConsiderationAmount(
         ContextAscendingDescending memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
@@ -755,7 +776,8 @@ contract MatchOrders is BaseOrderTest {
             considerationItems.length
         );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
-            mirrorOrderParameters, context.consideration.getCounter(bob)
+            mirrorOrderParameters,
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -800,8 +822,9 @@ contract MatchOrders is BaseOrderTest {
     function matchOrdersDescendingOfferAmount(
         ContextAscendingDescending memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(bob, context.args.id);
 
@@ -843,7 +866,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
-            mirrorOrderParameters, context.consideration.getCounter(bob)
+            mirrorOrderParameters,
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -888,8 +912,9 @@ contract MatchOrders is BaseOrderTest {
     function matchOrdersDescendingConsiderationAmount(
         ContextAscendingDescending memory context
     ) external stateless {
-        bytes32 conduitKey =
-            context.args.useConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
@@ -916,7 +941,11 @@ contract MatchOrders is BaseOrderTest {
         emit log_named_uint("Current Amount: ", currentAmount);
 
         addOfferItem(
-            ItemType.ERC20, address(token1), 0, currentAmount, currentAmount
+            ItemType.ERC20,
+            address(token1),
+            0,
+            currentAmount,
+            currentAmount
         );
         addConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
 
@@ -935,7 +964,8 @@ contract MatchOrders is BaseOrderTest {
         );
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
-            mirrorOrderParameters, context.consideration.getCounter(bob)
+            mirrorOrderParameters,
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(

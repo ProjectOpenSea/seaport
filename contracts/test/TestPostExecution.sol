@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import { ERC721Interface } from
-    "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
+import {
+    ERC721Interface
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
@@ -16,20 +17,15 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ERC165, ZoneInterface {
-    function authorizeOrder(ZoneParameters calldata)
-        public
-        pure
-        returns (bytes4)
-    {
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
         return this.authorizeOrder.selector;
     }
 
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        view
-        override
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external view override returns (bytes4 validOrderMagicValue) {
         if (zoneParameters.consideration.length == 0) {
             revert("No consideration items supplied");
         }
@@ -37,7 +33,8 @@ contract TestPostExecution is ERC165, ZoneInterface {
         ReceivedItem memory receivedItem = zoneParameters.consideration[0];
 
         address currentOwner;
-        try ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
+        try
+            ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
         returns (address owner) {
             currentOwner = owner;
         } catch {
@@ -81,13 +78,11 @@ contract TestPostExecution is ERC165, ZoneInterface {
         return ("TestPostExecution", schemas);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165, ZoneInterface)
-        returns (bool)
-    {
-        return interfaceId == type(ZoneInterface).interfaceId
-            || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

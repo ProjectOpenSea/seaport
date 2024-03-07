@@ -2,8 +2,9 @@
 pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
-import { AmountDeriverHelper } from
-    "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
+import {
+    AmountDeriverHelper
+} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
 
 contract TestAmountDeriverHelper is AmountDeriverHelper {
     function applyFraction(
@@ -15,27 +16,29 @@ contract TestAmountDeriverHelper is AmountDeriverHelper {
         uint256 endAmount,
         bool roundUp
     ) public view returns (uint256) {
-        return _applyFraction({
-            numerator: numerator,
-            denominator: denominator,
-            startAmount: startAmount,
-            endAmount: endAmount,
-            startTime: startTime,
-            endTime: endTime,
-            roundUp: roundUp // round up considerations
-         });
+        return
+            _applyFraction({
+                numerator: numerator,
+                denominator: denominator,
+                startAmount: startAmount,
+                endAmount: endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: roundUp // round up considerations
+            });
     }
 
-    function getFraction(uint256 numerator, uint256 denominator, uint256 value)
-        public
-        pure
-        returns (uint256)
-    {
-        return _getFraction({
-            numerator: numerator,
-            denominator: denominator,
-            value: value
-        });
+    function getFraction(
+        uint256 numerator,
+        uint256 denominator,
+        uint256 value
+    ) public pure returns (uint256) {
+        return
+            _getFraction({
+                numerator: numerator,
+                denominator: denominator,
+                value: value
+            });
     }
 
     function locateCurrentAmount(
@@ -45,13 +48,14 @@ contract TestAmountDeriverHelper is AmountDeriverHelper {
         uint256 endTime,
         bool roundUp
     ) public view returns (uint256) {
-        return _locateCurrentAmount({
-            startAmount: startAmount,
-            endAmount: endAmount,
-            startTime: startTime,
-            endTime: endTime,
-            roundUp: roundUp
-        });
+        return
+            _locateCurrentAmount({
+                startAmount: startAmount,
+                endAmount: endAmount,
+                startTime: startTime,
+                endTime: endTime,
+                roundUp: roundUp
+            });
     }
 }
 
@@ -86,21 +90,23 @@ contract AmountDeriverHelperTest is Test {
         startTime = bound(startTime, 1, type(uint40).max - 2);
         endTime = bound(endTime, startTime + 1, type(uint40).max);
 
-        (numerator, denominator) =
-            coerceNumeratorAndDenominator(numerator, denominator);
+        (numerator, denominator) = coerceNumeratorAndDenominator(
+            numerator,
+            denominator
+        );
 
         originalStartAmount = bound(originalStartAmount, 1, type(uint256).max);
         originalEndAmount = bound(originalEndAmount, 1, type(uint256).max);
 
         (uint256 newStartAmount, uint256 newEndAmount) = helper
             .deriveFractionCompatibleAmounts(
-            originalStartAmount,
-            originalEndAmount,
-            startTime,
-            endTime,
-            numerator,
-            denominator
-        );
+                originalStartAmount,
+                originalEndAmount,
+                startTime,
+                endTime,
+                numerator,
+                denominator
+            );
 
         currentTime = bound(currentTime, startTime, endTime - 1);
 

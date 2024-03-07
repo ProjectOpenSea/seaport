@@ -125,8 +125,9 @@ library FailureEligibilityLib {
         Failure ineligibleFailure
     ) internal pure {
         // Set the respective boolean for the ineligible failure.
-        context.expectations.ineligibleFailures[uint256(ineligibleFailure)] =
-            true;
+        context.expectations.ineligibleFailures[
+            uint256(ineligibleFailure)
+        ] = true;
     }
 
     function setIneligibleFailures(
@@ -135,17 +136,15 @@ library FailureEligibilityLib {
     ) internal pure {
         for (uint256 i = 0; i < ineligibleFailures.length; ++i) {
             // Set the respective boolean for each ineligible failure.
-            context.expectations.ineligibleFailures[uint256(
-                ineligibleFailures[i]
-            )] = true;
+            context.expectations.ineligibleFailures[
+                uint256(ineligibleFailures[i])
+            ] = true;
         }
     }
 
-    function getEligibleFailures(FuzzTestContext memory context)
-        internal
-        pure
-        returns (Failure[] memory eligibleFailures)
-    {
+    function getEligibleFailures(
+        FuzzTestContext memory context
+    ) internal pure returns (Failure[] memory eligibleFailures) {
         eligibleFailures = new Failure[](uint256(Failure.length));
 
         uint256 totalEligibleFailures = 0;
@@ -166,10 +165,9 @@ library FailureEligibilityLib {
         }
     }
 
-    function selectEligibleFailure(FuzzTestContext memory context)
-        internal
-        returns (Failure eligibleFailure)
-    {
+    function selectEligibleFailure(
+        FuzzTestContext memory context
+    ) internal returns (Failure eligibleFailure) {
         LibPRNG.PRNG memory prng = LibPRNG.PRNG(context.fuzzParams.seed ^ 0xff);
 
         Failure[] memory eligibleFailures = getEligibleFailures(context);
@@ -221,11 +219,12 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(
-            failure.one(),
-            MutationContextDerivation.ORDER,
-            fn(ineligibilityFilter)
-        );
+        return
+            IneligibilityFilter(
+                failure.one(),
+                MutationContextDerivation.ORDER,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withOrder(
@@ -234,9 +233,12 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(
-            failures, MutationContextDerivation.ORDER, fn(ineligibilityFilter)
-        );
+        return
+            IneligibilityFilter(
+                failures,
+                MutationContextDerivation.ORDER,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withCriteria(
@@ -245,11 +247,12 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(
-            failure.one(),
-            MutationContextDerivation.CRITERIA_RESOLVER,
-            fn(ineligibilityFilter)
-        );
+        return
+            IneligibilityFilter(
+                failure.one(),
+                MutationContextDerivation.CRITERIA_RESOLVER,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withCriteria(
@@ -258,11 +261,12 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(
-            failures,
-            MutationContextDerivation.CRITERIA_RESOLVER,
-            fn(ineligibilityFilter)
-        );
+        return
+            IneligibilityFilter(
+                failures,
+                MutationContextDerivation.CRITERIA_RESOLVER,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withGeneric(
@@ -271,11 +275,12 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(
-            failure.one(),
-            MutationContextDerivation.GENERIC,
-            fn(ineligibilityFilter)
-        );
+        return
+            IneligibilityFilter(
+                failure.one(),
+                MutationContextDerivation.GENERIC,
+                fn(ineligibilityFilter)
+            );
     }
 
     function withGeneric(
@@ -284,9 +289,12 @@ library MutationEligibilityLib {
             internal
             returns (bool) ineligibilityFilter
     ) internal pure returns (IneligibilityFilter memory) {
-        return IneligibilityFilter(
-            failures, MutationContextDerivation.GENERIC, fn(ineligibilityFilter)
-        );
+        return
+            IneligibilityFilter(
+                failures,
+                MutationContextDerivation.GENERIC,
+                fn(ineligibilityFilter)
+            );
     }
 
     function setAllIneligibleFailures(
@@ -294,12 +302,13 @@ library MutationEligibilityLib {
         IneligibilityFilter[] memory failuresAndFilters
     ) internal {
         for (uint256 i = 0; i < failuresAndFilters.length; ++i) {
-            IneligibilityFilter memory failuresAndFilter =
-                (failuresAndFilters[i]);
+            IneligibilityFilter memory failuresAndFilter = (
+                failuresAndFilters[i]
+            );
 
             if (
-                failuresAndFilter.derivationMethod
-                    == MutationContextDerivation.GENERIC
+                failuresAndFilter.derivationMethod ==
+                MutationContextDerivation.GENERIC
             ) {
                 setIneligibleFailures(
                     context,
@@ -309,8 +318,8 @@ library MutationEligibilityLib {
                     failuresAndFilter.failures
                 );
             } else if (
-                failuresAndFilter.derivationMethod
-                    == MutationContextDerivation.ORDER
+                failuresAndFilter.derivationMethod ==
+                MutationContextDerivation.ORDER
             ) {
                 setIneligibleFailures(
                     context,
@@ -320,8 +329,8 @@ library MutationEligibilityLib {
                     failuresAndFilter.failures
                 );
             } else if (
-                failuresAndFilter.derivationMethod
-                    == MutationContextDerivation.CRITERIA_RESOLVER
+                failuresAndFilter.derivationMethod ==
+                MutationContextDerivation.CRITERIA_RESOLVER
             ) {
                 setIneligibleFailures(
                     context,
@@ -384,7 +393,9 @@ library MutationEligibilityLib {
             // Once an eligible order is found, return false.
             if (
                 !ineligibleCondition(
-                    context.executionState.orders[i], i, context
+                    context.executionState.orders[i],
+                    i,
+                    context
                 )
             ) {
                 return false;
@@ -401,12 +412,16 @@ library MutationEligibilityLib {
             returns (bool) ineligibleCondition
     ) internal returns (bool) {
         for (
-            uint256 i; i < context.executionState.criteriaResolvers.length; i++
+            uint256 i;
+            i < context.executionState.criteriaResolvers.length;
+            i++
         ) {
             // Once an eligible criteria resolver is found, return false.
             if (
                 !ineligibleCondition(
-                    context.executionState.criteriaResolvers[i], i, context
+                    context.executionState.criteriaResolvers[i],
+                    i,
+                    context
                 )
             ) {
                 return false;
@@ -454,8 +469,9 @@ library MutationEligibilityLib {
             view
             returns (bool) condition
     ) internal view returns (bool[] memory ineligibleCriteriaResolvers) {
-        CriteriaResolver[] memory resolvers =
-            (context.executionState.criteriaResolvers);
+        CriteriaResolver[] memory resolvers = (
+            context.executionState.criteriaResolvers
+        );
         ineligibleCriteriaResolvers = new bool[](resolvers.length);
         for (uint256 i; i < resolvers.length; i++) {
             if (condition(resolvers[i], i, context)) {
@@ -528,8 +544,9 @@ library MutationEligibilityLib {
         );
 
         criteriaResolverIndex = getEligibleIndex(context, eligibleResolvers);
-        eligibleCriteriaResolver =
-            context.executionState.criteriaResolvers[criteriaResolverIndex];
+        eligibleCriteriaResolver = context.executionState.criteriaResolvers[
+            criteriaResolverIndex
+        ];
     }
 
     function fn(
@@ -562,12 +579,16 @@ library MutationEligibilityLib {
         }
     }
 
-    function asIneligibleGenericMutationFilter(bytes32 ptr)
+    function asIneligibleGenericMutationFilter(
+        bytes32 ptr
+    )
         internal
         pure
         returns (
-            function(FuzzTestContext memory) internal view returns (bool)
-                ineligibleMutationFilter
+            function(FuzzTestContext memory)
+                internal
+                view
+                returns (bool) ineligibleMutationFilter
         )
     {
         assembly {
@@ -575,12 +596,16 @@ library MutationEligibilityLib {
         }
     }
 
-    function asIneligibleOrderBasedMutationFilter(bytes32 ptr)
+    function asIneligibleOrderBasedMutationFilter(
+        bytes32 ptr
+    )
         internal
         pure
         returns (
-            function(AdvancedOrder memory, uint256, FuzzTestContext memory) internal view returns (bool)
-                ineligibleMutationFilter
+            function(AdvancedOrder memory, uint256, FuzzTestContext memory)
+                internal
+                view
+                returns (bool) ineligibleMutationFilter
         )
     {
         assembly {
@@ -588,12 +613,16 @@ library MutationEligibilityLib {
         }
     }
 
-    function asIneligibleCriteriaBasedMutationFilter(bytes32 ptr)
+    function asIneligibleCriteriaBasedMutationFilter(
+        bytes32 ptr
+    )
         internal
         pure
         returns (
-            function(CriteriaResolver memory, uint256, FuzzTestContext memory) internal view returns (bool)
-                ineligibleMutationFilter
+            function(CriteriaResolver memory, uint256, FuzzTestContext memory)
+                internal
+                view
+                returns (bool) ineligibleMutationFilter
         )
     {
         assembly {
@@ -612,13 +641,15 @@ library MutationContextDeriverLib {
         bytes32 ineligibilityFilter // use a function pointer
     ) internal view returns (MutationState memory mutationState) {
         if (derivationMethod == MutationContextDerivation.ORDER) {
-            (AdvancedOrder memory order, uint256 orderIndex) =
-                context.selectEligibleOrder(ineligibilityFilter);
+            (AdvancedOrder memory order, uint256 orderIndex) = context
+                .selectEligibleOrder(ineligibilityFilter);
 
             mutationState.selectedOrder = order;
             mutationState.selectedOrderIndex = orderIndex;
-            mutationState.selectedOrderHash =
-                context.executionState.orderDetails[orderIndex].orderHash;
+            mutationState.selectedOrderHash = context
+                .executionState
+                .orderDetails[orderIndex]
+                .orderHash;
             mutationState.side = Side(context.generatorContext.randEnum(0, 1));
             mutationState.selectedArbitraryAddress = address(
                 uint160(
@@ -628,8 +659,8 @@ library MutationContextDeriverLib {
         } else if (
             derivationMethod == MutationContextDerivation.CRITERIA_RESOLVER
         ) {
-            (CriteriaResolver memory resolver, uint256 resolverIndex) =
-                context.selectEligibleCriteriaResolver(ineligibilityFilter);
+            (CriteriaResolver memory resolver, uint256 resolverIndex) = context
+                .selectEligibleCriteriaResolver(ineligibilityFilter);
 
             mutationState.selectedCriteriaResolver = resolver;
             mutationState.selectedCriteriaResolverIndex = resolverIndex;
@@ -645,13 +676,14 @@ library FailureDetailsHelperLib {
         string memory name,
         bytes4 mutationSelector
     ) internal pure returns (FailureDetails memory details) {
-        return FailureDetails(
-            name,
-            mutationSelector,
-            errorSelector,
-            MutationContextDerivation.ORDER,
-            fn(defaultReason)
-        );
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.ORDER,
+                fn(defaultReason)
+            );
     }
 
     function withOrder(
@@ -663,13 +695,14 @@ library FailureDetailsHelperLib {
             view
             returns (bytes memory) revertReasonDeriver
     ) internal pure returns (FailureDetails memory details) {
-        return FailureDetails(
-            name,
-            mutationSelector,
-            errorSelector,
-            MutationContextDerivation.ORDER,
-            fn(revertReasonDeriver)
-        );
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.ORDER,
+                fn(revertReasonDeriver)
+            );
     }
 
     function withCriteria(
@@ -677,13 +710,14 @@ library FailureDetailsHelperLib {
         string memory name,
         bytes4 mutationSelector
     ) internal pure returns (FailureDetails memory details) {
-        return FailureDetails(
-            name,
-            mutationSelector,
-            errorSelector,
-            MutationContextDerivation.CRITERIA_RESOLVER,
-            fn(defaultReason)
-        );
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.CRITERIA_RESOLVER,
+                fn(defaultReason)
+            );
     }
 
     function withCriteria(
@@ -695,13 +729,14 @@ library FailureDetailsHelperLib {
             view
             returns (bytes memory) revertReasonDeriver
     ) internal pure returns (FailureDetails memory details) {
-        return FailureDetails(
-            name,
-            mutationSelector,
-            errorSelector,
-            MutationContextDerivation.CRITERIA_RESOLVER,
-            fn(revertReasonDeriver)
-        );
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.CRITERIA_RESOLVER,
+                fn(revertReasonDeriver)
+            );
     }
 
     function withGeneric(
@@ -709,13 +744,14 @@ library FailureDetailsHelperLib {
         string memory name,
         bytes4 mutationSelector
     ) internal pure returns (FailureDetails memory details) {
-        return FailureDetails(
-            name,
-            mutationSelector,
-            errorSelector,
-            MutationContextDerivation.GENERIC,
-            fn(defaultReason)
-        );
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.GENERIC,
+                fn(defaultReason)
+            );
     }
 
     function withGeneric(
@@ -727,13 +763,14 @@ library FailureDetailsHelperLib {
             view
             returns (bytes memory) revertReasonDeriver
     ) internal pure returns (FailureDetails memory details) {
-        return FailureDetails(
-            name,
-            mutationSelector,
-            errorSelector,
-            MutationContextDerivation.GENERIC,
-            fn(revertReasonDeriver)
-        );
+        return
+            FailureDetails(
+                name,
+                mutationSelector,
+                errorSelector,
+                MutationContextDerivation.GENERIC,
+                fn(revertReasonDeriver)
+            );
     }
 
     function fn(
@@ -753,17 +790,24 @@ library FailureDetailsHelperLib {
         bytes4 errorSelector,
         bytes32 revertReasonDeriver
     ) internal view returns (bytes memory) {
-        return asRevertReasonGenerator(revertReasonDeriver)(
-            context, mutationState, errorSelector
-        );
+        return
+            asRevertReasonGenerator(revertReasonDeriver)(
+                context,
+                mutationState,
+                errorSelector
+            );
     }
 
-    function asRevertReasonGenerator(bytes32 ptr)
+    function asRevertReasonGenerator(
+        bytes32 ptr
+    )
         private
         pure
         returns (
-            function(FuzzTestContext memory, MutationState memory, bytes4) internal view returns (bytes memory)
-                revertReasonGenerator
+            function(FuzzTestContext memory, MutationState memory, bytes4)
+                internal
+                view
+                returns (bytes memory) revertReasonGenerator
         )
     {
         assembly {
@@ -772,7 +816,7 @@ library FailureDetailsHelperLib {
     }
 
     function defaultReason(
-        FuzzTestContext memory, /* context */
+        FuzzTestContext memory /* context */,
         MutationState memory,
         bytes4 errorSelector
     ) internal pure returns (bytes memory) {
@@ -798,13 +842,14 @@ library MutationHelpersLib {
             i < context.expectations.expectedExplicitExecutions.length;
             ++i
         ) {
-            Execution memory execution =
-                context.expectations.expectedExplicitExecutions[i];
+            Execution memory execution = context
+                .expectations
+                .expectedExplicitExecutions[i];
             if (
-                execution.offerer == offerer
-                    && execution.conduitKey == conduitKey
-                    && execution.item.itemType == item.itemType
-                    && execution.item.token == item.token
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
             ) {
                 return false;
             }
@@ -816,13 +861,14 @@ library MutationHelpersLib {
             i < context.expectations.expectedImplicitPreExecutions.length;
             ++i
         ) {
-            Execution memory execution =
-                context.expectations.expectedImplicitPreExecutions[i];
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPreExecutions[i];
             if (
-                execution.offerer == offerer
-                    && execution.conduitKey == conduitKey
-                    && execution.item.itemType == item.itemType
-                    && execution.item.token == item.token
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
             ) {
                 return false;
             }
@@ -834,13 +880,14 @@ library MutationHelpersLib {
             i < context.expectations.expectedImplicitPostExecutions.length;
             ++i
         ) {
-            Execution memory execution =
-                context.expectations.expectedImplicitPostExecutions[i];
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPostExecutions[i];
             if (
-                execution.offerer == offerer
-                    && execution.conduitKey == conduitKey
-                    && execution.item.itemType == item.itemType
-                    && execution.item.token == item.token
+                execution.offerer == offerer &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
             ) {
                 return false;
             }
@@ -866,13 +913,14 @@ library MutationHelpersLib {
             i < context.expectations.expectedExplicitExecutions.length;
             ++i
         ) {
-            Execution memory execution =
-                context.expectations.expectedExplicitExecutions[i];
+            Execution memory execution = context
+                .expectations
+                .expectedExplicitExecutions[i];
             if (
-                execution.offerer == caller
-                    && execution.conduitKey == conduitKey
-                    && execution.item.itemType == item.itemType
-                    && execution.item.token == item.token
+                execution.offerer == caller &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
             ) {
                 return false;
             }
@@ -884,13 +932,14 @@ library MutationHelpersLib {
             i < context.expectations.expectedImplicitPreExecutions.length;
             ++i
         ) {
-            Execution memory execution =
-                context.expectations.expectedImplicitPreExecutions[i];
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPreExecutions[i];
             if (
-                execution.offerer == caller
-                    && execution.conduitKey == conduitKey
-                    && execution.item.itemType == item.itemType
-                    && execution.item.token == item.token
+                execution.offerer == caller &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
             ) {
                 return false;
             }
@@ -902,13 +951,14 @@ library MutationHelpersLib {
             i < context.expectations.expectedImplicitPostExecutions.length;
             ++i
         ) {
-            Execution memory execution =
-                context.expectations.expectedImplicitPostExecutions[i];
+            Execution memory execution = context
+                .expectations
+                .expectedImplicitPostExecutions[i];
             if (
-                execution.offerer == caller
-                    && execution.conduitKey == conduitKey
-                    && execution.item.itemType == item.itemType
-                    && execution.item.token == item.token
+                execution.offerer == caller &&
+                execution.conduitKey == conduitKey &&
+                execution.item.itemType == item.itemType &&
+                execution.item.token == item.token
             ) {
                 return false;
             }
@@ -925,22 +975,21 @@ library Failarray {
         return arr;
     }
 
-    function and(Failure a, Failure b)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure a,
+        Failure b
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](2);
         arr[0] = a;
         arr[1] = b;
         return arr;
     }
 
-    function and(Failure a, Failure b, Failure c)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure a,
+        Failure b,
+        Failure c
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](3);
         arr[0] = a;
         arr[1] = b;
@@ -948,11 +997,12 @@ library Failarray {
         return arr;
     }
 
-    function and(Failure a, Failure b, Failure c, Failure d)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](4);
         arr[0] = a;
         arr[1] = b;
@@ -961,11 +1011,13 @@ library Failarray {
         return arr;
     }
 
-    function and(Failure a, Failure b, Failure c, Failure d, Failure e)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure a,
+        Failure b,
+        Failure c,
+        Failure d,
+        Failure e
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](5);
         arr[0] = a;
         arr[1] = b;
@@ -1013,11 +1065,10 @@ library Failarray {
         return arr;
     }
 
-    function and(Failure[] memory originalArr, Failure a)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure[] memory originalArr,
+        Failure a
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](originalArr.length + 1);
 
         for (uint256 i = 0; i < originalArr.length; ++i) {
@@ -1029,11 +1080,11 @@ library Failarray {
         return arr;
     }
 
-    function and(Failure[] memory originalArr, Failure a, Failure b)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](originalArr.length + 2);
 
         for (uint256 i = 0; i < originalArr.length; ++i) {
@@ -1046,11 +1097,12 @@ library Failarray {
         return arr;
     }
 
-    function and(Failure[] memory originalArr, Failure a, Failure b, Failure c)
-        internal
-        pure
-        returns (Failure[] memory)
-    {
+    function and(
+        Failure[] memory originalArr,
+        Failure a,
+        Failure b,
+        Failure c
+    ) internal pure returns (Failure[] memory) {
         Failure[] memory arr = new Failure[](originalArr.length + 3);
 
         for (uint256 i = 0; i < originalArr.length; ++i) {

@@ -6,18 +6,15 @@ import {
     ZoneParameters
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ZoneInterface } from
-    "seaport-types/src/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract HashCalldataTestZone is ZoneInterface {
     bytes32 public expectedZoneAuthorizeCalldataHash;
     bytes32 public expectedZoneValidateCalldataHash;
 
-    function authorizeOrder(ZoneParameters calldata zoneParameters)
-        public
-        view
-        returns (bytes4)
-    {
+    function authorizeOrder(
+        ZoneParameters calldata zoneParameters
+    ) public view returns (bytes4) {
         // Hash the zone parameters.
         bytes32 _expectedZoneHash = bytes32(
             keccak256(abi.encode(zoneParameters))
@@ -41,11 +38,9 @@ contract HashCalldataTestZone is ZoneInterface {
      *
      * @return validOrderMagicValue The validOrder magic value.
      */
-    function validateOrder(ZoneParameters calldata zoneParameters)
-        external
-        view
-        returns (bytes4 validOrderMagicValue)
-    {
+    function validateOrder(
+        ZoneParameters calldata zoneParameters
+    ) external view returns (bytes4 validOrderMagicValue) {
         // Hash the zone parameters.
         bytes32 _expectedZoneHash = bytes32(
             keccak256(abi.encode(zoneParameters))
@@ -73,7 +68,7 @@ contract HashCalldataTestZone is ZoneInterface {
         expectedZoneValidateCalldataHash = _expectedZoneValidateCalldataHash;
     }
 
-    receive() external payable { }
+    receive() external payable {}
 
     function getSeaportMetadata()
         external
@@ -101,13 +96,9 @@ contract HashCalldataTestZone is ZoneInterface {
         return this.onERC1155Received.selector;
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ZoneInterface)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ZoneInterface) returns (bool) {
         return interfaceId == type(ZoneInterface).interfaceId;
     }
 }

@@ -32,32 +32,29 @@ contract CriteriaResolverHelper {
         uint256 identifier;
     }
 
-    mapping(uint256 => CriteriaMetadata) internal
-        _resolvableIdentifierForGivenCriteria;
+    mapping(uint256 => CriteriaMetadata)
+        internal _resolvableIdentifierForGivenCriteria;
 
-    mapping(bytes32 => WildcardIdentifier) internal
-        _wildcardIdentifierForGivenItemHash;
+    mapping(bytes32 => WildcardIdentifier)
+        internal _wildcardIdentifierForGivenItemHash;
 
     constructor(uint256 maxLeaves) {
         MAX_LEAVES = maxLeaves;
         MERKLE = new Merkle();
     }
 
-    function resolvableIdentifierForGivenCriteria(uint256 criteria)
-        public
-        view
-        returns (CriteriaMetadata memory)
-    {
+    function resolvableIdentifierForGivenCriteria(
+        uint256 criteria
+    ) public view returns (CriteriaMetadata memory) {
         return _resolvableIdentifierForGivenCriteria[criteria];
     }
 
-    function wildcardIdentifierForGivenItemHash(bytes32 itemHash)
-        public
-        view
-        returns (uint256)
-    {
-        WildcardIdentifier memory id =
-            _wildcardIdentifierForGivenItemHash[itemHash];
+    function wildcardIdentifierForGivenItemHash(
+        bytes32 itemHash
+    ) public view returns (uint256) {
+        WildcardIdentifier memory id = _wildcardIdentifierForGivenItemHash[
+            itemHash
+        ];
 
         if (!id.set) {
             revert(
@@ -68,19 +65,15 @@ contract CriteriaResolverHelper {
         return id.identifier;
     }
 
-    function deriveCriteriaResolvers(AdvancedOrder[] memory orders)
-        public
-        view
-        returns (CriteriaResolver[] memory criteriaResolvers)
-    {
+    function deriveCriteriaResolvers(
+        AdvancedOrder[] memory orders
+    ) public view returns (CriteriaResolver[] memory criteriaResolvers) {
         uint256 maxLength;
 
         for (uint256 i; i < orders.length; i++) {
             AdvancedOrder memory order = orders[i];
-            maxLength += (
-                order.parameters.offer.length
-                    + order.parameters.consideration.length
-            );
+            maxLength += (order.parameters.offer.length +
+                order.parameters.consideration.length);
         }
         criteriaResolvers = new CriteriaResolver[](maxLength);
         uint256 index;
@@ -91,15 +84,18 @@ contract CriteriaResolverHelper {
             for (uint256 j; j < order.parameters.offer.length; j++) {
                 OfferItem memory offerItem = order.parameters.offer[j];
                 if (
-                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA
-                        || offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
+                    offerItem.itemType == ItemType.ERC721_WITH_CRITERIA ||
+                    offerItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     if (offerItem.identifierOrCriteria == 0) {
-                        bytes32 itemHash =
-                            keccak256(abi.encodePacked(i, j, Side.OFFER));
+                        bytes32 itemHash = keccak256(
+                            abi.encodePacked(i, j, Side.OFFER)
+                        );
 
-                        WildcardIdentifier memory id =
-                            _wildcardIdentifierForGivenItemHash[itemHash];
+                        WildcardIdentifier
+                            memory id = _wildcardIdentifierForGivenItemHash[
+                                itemHash
+                            ];
                         if (!id.set) {
                             revert(
                                 "CriteriaResolverHelper: no wildcard identifier located for offer item"
@@ -114,9 +110,10 @@ contract CriteriaResolverHelper {
                             criteriaProof: new bytes32[](0)
                         });
                     } else {
-                        CriteriaMetadata memory criteriaMetadata =
-                        _resolvableIdentifierForGivenCriteria[offerItem
-                            .identifierOrCriteria];
+                        CriteriaMetadata
+                            memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                                offerItem.identifierOrCriteria
+                            ];
 
                         // Store the criteria resolver in the mapping
                         criteriaResolvers[index] = CriteriaResolver({
@@ -132,20 +129,23 @@ contract CriteriaResolverHelper {
             }
 
             for (uint256 j; j < order.parameters.consideration.length; j++) {
-                ConsiderationItem memory considerationItem =
-                    order.parameters.consideration[j];
+                ConsiderationItem memory considerationItem = order
+                    .parameters
+                    .consideration[j];
                 if (
-                    considerationItem.itemType == ItemType.ERC721_WITH_CRITERIA
-                        || considerationItem.itemType
-                            == ItemType.ERC1155_WITH_CRITERIA
+                    considerationItem.itemType ==
+                    ItemType.ERC721_WITH_CRITERIA ||
+                    considerationItem.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
                     if (considerationItem.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
                             abi.encodePacked(i, j, Side.CONSIDERATION)
                         );
 
-                        WildcardIdentifier memory id =
-                            _wildcardIdentifierForGivenItemHash[itemHash];
+                        WildcardIdentifier
+                            memory id = _wildcardIdentifierForGivenItemHash[
+                                itemHash
+                            ];
                         if (!id.set) {
                             revert(
                                 "CriteriaResolverHelper: no wildcard identifier located for consideration item"
@@ -160,9 +160,10 @@ contract CriteriaResolverHelper {
                             criteriaProof: new bytes32[](0)
                         });
                     } else {
-                        CriteriaMetadata memory criteriaMetadata =
-                        _resolvableIdentifierForGivenCriteria[considerationItem
-                            .identifierOrCriteria];
+                        CriteriaMetadata
+                            memory criteriaMetadata = _resolvableIdentifierForGivenCriteria[
+                                considerationItem.identifierOrCriteria
+                            ];
 
                         // Store the criteria resolver in the mapping
                         criteriaResolvers[index] = CriteriaResolver({
@@ -206,8 +207,10 @@ contract CriteriaResolverHelper {
         // TODO: Base Murky impl is very memory-inefficient (O(n^2))
         uint256 resolvedIdentifier = selectedIdentifier;
         criteria = uint256(MERKLE.getRoot(leaves));
-        bytes32[] memory proof =
-            MERKLE.getProof(leaves, selectedIdentifierIndex);
+        bytes32[] memory proof = MERKLE.getProof(
+            leaves,
+            selectedIdentifierIndex
+        );
 
         _resolvableIdentifierForGivenCriteria[criteria] = CriteriaMetadata({
             resolvedIdentifier: resolvedIdentifier,
@@ -224,14 +227,18 @@ contract CriteriaResolverHelper {
     ) public returns (uint256 criteria) {
         criteria = (desiredId == type(uint256).max) ? prng.next() : desiredId;
 
-        bytes32 itemHash =
-            keccak256(abi.encodePacked(orderIndex, itemIndex, side));
+        bytes32 itemHash = keccak256(
+            abi.encodePacked(orderIndex, itemIndex, side)
+        );
 
-        WildcardIdentifier storage id =
-            (_wildcardIdentifierForGivenItemHash[itemHash]);
+        WildcardIdentifier storage id = (
+            _wildcardIdentifierForGivenItemHash[itemHash]
+        );
 
         if (id.set) {
-            revert("CriteriaResolverHelper: wildcard already set for this item");
+            revert(
+                "CriteriaResolverHelper: wildcard already set for this item"
+            );
         }
 
         id.set = true;
@@ -245,22 +252,26 @@ contract CriteriaResolverHelper {
         uint256 originalLength
     ) public {
         for (uint256 i = originalLength; i > insertionIndex; --i) {
-            bytes32 itemHash =
-                keccak256(abi.encodePacked(orderIndex, i - 1, side));
+            bytes32 itemHash = keccak256(
+                abi.encodePacked(orderIndex, i - 1, side)
+            );
 
-            WildcardIdentifier storage id =
-                (_wildcardIdentifierForGivenItemHash[itemHash]);
+            WildcardIdentifier storage id = (
+                _wildcardIdentifierForGivenItemHash[itemHash]
+            );
 
             if (id.set) {
                 uint256 identifier = id.identifier;
                 id.set = false;
                 id.identifier = 0;
 
-                bytes32 shiftedItemHash =
-                    keccak256(abi.encodePacked(orderIndex, i, side));
+                bytes32 shiftedItemHash = keccak256(
+                    abi.encodePacked(orderIndex, i, side)
+                );
 
-                WildcardIdentifier storage shiftedId =
-                    (_wildcardIdentifierForGivenItemHash[shiftedItemHash]);
+                WildcardIdentifier storage shiftedId = (
+                    _wildcardIdentifierForGivenItemHash[shiftedItemHash]
+                );
 
                 if (shiftedId.set) {
                     revert("CriteriaResolverHelper: shifting into a set item");
@@ -277,17 +288,15 @@ contract CriteriaResolverHelper {
      *         leaves in a Merkle tree
      * @param prng PRNG to use to generate the identifiers
      */
-    function generateIdentifiers(LibPRNG.PRNG memory prng)
-        public
-        view
-        returns (uint256[] memory identifiers)
-    {
+    function generateIdentifiers(
+        LibPRNG.PRNG memory prng
+    ) public view returns (uint256[] memory identifiers) {
         uint256 numIdentifiers = (prng.next() % (2 ** MAX_LEAVES));
         if (numIdentifiers <= 1) {
             numIdentifiers = 2;
         }
         identifiers = new uint256[](numIdentifiers);
-        for (uint256 i = 0; i < numIdentifiers;) {
+        for (uint256 i = 0; i < numIdentifiers; ) {
             identifiers[i] = prng.next();
             unchecked {
                 ++i;
@@ -304,15 +313,13 @@ contract CriteriaResolverHelper {
      *         Merkle tree
      * @param identifiers Identifiers to hash
      */
-    function hashIdentifiersToLeaves(uint256[] memory identifiers)
-        public
-        pure
-        returns (bytes32[] memory leaves)
-    {
+    function hashIdentifiersToLeaves(
+        uint256[] memory identifiers
+    ) public pure returns (bytes32[] memory leaves) {
         assembly {
             leaves := identifiers
         }
-        for (uint256 i = 0; i < identifiers.length;) {
+        for (uint256 i = 0; i < identifiers.length; ) {
             bytes32 identifier = leaves[i];
             assembly {
                 mstore(0x0, identifier)

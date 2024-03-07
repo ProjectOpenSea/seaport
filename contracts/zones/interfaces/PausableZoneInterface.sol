@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { SeaportInterface } from
-    "seaport-types/src/interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -90,6 +91,10 @@ interface PausableZoneInterface {
      *         zone will not be fulfillable unless the zone is unpaused.
      */
     function pause() external;
+
+    function isPaused() external view returns (bool);
+
+    function controller() external view returns (address);
 
     /**
      * @notice Assign the given address with the ability to operate the zone.

@@ -67,8 +67,7 @@ struct ReentrantCallParameters {
     FulfillOrderParameters fulfillOrderParameters;
     FulfillAdvancedOrderParameters fulfillAdvancedOrderParameters;
     FulfillAvailableOrdersParameters fulfillAvailableOrdersParameters;
-    FulfillAvailableAdvancedOrdersParameters
-        fulfillAvailableAdvancedOrdersParameters;
+    FulfillAvailableAdvancedOrdersParameters fulfillAvailableAdvancedOrdersParameters;
     MatchOrdersParameters matchOrdersParameters;
     MatchAdvancedOrdersParameters matchAdvancedOrdersParameters;
     CancelParameters cancelParameters;

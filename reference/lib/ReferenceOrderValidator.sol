@@ -130,9 +130,13 @@ contract ReferenceOrderValidator is
             )
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
-            return OrderValidation(
-                bytes32(0), 0, 0, _convertAdvancedToOrder(orderParameters, 0)
-            );
+            return
+                OrderValidation(
+                    bytes32(0),
+                    0,
+                    0,
+                    _convertAdvancedToOrder(orderParameters, 0)
+                );
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -146,9 +150,13 @@ contract ReferenceOrderValidator is
                 revert BadFraction();
             }
 
-            return OrderValidation(
-                bytes32(uint256(1)), 1, 1, _convertAdvancedToOrder(orderParameters, 1)
-            );
+            return
+                OrderValidation(
+                    bytes32(uint256(1)),
+                    1,
+                    1,
+                    _convertAdvancedToOrder(orderParameters, 1)
+                );
         }
 
         // Ensure that the supplied numerator and denominator are valid.  The
@@ -159,8 +167,8 @@ contract ReferenceOrderValidator is
 
         // If attempting partial fill (n < d) check order type & ensure support.
         if (
-            numerator < denominator
-                && _doesNotSupportPartialFills(orderParameters.orderType)
+            numerator < denominator &&
+            _doesNotSupportPartialFills(orderParameters.orderType)
         ) {
             // Revert if partial fill was attempted on an unsupported order.
             revert PartialFillsNotEnabledForOrder();
@@ -180,16 +188,20 @@ contract ReferenceOrderValidator is
         if (
             // Allow partially used orders to be filled.
             !_verifyOrderStatus(
-                orderValidation.orderHash, orderStatus, false, revertOnInvalid
+                orderValidation.orderHash,
+                orderStatus,
+                false,
+                revertOnInvalid
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return OrderValidation(
-                orderValidation.orderHash,
-                0,
-                0,
-                _convertAdvancedToOrder(orderParameters, 0)
-            );
+            return
+                OrderValidation(
+                    orderValidation.orderHash,
+                    0,
+                    0,
+                    _convertAdvancedToOrder(orderParameters, 0)
+                );
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -234,8 +246,8 @@ contract ReferenceOrderValidator is
 
             // Ensure fractional amounts are below max uint120.
             if (
-                filledNumerator > type(uint120).max
-                    || denominator > type(uint120).max
+                filledNumerator > type(uint120).max ||
+                denominator > type(uint120).max
             ) {
                 // Derive greatest common divisor using euclidean algorithm.
                 uint256 scaleDown = _greatestCommonDivisor(
@@ -255,12 +267,13 @@ contract ReferenceOrderValidator is
         }
 
         // Return order hash, new numerator and denominator.
-        return OrderValidation(
-            orderValidation.orderHash,
-            uint120(numerator),
-            uint120(denominator),
-            _convertAdvancedToOrder(orderParameters, uint120(numerator))
-        );
+        return
+            OrderValidation(
+                orderValidation.orderHash,
+                uint120(numerator),
+                uint120(denominator),
+                _convertAdvancedToOrder(orderParameters, uint120(numerator))
+            );
     }
 
     /**
@@ -319,11 +332,14 @@ contract ReferenceOrderValidator is
 
             // Ensure fractional amounts are below max uint120.
             if (
-                filledNumerator > type(uint120).max
-                    || denominator > type(uint120).max
+                filledNumerator > type(uint120).max ||
+                denominator > type(uint120).max
             ) {
                 // Derive greatest common divisor using euclidean algorithm.
-                uint256 scaleDown = _greatestCommonDivisor(filledNumerator, denominator);
+                uint256 scaleDown = _greatestCommonDivisor(
+                    filledNumerator,
+                    denominator
+                );
 
                 // Scale new filled fractional values down by gcd.
                 filledNumerator = filledNumerator / scaleDown;
@@ -393,12 +409,7 @@ contract ReferenceOrderValidator is
         OrderParameters memory orderParameters,
         bytes memory context,
         bool revertOnInvalid
-    )
-        internal
-        returns (
-            bytes32 orderHash
-        )
-    {
+    ) internal returns (bytes32 orderHash) {
         // Ensure that consideration array length is equal to the total original
         // consideration items value.
         if (
@@ -795,10 +806,7 @@ contract ReferenceOrderValidator is
     )
         internal
         pure
-        returns (
-            bytes32 orderHash,
-            OrderToExecute memory emptyOrder
-        )
+        returns (bytes32 orderHash, OrderToExecute memory emptyOrder)
     {
         // If invalid input should not revert...
         if (!revertOnInvalid) {
@@ -818,13 +826,9 @@ contract ReferenceOrderValidator is
      *
      * @return receivedItems The converted received items.
      */
-    function _convertToSpent(ReceivedItem[] memory consideration)
-        internal
-        pure
-        returns (
-            SpentItem[] memory receivedItems
-        )
-    {
+    function _convertToSpent(
+        ReceivedItem[] memory consideration
+    ) internal pure returns (SpentItem[] memory receivedItems) {
         // Create an array of received items equal to the consideration length.
         receivedItems = new SpentItem[](consideration.length);
 

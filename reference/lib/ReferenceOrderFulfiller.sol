@@ -54,7 +54,6 @@ contract ReferenceOrderFulfiller is
         address conduitController
     ) ReferenceBasicOrderFulfiller(conduitController) {}
 
-
     /**
      * @dev Internal function to validate an order and update its status, adjust
      *      prices based on current time, apply criteria resolvers, determine
@@ -89,7 +88,8 @@ contract ReferenceOrderFulfiller is
     ) internal returns (bool) {
         // Validate the order and revert if it's invalid.
         OrderValidation memory orderValidation = _validateOrder(
-            advancedOrder, true
+            advancedOrder,
+            true
         );
 
         // Apply criteria resolvers using generated orders and details arrays.
@@ -219,8 +219,8 @@ contract ReferenceOrderFulfiller is
                 // Offer items for the native token can not be received outside
                 // of a match order function except as part of a contract order.
                 if (
-                    offerItem.itemType == ItemType.NATIVE
-                        && orderParameters.orderType != OrderType.CONTRACT
+                    offerItem.itemType == ItemType.NATIVE &&
+                    orderParameters.orderType != OrderType.CONTRACT
                 ) {
                     revert InvalidNativeOfferItem();
                 }
@@ -373,14 +373,16 @@ contract ReferenceOrderFulfiller is
      *
      * @return advancedOrder The new advanced order.
      */
-    function _convertOrderToAdvanced(Order calldata order)
-        internal
-        pure
-        returns (AdvancedOrder memory advancedOrder)
-    {
+    function _convertOrderToAdvanced(
+        Order calldata order
+    ) internal pure returns (AdvancedOrder memory advancedOrder) {
         // Convert to partial order (1/1 or full fill) and return new value.
         advancedOrder = AdvancedOrder(
-            order.parameters, 1, 1, order.signature, ""
+            order.parameters,
+            1,
+            1,
+            order.signature,
+            ""
         );
     }
 
@@ -392,11 +394,9 @@ contract ReferenceOrderFulfiller is
      *
      * @return advancedOrders The new array of partial orders.
      */
-    function _convertOrdersToAdvanced(Order[] calldata orders)
-        internal
-        pure
-        returns (AdvancedOrder[] memory advancedOrders)
-    {
+    function _convertOrdersToAdvanced(
+        Order[] calldata orders
+    ) internal pure returns (AdvancedOrder[] memory advancedOrders) {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = orders.length;
 

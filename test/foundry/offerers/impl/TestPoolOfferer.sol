@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ContractOffererInterface } from
-    "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import {
+    ContractOffererInterface
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
@@ -14,8 +15,9 @@ import {
     Schema
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { EnumerableSet } from
-    "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {
+    EnumerableSet
+} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -80,7 +82,7 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
      *                         consideration.
      */
     function generateOrder(
-        address, /* fulfiller */
+        address /* fulfiller */,
         SpentItem[] calldata minimumReceived,
         SpentItem[] calldata maximumSpent,
         bytes calldata
@@ -96,8 +98,12 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
         // If true, this offerer is spending NFTs and receiving ERC20.
         bool nftOffer;
         uint256 newBalance;
-        (offer, consideration, newBalance, nftOffer) =
-            _generateOfferAndConsideration(minimumReceived, maximumSpent);
+        (
+            offer,
+            consideration,
+            newBalance,
+            nftOffer
+        ) = _generateOfferAndConsideration(minimumReceived, maximumSpent);
 
         // Update token ids and balances.
         // Note that no tokens will actually be exchanged until Seaport executes
@@ -149,8 +155,10 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
         // offer and consideration variables.
         // The _generateOfferAndConsideration function also returns a bool
         // indicating whether the offer is an NFT offer.
-        (offer, consideration,, nftOffer) =
-            _generateOfferAndConsideration(minimumReceived, maximumSpent);
+        (offer, consideration, , nftOffer) = _generateOfferAndConsideration(
+            minimumReceived,
+            maximumSpent
+        );
 
         // If it's an NFT offer, call the _previewNftOffer function with the
         // offer as an argument.
@@ -172,24 +180,27 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
      *                        function.
      */
     function ratifyOrder(
-        SpentItem[] calldata, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */ ) {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual
         override(ERC165, ContractOffererInterface)
         returns (bool)
     {
-        return interfaceId == type(ContractOffererInterface).interfaceId
-            || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**
@@ -217,9 +228,9 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
      * @param maximumSpent An array of ReceivedItem structs representing the
      *                     maximum amount that the offerer is willing to spend.
      */
-    function _processNftConsideration(ReceivedItem[] memory maximumSpent)
-        internal
-    {
+    function _processNftConsideration(
+        ReceivedItem[] memory maximumSpent
+    ) internal {
         // Iterate over each item in the maximumSpent array.
         for (uint256 i = 0; i < maximumSpent.length; ++i) {
             // Retrieve the maximum spent item.
@@ -295,10 +306,9 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
      *                        minimum amount that the offerer is willing to
      *                        receive.
      */
-    function _previewNftOffer(SpentItem[] memory minimumReceived)
-        internal
-        view
-    {
+    function _previewNftOffer(
+        SpentItem[] memory minimumReceived
+    ) internal view {
         // Declare a local variable to track the index of the criteria-based
         // "wildcard" items.
         uint256 criteriaIndex;
@@ -435,8 +445,8 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
 
         // Check if the item type is valid (either ERC721 or ERC20).
         if (
-            homogenousType != ItemType.ERC721
-                && homogenousType != ItemType.ERC20
+            homogenousType != ItemType.ERC721 &&
+            homogenousType != ItemType.ERC20
         ) {
             revert InvalidItemType();
         }
@@ -520,7 +530,8 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface {
             receivedItems[i] = ReceivedItem({
                 itemType: ItemType.ERC721,
                 token: erc721,
-                identifier: (spentItem.itemType == ItemType.ERC721_WITH_CRITERIA)
+                identifier: (spentItem.itemType ==
+                    ItemType.ERC721_WITH_CRITERIA)
                     ? 106
                     : spentItem.identifier,
                 amount: spentItem.amount,

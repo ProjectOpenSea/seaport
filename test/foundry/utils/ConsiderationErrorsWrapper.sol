@@ -56,7 +56,9 @@ contract ConsiderationErrorsWrapper {
         uint256 shortfallAmount
     ) external pure {
         _revertConsiderationNotMet(
-            orderIndex, considerationIndex, shortfallAmount
+            orderIndex,
+            considerationIndex,
+            shortfallAmount
         );
     }
 
@@ -102,10 +104,10 @@ contract ConsiderationErrorsWrapper {
      * @param conduitKey    The key of the invalid conduit.
      * @param conduit       The address of the invalid conduit.
      */
-    function __revertInvalidConduit(bytes32 conduitKey, address conduit)
-        external
-        pure
-    {
+    function __revertInvalidConduit(
+        bytes32 conduitKey,
+        address conduit
+    ) external pure {
         _revertInvalidConduit(conduitKey, conduit);
     }
 
@@ -115,10 +117,7 @@ contract ConsiderationErrorsWrapper {
      *
      * @param amount The invalid amount.
      */
-    function __revertInvalidERC721TransferAmount(uint256 amount)
-        external
-        pure
-    {
+    function __revertInvalidERC721TransferAmount(uint256 amount) external pure {
         _revertInvalidERC721TransferAmount(amount);
     }
 
@@ -165,10 +164,10 @@ contract ConsiderationErrorsWrapper {
      * @param startTime       The time at which the order becomes active.
      * @param endTime         The time at which the order becomes inactive.
      */
-    function __revertInvalidTime(uint256 startTime, uint256 endTime)
-        external
-        pure
-    {
+    function __revertInvalidTime(
+        uint256 startTime,
+        uint256 endTime
+    ) external pure {
         _revertInvalidTime(startTime, endTime);
     }
 
@@ -180,10 +179,9 @@ contract ConsiderationErrorsWrapper {
      *             offer, 1 for consideration).
      *
      */
-    function __revertMissingFulfillmentComponentOnAggregation(Side side)
-        external
-        pure
-    {
+    function __revertMissingFulfillmentComponentOnAggregation(
+        Side side
+    ) external pure {
         _revertMissingFulfillmentComponentOnAggregation(side);
     }
 

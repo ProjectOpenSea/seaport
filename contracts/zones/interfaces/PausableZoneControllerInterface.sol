@@ -10,8 +10,9 @@ import {
     OrderComponents
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { SeaportInterface } from
-    "seaport-types/src/interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 /**
  * @title  PausableZoneController
@@ -28,9 +29,7 @@ interface PausableZoneControllerInterface {
      *
      * @return derivedAddress The derived address for the zone.
      */
-    function createZone(bytes32 salt)
-        external
-        returns (address derivedAddress);
+    function createZone(bytes32 salt) external returns (address derivedAddress);
 
     /**
      * @notice Pause orders on a given zone.

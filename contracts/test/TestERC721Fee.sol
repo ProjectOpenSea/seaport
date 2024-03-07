@@ -10,16 +10,14 @@ contract TestERC721Fee is ERC721, ERC2981 {
     /// @notice Below the min transaction price, `royaltyInfo` reverts
     uint256 minTransactionPrice = 0;
 
-    constructor() ERC721("Fee", "FEE") { }
+    constructor() ERC721("Fee", "FEE") {}
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, ERC2981)
-        returns (bool)
-    {
-        return ERC721.supportsInterface(interfaceId)
-            || ERC2981.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC2981) returns (bool) {
+        return
+            ERC721.supportsInterface(interfaceId) ||
+            ERC2981.supportsInterface(interfaceId);
     }
 
     function mint(address to, uint256 id) external {
@@ -34,12 +32,10 @@ contract TestERC721Fee is ERC721, ERC2981 {
         return "tokenURI";
     }
 
-    function royaltyInfo(uint256, uint256 _salePrice)
-        public
-        view
-        override
-        returns (address, uint256)
-    {
+    function royaltyInfo(
+        uint256,
+        uint256 _salePrice
+    ) public view override returns (address, uint256) {
         if (!creatorFeeEnabled) {
             revert("creator fee disabled");
         }

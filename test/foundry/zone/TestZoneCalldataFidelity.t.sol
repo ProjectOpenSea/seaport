@@ -23,17 +23,16 @@ import {
 
 import { OrderType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { ConsiderationInterface } from
-    "seaport-types/src/interfaces/ConsiderationInterface.sol";
-
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
     using ConsiderationItemLib for ConsiderationItem[];
     using OfferItemLib for OfferItem[];
     using OrderParametersLib for OrderParameters;
-    
-    HashCalldataTestZone testZone =
-        new HashCalldataTestZone();
+
+    HashCalldataTestZone testZone = new HashCalldataTestZone();
 
     struct Context {
         ConsiderationInterface consideration;
@@ -58,9 +57,10 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         uint256 salt;
     }
 
-    function test(function(Context memory) external fn, Context memory context)
-        internal
-    {
+    function test(
+        function(Context memory) external fn,
+        Context memory context
+    ) internal {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -72,7 +72,9 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         super.setUp();
         conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
-            address(referenceConduit), address(this), true
+            address(referenceConduit),
+            address(this),
+            true
         );
         vm.label(address(testZone), "TestZone");
     }
@@ -80,10 +82,7 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
     function testCalldataEquivalence(TestCase memory testCase) public {
         test(
             this.execCalldataEquivalence,
-            Context({
-                consideration: consideration,
-                testCase: testCase
-            })
+            Context({ consideration: consideration, testCase: testCase })
         );
         test(
             this.execCalldataEquivalence,
@@ -106,7 +105,9 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
             offerer: address(this),
             zone: address(testZone),
             offer: new OfferItem[](testCase.offerLength),
-            consideration: new ConsiderationItem[](testCase.considerationLength),
+            consideration: new ConsiderationItem[](
+                testCase.considerationLength
+            ),
             orderType: OrderType(testCase.orderType),
             startTime: testCase.startTime,
             endTime: testCase.endTime,
@@ -131,7 +132,8 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
             orderParameters.consideration[i] = ConsiderationItem({
                 itemType: ItemType(testCase.itemType),
                 token: address(test721_1),
-                identifierOrCriteria: testCase.considerationItemStartingIdentifier + i,
+                identifierOrCriteria: testCase
+                    .considerationItemStartingIdentifier + i,
                 startAmount: testCase.startAmount,
                 endAmount: testCase.endAmount,
                 recipient: payable(address(uint160(testCase.recipient)))
@@ -161,7 +163,7 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
             consideration: orderParameters.consideration.toReceivedItemArray(),
             extraData: abi.encodePacked(bytes32(testCase.extraData)),
             orderHashes: new bytes32[](0),
-            startTime:  testCase.startTime,
+            startTime: testCase.startTime,
             endTime: testCase.endTime,
             zoneHash: bytes32(testCase.zoneHash)
         });
@@ -179,9 +181,7 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         zoneParameters.orderHashes[0] = orderHash;
 
         // Hash the updated zone parameters.
-        expectedZoneHash = bytes32(
-            keccak256(abi.encode(zoneParameters))
-        );
+        expectedZoneHash = bytes32(keccak256(abi.encode(zoneParameters)));
 
         // Send the expectation for validate to the test zone.
         testZone.setExpectedValidateCalldataHash(expectedZoneHash);
@@ -195,32 +195,68 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         });
     }
 
-    function _boundTestCase(TestCase memory _testCase) internal view returns (TestCase memory) {
+    function _boundTestCase(
+        TestCase memory _testCase
+    ) internal view returns (TestCase memory) {
         TestCase memory testCase = _testCase;
 
         testCase.itemType = bound(testCase.itemType, 2, 2);
-        testCase.offerItemStartingIdentifier = bound(testCase.offerItemStartingIdentifier, 1, type(uint16).max);
-        testCase.considerationItemStartingIdentifier = bound(testCase.considerationItemStartingIdentifier, type(uint32).max, type(uint64).max);
+        testCase.offerItemStartingIdentifier = bound(
+            testCase.offerItemStartingIdentifier,
+            1,
+            type(uint16).max
+        );
+        testCase.considerationItemStartingIdentifier = bound(
+            testCase.considerationItemStartingIdentifier,
+            type(uint32).max,
+            type(uint64).max
+        );
         testCase.startAmount = bound(testCase.startAmount, 1, 1);
-        testCase.endAmount = bound(testCase.endAmount, 1, testCase.itemType == 2 ? 1 : 1000);
+        testCase.endAmount = bound(
+            testCase.endAmount,
+            1,
+            testCase.itemType == 2 ? 1 : 1000
+        );
         testCase.recipient = bound(testCase.recipient, 10, type(uint160).max);
         testCase.offerLength = bound(testCase.offerLength, 1, 30);
-        testCase.considerationLength = bound(testCase.considerationLength, 1, 30);
+        testCase.considerationLength = bound(
+            testCase.considerationLength,
+            1,
+            30
+        );
         testCase.orderType = bound(testCase.orderType, 1, 3); // 0, 4);
         testCase.startTime = bound(testCase.startTime, 0, 1);
-        testCase.endTime = bound(testCase.endTime, block.timestamp + 1, type(uint256).max);
+        testCase.endTime = bound(
+            testCase.endTime,
+            block.timestamp + 1,
+            type(uint256).max
+        );
 
         return testCase;
     }
 
     function _mintNecessaryTokens(TestCase memory testCase) internal {
         for (uint256 i = 0; i < testCase.offerLength; i++) {
-            test721_1.mint(address(this), testCase.offerItemStartingIdentifier + i);
-            test1155_1.mint(address(this), testCase.offerItemStartingIdentifier + i, testCase.endAmount);
+            test721_1.mint(
+                address(this),
+                testCase.offerItemStartingIdentifier + i
+            );
+            test1155_1.mint(
+                address(this),
+                testCase.offerItemStartingIdentifier + i,
+                testCase.endAmount
+            );
         }
         for (uint256 i = 0; i < testCase.considerationLength; i++) {
-            test721_1.mint(address(this), testCase.considerationItemStartingIdentifier + i);
-            test1155_1.mint(address(this), testCase.considerationItemStartingIdentifier + i, testCase.endAmount);
+            test721_1.mint(
+                address(this),
+                testCase.considerationItemStartingIdentifier + i
+            );
+            test1155_1.mint(
+                address(this),
+                testCase.considerationItemStartingIdentifier + i,
+                testCase.endAmount
+            );
         }
     }
 }

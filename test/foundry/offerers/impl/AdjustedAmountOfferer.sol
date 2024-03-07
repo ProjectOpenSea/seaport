@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ERC20Interface } from
-    "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
+import {
+    ERC20Interface
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ContractOffererInterface } from
-    "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import {
+    ContractOffererInterface
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
@@ -75,11 +77,10 @@ contract AdjustedAmountOfferer is ContractOffererInterface, ERC165 {
         );
     }
 
-    function adjustAmounts(SpentItem[] memory items, int256 amount)
-        internal
-        pure
-        returns (SpentItem[] memory)
-    {
+    function adjustAmounts(
+        SpentItem[] memory items,
+        int256 amount
+    ) internal pure returns (SpentItem[] memory) {
         SpentItem[] memory adjustedItems = new SpentItem[](items.length);
         for (uint256 i = 0; i < items.length; ++i) {
             adjustedItems[i] = items[i];
@@ -88,11 +89,9 @@ contract AdjustedAmountOfferer is ContractOffererInterface, ERC165 {
         return adjustedItems;
     }
 
-    function _convertSpentToReceived(SpentItem[] memory spentItems)
-        internal
-        view
-        returns (ReceivedItem[] memory)
-    {
+    function _convertSpentToReceived(
+        SpentItem[] memory spentItems
+    ) internal view returns (ReceivedItem[] memory) {
         ReceivedItem[] memory receivedItems = new ReceivedItem[](
             spentItems.length
         );
@@ -102,39 +101,41 @@ contract AdjustedAmountOfferer is ContractOffererInterface, ERC165 {
         return receivedItems;
     }
 
-    function _convertSpentToReceived(SpentItem memory spentItem)
-        internal
-        view
-        returns (ReceivedItem memory)
-    {
-        return ReceivedItem({
-            itemType: spentItem.itemType,
-            token: spentItem.token,
-            identifier: spentItem.identifier,
-            amount: spentItem.amount,
-            recipient: payable(address(this))
-        });
+    function _convertSpentToReceived(
+        SpentItem memory spentItem
+    ) internal view returns (ReceivedItem memory) {
+        return
+            ReceivedItem({
+                itemType: spentItem.itemType,
+                token: spentItem.token,
+                identifier: spentItem.identifier,
+                amount: spentItem.amount,
+                recipient: payable(address(this))
+            });
     }
 
     function ratifyOrder(
-        SpentItem[] calldata, /* offer */
-        ReceivedItem[] calldata, /* consideration */
-        bytes calldata, /* context */
-        bytes32[] calldata, /* orderHashes */
+        SpentItem[] calldata /* offer */,
+        ReceivedItem[] calldata /* consideration */,
+        bytes calldata /* context */,
+        bytes32[] calldata /* orderHashes */,
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */ ) {
+    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
         return AdjustedAmountOfferer.ratifyOrder.selector;
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual
         override(ERC165, ContractOffererInterface)
         returns (bool)
     {
-        return interfaceId == type(ContractOffererInterface).interfaceId
-            || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(ContractOffererInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**

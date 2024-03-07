@@ -149,15 +149,15 @@ contract ReferenceOrderCombiner is
             bytes32[] memory orderHashes,
             bool containsNonOpen
         ) = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            ordersToExecute,
-            criteriaResolvers,
-            OrderValidationParams(
-                false, // Signifies that invalid orders should NOT revert.
-                maximumFulfilled,
-                recipient
-            )
-        );
+                advancedOrders,
+                ordersToExecute,
+                criteriaResolvers,
+                OrderValidationParams(
+                    false, // Signifies that invalid orders should NOT revert.
+                    maximumFulfilled,
+                    recipient
+                )
+            );
 
         // Execute transfers.
         (availableOrders, executions) = _executeAvailableFulfillments(
@@ -222,7 +222,8 @@ contract ReferenceOrderCombiner is
 
             // Validate the order and determine fraction to fill.
             OrderValidation memory orderValidation = _validateOrder(
-                advancedOrder, orderValidationParams.revertOnInvalid
+                advancedOrder,
+                orderValidationParams.revertOnInvalid
             );
 
             // Do not track hash or adjust prices if order is not fulfilled.
@@ -258,8 +259,8 @@ contract ReferenceOrderCombiner is
 
                 {
                     bool isNonContractOrder = orderType != OrderType.CONTRACT;
-                    bool isNonOpenOrder = orderType != OrderType.FULL_OPEN
-                        && orderType != OrderType.PARTIAL_OPEN;
+                    bool isNonOpenOrder = orderType != OrderType.FULL_OPEN &&
+                        orderType != OrderType.PARTIAL_OPEN;
 
                     if (containsNonOpen == true || isNonOpenOrder == true) {
                         containsNonOpen = true;
@@ -273,11 +274,9 @@ contract ReferenceOrderCombiner is
                         // Determine if there are any native offer items on
                         // non-contract orders.
                         anyNativeOfferItemsOnNonContractOrders =
-                        anyNativeOfferItemsOnNonContractOrders
-                            || (
-                                offerItem.itemType == ItemType.NATIVE
-                                    && isNonContractOrder
-                            );
+                            anyNativeOfferItemsOnNonContractOrders ||
+                            (offerItem.itemType == ItemType.NATIVE &&
+                                isNonContractOrder);
 
                         // Apply order fill fraction to offer item end amount.
                         uint256 endAmount = _getFraction(
@@ -317,11 +316,9 @@ contract ReferenceOrderCombiner is
                             .spentItems[j]
                             .amount = offerItem.startAmount;
                         // Modify the OrderToExecute Spent Item Original amount.
-                        orderValidation
-                            .orderToExecute
-                            .spentItemOriginalAmounts[j] = (
-                                offerItem.startAmount
-                            );
+                        orderValidation.orderToExecute.spentItemOriginalAmounts[
+                            j
+                        ] = (offerItem.startAmount);
                     }
                 }
 
@@ -347,9 +344,8 @@ contract ReferenceOrderCombiner is
 
                         // Reuse same fraction if start & end amounts are equal.
                         if (
-                            considerationItem.startAmount == (
-                                considerationItem.endAmount
-                            )
+                            considerationItem.startAmount ==
+                            (considerationItem.endAmount)
                         ) {
                             // Apply derived amount to both start & end amount.
                             considerationItem.startAmount = endAmount;
@@ -383,8 +379,8 @@ contract ReferenceOrderCombiner is
                         orderValidation
                             .orderToExecute
                             .receivedItemOriginalAmounts[j] = (
-                                considerationItem.startAmount
-                            );
+                            considerationItem.startAmount
+                        );
                     }
                 }
             }
@@ -393,11 +389,9 @@ contract ReferenceOrderCombiner is
         }
 
         if (
-            anyNativeOfferItemsOnNonContractOrders
-                && (
-                    msg.sig != SeaportInterface.matchAdvancedOrders.selector
-                        && msg.sig != SeaportInterface.matchOrders.selector
-                )
+            anyNativeOfferItemsOnNonContractOrders &&
+            (msg.sig != SeaportInterface.matchAdvancedOrders.selector &&
+                msg.sig != SeaportInterface.matchOrders.selector)
         ) {
             revert InvalidNativeOfferItem();
         }
@@ -436,15 +430,15 @@ contract ReferenceOrderCombiner is
 
             // Ensure restricted orders have valid submitter or pass zone check.
             (
-                bool valid,
-                /* bool checked */
+                bool valid /* bool checked */,
+
             ) = _checkRestrictedAdvancedOrderAuthorization(
-                advancedOrders[i],
-                ordersToExecute[i],
-                _shorten(orderHashes, i),
-                orderHashes[i],
-                orderValidationParams.revertOnInvalid
-            );
+                    advancedOrders[i],
+                    ordersToExecute[i],
+                    _shorten(orderHashes, i),
+                    orderHashes[i],
+                    orderValidationParams.revertOnInvalid
+                );
 
             if (!valid) {
                 orderHashes[i] = bytes32(0);
@@ -478,7 +472,7 @@ contract ReferenceOrderCombiner is
                 );
 
                 orderHashes[i] = orderHash;
- 
+
                 if (orderHash == bytes32(0)) {
                     ordersToExecute[i].numerator = 0;
                     continue;
@@ -516,11 +510,10 @@ contract ReferenceOrderCombiner is
         }
     }
 
-    function _shorten(bytes32[] memory orderHashes, uint256 index)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
+    function _shorten(
+        bytes32[] memory orderHashes,
+        uint256 index
+    ) internal pure returns (bytes32[] memory) {
         bytes32[] memory shortened = new bytes32[](index);
         for (uint256 i = 0; i < index; i++) {
             shortened[i] = orderHashes[i];
@@ -604,8 +597,9 @@ contract ReferenceOrderCombiner is
         uint256 totalOfferFulfillments = offerFulfillments.length;
 
         // Retrieve length of consideration fulfillments array & place on stack.
-        uint256 totalConsiderationFulfillments =
-            (considerationFulfillments.length);
+        uint256 totalConsiderationFulfillments = (
+            considerationFulfillments.length
+        );
 
         // Allocate an execution for each offer and consideration fulfillment.
         executions = new Execution[](
@@ -770,7 +764,8 @@ contract ReferenceOrderCombiner is
                     if (unspentAmount != 0) {
                         _transfer(
                             _convertSpentItemToReceivedItemWithRecipient(
-                                offerSpentItem, _recipient
+                                offerSpentItem,
+                                _recipient
                             ),
                             parameters.offerer,
                             parameters.conduitKey,
@@ -872,13 +867,14 @@ contract ReferenceOrderCombiner is
 
         _recipient = payable(recipient);
 
-        return ReceivedItem(
-            offerItem.itemType,
-            offerItem.token,
-            offerItem.identifier,
-            offerItem.amount,
-            _recipient
-        );
+        return
+            ReceivedItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifier,
+                offerItem.amount,
+                _recipient
+            );
     }
 
     /**
@@ -935,28 +931,29 @@ contract ReferenceOrderCombiner is
             bytes32[] memory orderHashes,
             bool containsNonOpen
         ) = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            ordersToExecute,
-            criteriaResolvers,
-            OrderValidationParams(
-                true, // Signifies that invalid orders should revert.
-                advancedOrders.length,
-                recipient
-            )
-        );
+                advancedOrders,
+                ordersToExecute,
+                criteriaResolvers,
+                OrderValidationParams(
+                    true, // Signifies that invalid orders should revert.
+                    advancedOrders.length,
+                    recipient
+                )
+            );
 
         // Emit OrdersMatched event.
         emit OrdersMatched(orderHashes);
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(
-            advancedOrders,
-            ordersToExecute,
-            fulfillments,
-            orderHashes,
-            recipient,
-            containsNonOpen
-        );
+        return
+            _fulfillAdvancedOrders(
+                advancedOrders,
+                ordersToExecute,
+                fulfillments,
+                orderHashes,
+                recipient,
+                containsNonOpen
+            );
     }
 
     /**
@@ -1046,13 +1043,9 @@ contract ReferenceOrderCombiner is
     ) internal view returns (bool revertOnFailedUpdate) {
         OrderType orderType = orderParameters.orderType;
         address zone = orderParameters.zone;
-        return (
-            revertOnInvalid || (
-                (
-                    orderType == OrderType.FULL_RESTRICTED ||
-                    orderType == OrderType.PARTIAL_RESTRICTED
-                ) && zone != msg.sender
-            )
-        );
+        return (revertOnInvalid ||
+            ((orderType == OrderType.FULL_RESTRICTED ||
+                orderType == OrderType.PARTIAL_RESTRICTED) &&
+                zone != msg.sender));
     }
 }

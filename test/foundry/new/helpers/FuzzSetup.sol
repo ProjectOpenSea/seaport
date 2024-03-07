@@ -3,7 +3,10 @@ pragma solidity ^0.8.17;
 
 import { Test } from "forge-std/Test.sol";
 
-import { ExecutionLib, ZoneParametersLib } from "seaport-sol/src/SeaportSol.sol";
+import {
+    ExecutionLib,
+    ZoneParametersLib
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -24,8 +27,9 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
 import { CriteriaResolverHelper } from "./CriteriaResolverHelper.sol";
 
-import { AmountDeriverHelper } from
-    "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
+import {
+    AmountDeriverHelper
+} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
 
 import { ExpectedEventsUtil } from "./event-utils/ExpectedEventsUtil.sol";
 
@@ -73,11 +77,10 @@ library CheckHelpers {
      *
      * @return The updated test context.
      */
-    function registerCheck(FuzzTestContext memory context, bytes4 check)
-        internal
-        pure
-        returns (FuzzTestContext memory)
-    {
+    function registerCheck(
+        FuzzTestContext memory context,
+        bytes4 check
+    ) internal pure returns (FuzzTestContext memory) {
         bytes4[] memory checks = context.checks;
         bytes4[] memory newChecks = new bytes4[](checks.length + 1);
         for (uint256 i; i < checks.length; ++i) {
@@ -93,11 +96,9 @@ library CheckHelpers {
      *
      * @param context The test context.
      */
-    function getApproveTo(FuzzTestContext memory context)
-        internal
-        view
-        returns (address)
-    {
+    function getApproveTo(
+        FuzzTestContext memory context
+    ) internal view returns (address) {
         if (context.executionState.fulfillerConduitKey == bytes32(0)) {
             return address(context.seaport);
         } else {
@@ -125,8 +126,9 @@ library CheckHelpers {
         if (orderParams.conduitKey == bytes32(0)) {
             return address(context.seaport);
         } else {
-            (address conduit, bool exists) =
-                context.conduitController.getConduit(orderParams.conduitKey);
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(orderParams.conduitKey);
             if (exists) {
                 return conduit;
             } else {
@@ -148,8 +150,9 @@ library CheckHelpers {
         if (orderDetails.conduitKey == bytes32(0)) {
             return address(context.seaport);
         } else {
-            (address conduit, bool exists) =
-                context.conduitController.getConduit(orderDetails.conduitKey);
+            (address conduit, bool exists) = context
+                .conduitController
+                .getConduit(orderDetails.conduitKey);
             if (exists) {
                 return conduit;
             } else {
@@ -189,8 +192,10 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         );
 
         for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
-            unavailableReasons[i] =
-                context.executionState.orderDetails[i].unavailableReason;
+            unavailableReasons[i] = context
+                .executionState
+                .orderDetails[i]
+                .unavailableReason;
         }
 
         // Get the expected zone calldata hashes for each order.
@@ -198,23 +203,23 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
             .executionState
             .orders
             .getExpectedZoneAuthorizeCalldataHash(
-            address(context.seaport),
-            context.executionState.caller,
-            context.executionState.criteriaResolvers,
-            context.executionState.maximumFulfilled,
-            unavailableReasons
-        );
+                address(context.seaport),
+                context.executionState.caller,
+                context.executionState.criteriaResolvers,
+                context.executionState.maximumFulfilled,
+                unavailableReasons
+            );
 
         bytes32[] memory validateCalldataHashes = context
             .executionState
             .orders
             .getExpectedZoneValidateCalldataHash(
-            address(context.seaport),
-            context.executionState.caller,
-            context.executionState.criteriaResolvers,
-            context.executionState.maximumFulfilled,
-            unavailableReasons
-        );
+                address(context.seaport),
+                context.executionState.caller,
+                context.executionState.criteriaResolvers,
+                context.executionState.maximumFulfilled,
+                unavailableReasons
+            );
 
         // Provision the expected zone calldata hash arrays.
         bytes32[] memory expectedZoneAuthorizeCalldataHashes = new bytes32[](
@@ -230,24 +235,32 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         // expected zone calldata hash. If any of the orders is restricted,
         // flip the flag to register the hash validation check.
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory order =
-                context.executionState.orders[i].parameters;
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
             if (
-                context.executionState.orderDetails[i].unavailableReason
-                    == UnavailableReason.AVAILABLE
-                    && (
-                        order.orderType == OrderType.FULL_RESTRICTED
-                            || order.orderType == OrderType.PARTIAL_RESTRICTED
-                    )
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE &&
+                (order.orderType == OrderType.FULL_RESTRICTED ||
+                    order.orderType == OrderType.PARTIAL_RESTRICTED)
             ) {
                 registerChecks = true;
-                expectedZoneAuthorizeCalldataHashes[i] = authorizeCalldataHashes[i];
-                expectedZoneValidateCalldataHashes[i] = validateCalldataHashes[i];
+                expectedZoneAuthorizeCalldataHashes[
+                    i
+                ] = authorizeCalldataHashes[i];
+                expectedZoneValidateCalldataHashes[i] = validateCalldataHashes[
+                    i
+                ];
             }
         }
 
-        context.expectations.expectedZoneAuthorizeCalldataHashes = expectedZoneAuthorizeCalldataHashes;
-        context.expectations.expectedZoneValidateCalldataHashes = expectedZoneValidateCalldataHashes;
+        context
+            .expectations
+            .expectedZoneAuthorizeCalldataHashes = expectedZoneAuthorizeCalldataHashes;
+        context
+            .expectations
+            .expectedZoneValidateCalldataHashes = expectedZoneValidateCalldataHashes;
 
         if (registerChecks) {
             context.registerCheck(
@@ -259,38 +272,40 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
     }
 
-    function setUpContractOfferers(FuzzTestContext memory context)
-        public
-        pure
-    {
-        bytes32[2][] memory contractOrderCalldataHashes =
-            context.getExpectedContractOffererCalldataHashes();
+    function setUpContractOfferers(FuzzTestContext memory context) public pure {
+        bytes32[2][] memory contractOrderCalldataHashes = context
+            .getExpectedContractOffererCalldataHashes();
 
-        bytes32[2][] memory expectedContractOrderCalldataHashes =
-        new bytes32[2][](
+        bytes32[2][]
+            memory expectedContractOrderCalldataHashes = new bytes32[2][](
                 context.executionState.orders.length
             );
 
         bool registerChecks;
 
         for (uint256 i = 0; i < context.executionState.orders.length; ++i) {
-            OrderParameters memory order =
-                context.executionState.orders[i].parameters;
+            OrderParameters memory order = context
+                .executionState
+                .orders[i]
+                .parameters;
             if (
-                context.executionState.orderDetails[i].unavailableReason
-                    == UnavailableReason.AVAILABLE
-                    && order.orderType == OrderType.CONTRACT
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE &&
+                order.orderType == OrderType.CONTRACT
             ) {
                 registerChecks = true;
-                expectedContractOrderCalldataHashes[i][0] =
-                    contractOrderCalldataHashes[i][0];
-                expectedContractOrderCalldataHashes[i][1] =
-                    contractOrderCalldataHashes[i][1];
+                expectedContractOrderCalldataHashes[i][
+                    0
+                ] = contractOrderCalldataHashes[i][0];
+                expectedContractOrderCalldataHashes[i][
+                    1
+                ] = contractOrderCalldataHashes[i][1];
             }
         }
 
-        context.expectations.expectedContractOrderCalldataHashes =
-            expectedContractOrderCalldataHashes;
+        context
+            .expectations
+            .expectedContractOrderCalldataHashes = expectedContractOrderCalldataHashes;
 
         if (registerChecks) {
             context.registerCheck(
@@ -306,9 +321,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      * @param context The test context.
      */
     function setUpOfferItems(FuzzTestContext memory context) public {
-        bool isMatchable = context.action()
-            == context.seaport.matchAdvancedOrders.selector
-            || context.action() == context.seaport.matchOrders.selector;
+        bool isMatchable = context.action() ==
+            context.seaport.matchAdvancedOrders.selector ||
+            context.action() == context.seaport.matchOrders.selector;
 
         // Iterate over orders and mint/approve as necessary.
         for (uint256 i; i < context.executionState.orderDetails.length; ++i) {
@@ -326,8 +341,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
                 if (item.itemType == ItemType.NATIVE) {
                     if (
-                        context.executionState.orders[i].parameters.orderType
-                            == OrderType.CONTRACT
+                        context.executionState.orders[i].parameters.orderType ==
+                        OrderType.CONTRACT
                     ) {
                         vm.deal(offerer, offerer.balance + item.amount);
                     } else if (isMatchable) {
@@ -342,7 +357,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                     TestERC20(item.token).mint(offerer, item.amount);
                     vm.prank(offerer);
                     TestERC20(item.token).increaseAllowance(
-                        approveTo, item.amount
+                        approveTo,
+                        item.amount
                     );
                 }
 
@@ -354,7 +370,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
                 if (item.itemType == ItemType.ERC1155) {
                     TestERC1155(item.token).mint(
-                        offerer, item.identifier, item.amount
+                        offerer,
+                        item.identifier,
+                        item.amount
                     );
                     vm.prank(offerer);
                     TestERC1155(item.token).setApprovalForAll(approveTo, true);
@@ -372,8 +390,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
     function setUpConsiderationItems(FuzzTestContext memory context) public {
         // Skip creating consideration items if we're calling a match function
         if (
-            context.action() == context.seaport.matchAdvancedOrders.selector
-                || context.action() == context.seaport.matchOrders.selector
+            context.action() == context.seaport.matchAdvancedOrders.selector ||
+            context.action() == context.seaport.matchOrders.selector
         ) return;
 
         // In all cases, deal balance to caller if consideration item is native
@@ -394,22 +412,24 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         // Special handling for basic orders that are bids; only first item
         // needs to be approved
         if (
-            (
-                context.action() == context.seaport.fulfillBasicOrder.selector
-                    || context.action()
-                        == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
-            )
-                && context.executionState.orders[0].parameters.offer[0].itemType
-                    == ItemType.ERC20
+            (context.action() == context.seaport.fulfillBasicOrder.selector ||
+                context.action() ==
+                context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector) &&
+            context.executionState.orders[0].parameters.offer[0].itemType ==
+            ItemType.ERC20
         ) {
-            ConsiderationItem memory item =
-                context.executionState.orders[0].parameters.consideration[0];
+            ConsiderationItem memory item = context
+                .executionState
+                .orders[0]
+                .parameters
+                .consideration[0];
 
             address approveTo = context.getApproveTo();
 
             if (item.itemType == ItemType.ERC721) {
                 TestERC721(item.token).mint(
-                    context.executionState.caller, item.identifierOrCriteria
+                    context.executionState.caller,
+                    item.identifierOrCriteria
                 );
                 vm.prank(context.executionState.caller);
                 TestERC721(item.token).setApprovalForAll(approveTo, true);
@@ -445,16 +465,17 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                     TestERC20(item.token).mint(owner, item.amount);
                     vm.prank(owner);
                     TestERC20(item.token).increaseAllowance(
-                        approveTo, item.amount
+                        approveTo,
+                        item.amount
                     );
                 }
 
                 if (item.itemType == ItemType.ERC721) {
                     bool shouldMint = true;
                     if (
-                        context.executionState.caller
-                            == context.executionState.recipient
-                            || context.executionState.recipient == address(0)
+                        context.executionState.caller ==
+                        context.executionState.recipient ||
+                        context.executionState.recipient == address(0)
                     ) {
                         for (
                             uint256 k;
@@ -462,21 +483,24 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                             ++k
                         ) {
                             if (
-                                context.executionState.orderDetails[k]
-                                    .unavailableReason
-                                    != UnavailableReason.AVAILABLE
+                                context
+                                    .executionState
+                                    .orderDetails[k]
+                                    .unavailableReason !=
+                                UnavailableReason.AVAILABLE
                             ) {
                                 continue;
                             }
 
-                            SpentItem[] memory spentItems =
-                                context.executionState.orderDetails[k].offer;
+                            SpentItem[] memory spentItems = context
+                                .executionState
+                                .orderDetails[k]
+                                .offer;
                             for (uint256 l; l < spentItems.length; ++l) {
                                 if (
-                                    spentItems[l].itemType == ItemType.ERC721
-                                        && spentItems[l].token == item.token
-                                        && spentItems[l].identifier
-                                            == item.identifier
+                                    spentItems[l].itemType == ItemType.ERC721 &&
+                                    spentItems[l].token == item.token &&
+                                    spentItems[l].identifier == item.identifier
                                 ) {
                                     shouldMint = false;
                                     break;
@@ -494,7 +518,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
 
                 if (item.itemType == ItemType.ERC1155) {
                     TestERC1155(item.token).mint(
-                        owner, item.identifier, item.amount
+                        owner,
+                        item.identifier,
+                        item.amount
                     );
                     vm.prank(owner);
                     TestERC1155(item.token).setApprovalForAll(approveTo, true);
@@ -503,19 +529,21 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
     }
 
-    function registerExpectedEventsAndBalances(FuzzTestContext memory context)
-        public
-    {
+    function registerExpectedEventsAndBalances(
+        FuzzTestContext memory context
+    ) public {
         ExecutionsFlattener.flattenExecutions(context);
         context.registerCheck(FuzzChecks.check_expectedBalances.selector);
         ExpectedBalances balanceChecker = context.testHelpers.balanceChecker();
 
-        Execution[] memory _executions =
-            context.expectations.allExpectedExecutions;
+        Execution[] memory _executions = context
+            .expectations
+            .allExpectedExecutions;
         Execution[] memory executions = _executions;
 
-        try balanceChecker.addTransfers(executions) { }
-        catch (bytes memory reason) {
+        try balanceChecker.addTransfers(executions) {} catch (
+            bytes memory reason
+        ) {
             context.expectations.allExpectedExecutions = executions;
             dumpExecutions(context);
             assembly {
@@ -549,10 +577,9 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
      *
      * @param context The test context.
      */
-    function registerFunctionSpecificChecks(FuzzTestContext memory context)
-        public
-        view
-    {
+    function registerFunctionSpecificChecks(
+        FuzzTestContext memory context
+    ) public view {
         bytes4 _action = context.action();
         if (_action == context.seaport.fulfillOrder.selector) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
@@ -561,8 +588,8 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         } else if (_action == context.seaport.fulfillBasicOrder.selector) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
         } else if (
-            _action
-                == context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+            _action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
         ) {
             context.registerCheck(FuzzChecks.check_orderFulfilled.selector);
         } else if (_action == context.seaport.fulfillAvailableOrders.selector) {

@@ -14,7 +14,8 @@ import { console2 } from "forge-std/console2.sol";
 import { ArrayHelpers, MemoryPointer } from "seaport/helpers/ArrayHelpers.sol";
 
 import {
-    OrderStatusEnum, UnavailableReason
+    OrderStatusEnum,
+    UnavailableReason
 } from "seaport-sol/src/SpaceEnums.sol";
 
 import { ForgeEventsLib } from "./event-utils/ForgeEventsLib.sol";
@@ -84,7 +85,9 @@ function dumpContext(
     jsonOut = vm.serializeString("root", "_action", context.actionName());
     if (outputSelection.seaport) {
         jsonOut = Searializer.tojsonAddress(
-            "root", "seaport", address(context.seaport)
+            "root",
+            "seaport",
+            address(context.seaport)
         );
     }
     // if (outputSelection.conduitController) {
@@ -96,22 +99,30 @@ function dumpContext(
     // }
     if (outputSelection.caller) {
         jsonOut = Searializer.tojsonAddress(
-            "root", "caller", context.executionState.caller
+            "root",
+            "caller",
+            context.executionState.caller
         );
     }
     if (outputSelection.recipient) {
         jsonOut = Searializer.tojsonAddress(
-            "root", "recipient", context.executionState.recipient
+            "root",
+            "recipient",
+            context.executionState.recipient
         );
     }
     if (outputSelection.callValue) {
         jsonOut = Searializer.tojsonUint256(
-            "root", "callValue", context.executionState.value
+            "root",
+            "callValue",
+            context.executionState.value
         );
     }
     if (outputSelection.maximumFulfilled) {
         jsonOut = Searializer.tojsonUint256(
-            "root", "maximumFulfilled", context.executionState.maximumFulfilled
+            "root",
+            "maximumFulfilled",
+            context.executionState.maximumFulfilled
         );
     }
     // if (outputSelection.fuzzParams) {
@@ -119,7 +130,9 @@ function dumpContext(
     // }
     if (outputSelection.orders) {
         jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
-            "root", "orders", context.executionState.orders
+            "root",
+            "orders",
+            context.executionState.orders
         );
     }
     if (outputSelection.orderHashes) {
@@ -127,18 +140,25 @@ function dumpContext(
             context.executionState.orderDetails.length
         );
 
-        for (uint256 i = 0; i < context.executionState.orderDetails.length; i++)
-        {
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            i++
+        ) {
             orderHashes[i] = context.executionState.orderDetails[i].orderHash;
         }
 
         jsonOut = Searializer.tojsonDynArrayBytes32(
-            "root", "orderHashes", orderHashes
+            "root",
+            "orderHashes",
+            orderHashes
         );
     }
     if (outputSelection.previewedOrders) {
         jsonOut = Searializer.tojsonDynArrayAdvancedOrder(
-            "root", "previewedOrders", context.executionState.previewedOrders
+            "root",
+            "previewedOrders",
+            context.executionState.previewedOrders
         );
     }
     // if (outputSelection.counter) {
@@ -282,14 +302,20 @@ function dumpContext(
             context.executionState.orderDetails.length
         );
 
-        for (uint256 i = 0; i < context.executionState.orderDetails.length; i++)
-        {
-            expectedAvailableOrders[i] = context.executionState.orderDetails[i]
-                .unavailableReason == UnavailableReason.AVAILABLE;
+        for (
+            uint256 i = 0;
+            i < context.executionState.orderDetails.length;
+            i++
+        ) {
+            expectedAvailableOrders[i] =
+                context.executionState.orderDetails[i].unavailableReason ==
+                UnavailableReason.AVAILABLE;
         }
 
         jsonOut = Searializer.tojsonDynArrayBool(
-            "root", "expectedAvailableOrders", expectedAvailableOrders
+            "root",
+            "expectedAvailableOrders",
+            expectedAvailableOrders
         );
     }
     // =====================================================================//
@@ -303,8 +329,10 @@ function dumpContext(
     //     );
     // }
     if (outputSelection.actualEvents) {
-        jsonOut =
-            context.actualEvents.serializeTransferLogs("root", "actualEvents");
+        jsonOut = context.actualEvents.serializeTransferLogs(
+            "root",
+            "actualEvents"
+        );
     }
     if (outputSelection.expectedEvents) {
         jsonOut = context
@@ -330,7 +358,9 @@ function dumpContext(
     }
     if (outputSelection.erc20ExpectedBalances) {
         jsonOut = Searializer.tojsonDynArrayERC20TokenDump(
-            "root", "erc20ExpectedBalances", balanceChecker.dumpERC20Balances()
+            "root",
+            "erc20ExpectedBalances",
+            balanceChecker.dumpERC20Balances()
         );
     }
     // if (outputSelection.erc721ExpectedBalances) {
@@ -349,7 +379,9 @@ function dumpContext(
     // }
     if (outputSelection.validationErrors) {
         jsonOut = Searializer.tojsonDynArrayValidationErrorsAndWarnings(
-            "root", "validationErrors", context.executionState.validationErrors
+            "root",
+            "validationErrors",
+            context.executionState.validationErrors
         );
     }
     vm.writeJson(jsonOut, "./fuzz_debug.json");
@@ -361,8 +393,9 @@ function dumpContext(
 function pureDumpContext()
     pure
     returns (
-        function(FuzzTestContext memory, ContextOutputSelection memory) internal pure
-            pureFn
+        function(FuzzTestContext memory, ContextOutputSelection memory)
+            internal
+            pure pureFn
     )
 {
     function(FuzzTestContext memory, ContextOutputSelection memory)
@@ -421,22 +454,23 @@ function dumpExecutions(FuzzTestContext memory context) view {
 library ExecutionFilterCast {
     using ExecutionFilterCast for *;
 
-    function filter(Execution[] memory executions, ItemType itemType)
-        internal
-        pure
-        returns (Execution[] memory)
-    {
+    function filter(
+        Execution[] memory executions,
+        ItemType itemType
+    ) internal pure returns (Execution[] memory) {
         if (uint256(itemType) > 3) return executions;
-        return ArrayHelpers.filterWithArg.asExecutionsFilterByItemType()(
-            executions, ExecutionFilterCast.isItemType, itemType
-        );
+        return
+            ArrayHelpers.filterWithArg.asExecutionsFilterByItemType()(
+                executions,
+                ExecutionFilterCast.isItemType,
+                itemType
+            );
     }
 
-    function isItemType(Execution memory execution, ItemType itemType)
-        internal
-        pure
-        returns (bool)
-    {
+    function isItemType(
+        Execution memory execution,
+        ItemType itemType
+    ) internal pure returns (bool) {
         return execution.item.itemType == itemType;
     }
 
@@ -450,8 +484,14 @@ library ExecutionFilterCast {
         internal
         pure
         returns (
-            function(Execution[] memory, function(Execution memory, ItemType) internal pure returns (bool), ItemType ) internal pure returns (Execution[] memory)
-                fnOut
+            function(
+                Execution[] memory,
+                function(Execution memory, ItemType)
+                    internal
+                    pure
+                    returns (bool),
+                ItemType
+            ) internal pure returns (Execution[] memory) fnOut
         )
     {
         assembly {

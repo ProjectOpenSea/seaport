@@ -16,11 +16,10 @@ contract EIP1271Offerer is ERC1155Recipient {
         digestToSignatureHash[digest] = keccak256(signature);
     }
 
-    function isValidSignature(bytes32 digest, bytes memory signature)
-        external
-        view
-        returns (bytes4)
-    {
+    function isValidSignature(
+        bytes32 digest,
+        bytes memory signature
+    ) external view returns (bytes4) {
         if (_returnEmpty) {
             return bytes4(0x00000000);
         }
@@ -44,5 +43,5 @@ contract EIP1271Offerer is ERC1155Recipient {
         return true;
     }
 
-    receive() external payable { }
+    receive() external payable {}
 }

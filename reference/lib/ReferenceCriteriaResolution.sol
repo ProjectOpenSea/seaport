@@ -177,7 +177,8 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     _isItemWithCriteria(orderToExecute.spentItems[j].itemType)
                 ) {
                     if (
-                        advancedOrders[i].parameters.orderType != OrderType.CONTRACT ||
+                        advancedOrders[i].parameters.orderType !=
+                        OrderType.CONTRACT ||
                         orderToExecute.spentItems[j].identifier != 0
                     ) {
                         revert UnresolvedOfferCriteria(i, j);
@@ -197,7 +198,8 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     )
                 ) {
                     if (
-                        advancedOrders[i].parameters.orderType != OrderType.CONTRACT ||
+                        advancedOrders[i].parameters.orderType !=
+                        OrderType.CONTRACT ||
                         orderToExecute.receivedItems[j].identifier != 0
                     ) {
                         revert UnresolvedConsiderationCriteria(i, j);
@@ -338,7 +340,11 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
             ) {
                 if (
                     advancedOrder.parameters.orderType != OrderType.CONTRACT ||
-                    advancedOrder.parameters.consideration[i].identifierOrCriteria != 0
+                    advancedOrder
+                        .parameters
+                        .consideration[i]
+                        .identifierOrCriteria !=
+                    0
                 ) {
                     revert UnresolvedConsiderationCriteria(0, i);
                 }

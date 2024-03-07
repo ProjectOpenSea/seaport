@@ -160,8 +160,11 @@ library EventSerializer {
         serializeAddress(obj, "token", value.token);
         serializeAddress(obj, "from", value.from);
         serializeAddress(obj, "to", value.to);
-        string memory finalJson =
-            serializeUint256(obj, "identifier", value.identifier);
+        string memory finalJson = serializeUint256(
+            obj,
+            "identifier",
+            value.identifier
+        );
         // serializeUint256(obj, "identifier", value.identifier);
         // serializeBytes32(obj, "topicHash", value.topicHash);
         // serializeBytes32(obj, "dataHash", value.dataHash);

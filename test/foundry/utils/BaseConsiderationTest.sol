@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ConduitController } from
-    "seaport-core/src/conduit/ConduitController.sol";
+import {
+    ConduitController
+} from "seaport-core/src/conduit/ConduitController.sol";
 
-import { ReferenceConduitController } from
-    "../../../reference/conduit/ReferenceConduitController.sol";
+import {
+    ReferenceConduitController
+} from "../../../reference/conduit/ReferenceConduitController.sol";
 
-import { ConduitControllerInterface } from
-    "seaport-types/src/interfaces/ConduitControllerInterface.sol";
+import {
+    ConduitControllerInterface
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
-import { ConsiderationInterface } from
-    "seaport-types/src/interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
@@ -28,8 +32,9 @@ import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
 import { Consideration } from "seaport-core/src/lib/Consideration.sol";
 
-import { ReferenceConsideration } from
-    "../../../reference/ReferenceConsideration.sol";
+import {
+    ReferenceConsideration
+} from "../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DifferentialTest, StructCopier {
@@ -50,11 +55,9 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         }
     }
 
-    function tryEnvString(string memory envVar)
-        internal
-        view
-        returns (string memory)
-    {
+    function tryEnvString(
+        string memory envVar
+    ) internal view returns (string memory) {
         try vm.envString(envVar) returns (string memory _value) {
             return _value;
         } catch {
@@ -62,17 +65,17 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         }
     }
 
-    function stringEq(string memory a, string memory b)
-        internal
-        pure
-        returns (bool)
-    {
+    function stringEq(
+        string memory a,
+        string memory b
+    ) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
     function debugEnabled() internal view returns (bool) {
-        return tryEnvBool("SEAPORT_COVERAGE")
-            || stringEq(tryEnvString("FOUNDRY_PROFILE"), "debug");
+        return
+            tryEnvBool("SEAPORT_COVERAGE") ||
+            stringEq(tryEnvString("FOUNDRY_PROFILE"), "debug");
     }
 
     function setUp() public virtual {
@@ -91,7 +94,8 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         vm.label(address(consideration), "consideration");
         vm.label(address(conduit), "conduit");
         vm.label(
-            address(referenceConduitController), "referenceConduitController"
+            address(referenceConduitController),
+            "referenceConduitController"
         );
         vm.label(address(referenceConsideration), "referenceConsideration");
         vm.label(address(referenceConduit), "referenceConduit");
@@ -122,7 +126,9 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
             conduitController.createConduit(conduitKeyOne, address(this))
         );
         conduitController.updateChannel(
-            address(conduit), address(consideration), true
+            address(conduit),
+            address(consideration),
+            true
         );
     }
 
@@ -152,11 +158,14 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         //create conduit, update channel
         referenceConduit = Conduit(
             referenceConduitController.createConduit(
-                conduitKeyOne, address(this)
+                conduitKeyOne,
+                address(this)
             )
         );
         referenceConduitController.updateChannel(
-            address(referenceConduit), address(referenceConsideration), true
+            address(referenceConduit),
+            address(referenceConsideration),
+            true
         );
     }
 
@@ -201,8 +210,11 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes memory) {
-        (bytes32 r, bytes32 s, uint8 v) =
-            getSignatureComponents(_consideration, _pkOfSigner, _orderHash);
+        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
+            _consideration,
+            _pkOfSigner,
+            _orderHash
+        );
         return abi.encodePacked(r, s, v);
     }
 
@@ -211,8 +223,11 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes memory) {
-        (bytes32 r, bytes32 s, uint8 v) =
-            getSignatureComponents(_consideration, _pkOfSigner, _orderHash);
+        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
+            _consideration,
+            _pkOfSigner,
+            _orderHash
+        );
         uint256 yParity;
         if (v == 27) {
             yParity = 0;
@@ -228,7 +243,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes32, bytes32, uint8) {
-        (, bytes32 domainSeparator,) = _consideration.information();
+        (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(

@@ -12,14 +12,14 @@ contract MatchComponentTypeTest is Test {
     using MatchComponentType for MatchComponent;
 
     function testCreateGetAndUnpack() public {
-        MatchComponent memory component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+        MatchComponent memory component = MatchComponentType
+            .createMatchComponent(1, 2, 3);
         assertEq(component.getAmount(), 1, "amount");
         assertEq(component.getOrderIndex(), 2, "orderIndex");
         assertEq(component.getItemIndex(), 3, "itemIndex");
 
-        (uint256 amount, uint256 orderIndex, uint256 itemIndex) =
-            component.unpack();
+        (uint256 amount, uint256 orderIndex, uint256 itemIndex) = component
+            .unpack();
         assertEq(amount, 1, "unpacked amount");
         assertEq(orderIndex, 2, "unpacked orderIndex");
         assertEq(itemIndex, 3, "unpacked itemIndex");
@@ -47,8 +47,8 @@ contract MatchComponentTypeTest is Test {
     }
 
     function testSetters() public {
-        MatchComponent memory component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+        MatchComponent memory component = MatchComponentType
+            .createMatchComponent(1, 2, 3);
 
         MatchComponent memory newComponent = component.setAmount(4);
         assertEq(newComponent.getAmount(), 4, "amount");
@@ -66,11 +66,13 @@ contract MatchComponentTypeTest is Test {
         assertEq(newComponent.getItemIndex(), 6, "itemIndex");
     }
 
-    function testSetters(uint240 amount, uint8 orderIndex, uint8 itemIndex)
-        public
-    {
-        MatchComponent memory component =
-            MatchComponentType.createMatchComponent(1, 2, 3);
+    function testSetters(
+        uint240 amount,
+        uint8 orderIndex,
+        uint8 itemIndex
+    ) public {
+        MatchComponent memory component = MatchComponentType
+            .createMatchComponent(1, 2, 3);
 
         MatchComponent memory newComponent = component.setAmount(amount);
         assertEq(newComponent.getAmount(), amount, "amount");
