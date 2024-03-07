@@ -8168,7 +8168,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         )
         .withArgs(orderHash);
     });
-    it("Fulfillment reverts if contract offerer reverts", async () => {
+    it("Fulfillment bubbles up error if contract offerer reverts with data", async () => {
       // Contract offerer mints nft
       const nftId = await mint721(
         offererContract,
@@ -8214,7 +8214,6 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       order.numerator = 1;
       order.denominator = 1;
       order.signature = "0x";
-
       await expect(
         marketplaceContract
           .connect(buyer)
@@ -8225,12 +8224,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
             ethers.constants.AddressZero,
             { value }
           )
-      )
-        .to.be.revertedWithCustomError(
-          marketplaceContract,
-          "InvalidContractOrder"
-        )
-        .withArgs(orderHash);
+      ).to.be.revertedWithCustomError(offererContract, "IntentionalRevert");
     });
     it("Fulfillment reverts if contract offerer returns with garbage data", async () => {
       // Contract offerer mints nft
