@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { constants } from "ethers";
+import { Contract, constants } from "ethers";
 import { hexZeroPad } from "ethers/lib/utils";
 import { network } from "hardhat";
 import { getScuffedContract } from "scuffed-abi";
@@ -185,7 +185,12 @@ describe("Additional recipients off by one error allows skipping second consider
       basicOrderParameters.signature = basicOrderParameters.signature
         .slice(0, 66)
         .concat(hexZeroPad("0x", 96).slice(2));
-      const scuffedContract = getScuffedContract(marketplaceContract);
+      const abi =
+        require("../../artifacts/seaport-types/src/interfaces/ConsiderationInterface.sol/ConsiderationInterface.json")
+          .abi as any;
+      const scuffedContract = getScuffedContract(
+        new Contract(marketplaceContract.address, abi, bob)
+      );
       const scuffed = scuffedContract.fulfillBasicOrder({
         parameters: basicOrderParameters,
       });
