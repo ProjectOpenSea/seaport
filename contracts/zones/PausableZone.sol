@@ -261,14 +261,6 @@ contract PausableZone is
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
     /**
      * @dev Returns the metadata for this zone.
      */
@@ -286,5 +278,13 @@ contract PausableZone is
         schemas[0].metadata = new bytes(0);
 
         return ("PausableZone", schemas);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165, ZoneInterface) returns (bool) {
+        return
+            interfaceId == type(ZoneInterface).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
