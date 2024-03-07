@@ -22,9 +22,9 @@ import { ContractOffererInterface } from
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
+import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
-import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestPoolOfferer } from "./impl/TestPoolOfferer.sol";
 

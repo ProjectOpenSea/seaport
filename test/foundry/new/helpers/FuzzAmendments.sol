@@ -34,10 +34,10 @@ import {
 } from "seaport-sol/src/SpaceEnums.sol";
 
 import { HashCalldataContractOfferer } from
-    "../../../../src/main/test/HashCalldataContractOfferer.sol";
+    "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { OffererZoneFailureReason } from
-    "../../../../src/main/test/OffererZoneFailureReason.sol";
+    "../../../../contracts/test/OffererZoneFailureReason.sol";
 
 import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
 import { PRNGHelpers } from "./FuzzGenerators.sol";

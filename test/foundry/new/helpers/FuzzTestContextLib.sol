@@ -64,10 +64,10 @@ import { FractionResults } from "./FractionUtil.sol";
 import {
     ErrorsAndWarnings,
     SeaportValidatorInterface
-} from "../../../../src/main/helpers/order-validator/SeaportValidator.sol";
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import { SeaportNavigatorInterface } from
-    "../../../../src/main/helpers/navigator/SeaportNavigator.sol";
+    "../../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);

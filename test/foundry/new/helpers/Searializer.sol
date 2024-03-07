@@ -42,10 +42,10 @@ import {
 import { withLabel } from "./Labeler.sol";
 
 import { ErrorsAndWarnings } from
-    "../../../../src/main/helpers/order-validator/SeaportValidator.sol";
+    "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import { IssueStringHelpers } from
-    "../../../../src/main/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+    "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 /**
  * @notice A helper library to seralize test data as JSON.

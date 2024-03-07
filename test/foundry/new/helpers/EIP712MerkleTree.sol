@@ -12,7 +12,7 @@ import { OrderComponents } from "seaport-sol/src/SeaportStructs.sol";
 import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { TypehashDirectory } from
-    "../../../../src/main/test/TypehashDirectory.sol";
+    "../../../../contracts/test/TypehashDirectory.sol";
 
 /**
  * @dev Seaport doesn't sort leaves when hashing for bulk orders, but Murky

@@ -25,10 +25,10 @@ import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 import { FuzzEngineLib } from "./FuzzEngineLib.sol";
 
 import { TestCalldataHashContractOfferer } from
-    "../../../../src/main/test/TestCalldataHashContractOfferer.sol";
+    "../../../../contracts/test/TestCalldataHashContractOfferer.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 /**
  * @dev Check functions are the post-execution assertions we want to validate.

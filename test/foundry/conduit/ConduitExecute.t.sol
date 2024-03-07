@@ -5,9 +5,9 @@ import {
     ConduitTransfer,
     ConduitItemType
 } from "seaport-types/src/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
-import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
-import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
+import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
+import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
 import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 

@@ -32,10 +32,10 @@ import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { TestCalldataHashContractOfferer } from
-    "../../../src/main/test/TestCalldataHashContractOfferer.sol";
+    "../../../contracts/test/TestCalldataHashContractOfferer.sol";
 
 import {
     FuzzEngine,

@@ -48,10 +48,10 @@ import { AmountDerivationErrors } from
     "seaport-types/src/interfaces/AmountDerivationErrors.sol";
 
 import { HashCalldataContractOfferer } from
-    "../../../../src/main/test/HashCalldataContractOfferer.sol";
+    "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 /////////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////////
 enum Failure {

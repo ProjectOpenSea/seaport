@@ -34,11 +34,11 @@ import { ContractOffererInterface } from
     "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { TestContractOffererNativeToken } from
-    "../../../src/main/test/TestContractOffererNativeToken.sol";
+    "../../../contracts/test/TestContractOffererNativeToken.sol";
 
-import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
+import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
-import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 contract ContractOffersNativeTokenOfferItems is
     DifferentialTest,

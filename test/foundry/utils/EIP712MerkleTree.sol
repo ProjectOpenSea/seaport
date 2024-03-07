@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { MurkyBase } from "murky/common/MurkyBase.sol";
 
-import { TypehashDirectory } from "../../../src/main/test/TypehashDirectory.sol";
+import { TypehashDirectory } from "../../../contracts/test/TypehashDirectory.sol";
 
 import { Test } from "forge-std/Test.sol";
 

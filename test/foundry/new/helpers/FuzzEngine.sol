@@ -84,16 +84,16 @@ import { logMutation } from "./Metrics.sol";
 import {
     ErrorsAndWarnings,
     ValidationConfiguration
-} from "../../../../src/main/helpers/order-validator/SeaportValidator.sol";
+} from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import { IssueStringHelpers } from
-    "../../../../src/main/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+    "../../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 import { NavigatorRequest } from
-    "../../../../src/main/helpers/navigator/lib/SeaportNavigatorTypes.sol";
+    "../../../../contracts/helpers/navigator/lib/SeaportNavigatorTypes.sol";
 
 import { NavigatorAdvancedOrderLib } from
-    "../../../../src/main/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
+    "../../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
 
 import {
     FulfillmentStrategy,

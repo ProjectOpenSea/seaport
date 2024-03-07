@@ -17,16 +17,16 @@ import {
     StatusIssue,
     TimeIssue,
     NativeIssue
-} from "../../../src/main/helpers/order-validator/SeaportValidator.sol";
+} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import { ConduitControllerInterface } from
     "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { SeaportValidatorHelper } from
-    "../../../src/main/helpers/order-validator/lib/SeaportValidatorHelper.sol";
+    "../../../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
 
 import { IssueStringHelpers } from
-    "../../../src/main/helpers/order-validator/lib/SeaportValidatorTypes.sol";
+    "../../../contracts/helpers/order-validator/lib/SeaportValidatorTypes.sol";
 
 import {
     ConsiderationItemLib,

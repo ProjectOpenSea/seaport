@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
-import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
-import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
+import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
+import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";

@@ -2,31 +2,31 @@
 pragma solidity ^0.8.17;
 
 import { CriteriaHelper } from
-    "../../../src/main/helpers/navigator/lib/CriteriaHelper.sol";
+    "../../../contracts/helpers/navigator/lib/CriteriaHelper.sol";
 
 import { ExecutionsHelper } from
-    "../../../src/main/helpers/navigator/lib/ExecutionsHelper.sol";
+    "../../../contracts/helpers/navigator/lib/ExecutionsHelper.sol";
 
 import { FulfillmentsHelper } from
-    "../../../src/main/helpers/navigator/lib/FulfillmentsHelper.sol";
+    "../../../contracts/helpers/navigator/lib/FulfillmentsHelper.sol";
 
 import { HelperInterface } from
-    "../../../src/main/helpers/navigator/lib/HelperInterface.sol";
+    "../../../contracts/helpers/navigator/lib/HelperInterface.sol";
 
 import { OrderDetailsHelper } from
-    "../../../src/main/helpers/navigator/lib/OrderDetailsHelper.sol";
+    "../../../contracts/helpers/navigator/lib/OrderDetailsHelper.sol";
 
 import { RequestValidator } from
-    "../../../src/main/helpers/navigator/lib/RequestValidator.sol";
+    "../../../contracts/helpers/navigator/lib/RequestValidator.sol";
 
 import { SeaportNavigator } from
-    "../../../src/main/helpers/navigator/SeaportNavigator.sol";
+    "../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 import { SuggestedActionHelper } from
-    "../../../src/main/helpers/navigator/lib/SuggestedActionHelper.sol";
+    "../../../contracts/helpers/navigator/lib/SuggestedActionHelper.sol";
 
 import { ValidatorHelper } from
-    "../../../src/main/helpers/navigator/lib/ValidatorHelper.sol";
+    "../../../contracts/helpers/navigator/lib/ValidatorHelper.sol";
 
 contract SeaportNavigatorTest {
     HelperInterface internal requestValidator = new RequestValidator();

@@ -8,30 +8,30 @@ import { ConduitInterface } from
 
 import { ConduitItemType } from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
-import { TransferHelper } from "../../src/main/helpers/TransferHelper.sol";
+import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
 import {
     TransferHelperItem,
     TransferHelperItemsWithRecipient
 } from "seaport-types/src/helpers/TransferHelperStructs.sol";
 
-import { TestERC20 } from "../../src/main/test/TestERC20.sol";
+import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
-import { TestERC721 } from "../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 
-import { TestERC1155 } from "../../src/main/test/TestERC1155.sol";
+import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
 import { ConduitMockInvalidMagic } from
-    "../../src/main/test/ConduitMockInvalidMagic.sol";
+    "../../contracts/test/ConduitMockInvalidMagic.sol";
 
 import { ConduitMockRevertNoReason } from
-    "../../src/main/test/ConduitMockRevertNoReason.sol";
+    "../../contracts/test/ConduitMockRevertNoReason.sol";
 
 import { ConduitControllerMock } from
-    "../../src/main/test/ConduitControllerMock.sol";
+    "../../contracts/test/ConduitControllerMock.sol";
 
 import { InvalidERC721Recipient } from
-    "../../src/main/test/InvalidERC721Recipient.sol";
+    "../../contracts/test/InvalidERC721Recipient.sol";
 
 import { TokenTransferrerErrors } from
     "seaport-types/src/interfaces/TokenTransferrerErrors.sol";
@@ -42,9 +42,9 @@ import { TransferHelperErrors } from
 import { IERC721Receiver } from
     "seaport-types/src/interfaces/IERC721Receiver.sol";
 
-import { ERC721ReceiverMock } from "../../src/main/test/ERC721ReceiverMock.sol";
+import { ERC721ReceiverMock } from "../../contracts/test/ERC721ReceiverMock.sol";
 
-import { TestERC20Panic } from "../../src/main/test/TestERC20Panic.sol";
+import { TestERC20Panic } from "../../contracts/test/TestERC20Panic.sol";
 
 contract TransferHelperSingleRecipientTest is BaseOrderTest {
     TransferHelper transferHelper;

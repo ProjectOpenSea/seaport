@@ -48,10 +48,10 @@ import { TestHelpers } from "./helpers/FuzzTestContextLib.sol";
 import { EIP1271Offerer } from "../new/helpers/EIP1271Offerer.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { HashCalldataContractOfferer } from
-    "../../../src/main/test/HashCalldataContractOfferer.sol";
+    "../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import {
     DefaultFulfillmentGeneratorLib,

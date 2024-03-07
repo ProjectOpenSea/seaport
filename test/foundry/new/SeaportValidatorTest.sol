@@ -7,7 +7,7 @@ import {
     ReadOnlyOrderValidator,
     SeaportValidator,
     SeaportValidatorHelper
-} from "../../../src/main/helpers/order-validator/SeaportValidator.sol";
+} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 contract SeaportValidatorTest is BaseSeaportTest {
     SeaportValidatorHelper internal seaportValidatorHelper;

@@ -382,7 +382,7 @@ function cast(OrderStatusEnum[] memory a) pure returns (uint256[] memory b) {
  * @dev Serialize and write transfer related fields from FuzzTestContext to a
  *      `fuzz_debug.json` file.
  */
-function dumpTransfers(FuzzTestContext memory context) pure {
+function dumpTransfers(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
     selection.allExpectedExecutions = true;
     selection.expectedEvents = true;
@@ -395,7 +395,7 @@ function dumpTransfers(FuzzTestContext memory context) pure {
  * @dev Serialize and write execution related fields from FuzzTestContext to a
  *      `fuzz_debug.json` file.
  */
-function dumpExecutions(FuzzTestContext memory context) pure {
+function dumpExecutions(FuzzTestContext memory context) view {
     ContextOutputSelection memory selection;
     selection.orders = true;
     selection.orderHashes = true;

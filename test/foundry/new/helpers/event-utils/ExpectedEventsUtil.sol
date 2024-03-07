@@ -6,7 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import {
     ArrayHelpers,
     MemoryPointer
-} from "../../../../../src/main/helpers/ArrayHelpers.sol";
+} from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
 import { Execution } from "seaport-sol/src/SeaportStructs.sol";
 

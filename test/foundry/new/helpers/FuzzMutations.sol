@@ -67,13 +67,13 @@ import {
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import { HashCalldataContractOfferer } from
-    "../../../../src/main/test/HashCalldataContractOfferer.sol";
+    "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { OffererZoneFailureReason } from
-    "../../../../src/main/test/OffererZoneFailureReason.sol";
+    "../../../../contracts/test/OffererZoneFailureReason.sol";
 
 interface TestERC20 {
     function approve(address spender, uint256 amount) external;

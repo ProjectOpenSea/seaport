@@ -19,13 +19,13 @@ import {
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import { InvalidEthRecipient } from
-    "../../src/main/test/InvalidEthRecipient.sol";
+    "../../contracts/test/InvalidEthRecipient.sol";
 
-import { TestERC721 } from "../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 
-import { TestERC1155 } from "../../src/main/test/TestERC1155.sol";
+import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
-import { TestERC20 } from "../../src/main/test/TestERC20.sol";
+import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 

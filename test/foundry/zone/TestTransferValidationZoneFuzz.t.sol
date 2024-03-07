@@ -32,7 +32,7 @@ import {
 } from "seaport-sol/src/lib/SeaportStructLib.sol";
 
 import { TestTransferValidationZoneOfferer } from
-    "../../../src/main/test/TestTransferValidationZoneOfferer.sol";
+    "../../../contracts/test/TestTransferValidationZoneOfferer.sol";
 
 import { FulfillAvailableHelper } from
     "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";

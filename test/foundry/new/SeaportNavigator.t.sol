@@ -34,18 +34,18 @@ import {
     NavigatorRequest,
     NavigatorResponse,
     SeaportNavigator
-} from "../../../src/main/helpers/navigator/SeaportNavigator.sol";
+} from "../../../contracts/helpers/navigator/SeaportNavigator.sol";
 
 import { TokenIdNotFound } from
-    "../../../src/main/helpers/navigator/lib/CriteriaHelperLib.sol";
+    "../../../contracts/helpers/navigator/lib/CriteriaHelperLib.sol";
 
 import {
     NavigatorAdvancedOrder,
     NavigatorAdvancedOrderLib
-} from "../../../src/main/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
+} from "../../../contracts/helpers/navigator/lib/NavigatorAdvancedOrderLib.sol";
 
 import { OrderStructureLib } from
-    "../../../src/main/helpers/navigator/lib/OrderStructureLib.sol";
+    "../../../contracts/helpers/navigator/lib/OrderStructureLib.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -53,7 +53,7 @@ import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
 
 import { SeaportNavigatorTest } from "./SeaportNavigatorTest.sol";
 
-import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 contract SeaportNavigatorTestSuite is
     BaseOrderTest,

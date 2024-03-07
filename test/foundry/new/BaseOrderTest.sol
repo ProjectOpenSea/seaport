@@ -54,11 +54,11 @@ import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
 
 import { AmountDeriver } from "seaport-core/src/lib/AmountDeriver.sol";
 
-import { TestERC20 } from "../../../src/main/test/TestERC20.sol";
+import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
-import { TestERC721 } from "../../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
-import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
+import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token

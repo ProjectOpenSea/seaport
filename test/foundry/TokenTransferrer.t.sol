@@ -7,13 +7,13 @@ import {
     ConduitItemType
 } from "seaport-types/src/conduit/lib/ConduitStructs.sol";
 
-import { TestERC20Revert } from "../../src/main/test/TestERC20Revert.sol";
+import { TestERC20Revert } from "../../contracts/test/TestERC20Revert.sol";
 
-import { TestERC20NotOk } from "../../src/main/test/TestERC20NotOk.sol";
+import { TestERC20NotOk } from "../../contracts/test/TestERC20NotOk.sol";
 
-import { TestERC721Revert } from "../../src/main/test/TestERC721Revert.sol";
+import { TestERC721Revert } from "../../contracts/test/TestERC721Revert.sol";
 
-import { TestERC1155Revert } from "../../src/main/test/TestERC1155Revert.sol";
+import { TestERC1155Revert } from "../../contracts/test/TestERC1155Revert.sol";
 
 import { BaseConduitTest } from "./conduit/BaseConduitTest.sol";
 

@@ -29,22 +29,22 @@ import { ConduitControllerInterface } from
 
 import { TestHelpers } from "./FuzzTestContextLib.sol";
 
-import { TestERC20 } from "../../../../src/main/test/TestERC20.sol";
+import { TestERC20 } from "../../../../contracts/test/TestERC20.sol";
 
-import { TestERC721 } from "../../../../src/main/test/TestERC721.sol";
+import { TestERC721 } from "../../../../contracts/test/TestERC721.sol";
 
-import { TestERC1155 } from "../../../../src/main/test/TestERC1155.sol";
+import { TestERC1155 } from "../../../../contracts/test/TestERC1155.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { HashCalldataContractOfferer } from
-    "../../../../src/main/test/HashCalldataContractOfferer.sol";
+    "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
 import { HashValidationZoneOfferer } from
-    "../../../../src/main/test/HashValidationZoneOfferer.sol";
+    "../../../../contracts/test/HashValidationZoneOfferer.sol";
 
 import { setLabel } from "./Labeler.sol";
 

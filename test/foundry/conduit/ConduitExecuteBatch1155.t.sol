@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import { ConduitBatch1155Transfer } from
     "seaport-types/src/conduit/lib/ConduitStructs.sol";
-import { TestERC1155 } from "../../../src/main/test/TestERC1155.sol";
+import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { BaseConduitTest } from "./BaseConduitTest.sol";
 import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
