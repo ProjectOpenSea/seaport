@@ -7,7 +7,7 @@
   "license": "MIT",
   "private": false,
   "engines": {
-    "node": ">=16.15.1"
+    "node": ">=18.15.0"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
