@@ -1599,14 +1599,16 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // The target failure cannot be triggered in the fulfillAvailable cases
-        // because it gets skipped instead.  And the match cases cause a
-        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
-        // instead.
-        if (
-            ineligibleWhenFulfillAvailable(context) ||
-            ineligibleWhenMatch(context)
-        ) {
+        // The target failure can't be triggered if the order isn't available.
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in match cases — they trip a
+        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256) error
+        // instead. TODO: perform the mutation on all items that are part of a
+        // single fulfillment element.
+        if (ineligibleWhenMatch(context)) {
             return true;
         }
 
@@ -1642,14 +1644,16 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // The target failure cannot be triggered in the fulfillAvailable cases
-        // because it gets skipped instead.  And the match cases cause a
-        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
-        // instead.
-        if (
-            ineligibleWhenFulfillAvailable(context) ||
-            ineligibleWhenMatch(context)
-        ) {
+        // The target failure can't be triggered if the order isn't available.
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in match cases — they trip a
+        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256) error
+        // instead. TODO: perform the mutation on all items that are part of a
+        // single fulfillment element.
+        if (ineligibleWhenMatch(context)) {
             return true;
         }
 
@@ -3420,6 +3424,25 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
+        // For basic orders, the additional recipient items also need to be
+        // modified.
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            for (uint256 i = 1; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    item.token = address(1);
+                }
+            }
+        }
+
         _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
@@ -3462,6 +3485,28 @@ contract FuzzMutations is Test, FuzzExecutor {
                     item.identifierOrCriteria = 1;
                     validItemFound = true;
                     break;
+                }
+            }
+        }
+
+        // For basic orders, the additional recipient items also need to be
+        // modified.
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            for (uint256 i = 1; i < order.parameters.consideration.length; i++) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+
+                if (
+                    item.itemType == ItemType.ERC20 ||
+                    item.itemType == ItemType.NATIVE
+                ) {
+                    item.identifierOrCriteria = 1;
                 }
             }
         }
