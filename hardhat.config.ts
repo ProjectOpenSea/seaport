@@ -134,6 +134,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      hardfork: "cancun",
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
       allowUnlimitedContractSize: false,
