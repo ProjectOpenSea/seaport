@@ -3489,27 +3489,8 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
-        // For basic orders, the additional recipient items also need to be
-        // modified.
-        bytes4 action = context.action();
-        if (
-            action == context.seaport.fulfillBasicOrder.selector ||
-            action ==
-            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
-        ) {
-            for (uint256 i = 1; i < order.parameters.consideration.length; i++) {
-                ConsiderationItem memory item = order.parameters.consideration[
-                    i
-                ];
-
-                if (
-                    item.itemType == ItemType.ERC20 ||
-                    item.itemType == ItemType.NATIVE
-                ) {
-                    item.identifierOrCriteria = 1;
-                }
-            }
-        }
+        // Note that additional recipients do not need to be modified as
+        // identifiers for them are automatically set to 0.
 
         _signOrValidateMutatedOrder(context, orderIndex);
 
