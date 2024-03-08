@@ -34,13 +34,13 @@ contract FractionUtilTest is Test {
         );
         assertEq(
             results.finalFilledNumerator,
-            11,
-            "Final filled numerator should be 11"
+            33,
+            "Final filled numerator should be 33"
         );
         assertEq(
             results.finalFilledDenominator,
-            12,
-            "Final filled denominator should be 12"
+            36,
+            "Final filled denominator should be 36"
         );
         assertEq(
             uint256(results.status),
@@ -75,13 +75,13 @@ contract FractionUtilTest is Test {
         );
         assertEq(
             results1.finalFilledNumerator,
-            6,
-            "Final filled numerator should be 6"
+            18,
+            "Final filled numerator should be 18"
         );
         assertEq(
             results1.finalFilledDenominator,
-            6,
-            "Final filled denominator should be 6"
+            18,
+            "Final filled denominator should be 18"
         );
         assertEq(
             uint256(results1.status),
@@ -118,13 +118,13 @@ contract FractionUtilTest is Test {
         );
         assertEq(
             results2.finalFilledNumerator,
-            3,
-            "Final filled numerator should be 3"
+            1,
+            "Final filled numerator should be 1"
         );
         assertEq(
             results2.finalFilledDenominator,
-            3,
-            "Final filled denominator should be 3"
+            1,
+            "Final filled denominator should be 1"
         );
         assertEq(
             uint256(results2.status),
@@ -161,13 +161,13 @@ contract FractionUtilTest is Test {
         );
         assertEq(
             results3.finalFilledNumerator,
-            3,
-            "Final filled numerator should be 3"
+            1,
+            "Final filled numerator should be 1"
         );
         assertEq(
             results3.finalFilledDenominator,
-            3,
-            "Final filled denominator should be 3"
+            1,
+            "Final filled denominator should be 1"
         );
         assertEq(
             uint256(results3.status),
