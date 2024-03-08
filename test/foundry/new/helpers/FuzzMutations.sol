@@ -1604,6 +1604,14 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure cannot be triggered in fulfillAvailable cases —
+        // they trip a InvalidFulfillmentComponentData error instead. TODO:
+        // perform the mutation on all items that are part of a single
+        // fulfillment element.
+        if (ineligibleWhenFulfillAvailable(context)) {
+            return true;
+        }
+
         // The target failure cannot be triggered in match cases — they trip a
         // MismatchedFulfillmentOfferAndConsiderationComponents(uint256) error
         // instead. TODO: perform the mutation on all items that are part of a
@@ -1646,6 +1654,14 @@ library MutationFilters {
     ) internal view returns (bool) {
         // The target failure can't be triggered if the order isn't available.
         if (ineligibleWhenUnavailable(context, orderIndex)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in fulfillAvailable cases —
+        // they trip a InvalidFulfillmentComponentData error instead. TODO:
+        // perform the mutation on all items that are part of a single
+        // fulfillment element.
+        if (ineligibleWhenFulfillAvailable(context)) {
             return true;
         }
 
