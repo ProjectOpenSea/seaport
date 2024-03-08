@@ -119,10 +119,44 @@ library FractionUtil {
             status = FractionStatus.WHOLE_FILL;
         }
 
+        uint120 realizedNumerator = uint120(numerator);
+        uint120 realizedDenominator = uint120(denominator);
+
+        filledNumerator = currentStatusNumerator;
+
+        // if supplied denominator differs from current one...
+        if (currentStatusDenominator != denominator) {
+            // scale current numerator by the supplied denominator, then...
+            filledNumerator *= denominator;
+
+            // the supplied numerator & denominator by current denominator.
+            numerator *= currentStatusDenominator;
+            denominator *= currentStatusDenominator;
+        }
+
+        // Increment the filled numerator by the new numerator.
+        filledNumerator += numerator;
+
+        // Ensure fractional amounts are below max uint120.
+        if (
+            filledNumerator > type(uint120).max ||
+            denominator > type(uint120).max
+        ) {
+            // Derive greatest common divisor using euclidean algorithm.
+            uint256 scaleDown = _gcd(
+                filledNumerator,
+                denominator
+            );
+
+            // Scale new filled fractional values down by gcd.
+            filledNumerator = filledNumerator / scaleDown;
+            denominator = denominator / scaleDown;
+        }
+
         return
             FractionResults({
-                realizedNumerator: uint120(numerator),
-                realizedDenominator: uint120(denominator),
+                realizedNumerator: realizedNumerator,
+                realizedDenominator: realizedDenominator,
                 finalFilledNumerator: uint120(filledNumerator),
                 finalFilledDenominator: uint120(denominator),
                 originalStatusNumerator: currentStatusNumerator,
