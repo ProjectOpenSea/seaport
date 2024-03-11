@@ -143,10 +143,7 @@ library FractionUtil {
             denominator > type(uint120).max
         ) {
             // Derive greatest common divisor using euclidean algorithm.
-            uint256 scaleDown = _gcd(
-                filledNumerator,
-                denominator
-            );
+            uint256 scaleDown = _gcd(filledNumerator, denominator);
 
             // Scale new filled fractional values down by gcd.
             filledNumerator = filledNumerator / scaleDown;
