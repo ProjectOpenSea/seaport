@@ -199,10 +199,10 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
         }
 
         // Get the expected zone calldata hashes for each order.
-        bytes32[] memory calldataHashes = context
+        bytes32[] memory authorizeCalldataHashes = context
             .executionState
             .orders
-            .getExpectedZoneCalldataHash(
+            .getExpectedZoneAuthorizeCalldataHash(
                 address(context.seaport),
                 context.executionState.caller,
                 context.executionState.criteriaResolvers,
@@ -210,8 +210,22 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                 unavailableReasons
             );
 
-        // Provision the expected zone calldata hash array.
-        bytes32[] memory expectedZoneCalldataHash = new bytes32[](
+        bytes32[] memory validateCalldataHashes = context
+            .executionState
+            .orders
+            .getExpectedZoneValidateCalldataHash(
+                address(context.seaport),
+                context.executionState.caller,
+                context.executionState.criteriaResolvers,
+                context.executionState.maximumFulfilled,
+                unavailableReasons
+            );
+
+        // Provision the expected zone calldata hash arrays.
+        bytes32[] memory expectedZoneAuthorizeCalldataHashes = new bytes32[](
+            context.executionState.orders.length
+        );
+        bytes32[] memory expectedZoneValidateCalldataHashes = new bytes32[](
             context.executionState.orders.length
         );
 
@@ -232,15 +246,26 @@ abstract contract FuzzSetup is Test, AmountDeriverHelper {
                     order.orderType == OrderType.PARTIAL_RESTRICTED)
             ) {
                 registerChecks = true;
-                expectedZoneCalldataHash[i] = calldataHashes[i];
+                expectedZoneAuthorizeCalldataHashes[
+                    i
+                ] = authorizeCalldataHashes[i];
+                expectedZoneValidateCalldataHashes[i] = validateCalldataHashes[
+                    i
+                ];
             }
         }
 
         context
             .expectations
-            .expectedZoneCalldataHash = expectedZoneCalldataHash;
+            .expectedZoneAuthorizeCalldataHashes = expectedZoneAuthorizeCalldataHashes;
+        context
+            .expectations
+            .expectedZoneValidateCalldataHashes = expectedZoneValidateCalldataHashes;
 
         if (registerChecks) {
+            context.registerCheck(
+                FuzzChecks.check_authorizeOrderExpectedDataHash.selector
+            );
             context.registerCheck(
                 FuzzChecks.check_validateOrderExpectedDataHash.selector
             );

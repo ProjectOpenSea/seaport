@@ -899,14 +899,14 @@ contract SeaportValidatorTestSuite is BaseOrderTest, SeaportValidatorTest {
             right.warnings.length,
             "Unexpected number of warnings"
         );
-        for (uint i = 0; i < left.errors.length; i++) {
+        for (uint256 i = 0; i < left.errors.length; i++) {
             assertEq(
                 left.errors[i].toIssueString(),
                 right.errors[i].toIssueString(),
                 "Unexpected error"
             );
         }
-        for (uint i = 0; i < left.warnings.length; i++) {
+        for (uint256 i = 0; i < left.warnings.length; i++) {
             assertEq(
                 left.warnings[i].toIssueString(),
                 right.warnings[i].toIssueString(),

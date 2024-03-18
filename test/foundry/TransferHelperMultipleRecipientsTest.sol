@@ -68,6 +68,7 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
     using Strings for uint256;
+
     TransferHelper transferHelper;
     // Total supply of fungible tokens to be used in tests for all fungible tokens.
     uint256 constant TOTAL_FUNGIBLE_TOKENS = 1e6;

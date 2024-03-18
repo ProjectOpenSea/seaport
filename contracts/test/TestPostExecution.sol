@@ -17,6 +17,12 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ERC165, ZoneInterface {
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
+        return this.authorizeOrder.selector;
+    }
+
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external view override returns (bytes4 validOrderMagicValue) {

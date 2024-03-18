@@ -265,6 +265,22 @@ library MutationFilters {
         return ineligibleWhenUnavailable(context, orderIndex);
     }
 
+    function ineligibleWhenFulfillAvailableOrNotAvailableOrNotRestricted(
+        AdvancedOrder memory order,
+        uint256 orderIndex,
+        FuzzTestContext memory context
+    ) internal view returns (bool) {
+        if (ineligibleWhenNotRestrictedOrder(order)) {
+            return true;
+        }
+
+        if (ineligibleWhenFulfillAvailable(context)) {
+            return true;
+        }
+
+        return ineligibleWhenUnavailable(context, orderIndex);
+    }
+
     function ineligibleWhenNotActiveTime(
         AdvancedOrder memory order
     ) internal view returns (bool) {
@@ -636,11 +652,11 @@ library MutationFilters {
                 continue;
             }
 
-            AdvancedOrder memory order = context.executionState.previewedOrders[
-                i
-            ];
+            AdvancedOrder memory order = context.executionState.orders[i];
+
             uint256 items = order.parameters.offer.length +
                 order.parameters.consideration.length;
+
             if (items != 0) {
                 locatedItem = true;
                 break;
@@ -735,6 +751,26 @@ library MutationFilters {
             return true;
         }
 
+        // The target failure can't be triggered if the criteria resolver is
+        // referring to a collection-level criteria item on a contract order.
+        if (
+            context
+                .executionState
+                .orders[criteriaResolver.orderIndex]
+                .parameters
+                .orderType ==
+            OrderType.CONTRACT &&
+            context
+                .executionState
+                .orders[criteriaResolver.orderIndex]
+                .parameters
+                .offer[criteriaResolver.index]
+                .identifierOrCriteria ==
+            0
+        ) {
+            return true;
+        }
+
         return false;
     }
 
@@ -759,6 +795,26 @@ library MutationFilters {
         // This one handles the consideration side.  The previous one handles
         // the offer side.
         if (criteriaResolver.side != Side.CONSIDERATION) {
+            return true;
+        }
+
+        // The target failure can't be triggered if the criteria resolver is
+        // referring to a collection-level criteria item on a contract order.
+        if (
+            context
+                .executionState
+                .orders[criteriaResolver.orderIndex]
+                .parameters
+                .orderType ==
+            OrderType.CONTRACT &&
+            context
+                .executionState
+                .orders[criteriaResolver.orderIndex]
+                .parameters
+                .consideration[criteriaResolver.index]
+                .identifierOrCriteria ==
+            0
+        ) {
             return true;
         }
 
@@ -1543,14 +1599,24 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // The target failure cannot be triggered in the fulfillAvailable cases
-        // because it gets skipped instead.  And the match cases cause a
-        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
-        // instead.
-        if (
-            ineligibleWhenFulfillAvailable(context) ||
-            ineligibleWhenMatch(context)
-        ) {
+        // The target failure can't be triggered if the order isn't available.
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in fulfillAvailable cases —
+        // they trip a InvalidFulfillmentComponentData error instead. TODO:
+        // perform the mutation on all items that are part of a single
+        // fulfillment element.
+        if (ineligibleWhenFulfillAvailable(context)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in match cases — they trip a
+        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256) error
+        // instead. TODO: perform the mutation on all items that are part of a
+        // single fulfillment element.
+        if (ineligibleWhenMatch(context)) {
             return true;
         }
 
@@ -1586,14 +1652,24 @@ library MutationFilters {
         uint256 orderIndex,
         FuzzTestContext memory context
     ) internal view returns (bool) {
-        // The target failure cannot be triggered in the fulfillAvailable cases
-        // because it gets skipped instead.  And the match cases cause a
-        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256)
-        // instead.
-        if (
-            ineligibleWhenFulfillAvailable(context) ||
-            ineligibleWhenMatch(context)
-        ) {
+        // The target failure can't be triggered if the order isn't available.
+        if (ineligibleWhenUnavailable(context, orderIndex)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in fulfillAvailable cases —
+        // they trip a InvalidFulfillmentComponentData error instead. TODO:
+        // perform the mutation on all items that are part of a single
+        // fulfillment element.
+        if (ineligibleWhenFulfillAvailable(context)) {
+            return true;
+        }
+
+        // The target failure cannot be triggered in match cases — they trip a
+        // MismatchedFulfillmentOfferAndConsiderationComponents(uint256) error
+        // instead. TODO: perform the mutation on all items that are part of a
+        // single fulfillment element.
+        if (ineligibleWhenMatch(context)) {
             return true;
         }
 
@@ -1940,6 +2016,26 @@ contract FuzzMutations is Test, FuzzExecutor {
         exec(context);
     }
 
+    function mutation_invalidRestrictedOrderAuthorizeRevertsMatchReverts(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashValidationZone. Note that only
+        // non-fulfillAvailable* functions revert at the seaport level when the
+        // zone reverts on authorize.
+        HashValidationZoneOfferer(payable(order.parameters.zone))
+            .setAuthorizeFailureReason(
+                orderHash,
+                OffererZoneFailureReason.Zone_authorizeRevertsMatchReverts
+            );
+
+        exec(context);
+    }
+
     function mutation_invalidRestrictedOrderReverts(
         FuzzTestContext memory context,
         MutationState memory mutationState
@@ -1948,14 +2044,17 @@ contract FuzzMutations is Test, FuzzExecutor {
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         // This mutation triggers a revert by setting a failure reason that gets
-        // stored in the HashCalldataContractOfferer.
+        // stored in the HashValidationZoneOfferer.
         HashValidationZoneOfferer(payable(order.parameters.zone))
-            .setFailureReason(orderHash, OffererZoneFailureReason.Zone_reverts);
+            .setValidateFailureReason(
+                orderHash,
+                OffererZoneFailureReason.Zone_validateReverts
+            );
 
         exec(context);
     }
 
-    function mutation_invalidRestrictedOrderInvalidMagicValue(
+    function mutation_invalidRestrictedOrderAuthorizeInvalidMagicValue(
         FuzzTestContext memory context,
         MutationState memory mutationState
     ) external {
@@ -1963,11 +2062,29 @@ contract FuzzMutations is Test, FuzzExecutor {
         bytes32 orderHash = mutationState.selectedOrderHash;
 
         // This mutation triggers a revert by setting a failure reason that gets
-        // stored in the HashCalldataContractOfferer.
+        // stored in the HashValidationZone.
         HashValidationZoneOfferer(payable(order.parameters.zone))
-            .setFailureReason(
+            .setAuthorizeFailureReason(
                 orderHash,
-                OffererZoneFailureReason.Zone_InvalidMagicValue
+                OffererZoneFailureReason.Zone_authorizeInvalidMagicValue
+            );
+
+        exec(context);
+    }
+
+    function mutation_invalidRestrictedOrderValidateInvalidMagicValue(
+        FuzzTestContext memory context,
+        MutationState memory mutationState
+    ) external {
+        AdvancedOrder memory order = mutationState.selectedOrder;
+        bytes32 orderHash = mutationState.selectedOrderHash;
+
+        // This mutation triggers a revert by setting a failure reason that gets
+        // stored in the HashValidationZone.
+        HashValidationZoneOfferer(payable(order.parameters.zone))
+            .setValidateFailureReason(
+                orderHash,
+                OffererZoneFailureReason.Zone_validateInvalidMagicValue
             );
 
         exec(context);
@@ -2279,7 +2396,7 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
 
             // Grab the order at the current index.
-            AdvancedOrder memory order = context.executionState.previewedOrders[
+            AdvancedOrder memory order = context.executionState.orders[
                 orderIndex
             ];
 
@@ -3022,10 +3139,10 @@ contract FuzzMutations is Test, FuzzExecutor {
             .executionState
             .criteriaResolvers[criteriaResolverIndex];
 
-        OrderDetails memory order = context.executionState.orderDetails[
+        AdvancedOrder memory order = context.executionState.orders[
             resolver.orderIndex
         ];
-        resolver.index = order.consideration.length;
+        resolver.index = order.parameters.consideration.length;
 
         exec(context);
     }
@@ -3323,6 +3440,29 @@ contract FuzzMutations is Test, FuzzExecutor {
             }
         }
 
+        // For basic orders, the additional recipient items also need to be
+        // modified.
+        bytes4 action = context.action();
+        if (
+            action == context.seaport.fulfillBasicOrder.selector ||
+            action ==
+            context.seaport.fulfillBasicOrder_efficient_6GL6yc.selector
+        ) {
+            for (
+                uint256 i = 1;
+                i < order.parameters.consideration.length;
+                i++
+            ) {
+                ConsiderationItem memory item = order.parameters.consideration[
+                    i
+                ];
+
+                if (item.itemType == ItemType.NATIVE) {
+                    item.token = address(1);
+                }
+            }
+        }
+
         _signOrValidateMutatedOrder(context, orderIndex);
 
         exec(context);
@@ -3368,6 +3508,9 @@ contract FuzzMutations is Test, FuzzExecutor {
                 }
             }
         }
+
+        // Note that additional recipients do not need to be modified as
+        // identifiers for them are automatically set to 0.
 
         _signOrValidateMutatedOrder(context, orderIndex);
 
@@ -3542,22 +3685,14 @@ contract FuzzMutations is Test, FuzzExecutor {
         MutationState memory /* mutationState */
     ) external {
         // This mutation works by wiping out all the orders. Seaport reverts if
-        // `_executeAvailableFulfillments` finishes its loop and produces no
-        // executions.
-
+        // `_validateOrdersAndPrepareToFulfill` finishes its loop and produces
+        // no unskipped orders.
         for (uint256 i; i < context.executionState.orders.length; i++) {
             AdvancedOrder memory order = context.executionState.orders[i];
-            order.parameters.consideration = new ConsiderationItem[](0);
-            order.parameters.totalOriginalConsiderationItems = 0;
+            order.parameters.endTime = 0;
 
             _signOrValidateMutatedOrder(context, i);
         }
-        context.executionState.offerFulfillments = new FulfillmentComponent[][](
-            0
-        );
-        context
-            .executionState
-            .considerationFulfillments = new FulfillmentComponent[][](0);
 
         exec(context);
     }

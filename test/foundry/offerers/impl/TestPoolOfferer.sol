@@ -23,9 +23,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-
-contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
+contract TestPoolOfferer is ERC165, ContractOffererInterface {
     using EnumerableSet for EnumerableSet.UintSet;
 
     error OnlySeaport();
@@ -122,7 +120,8 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
         balance = newBalance;
     }
 
-    /** @dev Generate an offer and consideration based on the minimumReceived
+    /**
+     * @dev Generate an offer and consideration based on the minimumReceived
      *  and maximumSpent arrays.
      *
      *  @param minimumReceived An array of SpentItem structs representing the
@@ -333,7 +332,8 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
         }
     }
 
-    /** @dev Generate offer and consideration items based on the number of
+    /**
+     * @dev Generate offer and consideration items based on the number of
      *       ERC721 tokens offered or requested.
      *
      *  @param minimumReceived An array of SpentItem structs representing the
@@ -462,7 +462,8 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
         }
     }
 
-    /** @dev Validates each SpentItem. Ensures that the item type is valid, all
+    /**
+     * @dev Validates each SpentItem. Ensures that the item type is valid, all
      *        tokens are homogenous, and that the addresses are those we expect.
      *
      * @param offerItem      The item to validate.
@@ -541,23 +542,21 @@ contract TestPoolOfferer is ERC165, ContractOffererInterface, Ownable {
 
     /**
      * @dev Transfers the contract's entire ERC20 and ERC721 balances to the
-     * contract's owner.
+     * caller. Obviously this is unsafe for production use as there's no access
+     * control.
      */
-    function withdrawAll() external onlyOwner {
+    function withdrawAll() external {
         // Get the contract's ERC20 balance.
         IERC20 ierc20 = IERC20(erc20);
         uint256 erc20Balance = ierc20.balanceOf(address(this));
 
-        // Get the contract's owner address.
-        address owner = owner();
+        // Transfer the ERC20 balance to the caller.
+        ierc20.transfer(msg.sender, erc20Balance);
 
-        // Transfer the ERC20 balance to the contract's owner.
-        ierc20.transfer(owner, erc20Balance);
-
-        // Transfer each ERC721 token to the contract's owner.
+        // Transfer each ERC721 token to the caller.
         while (tokenIds.length() > 0) {
             uint256 tokenId = tokenIds.at(0);
-            IERC721(erc721).transferFrom(address(this), owner, tokenId);
+            IERC721(erc721).transferFrom(address(this), msg.sender, tokenId);
 
             // Remove the token from the set.
             tokenIds.remove(tokenId);

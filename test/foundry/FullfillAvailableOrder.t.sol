@@ -33,6 +33,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
     using ArithmeticUtil for uint120;
 
     FuzzInputs empty;
+
     struct FuzzInputs {
         address zone;
         uint256 id;

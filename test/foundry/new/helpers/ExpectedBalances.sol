@@ -59,17 +59,17 @@ struct ERC1155AccountDump {
     address account;
     uint256[] identifiers;
     uint256[] balances;
-    // ERC1155IdentifierDump[] identifiers;
 }
+// ERC1155IdentifierDump[] identifiers;
 
 struct ERC1155TokenDump {
     address token;
     ERC1155AccountDump[] accounts;
-    // address[] accounts;
-    // uint256[][] accountIdentifiers;
-    // uint256[][] accountBalances;
-    // ERC1155AccountDump[] accounts;
 }
+// address[] accounts;
+// uint256[][] accountIdentifiers;
+// uint256[][] accountBalances;
+// ERC1155AccountDump[] accounts;
 
 struct ExpectedBalancesDump {
     ERC20TokenDump[] erc20;
@@ -498,6 +498,7 @@ contract ERC721Balances {
         EnumerableSet.UintSet touchedIdentifiers;
         EnumerableMap.AddressToUintMap accountBalances;
     }
+
     EnumerableSet.AddressSet private tokens;
     mapping(address => TokenData721) private tokenDatas;
 

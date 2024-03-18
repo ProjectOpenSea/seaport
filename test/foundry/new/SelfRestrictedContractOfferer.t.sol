@@ -155,8 +155,6 @@ contract SelfRestrictedContractOffererTest is BaseOrderTest {
             Fulfillment[] memory fulfillments
         )
     {
-        erc721s[0].mint(offerer1.addr, 1);
-
         AdvancedOrder memory advancedOrder;
         OfferItem[] memory offer;
         ConsiderationItem[] memory consideration;
@@ -167,6 +165,8 @@ contract SelfRestrictedContractOffererTest is BaseOrderTest {
 
         uint256 considerAmount = 10;
         offerer = new ValidationOffererZone(considerAmount + 1);
+
+        erc721s[0].mint(address(offerer), 1);
 
         allocateTokensAndApprovals(address(offerer), type(uint128).max);
 

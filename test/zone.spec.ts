@@ -2,6 +2,14 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
+import {
+  type ConduitInterface,
+  type ConsiderationInterface,
+  type TestERC721,
+  type TestZone,
+  PausableZoneEventsAndErrors__factory as pausableZoneFactory,
+} from "../typechain-types";
+
 import { merkleTree } from "./utils/criteria";
 import {
   buildResolver,
@@ -18,16 +26,12 @@ import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 
-import type {
-  ConduitInterface,
-  ConsiderationInterface,
-  TestERC721,
-  TestZone,
-} from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { Contract, Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
+
+const pausableZoneInterface = pausableZoneFactory.createInterface();
 
 describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
@@ -605,7 +609,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     await createZone(pausableZoneController);
   });
 
-  it("Assign pauser and self destruct the zone", async () => {
+  it("Assign pauser", async () => {
     const pausableZoneControllerFactory = await ethers.getContractFactory(
       "PausableZoneController",
       owner
@@ -622,12 +626,12 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     // Attach to zone
     const zone = await zoneContract.attach(zoneAddr);
 
-    // Try to nuke the zone through the deployer before being assigned pauser
+    // Try to pause the zone through the deployer before being assigned pauser
     await expect(pausableZoneController.connect(buyer).pause(zoneAddr)).to.be
       .reverted;
 
-    // Try to nuke the zone directly before being assigned pauser
-    await expect(zone.connect(buyer).pause(zoneAddr)).to.be.reverted;
+    // Try to pause the zone directly before being assigned pauser
+    await expect(zone.connect(buyer).pause()).to.be.reverted;
 
     await expect(
       pausableZoneController.connect(buyer).assignPauser(seller.address)
@@ -646,7 +650,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     // Check pauser owner
     expect(await pausableZoneController.pauser()).to.equal(buyer.address);
 
-    // Now as pauser, nuke the zone
+    // Now as pauser, pause the zone
     const tx = await pausableZoneController.connect(buyer).pause(zoneAddr);
 
     // Check paused event was emitted
@@ -679,7 +683,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     );
   });
 
-  it("Revert on an order with a pausable zone if zone has been self destructed", async () => {
+  it("Revert on an order with a pausable zone if zone has been paused", async () => {
     const pausableZoneControllerFactory = await ethers.getContractFactory(
       "PausableZoneController",
       owner
@@ -710,20 +714,27 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       2
     );
 
-    // owner nukes the zone
-    pausableZoneController.pause(zoneAddr);
+    // owner pauses the zone
+    const tx = await pausableZoneController.pause(zoneAddr);
+
+    const events = await decodeEvents(tx, [
+      { eventName: "Paused", contract: { interface: pausableZoneInterface } },
+    ]);
+    expect(events.length).to.be.equal(1);
+
+    const [pauseEvent] = events;
+    expect(pauseEvent.eventName).to.equal("Paused");
 
     if (!process.env.REFERENCE) {
       await expect(
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
-      )
-        .to.be.revertedWithCustomError(
-          marketplaceContract,
-          "InvalidRestrictedOrder"
-        )
-        .withArgs(orderHash);
+      ).to.be.revertedWithCustomError(
+        // eslint-disable-next-line camelcase
+        { interface: pausableZoneInterface },
+        "ZoneIsPaused"
+      );
     } else {
       await expect(
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
@@ -744,7 +755,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
 
     const zoneAddr = await createZone(pausableZoneController);
 
-    // non owner tries to use pausable deployer to nuke the zone, reverts
+    // non owner tries to use pausable deployer to pause the zone, reverts
     await expect(pausableZoneController.connect(buyer).pause(zoneAddr)).to.be
       .reverted;
   });

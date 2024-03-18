@@ -3,15 +3,11 @@ pragma solidity ^0.8.17;
 
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
-import { TestZone } from "./impl/TestZone.sol";
-
 import {
     TestTransferValidationZoneOfferer
 } from "seaport/test/TestTransferValidationZoneOfferer.sol";
 
-import {
-    PostFulfillmentStatefulTestZone
-} from "./impl/PostFullfillmentStatefulTestZone.sol";
+import { StatefulTestZone } from "./impl/StatefulTestZone.sol";
 
 import {
     AdditionalRecipient,
@@ -34,19 +30,13 @@ import {
     ConsiderationInterface
 } from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
-contract PostFulfillmentCheckTest is BaseOrderTest {
-    TestZone zone = new TestZone();
-    PostFulfillmentStatefulTestZone statefulZone =
-        new PostFulfillmentStatefulTestZone(50);
+contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
+    StatefulTestZone statefulZone = new StatefulTestZone(50);
 
     struct Context {
         ConsiderationInterface consideration;
         uint8 numOriginalAdditional;
         uint8 numTips;
-    }
-    struct EthConsideration {
-        address payable recipient;
-        uint256 amount;
     }
 
     function test(
@@ -68,7 +58,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             address(this),
             true
         );
-        vm.label(address(zone), "TestZone");
+        vm.label(address(statefulZone), "TestZone");
     }
 
     function testAscendingAmount() public {
@@ -275,7 +265,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             recipient: address(0)
         });
 
-        assertTrue(statefulZone.called());
+        assertTrue(statefulZone.authorizeCalled());
+        assertTrue(statefulZone.validateCalled());
     }
 
     function testBasicStateful() public {
@@ -453,7 +444,7 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         );
         // make new stateful zone with a larger amount so each additional
         // recipient can receive
-        statefulZone = new PostFulfillmentStatefulTestZone(5000);
+        statefulZone = new StatefulTestZone(5000);
         // clear storage array just in case
         delete additionalRecipients;
 
@@ -536,7 +527,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
         });
 
         // assertions
-        assertTrue(statefulZone.called());
+        assertTrue(statefulZone.authorizeCalled());
+        assertTrue(statefulZone.validateCalled());
         for (uint256 i = 0; i < allAdditional.length; i++) {
             assertEq(
                 token1.balanceOf(allAdditional[i]),
@@ -625,7 +617,8 @@ contract PostFulfillmentCheckTest is BaseOrderTest {
             recipient: address(0),
             maximumFulfilled: 1
         });
-        assertTrue(statefulZone.called());
+        assertTrue(statefulZone.authorizeCalled());
+        assertTrue(statefulZone.validateCalled());
     }
 
     function testExecMatchAdvancedOrdersWithConduit() public {

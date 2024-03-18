@@ -82,8 +82,17 @@ contract ContractOffersNativeTokenOfferItems is
     function testEthForErc721(
         FuzzArgs memory args
     ) public validateInputs(args) {
-        test(this.ethForErc721, Context(consideration, args));
-        test(this.ethForErc721, Context(referenceConsideration, args));
+        test(
+            this.ethForErc721,
+            Context({
+                seaport: consideration,
+                args: FuzzArgs({ ethAmount: 1, nftId: 1 })
+            })
+        );
+        test(
+            this.ethForErc721,
+            Context({ seaport: referenceConsideration, args: args })
+        );
     }
 
     function ethForErc721(Context memory context) public stateless {

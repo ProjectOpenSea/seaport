@@ -2433,8 +2433,9 @@ function bound(
     // Similarly for the UINT256_MAX side. This helps ensure coverage of the
     // min/max values.
     if (x <= 3 && size > x) return min + x;
-    if (x >= type(uint256).max - 3 && size > type(uint256).max - x)
+    if (x >= type(uint256).max - 3 && size > type(uint256).max - x) {
         return max - (type(uint256).max - x);
+    }
 
     // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
     if (x > max) {

@@ -52,6 +52,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, ConsiderationEventsAndErrors {
         uint256 salt;
         bool useConduit;
     }
+
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputsCommon args;

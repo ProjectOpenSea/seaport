@@ -18,6 +18,36 @@ import {
 // This file should only be used by the Reference Implementation
 
 /**
+ * @dev A struct used to hold the numerator and denominator of an order in-memory
+ *      during validation, before it is written to storage when updating order
+ *      status.
+ */
+struct StoredFractions {
+    uint256 storedNumerator;
+    uint256 storedDenominator;
+}
+
+/**
+ * @dev An intermediate struct used to hold information about an order after
+ *      validation to prepare for execution.
+ */
+struct OrderValidation {
+    bytes32 orderHash;
+    uint256 newNumerator;
+    uint256 newDenominator;
+    OrderToExecute orderToExecute;
+}
+
+/**
+ * @dev A struct used to hold the parameters used to validate an order.
+ */
+struct OrderValidationParams {
+    bool revertOnInvalid;
+    uint256 maximumFulfilled;
+    address recipient;
+}
+
+/**
  * @dev A struct used to hold Consideration Indexes and Fulfillment validity.
  */
 struct ConsiderationItemIndicesAndValidity {

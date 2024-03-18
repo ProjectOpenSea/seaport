@@ -60,6 +60,7 @@ contract TestTransferValidationZoneOfferer is
         uint256 expectedBalance,
         uint256 actualBalance
     );
+
     event ValidateOrderDataHash(bytes32 dataHash);
 
     receive() external payable {}
@@ -74,7 +75,13 @@ contract TestTransferValidationZoneOfferer is
     }
 
     bool public called = false;
-    uint public callCount = 0;
+    uint256 public callCount = 0;
+
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
+        return this.authorizeOrder.selector;
+    }
 
     /**
      * @dev Validates that the parties have received the correct items.

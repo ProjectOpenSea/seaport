@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { constants } from "ethers";
+import { Contract, constants } from "ethers";
 import { hexZeroPad } from "ethers/lib/utils";
 import { network } from "hardhat";
 import { getScuffedContract } from "scuffed-abi";
@@ -175,61 +175,70 @@ describe("Additional recipients off by one error allows skipping second consider
     let maliciousCallData: string;
 
     before(async () => {
-      // True Parameters
-      const basicOrderParameters = getBasicOrderParameters(
-        2, // ERC20ForERC721
-        order
-      );
+      if (!process.env.REFERENCE) {
+        // True Parameters
+        const basicOrderParameters = getBasicOrderParameters(
+          2, // ERC20ForERC721
+          order
+        );
 
-      basicOrderParameters.additionalRecipients = [];
-      basicOrderParameters.signature = basicOrderParameters.signature
-        .slice(0, 66)
-        .concat(hexZeroPad("0x", 96).slice(2));
-      const scuffedContract = getScuffedContract(marketplaceContract);
-      const scuffed = scuffedContract.fulfillBasicOrder({
-        parameters: basicOrderParameters,
-      });
-      scuffed.parameters.signature.length.replace(100);
-      scuffed.parameters.signature.tail.replace(carol.address);
+        basicOrderParameters.additionalRecipients = [];
+        basicOrderParameters.signature = basicOrderParameters.signature
+          .slice(0, 66)
+          .concat(hexZeroPad("0x", 96).slice(2));
+        const abi =
+          require("../../artifacts/seaport-types/src/interfaces/ConsiderationInterface.sol/ConsiderationInterface.json")
+            .abi as any;
+        const scuffedContract = getScuffedContract(
+          new Contract(marketplaceContract.address, abi, bob)
+        );
+        const scuffed = scuffedContract.fulfillBasicOrder({
+          parameters: basicOrderParameters,
+        });
+        scuffed.parameters.signature.length.replace(100);
+        scuffed.parameters.signature.tail.replace(carol.address);
 
-      maliciousCallData = scuffed.encode();
+        maliciousCallData = scuffed.encode();
+      }
     });
 
-    if (!IS_FIXED) {
-      it("Bob fulfills Alice's order using maliciously constructed calldata", async () => {
-        await expect(
-          bob.sendTransaction({
-            to: marketplaceContract.address,
-            data: maliciousCallData,
-          })
-        ).to.emit(marketplaceContract, "OrderFulfilled");
-      });
+    if (!process.env.REFERENCE) {
+      if (!IS_FIXED) {
+        it("Bob fulfills Alice's order using maliciously constructed calldata", async () => {
+          await expect(
+            bob.sendTransaction({
+              to: marketplaceContract.address,
+              data: maliciousCallData,
+            })
+          ).to.emit(marketplaceContract, "OrderFulfilled");
+        });
 
-      it("Bob receives Alice's NFT, having paid 1000 DAI", async () => {
-        expect(await testERC721.ownerOf(1)).to.equal(bob.address);
-        expect(await testERC20.balanceOf(bob.address)).to.equal(100);
-      });
+        it("Bob receives Alice's NFT, having paid 1000 DAI", async () => {
+          expect(await testERC721.ownerOf(1)).to.equal(bob.address);
+          expect(await testERC20.balanceOf(bob.address)).to.equal(100);
+        });
 
-      it("Alice receives 1000 DAI", async () => {
-        expect(await testERC20.balanceOf(alice.address)).to.equal(1000);
-      });
+        it("Alice receives 1000 DAI", async () => {
+          expect(await testERC20.balanceOf(alice.address)).to.equal(1000);
+        });
 
-      it("Carol does not receive her DAI", async () => {
-        expect(await testERC20.balanceOf(carol.address)).to.equal(0);
-      });
-    } else {
-      it("Bob attempts to fulfill Alice's order with malicious calldata, but the transaction reverts", async () => {
-        await expect(
-          bob.sendTransaction({
-            to: marketplaceContract.address,
-            data: maliciousCallData,
-            gasLimit: 29_999_999,
-          })
-        ).to.be.revertedWithCustomError(
-          marketplaceContract,
-          "MissingOriginalConsiderationItems"
-        );
-      });
+        it("Carol does not receive her DAI", async () => {
+          expect(await testERC20.balanceOf(carol.address)).to.equal(0);
+        });
+      } else {
+        it("Bob attempts to fulfill Alice's order with malicious calldata, but the transaction reverts", async () => {
+          await expect(
+            bob.sendTransaction({
+              to: marketplaceContract.address,
+              data: maliciousCallData,
+              gasLimit: 29_999_999,
+            })
+          ).to.be.revertedWithCustomError(
+            marketplaceContract,
+            "MissingOriginalConsiderationItems"
+          );
+        });
+      }
     }
   });
 });

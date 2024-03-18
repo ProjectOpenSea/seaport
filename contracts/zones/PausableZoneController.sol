@@ -103,7 +103,7 @@ contract PausableZoneController is
             )
         );
 
-        // Revert if a zone is currently deployed to the derived address.
+        // Revert if a zone is already deployed to the derived address.
         if (derivedAddress.code.length != 0) {
             revert ZoneAlreadyExists(derivedAddress);
         }
@@ -126,7 +126,7 @@ contract PausableZoneController is
         address zone
     ) external override isPauser returns (bool success) {
         // Call pause on the given zone.
-        PausableZone(zone).pause(msg.sender);
+        PausableZone(zone).pause();
 
         // Return a boolean indicating the pause was successful.
         success = true;

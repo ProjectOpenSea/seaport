@@ -112,10 +112,10 @@ enum Failure {
     InvalidContractOrder_ExcessMaximumSpent, // too many maximum spent items
     InvalidContractOrder_IncorrectMaximumSpent, // incorrect (too many, wrong token, etc.) maximum spent items
     InvalidContractOrder_InvalidMagicValue, // Offerer did not return correct magic value
-    InvalidContractOrder_OfferAmountMismatch, // startAmount != endAmount on contract order offer item
-    InvalidContractOrder_ConsiderationAmountMismatch, // startAmount != endAmount on contract order consideration item
-    InvalidRestrictedOrder_reverts, // Zone validateOrder call reverts
-    InvalidRestrictedOrder_InvalidMagicValue, // Zone validateOrder call returns invalid magic value
+    InvalidRestrictedOrder_authorizeReverts_matchReverts, // Zone authorizeOrder call reverts and triggers a top level match* revert
+    InvalidRestrictedOrder_validateReverts, // Zone validateOrder call reverts
+    InvalidRestrictedOrder_authorizeInvalidMagicValue, // Zone authorizeOrder call returns invalid magic value
+    InvalidRestrictedOrder_validateInvalidMagicValue, // Zone validateOrder call returns invalid magic value
     NoContract, // Trying to transfer a token at an address that has no contract
     UnusedItemParameters_Token, // Native item with non-zero token
     UnusedItemParameters_Identifier, // Native or ERC20 item with non-zero identifier
@@ -347,7 +347,6 @@ library FuzzMutationSelectorLib {
         failuresAndFilters[i++] = Failure
             .InvalidContractOrder_InsufficientMinimumReceived
             .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
-            .and(Failure.InvalidContractOrder_OfferAmountMismatch)
             .withOrder(
                 MutationFilters
                     .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
@@ -361,15 +360,22 @@ library FuzzMutationSelectorLib {
 
         failuresAndFilters[i++] = Failure
             .InvalidContractOrder_IncorrectMaximumSpent
-            .and(Failure.InvalidContractOrder_ConsiderationAmountMismatch)
             .withOrder(
                 MutationFilters
                     .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
             );
 
         failuresAndFilters[i++] = Failure
-            .InvalidRestrictedOrder_reverts
-            .and(Failure.InvalidRestrictedOrder_InvalidMagicValue)
+            .InvalidRestrictedOrder_authorizeReverts_matchReverts
+            .withOrder(
+                MutationFilters
+                    .ineligibleWhenFulfillAvailableOrNotAvailableOrNotRestricted
+            );
+
+        failuresAndFilters[i++] = Failure
+            .InvalidRestrictedOrder_authorizeInvalidMagicValue
+            .and(Failure.InvalidRestrictedOrder_validateReverts)
+            .and(Failure.InvalidRestrictedOrder_validateInvalidMagicValue)
             .withOrder(
                 MutationFilters.ineligibleWhenNotAvailableOrNotRestrictedOrder
             );
@@ -841,15 +847,14 @@ library FailureDetailsLib {
                 details_withOrderHash
             );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
+        failureDetailsArray[i++] = HashCalldataContractOfferer
+            .HashCalldataContractOffererGenerateOrderReverts
             .selector
             .withOrder(
                 "InvalidContractOrder_generateReverts",
                 FuzzMutations
-                    .mutation_invalidContractOrderGenerateReturnsInvalidEncoding
-                    .selector,
-                details_withOrderHash
+                    .mutation_invalidContractOrderGenerateReverts
+                    .selector
             );
 
         failureDetailsArray[i++] = HashCalldataContractOfferer
@@ -917,33 +922,21 @@ library FailureDetailsLib {
                 details_withOrderHash
             );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
+        failureDetailsArray[i++] = HashValidationZoneOfferer
+            .HashValidationZoneOffererAuthorizeOrderReverts
             .selector
             .withOrder(
-                "InvalidContractOrder_OfferAmountMismatch",
+                "InvalidRestrictedOrder_authorizeReverts_matchReverts",
                 FuzzMutations
-                    .mutation_invalidContractOrderOfferAmountMismatch
-                    .selector,
-                details_withOrderHash
-            );
-
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_ConsiderationAmountMismatch",
-                FuzzMutations
-                    .mutation_invalidContractOrderConsiderationAmountMismatch
-                    .selector,
-                details_withOrderHash
+                    .mutation_invalidRestrictedOrderAuthorizeRevertsMatchReverts
+                    .selector
             );
 
         failureDetailsArray[i++] = HashValidationZoneOfferer
             .HashValidationZoneOffererValidateOrderReverts
             .selector
             .withOrder(
-                "InvalidRestrictedOrder_reverts",
+                "InvalidRestrictedOrder_validateReverts",
                 FuzzMutations.mutation_invalidRestrictedOrderReverts.selector
             );
 
@@ -951,12 +944,24 @@ library FailureDetailsLib {
             .InvalidRestrictedOrder
             .selector
             .withOrder(
-                "InvalidRestrictedOrder_InvalidMagicValue",
+                "InvalidRestrictedOrder_authorizeInvalidMagicValue",
                 FuzzMutations
-                    .mutation_invalidRestrictedOrderInvalidMagicValue
+                    .mutation_invalidRestrictedOrderAuthorizeInvalidMagicValue
                     .selector,
                 details_withOrderHash
             );
+
+        failureDetailsArray[i++] = ZoneInteractionErrors
+            .InvalidRestrictedOrder
+            .selector
+            .withOrder(
+                "InvalidRestrictedOrder_validateInvalidMagicValue",
+                FuzzMutations
+                    .mutation_invalidRestrictedOrderValidateInvalidMagicValue
+                    .selector,
+                details_withOrderHash
+            );
+
         failureDetailsArray[i++] = TokenTransferrerErrors
             .NoContract
             .selector

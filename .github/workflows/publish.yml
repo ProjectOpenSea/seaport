@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: "16.x"
+          node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
       - run: grep -RiIln 'openzeppelin-contracts' src | xargs sed -i 's/openzeppelin\-contracts/@openzeppelin\/contracts/g'
       - run: yarn

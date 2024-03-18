@@ -2001,17 +2001,17 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         }
 
         OrderParameters memory parameters = order
-        .parameters
-        .copy()
-        .withOfferer(offerer.addr)
-        .withStartTime(block.timestamp)
-        // Bump the end time by 100 so that the test doesn't try to match the
-        // same order twice.
+            .parameters
+            .copy()
+            .withOfferer(offerer.addr)
+            .withStartTime(block.timestamp)
             .withEndTime(block.timestamp + 1)
             .withTotalOriginalConsiderationItems(
                 order.parameters.consideration.length
             )
             .withSalt(salt);
+        // Bump the end time by 100 so that the test doesn't try to match the
+        // same order twice.
 
         OrderComponents memory orderComponents = parameters
             .toOrderComponents(seaport.getCounter(offerer.addr))

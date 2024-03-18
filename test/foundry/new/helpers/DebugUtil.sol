@@ -43,7 +43,8 @@ struct ContextOutputSelection {
     bool basicOrderParameters;
     bool testHelpers;
     bool checks;
-    bool expectedZoneCalldataHash;
+    bool expectedZoneAuthorizeCalldataHashes;
+    bool expectedZoneValidateCalldataHashes;
     bool expectedContractOrderCalldataHashes;
     bool expectedResults;
     bool expectedImplicitExecutions;
@@ -74,7 +75,7 @@ using ExecutionFilterCast for Execution[];
  *
  * @param context         the FuzzTestContext to serialize.
  * @param outputSelection a ContextOutputSelection struct containing flags
-                          that define which FuzzTestContext fields to serialize.
+ *                           that define which FuzzTestContext fields to serialize.
  */
 function dumpContext(
     FuzzTestContext memory context,
@@ -236,11 +237,11 @@ function dumpContext(
             cast(context.executionState.preExecOrderStatuses)
         );
     }
-    // if (outputSelection.expectedZoneCalldataHash) {
+    // if (outputSelection.expectedZoneValidateCalldataHash) {
     //     jsonOut = Searializer.tojsonDynArrayBytes32(
     //         "root",
-    //         "expectedZoneCalldataHash",
-    //         context.expectations.expectedZoneCalldataHash
+    //         "expectedZoneValidateCalldataHash",
+    //         context.expectations.expectedZoneValidateCalldataHash
     //     );
     // }
     // if (outputSelection.expectedContractOrderCalldataHashes) {

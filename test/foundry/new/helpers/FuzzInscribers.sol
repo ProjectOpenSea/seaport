@@ -332,7 +332,9 @@ library FuzzInscribers {
             keccak256(abi.encodePacked(profile)) ==
             keccak256(abi.encodePacked("test")) ||
             keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("lite"))
+            keccak256(abi.encodePacked("lite")) ||
+            keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("reference"))
         ) {
             expectedReadAccessCount = 1;
         }
