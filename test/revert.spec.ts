@@ -1,4 +1,4 @@
-import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
+ fimport { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import hre, { ethers, network } from "hardhat";
@@ -5629,7 +5629,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               ethers.constants.AddressZero,
               {
                 value,
-                gasLimit: baseGas.add(74000),
+                gasLimit: baseGas.add(80000),
               }
             )
         ).to.be.revertedWithCustomError(
