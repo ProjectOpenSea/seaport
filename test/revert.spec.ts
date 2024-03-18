@@ -1,4 +1,4 @@
- fimport { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
+import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import hre, { ethers, network } from "hardhat";
