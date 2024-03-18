@@ -5,11 +5,11 @@ pragma solidity ^0.8.17;
 import {
     OrderType,
     ItemType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdvancedOrder,
@@ -19,7 +19,7 @@ import {
     OrderComponents,
     CriteriaResolver,
     FulfillmentComponent
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -42,6 +42,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         uint128 amount;
         bool useConduit;
     }
+
     struct FuzzInputsAscendingDescending {
         address zone;
         uint256 id;
@@ -54,11 +55,13 @@ contract MatchAdvancedOrder is BaseOrderTest {
         bool useConduit;
         uint256 warp;
     }
+
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputs args;
         ItemType itemType;
     }
+
     struct ContextAscendingDescending {
         ConsiderationInterface consideration;
         FuzzInputsAscendingDescending args;

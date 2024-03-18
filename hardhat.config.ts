@@ -69,8 +69,9 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.17",
+        version: "0.8.24",
         settings: {
+          evmVersion: "cancun",
           viaIR: true,
           optimizer: {
             ...(process.env.NO_SPECIALIZER
@@ -133,6 +134,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      hardfork: "cancun",
       blockGasLimit: 30_000_000,
       throwOnCallFailures: false,
       allowUnlimitedContractSize: false,

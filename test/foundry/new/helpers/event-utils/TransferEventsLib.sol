@@ -9,7 +9,7 @@ import {
     Execution,
     ItemType,
     ReceivedItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
@@ -86,15 +86,15 @@ library TransferEventsLib {
                     execution.offerer,
                     address(item.recipient),
                     item.identifier
-                    // getTopicsHash(
-                    //     Transfer.selector, // topic0
-                    //     execution.offerer.toBytes32(), // topic1
-                    //     toBytes32(item.recipient), // topic2
-                    //     bytes32(item.identifier) // topic3
-                    // ),
-                    // keccak256(""),
-                    // getERC721TransferEventHash(execution)
                 ).serializeERC721TransferEvent(objectKey, valueKey);
+            // getTopicsHash(
+            //     Transfer.selector, // topic0
+            //     execution.offerer.toBytes32(), // topic1
+            //     toBytes32(item.recipient), // topic2
+            //     bytes32(item.identifier) // topic3
+            // ),
+            // keccak256(""),
+            // getERC721TransferEventHash(execution)
         }
         if (itemType == ItemType.ERC1155) {
             ReceivedItem memory item = execution.item;
@@ -108,15 +108,15 @@ library TransferEventsLib {
                 address(item.recipient),
                 item.identifier,
                 item.amount
-                //   getTopicsHash(
-                //     TransferSingle.selector, // topic0
-                //     _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
-                //     execution.offerer.toBytes32(), // topic2 = from
-                //     toBytes32(item.recipient) // topic3 = to
-                // ),
-                // keccak256(abi.encode(item.identifier, item.amount)), // dataHash
-                // getERC1155TransferEventHash(execution, context) // event hash
             );
+            //   getTopicsHash(
+            //     TransferSingle.selector, // topic0
+            //     _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
+            //     execution.offerer.toBytes32(), // topic2 = from
+            //     toBytes32(item.recipient) // topic3 = to
+            // ),
+            // keccak256(abi.encode(item.identifier, item.amount)), // dataHash
+            // getERC1155TransferEventHash(execution, context) // event hash
 
             return eventData.serializeERC1155TransferEvent(objectKey, valueKey);
         }

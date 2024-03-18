@@ -3,13 +3,15 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { StdCheats } from "forge-std/StdCheats.sol";
+
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
 import {
     AdvancedOrderLib,
     BasicOrderParametersLib,
     MatchComponent
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -19,32 +21,30 @@ import {
     Fulfillment,
     FulfillmentComponent,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     BroadOrderType,
     OrderStatusEnum,
     SignatureMethod,
     UnavailableReason
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
-import { AdvancedOrdersSpace } from "seaport-sol/StructSpace.sol";
+import { AdvancedOrdersSpace } from "seaport-sol/src/StructSpace.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 
 import {
     AmountDeriverHelper
-} from "seaport-sol/lib/fulfillment/AmountDeriverHelper.sol";
+} from "seaport-sol/src/lib/fulfillment/AmountDeriverHelper.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
-
-import { Account } from "../BaseOrderTest.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 
@@ -68,6 +68,10 @@ import {
     SeaportValidatorInterface
 } from "../../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
+import {
+    SeaportNavigatorInterface
+} from "../../../../contracts/helpers/navigator/SeaportNavigator.sol";
+
 interface TestHelpers {
     function balanceChecker() external view returns (ExpectedBalances);
 
@@ -78,9 +82,9 @@ interface TestHelpers {
         view
         returns (CriteriaResolverHelper);
 
-    function makeAccount(
+    function makeAccountWrapper(
         string memory name
-    ) external view returns (Account memory);
+    ) external view returns (StdCheats.Account memory);
 
     function getNaiveFulfillmentComponents(
         OrderDetails[] memory orderDetails
@@ -138,7 +142,8 @@ struct Expectations {
     /**
      * @dev Expected zone calldata hashes.
      */
-    bytes32[] expectedZoneCalldataHash;
+    bytes32[] expectedZoneAuthorizeCalldataHashes;
+    bytes32[] expectedZoneValidateCalldataHashes;
     /**
      * @dev Expected contract order calldata hashes. Index 0 of the outer array
      *      corresponds to the generateOrder hash, while index 1 corresponds to
@@ -316,6 +321,10 @@ struct FuzzTestContext {
      */
     SeaportValidatorInterface seaportValidator;
     /**
+     * @dev A SeaportNavigator interface.
+     */
+    SeaportNavigatorInterface seaportNavigator;
+    /**
      * @dev A TestHelpers interface. These helper functions are used to generate
      *      accounts and fulfillments.
      */
@@ -386,10 +395,35 @@ library FuzzTestContextLib {
         Result[] memory results;
         bool[] memory available;
         Execution[] memory executions;
-        bytes32[] memory hashes;
-        bytes32[] memory expectedTransferEventHashes;
-        bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
+        Expectations memory expectations;
+
+        {
+            bytes32[] memory authorizeHashes;
+            bytes32[] memory validateHashes;
+            bytes32[] memory expectedTransferEventHashes;
+            bytes32[] memory expectedSeaportEventHashes;
+
+            expectations = Expectations({
+                expectedZoneAuthorizeCalldataHashes: authorizeHashes,
+                expectedZoneValidateCalldataHashes: validateHashes,
+                expectedContractOrderCalldataHashes: new bytes32[2][](0),
+                expectedImplicitPreExecutions: new Execution[](0),
+                expectedImplicitPostExecutions: new Execution[](0),
+                expectedExplicitExecutions: new Execution[](0),
+                allExpectedExecutions: new Execution[](0),
+                expectedResults: results,
+                // expectedAvailableOrders: new bool[](0),
+                expectedTransferEventHashes: expectedTransferEventHashes,
+                expectedSeaportEventHashes: expectedSeaportEventHashes,
+                ineligibleOrders: new bool[](orders.length),
+                ineligibleFailures: new bool[](uint256(Failure.length)),
+                expectedImpliedNativeExecutions: 0,
+                expectedNativeTokensReturned: 0,
+                minimumValue: 0,
+                expectedFillFractions: new FractionResults[](orders.length)
+            });
+        }
 
         return
             FuzzTestContext({
@@ -398,6 +432,7 @@ library FuzzTestContextLib {
                 seaport: SeaportInterface(address(0)),
                 conduitController: ConduitControllerInterface(address(0)),
                 seaportValidator: SeaportValidatorInterface(address(0)),
+                seaportNavigator: SeaportNavigatorInterface(address(0)),
                 fuzzParams: FuzzParams({
                     seed: 0,
                     totalOrders: 0,
@@ -413,24 +448,7 @@ library FuzzTestContextLib {
                     availableOrders: available,
                     executions: executions
                 }),
-                expectations: Expectations({
-                    expectedZoneCalldataHash: hashes,
-                    expectedContractOrderCalldataHashes: new bytes32[2][](0),
-                    expectedImplicitPreExecutions: new Execution[](0),
-                    expectedImplicitPostExecutions: new Execution[](0),
-                    expectedExplicitExecutions: new Execution[](0),
-                    allExpectedExecutions: new Execution[](0),
-                    expectedResults: results,
-                    // expectedAvailableOrders: new bool[](0),
-                    expectedTransferEventHashes: expectedTransferEventHashes,
-                    expectedSeaportEventHashes: expectedSeaportEventHashes,
-                    ineligibleOrders: new bool[](orders.length),
-                    ineligibleFailures: new bool[](uint256(Failure.length)),
-                    expectedImpliedNativeExecutions: 0,
-                    expectedNativeTokensReturned: 0,
-                    minimumValue: 0,
-                    expectedFillFractions: new FractionResults[](orders.length)
-                }),
+                expectations: expectations,
                 executionState: ExecutionState({
                     caller: address(0),
                     contractOffererNonce: 0,
@@ -626,6 +644,24 @@ library FuzzTestContextLib {
         SeaportValidatorInterface seaportValidator
     ) internal pure returns (FuzzTestContext memory) {
         context.seaportValidator = seaportValidator;
+        return context;
+    }
+
+    /**
+     * @dev Sets the SeaportNavigatorInterface on a FuzzTestContext
+     *
+     * @param context             the FuzzTestContext to set the
+     *                            SeaportNavigatorInterface of
+     * @param seaportNavigator  the SeaportNavigatorInterface to set
+     *
+     * @return _context the FuzzTestContext with the SeaportNavigatorInterface
+     *                  set
+     */
+    function withSeaportNavigator(
+        FuzzTestContext memory context,
+        SeaportNavigatorInterface seaportNavigator
+    ) internal pure returns (FuzzTestContext memory) {
+        context.seaportNavigator = seaportNavigator;
         return context;
     }
 
@@ -1054,8 +1090,9 @@ function bound(
     // Similarly for the UINT256_MAX side. This helps ensure coverage of the
     // min/max values.
     if (x <= 3 && size > x) return min + x;
-    if (x >= type(uint256).max - 3 && size > type(uint256).max - x)
+    if (x >= type(uint256).max - 3 && size > type(uint256).max - x) {
         return max - (type(uint256).max - x);
+    }
 
     // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
     if (x > max) {

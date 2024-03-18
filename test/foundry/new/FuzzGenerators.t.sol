@@ -8,9 +8,9 @@ import {
     ConsiderationItemSpace,
     OfferItemSpace,
     OrderComponentsSpace
-} from "seaport-sol/StructSpace.sol";
+} from "seaport-sol/src/StructSpace.sol";
 
-import { AdvancedOrder, ItemType } from "seaport-sol/SeaportStructs.sol";
+import { AdvancedOrder, ItemType } from "seaport-sol/src/SeaportStructs.sol";
 
 import {
     Amount,
@@ -32,7 +32,7 @@ import {
     UnavailableReason,
     Zone,
     ZoneHash
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -56,8 +56,9 @@ import {
 } from "../../../contracts/test/HashCalldataContractOfferer.sol";
 
 import {
+    DefaultFulfillmentGeneratorLib,
     FulfillmentGeneratorLib
-} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 contract FuzzGeneratorsTest is BaseOrderTest {
     using LibPRNG for LibPRNG.PRNG;
@@ -90,12 +91,12 @@ contract FuzzGeneratorsTest is BaseOrderTest {
                 erc1155s: erc1155s,
                 self: address(this),
                 caller: address(this),
-                alice: makeAccount("alice"),
-                bob: makeAccount("bob"),
-                carol: makeAccount("carol"),
-                dillon: makeAccount("dillon"),
-                eve: makeAccount("eve"),
-                frank: makeAccount("frank"),
+                alice: makeAccountWrapper("alice"),
+                bob: makeAccountWrapper("bob"),
+                carol: makeAccountWrapper("carol"),
+                dillon: makeAccountWrapper("dillon"),
+                eve: makeAccountWrapper("eve"),
+                frank: makeAccountWrapper("frank"),
                 starting721offerIndex: 1,
                 starting721considerationIndex: 1,
                 potential1155TokenIds: potential1155TokenIds,
@@ -122,7 +123,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -168,7 +170,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -223,7 +226,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,
@@ -289,7 +293,8 @@ contract FuzzGeneratorsTest is BaseOrderTest {
             recipient: FulfillmentRecipient.ZERO,
             conduit: ConduitChoice.NONE,
             caller: Caller.TEST_CONTRACT,
-            strategy: FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            strategy: DefaultFulfillmentGeneratorLib
+                .getDefaultFulfillmentStrategy()
         });
         AdvancedOrder[] memory orders = AdvancedOrdersSpaceGenerator.generate(
             space,

@@ -1,5 +1,6 @@
 [profile.default]
-solc = '0.8.17'
+solc = '0.8.24'
+evm_version='cancun'
 src = 'contracts'
 out = 'out'
 libs = ["node_modules", "lib"]
@@ -9,11 +10,13 @@ remappings = [
     'ds-test/=lib/ds-test/src/',
     'forge-std/=lib/forge-std/src/',
     'murky/=lib/murky/src/',
-    'openzeppelin-contracts/=lib/openzeppelin-contracts/',
-    'seaport-sol/=contracts/helpers/sol/',
-    'seaport-core/=contracts/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
     'solarray/=lib/solarray/src/',
-    'solady/=lib/solady/'
+    'solady/=lib/solady/',
+    'seaport-sol/=lib/seaport-sol/',
+    'seaport-types/=lib/seaport-types/',
+    'seaport-core/=lib/seaport-core/',
+    'seaport/=contracts/'
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [
@@ -35,12 +38,14 @@ runs = 1_000
 max_test_rejects = 1_000_000
 
 [profile.reference]
-solc = '0.8.13'
+solc = '0.8.24'
 src = 'reference'
+via_ir = false
 out = 'reference-out'
 script = 'reference'
-# specify something so it doesn't try to compile the 0.8.17 files in test/foundry
-test = 'reference'
+test = 'test/foundry'
+cache_path = 'reference-cache'
+
 
 [profile.optimized]
 via_ir = true

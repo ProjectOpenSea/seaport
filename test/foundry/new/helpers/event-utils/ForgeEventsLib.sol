@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { Vm } from "forge-std/Vm.sol";
 
-import {
-    MemoryPointer
-} from "../../../../../contracts/helpers/PointerLibraries.sol";
+import { MemoryPointer } from "seaport-types/src/helpers/PointerLibraries.sol";
 
 import { getEventHash, getTopicsHash } from "./EventHashes.sol";
 
@@ -82,7 +80,7 @@ library ForgeEventsLib {
             bytes32 topic3,
 
         ) = getTopics(log);
-        MemoryPointer data = toMemoryPointer(log).pptr(32);
+        MemoryPointer data = toMemoryPointer(log).pptrOffset(32);
         assembly {
             switch topicsCount
             case 4 {
@@ -130,10 +128,10 @@ library ForgeEventsLib {
                         address(uint160(uint256(topic1))),
                         address(uint160(uint256(topic2))),
                         uint256(topic3)
-                        // getForgeTopicsHash(log),
-                        // getDataHash(log),
-                        // getForgeEventHash(log)
                     ).serializeERC721TransferEvent(objectKey, valueKey);
+                // getForgeTopicsHash(log),
+                // getDataHash(log),
+                // getForgeEventHash(log)
             } else {
                 ERC20TransferEvent memory eventData;
                 eventData.kind = "ERC20";

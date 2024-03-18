@@ -6,7 +6,7 @@ import {
     BasicOrderType,
     ItemType,
     OrderType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdditionalRecipient,
@@ -15,7 +15,7 @@ import {
     OfferItem,
     ReceivedItem,
     SpentItem
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     AccumulatorStruct,
@@ -814,6 +814,15 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 consideration
             );
         }
+
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderAuthorization(
+            hashes.orderHash,
+            orderType,
+            parameters,
+            offeredItemType,
+            receivedItemType
+        );
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(

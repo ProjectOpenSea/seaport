@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "../../../lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
@@ -10,30 +10,32 @@ import {
     ConsiderationItem,
     Schema,
     ZoneParameters
-} from "../../../lib/ConsiderationStructs.sol";
-import { ConsiderationTypeHashes } from "../lib/ConsiderationTypeHashes.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
+import { ConsiderationTypeHashes } from "./ConsiderationTypeHashes.sol";
 import {
     ConsiderationInterface
-} from "../../../interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 import {
     ConduitControllerInterface
-} from "../../../interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 import {
     ContractOffererInterface
-} from "../../../interfaces/ContractOffererInterface.sol";
-import { ZoneInterface } from "../../../interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "../../../lib/GettersAndDerivers.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
+import {
+    GettersAndDerivers
+} from "seaport-core/src/lib/GettersAndDerivers.sol";
 import {
     SeaportValidatorInterface
 } from "../lib/SeaportValidatorInterface.sol";
-import { ZoneInterface } from "../../../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../../../interfaces/AbridgedTokenInterfaces.sol";
-import { IERC165 } from "../../../interfaces/IERC165.sol";
-import { IERC2981 } from "../../../interfaces/IERC2981.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
+import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import { IERC2981 } from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
@@ -59,8 +61,8 @@ import {
     SignatureIssue,
     GenericIssue,
     ConsiderationItemConfiguration
-} from "../lib/SeaportValidatorTypes.sol";
-import { Verifiers } from "../../../lib/Verifiers.sol";
+} from "./SeaportValidatorTypes.sol";
+import { Verifiers } from "seaport-core/src/lib/Verifiers.sol";
 
 /**
  * @title SeaportValidator

@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.17;
+
 import {
     BasicOrderParameters,
     OrderComponents,
@@ -8,7 +9,7 @@ import {
     Order,
     AdvancedOrder,
     CriteriaResolver
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 struct FulfillBasicOrderParameters {
     BasicOrderParameters parameters;

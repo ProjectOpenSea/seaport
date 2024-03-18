@@ -3,30 +3,30 @@ pragma solidity ^0.8.17;
 
 import { Vm } from "forge-std/Vm.sol";
 
+import { StdCheats } from "forge-std/StdCheats.sol";
+
 import { LibPRNG } from "solady/src/utils/LibPRNG.sol";
 
-import { MatchComponent } from "seaport-sol/SeaportSol.sol";
+import { MatchComponent } from "seaport-sol/src/SeaportSol.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     Amount,
     BasicOrderCategory,
     Criteria,
     TokenIndex
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
-import { OfferItemSpace } from "seaport-sol/StructSpace.sol";
+import { OfferItemSpace } from "seaport-sol/src/StructSpace.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { EIP1271Offerer } from "./EIP1271Offerer.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
-
-import { Account } from "../BaseOrderTest.sol";
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
 import { TestHelpers } from "./FuzzTestContextLib.sol";
 
@@ -44,7 +44,7 @@ import {
     HashCalldataContractOfferer
 } from "../../../../contracts/test/HashCalldataContractOfferer.sol";
 
-import { Conduit } from "../../../../contracts/conduit/Conduit.sol";
+import { Conduit } from "seaport-core/src/conduit/Conduit.sol";
 
 import {
     HashValidationZoneOfferer
@@ -72,12 +72,12 @@ struct FuzzGeneratorContext {
     TestERC1155[] erc1155s;
     address self;
     address caller;
-    Account alice;
-    Account bob;
-    Account carol;
-    Account dillon;
-    Account eve;
-    Account frank;
+    StdCheats.Account alice;
+    StdCheats.Account bob;
+    StdCheats.Account carol;
+    StdCheats.Account dillon;
+    StdCheats.Account eve;
+    StdCheats.Account frank;
     TestConduit[] conduits;
     uint256 starting721offerIndex;
     uint256 starting721considerationIndex;
@@ -119,12 +119,12 @@ library FuzzGeneratorContextLib {
                 eip1271Offerer: new EIP1271Offerer(),
                 self: address(this),
                 caller: address(this),
-                alice: testHelpers.makeAccount("alice"),
-                bob: testHelpers.makeAccount("bob"),
-                carol: testHelpers.makeAccount("carol"),
-                dillon: testHelpers.makeAccount("dillon"),
-                eve: testHelpers.makeAccount("eve"),
-                frank: testHelpers.makeAccount("frank"),
+                alice: testHelpers.makeAccountWrapper("alice"),
+                bob: testHelpers.makeAccountWrapper("bob"),
+                carol: testHelpers.makeAccountWrapper("carol"),
+                dillon: testHelpers.makeAccountWrapper("dillon"),
+                eve: testHelpers.makeAccountWrapper("eve"),
+                frank: testHelpers.makeAccountWrapper("frank"),
                 conduits: new TestConduit[](2),
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,
@@ -198,12 +198,12 @@ library FuzzGeneratorContextLib {
                 eip1271Offerer: eip1271Offerer,
                 self: address(this),
                 caller: address(this),
-                alice: testHelpers.makeAccount("alice"),
-                bob: testHelpers.makeAccount("bob"),
-                carol: testHelpers.makeAccount("carol"),
-                dillon: testHelpers.makeAccount("dillon"),
-                eve: testHelpers.makeAccount("eve"),
-                frank: testHelpers.makeAccount("frank"),
+                alice: testHelpers.makeAccountWrapper("alice"),
+                bob: testHelpers.makeAccountWrapper("bob"),
+                carol: testHelpers.makeAccountWrapper("carol"),
+                dillon: testHelpers.makeAccountWrapper("dillon"),
+                eve: testHelpers.makeAccountWrapper("eve"),
+                frank: testHelpers.makeAccountWrapper("frank"),
                 conduits: conduits,
                 starting721offerIndex: 0,
                 starting721considerationIndex: 0,

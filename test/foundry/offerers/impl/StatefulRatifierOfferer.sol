@@ -4,24 +4,21 @@ pragma solidity ^0.8.13;
 import {
     ERC20Interface,
     ERC721Interface
-} from "../../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ContractOffererInterface
-} from "../../../../contracts/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ERC165 } from "../../../../contracts/interfaces/ERC165.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {
-    ItemType,
-    Side
-} from "../../../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     SpentItem,
     ReceivedItem,
     Schema
-} from "../../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 interface ERC20Mintable {
     function mint(address to, uint256 amount) external;

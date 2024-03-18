@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 import {
     PausableZoneEventsAndErrors
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
-import { ERC165 } from "../interfaces/ERC165.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
+import {
+    SeaportInterface
+} from "seaport-types/src/interfaces/SeaportInterface.sol";
 
 import {
     AdvancedOrder,
@@ -20,7 +22,7 @@ import {
     OrderComponents,
     Schema,
     ZoneParameters
-} from "../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
 
@@ -28,9 +30,9 @@ import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
  * @title  PausableZone
  * @author cupOJoseph, BCLeFevre, ryanio
  * @notice PausableZone is a simple zone implementation that approves every
- *         order. It can be self-destructed by its controller to pause
- *         restricted orders that have it set as their zone. Note that this zone
- *         cannot execute orders that return native tokens to the fulfiller.
+ *         order. It can be paused by its controller to pause restricted orders
+ *         that have it set as their zone. Note that this zone cannot execute
+ *         orders that return native tokens to the fulfiller.
  */
 contract PausableZone is
     ERC165,
@@ -44,6 +46,9 @@ contract PausableZone is
     // Set an operator that can instruct the zone to cancel or execute orders.
     address public operator;
 
+    // Set a boolean indicating whether the zone is paused.
+    bool public isPaused;
+
     /**
      * @dev Ensure that the caller is either the operator or controller.
      */
@@ -51,6 +56,19 @@ contract PausableZone is
         // Ensure that the caller is either the operator or the controller.
         if (msg.sender != operator && msg.sender != _controller) {
             revert InvalidOperator();
+        }
+
+        // Continue with function execution.
+        _;
+    }
+
+    /**
+     * @dev Ensure that the zone is not paused.
+     */
+    modifier isNotPaused() {
+        // Ensure that the zone is not paused.
+        if (isPaused) {
+            revert ZoneIsPaused();
         }
 
         // Continue with function execution.
@@ -102,16 +120,14 @@ contract PausableZone is
     /**
      * @notice Pause this contract, safely stopping orders from using
      *         the contract as a zone. Restricted orders with this address as a
-     *         zone will not be fulfillable unless the zone is redeployed to the
-     *         same address.
+     *         zone will no longer be fulfillable.
      */
-    function pause(address payee) external override isController {
+    function pause() external override isController {
         // Emit an event signifying that the zone is paused.
         emit Paused();
 
-        // Destroy the zone, sending any native tokens to the transaction
-        // submitter.
-        selfdestruct(payable(payee));
+        // Pause the zone.
+        isPaused = true;
     }
 
     /**
@@ -159,6 +175,7 @@ contract PausableZone is
         payable
         override
         isOperator
+        isNotPaused
         returns (Execution[] memory executions)
     {
         // Call matchOrders on Seaport and return the sequence of transfers
@@ -200,6 +217,7 @@ contract PausableZone is
         payable
         override
         isOperator
+        isNotPaused
         returns (Execution[] memory executions)
     {
         // Call matchAdvancedOrders on Seaport and return the sequence of
@@ -210,6 +228,12 @@ contract PausableZone is
             fulfillments,
             msg.sender
         );
+    }
+
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) external view isNotPaused returns (bytes4) {
+        return this.authorizeOrder.selector;
     }
 
     /**
@@ -232,7 +256,7 @@ contract PausableZone is
          * @custom:name zoneParameters
          */
         ZoneParameters calldata
-    ) external pure override returns (bytes4 validOrderMagicValue) {
+    ) external view override isNotPaused returns (bytes4 validOrderMagicValue) {
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.validateOrder.selector;
     }

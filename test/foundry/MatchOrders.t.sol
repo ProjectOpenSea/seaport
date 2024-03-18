@@ -5,18 +5,18 @@ pragma solidity ^0.8.17;
 import {
     OrderType,
     ItemType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     Order,
     OrderParameters,
     OrderComponents,
     FulfillmentComponent
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -26,6 +26,7 @@ import { stdError } from "forge-std/Test.sol";
 
 contract MatchOrders is BaseOrderTest {
     using ArithmeticUtil for uint128;
+
     struct FuzzInputsCommon {
         address zone;
         uint256 id;

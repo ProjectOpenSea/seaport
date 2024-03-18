@@ -8,9 +8,9 @@ import {
     MemoryPointer
 } from "../../../../../contracts/helpers/ArrayHelpers.sol";
 
-import { Execution } from "seaport-sol/SeaportStructs.sol";
+import { Execution } from "seaport-sol/src/SeaportStructs.sol";
 
-import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 
 import { FuzzTestContext } from "../FuzzTestContextLib.sol";
 
@@ -116,10 +116,26 @@ library ExpectedEventsUtil {
             "ExpectedEventsUtil: executions length mismatch"
         );
 
+        Execution[] memory filteredExecutions = new Execution[](
+            executions.length
+        );
+
+        uint256 filteredExecutionIndex = 0;
+
+        for (uint256 i = 0; i < executions.length; ++i) {
+            if (executions[i].item.amount > 0) {
+                filteredExecutions[filteredExecutionIndex++] = executions[i];
+            }
+        }
+
+        assembly {
+            mstore(filteredExecutions, filteredExecutionIndex)
+        }
+
         context.expectations.expectedTransferEventHashes = ArrayHelpers
             .filterMapWithArg
             .asExecutionsFilterMap()(
-                executions,
+                filteredExecutions,
                 TransferEventsLib.getTransferEventHash,
                 context
             );
@@ -451,13 +467,11 @@ library Casts {
         returns (
             function(
                 bytes32[] memory,
-                function(
-                    uint256,
-                    uint256,
-                    ReduceInput memory //Vm.Log[] memory)
-                ) internal returns (uint256),
+                function(uint256, uint256, ReduceInput memory)
+                    internal
+                    returns (uint256),
                 uint256,
-                ReduceInput memory //Vm.Log[] memory
+                ReduceInput memory
             ) internal returns (uint256) fnOut
         )
     {

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
 import {
     FulfillAvailableHelper
-} from "seaport-sol/fulfillments/available/FulfillAvailableHelper.sol";
+} from "seaport-sol/src/fulfillments/available/FulfillAvailableHelper.sol";
 
 import {
     MatchFulfillmentHelper
-} from "seaport-sol/fulfillments/match/MatchFulfillmentHelper.sol";
+} from "seaport-sol/src/fulfillments/match/MatchFulfillmentHelper.sol";
 
 import {
     AdvancedOrderLib,
@@ -23,7 +23,7 @@ import {
     OrderLib,
     OrderParametersLib,
     SeaportArrays
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -34,11 +34,11 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/src/SeaportEnums.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { setLabel, BaseSeaportTest } from "./helpers/BaseSeaportTest.sol";
 
@@ -54,26 +54,13 @@ import { ExpectedBalances } from "./helpers/ExpectedBalances.sol";
 
 import { PreapprovedERC721 } from "./helpers/PreapprovedERC721.sol";
 
-import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
+import { AmountDeriver } from "seaport-core/src/lib/AmountDeriver.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-
-import {
-    SeaportValidatorHelper,
-    SeaportValidator
-} from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
-
-/**
- * @dev used to store address and key outputs from makeAddrAndKey(name)
- */
-struct Account {
-    address addr;
-    uint256 key;
-}
 
 /**
  * @dev This is a base test class for cases that depend on pre-deployed token
@@ -117,8 +104,6 @@ contract BaseOrderTest is
         SeaportInterface seaport;
     }
 
-    SeaportValidatorHelper validatorHelper;
-    SeaportValidator validator;
     FulfillAvailableHelper fulfill;
     MatchFulfillmentHelper matcher;
 
@@ -179,13 +164,6 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(address(this), type(uint128).max);
 
         _configureStructDefaults();
-
-        validatorHelper = new SeaportValidatorHelper();
-
-        validator = new SeaportValidator(
-            address(validatorHelper),
-            address(getConduitController())
-        );
 
         fulfill = new FulfillAvailableHelper();
         matcher = new MatchFulfillmentHelper();
@@ -301,12 +279,14 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev convenience wrapper for makeAddrAndKey
+     * @dev Wrapper for forge-std's makeAccount that has public visibility
+     *      instead of internal visibility, so that we can access it in
+     *      libraries.
      */
-    function makeAccount(string memory name) public returns (Account memory) {
-        (address addr, uint256 key) = makeAddrAndKey(name);
-        setLabel(addr, name);
-        return Account(addr, key);
+    function makeAccountWrapper(
+        string memory name
+    ) public returns (Account memory) {
+        return makeAccount(name);
     }
 
     /**
@@ -316,7 +296,7 @@ contract BaseOrderTest is
     function makeAndAllocateAccount(
         string memory name
     ) internal returns (Account memory) {
-        Account memory account = makeAccount(name);
+        Account memory account = makeAccountWrapper(name);
         allocateTokensAndApprovals(account.addr, type(uint128).max);
         return account;
     }

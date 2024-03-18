@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-
-import { ERC165 } from "../interfaces/ERC165.sol";
-
-import { Schema, ZoneParameters } from "../lib/ConsiderationStructs.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {
+    Schema,
+    ZoneParameters
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract TestZone is ERC165, ZoneInterface {
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
+        return this.authorizeOrder.selector;
+    }
+
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external pure override returns (bytes4 validOrderMagicValue) {

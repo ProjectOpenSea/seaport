@@ -3,11 +3,11 @@ pragma solidity ^0.8.17;
 
 import { vm } from "./VmUtils.sol";
 
-import { AdvancedOrder, OrderStatus } from "seaport-sol/SeaportStructs.sol";
+import { AdvancedOrder, OrderStatus } from "seaport-sol/src/SeaportStructs.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
-import { AdvancedOrderLib } from "seaport-sol/SeaportSol.sol";
+import { AdvancedOrderLib } from "seaport-sol/src/SeaportSol.sol";
 
 /**
  * @notice "Inscribers" are helpers that set Seaport state directly by modifying
@@ -332,7 +332,9 @@ library FuzzInscribers {
             keccak256(abi.encodePacked(profile)) ==
             keccak256(abi.encodePacked("test")) ||
             keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("lite"))
+            keccak256(abi.encodePacked("lite")) ||
+            keccak256(abi.encodePacked(profile)) ==
+            keccak256(abi.encodePacked("reference"))
         ) {
             expectedReadAccessCount = 1;
         }

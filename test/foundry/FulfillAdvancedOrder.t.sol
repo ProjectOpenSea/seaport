@@ -1,28 +1,27 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.17;
 
 import {
     OrderType,
     ItemType
-} from "../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdvancedOrder,
     OrderParameters,
     OrderComponents,
     CriteriaResolver
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
@@ -33,6 +32,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     using ArithmeticUtil for uint8;
 
     FuzzInputs empty;
+
     struct FuzzInputs {
         uint256 tokenId;
         address zone;
@@ -532,7 +532,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             address(0)
         );
 
-        // Assert six-tenths of the order has been fulfilled.
+        // Assert three-fifths of the order has been fulfilled.
         {
             (
                 bool isValidated,
@@ -542,9 +542,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, 6);
+            assertEq(totalFilled, 3);
 
-            assertEq(totalSize, 10);
+            assertEq(totalSize, 5);
             assertEq(60, test1155_1.balanceOf(address(this), 1));
         }
     }

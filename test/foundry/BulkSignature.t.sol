@@ -7,7 +7,7 @@ import { EIP712MerkleTree } from "./utils/EIP712MerkleTree.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     ConsiderationItem,
@@ -16,9 +16,9 @@ import {
     OrderComponents,
     OrderParameters,
     OrderType
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
-import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 contract BulkSignatureTest is BaseOrderTest {
     OrderComponents private _empty;

@@ -3,28 +3,24 @@ pragma solidity >=0.8.17;
 
 import {
     EnumerableSet
-} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {
     EnumerableMap
-} from "openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol";
+} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
-import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import {
-    IERC721
-} from "openzeppelin-contracts/contracts/interfaces/IERC721.sol";
+import { IERC721 } from "@openzeppelin/contracts/interfaces/IERC721.sol";
 
-import {
-    IERC1155
-} from "openzeppelin-contracts/contracts/interfaces/IERC1155.sol";
+import { IERC1155 } from "@openzeppelin/contracts/interfaces/IERC1155.sol";
 
 import { LibString } from "solady/src/utils/LibString.sol";
 
 import { withLabel } from "./Labeler.sol";
 
-import { Execution, ReceivedItem } from "seaport-sol/SeaportStructs.sol";
+import { Execution, ReceivedItem } from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 struct NativeAccountDump {
     address account;
@@ -63,17 +59,17 @@ struct ERC1155AccountDump {
     address account;
     uint256[] identifiers;
     uint256[] balances;
-    // ERC1155IdentifierDump[] identifiers;
 }
+// ERC1155IdentifierDump[] identifiers;
 
 struct ERC1155TokenDump {
     address token;
     ERC1155AccountDump[] accounts;
-    // address[] accounts;
-    // uint256[][] accountIdentifiers;
-    // uint256[][] accountBalances;
-    // ERC1155AccountDump[] accounts;
 }
+// address[] accounts;
+// uint256[][] accountIdentifiers;
+// uint256[][] accountBalances;
+// ERC1155AccountDump[] accounts;
 
 struct ExpectedBalancesDump {
     ERC20TokenDump[] erc20;
@@ -502,6 +498,7 @@ contract ERC721Balances {
         EnumerableSet.UintSet touchedIdentifiers;
         EnumerableMap.AddressToUintMap accountBalances;
     }
+
     EnumerableSet.AddressSet private tokens;
     mapping(address => TokenData721) private tokenDatas;
 

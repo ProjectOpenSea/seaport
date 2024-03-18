@@ -1,28 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { IERC721Receiver } from "../interfaces/IERC721Receiver.sol";
+import {
+    IERC721Receiver
+} from "seaport-types/src/interfaces/IERC721Receiver.sol";
 
 import {
     TransferHelperItem,
     TransferHelperItemsWithRecipient
-} from "./TransferHelperStructs.sol";
+} from "seaport-types/src/helpers/TransferHelperStructs.sol";
 
-import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
+import {
+    ConduitItemType
+} from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import {
+    ConduitInterface
+} from "seaport-types/src/interfaces/ConduitInterface.sol";
 
 import {
     ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
-import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
+import {
+    ConduitTransfer
+} from "seaport-types/src/conduit/lib/ConduitStructs.sol";
 
 import {
     TransferHelperInterface
-} from "../interfaces/TransferHelperInterface.sol";
+} from "seaport-types/src/interfaces/TransferHelperInterface.sol";
 
-import { TransferHelperErrors } from "../interfaces/TransferHelperErrors.sol";
+import {
+    TransferHelperErrors
+} from "seaport-types/src/interfaces/TransferHelperErrors.sol";
 
 /**
  * @title TransferHelper
@@ -118,11 +128,14 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
             )
         );
 
-        // Declare a variable to store the sum of all items across transfers.
-        uint256 sumOfItemsAcrossAllTransfers;
+        // Declare a new array in memory to track each conduit transfer.
+        ConduitTransfer[] memory conduitTransfers;
 
         // Skip overflow checks: all for loops are indexed starting at zero.
         unchecked {
+            // Declare a variable to store  sum of all items across transfers.
+            uint256 sumOfItemsAcrossAllTransfers;
+
             // Iterate over each transfer.
             for (uint256 i = 0; i < numTransfers; ++i) {
                 // Retrieve the transfer in question.
@@ -133,84 +146,20 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
                 // Increment totalItems by the number of items in the transfer.
                 sumOfItemsAcrossAllTransfers += transfer.items.length;
             }
+
+            // Assign length totalItems to populate with each conduit transfer.
+            conduitTransfers = new ConduitTransfer[](
+                sumOfItemsAcrossAllTransfers
+            );
         }
 
-        // Declare a new array in memory with length totalItems to populate with
-        // each conduit transfer.
-        ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
-            sumOfItemsAcrossAllTransfers
+        // Process the conduit transfers and prepare to execute them.
+        _processConduitTransfers(
+            conduitTransfers,
+            transfers,
+            conduit,
+            numTransfers
         );
-
-        // Declare an index for storing ConduitTransfers in conduitTransfers.
-        uint256 itemIndex;
-
-        // Skip overflow checks: all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each transfer.
-            for (uint256 i = 0; i < numTransfers; ++i) {
-                // Retrieve the transfer in question.
-                TransferHelperItemsWithRecipient calldata transfer = transfers[
-                    i
-                ];
-
-                // Retrieve the items of the transfer in question.
-                TransferHelperItem[] calldata transferItems = transfer.items;
-
-                // Ensure recipient is not the zero address.
-                _checkRecipientIsNotZeroAddress(transfer.recipient);
-
-                // Create a boolean indicating whether validateERC721Receiver
-                // is true and recipient is a contract.
-                bool callERC721Receiver = transfer.validateERC721Receiver &&
-                    transfer.recipient.code.length != 0;
-
-                // Retrieve the total number of items in the transfer and
-                // place on stack.
-                uint256 numItemsInTransfer = transferItems.length;
-
-                // Iterate over each item in the transfer to create a
-                // corresponding ConduitTransfer.
-                for (uint256 j = 0; j < numItemsInTransfer; ++j) {
-                    // Retrieve the item from the transfer.
-                    TransferHelperItem calldata item = transferItems[j];
-
-                    if (item.itemType == ConduitItemType.ERC20) {
-                        // Ensure that the identifier of an ERC20 token is 0.
-                        if (item.identifier != 0) {
-                            revert InvalidERC20Identifier();
-                        }
-                    }
-
-                    // If the item is an ERC721 token and
-                    // callERC721Receiver is true...
-                    if (item.itemType == ConduitItemType.ERC721) {
-                        if (callERC721Receiver) {
-                            // Check if the recipient implements
-                            // onERC721Received for the given tokenId.
-                            _checkERC721Receiver(
-                                conduit,
-                                transfer.recipient,
-                                item.identifier
-                            );
-                        }
-                    }
-
-                    // Create a ConduitTransfer corresponding to each
-                    // TransferHelperItem.
-                    conduitTransfers[itemIndex] = ConduitTransfer(
-                        item.itemType,
-                        item.token,
-                        msg.sender,
-                        transfer.recipient,
-                        item.identifier,
-                        item.amount
-                    );
-
-                    // Increment the index for storing ConduitTransfers.
-                    ++itemIndex;
-                }
-            }
-        }
 
         // Attempt the external call to transfer tokens via the derived conduit.
         try ConduitInterface(conduit).execute(conduitTransfers) returns (
@@ -327,6 +276,113 @@ contract TransferHelper is TransferHelperInterface, TransferHelperErrors {
                 tokenId
             );
         }
+    }
+
+    /**
+     * @notice An internal function that prepares conduit transfers.
+     *
+     * @param conduitTransfers The allocated conduit transfers array.
+     * @param transfers        The transfers in question.
+     * @param conduit          The conduit in question.
+     * @param numTransfers     The total number of transfers.
+     */
+    function _processConduitTransfers(
+        ConduitTransfer[] memory conduitTransfers,
+        TransferHelperItemsWithRecipient[] calldata transfers,
+        address conduit,
+        uint256 numTransfers
+    ) internal {
+        // Skip overflow checks: all for loops are indexed starting at zero.
+        unchecked {
+            // Declare index to store ConduitTransfers in conduitTransfers.
+            uint256 itemIndex;
+
+            // Iterate over each transfer.
+            for (uint256 i = 0; i < numTransfers; ++i) {
+                // Retrieve the transfer in question.
+                TransferHelperItemsWithRecipient calldata transfer = transfers[
+                    i
+                ];
+
+                // Retrieve the items of the transfer in question.
+                TransferHelperItem[] calldata transferItems = transfer.items;
+
+                // Ensure recipient is not the zero address.
+                _checkRecipientIsNotZeroAddress(transfer.recipient);
+
+                // Create a boolean indicating whether validateERC721Receiver
+                // is true and recipient is a contract.
+                bool callERC721Receiver = transfer.validateERC721Receiver &&
+                    transfer.recipient.code.length != 0;
+
+                // Retrieve the total number of items in the transfer and
+                // place on stack.
+                uint256 numItemsInTransfer = transferItems.length;
+
+                // Iterate over each item in the transfer to create a
+                // corresponding ConduitTransfer.
+                for (uint256 j = 0; j < numItemsInTransfer; ++j) {
+                    // Retrieve the item from the transfer.
+                    TransferHelperItem calldata item = transferItems[j];
+
+                    if (item.itemType == ConduitItemType.ERC20) {
+                        // Ensure that the identifier of an ERC20 token is 0.
+                        if (item.identifier != 0) {
+                            revert InvalidERC20Identifier();
+                        }
+                    }
+
+                    // If the item is an ERC721 token and
+                    // callERC721Receiver is true...
+                    if (item.itemType == ConduitItemType.ERC721) {
+                        if (callERC721Receiver) {
+                            // Check if the recipient implements
+                            // onERC721Received for the given tokenId.
+                            _checkERC721Receiver(
+                                conduit,
+                                transfer.recipient,
+                                item.identifier
+                            );
+                        }
+                    }
+
+                    // Create a ConduitTransfer corresponding to each
+                    // TransferHelperItem.
+                    conduitTransfers[itemIndex] = _createConduitTransfer(
+                        item,
+                        transfer
+                    );
+
+                    // Increment the index for storing ConduitTransfers.
+                    ++itemIndex;
+                }
+            }
+        }
+    }
+
+    /**
+     * @notice Internal view function to create a ConduitTransfer from a
+     *         TransferHelperItem and a TransferHelperItemsWithRecipient.
+     *
+     * @param item     The item to transfer.
+     * @param transfer The transfer to create a ConduitTransfer from.
+     *
+     * @return conduitTransfer The ConduitTransfer created from the item and
+     *                         transfer.
+     */
+    function _createConduitTransfer(
+        TransferHelperItem calldata item,
+        TransferHelperItemsWithRecipient calldata transfer
+    ) internal view returns (ConduitTransfer memory conduitTransfer) {
+        return
+            ConduitTransfer(
+                item.itemType,
+                item.token,
+                msg.sender,
+                transfer.recipient,
+                item.identifier,
+                item.amount
+            );
     }
 
     /**

@@ -1,3 +1,12 @@
+---
+title: Deployment
+category: 6520398b749af50013f52ff4
+slug: seaport-deployment
+parentDocSlug: seaport-overview
+order: 6
+hidden: false
+---
+
 # Deploying Seaport
 
 Seaport 1.5 and the ConduitController can each be deployed to their respective canonical deployment address on all EVM chains using the CREATE2 Factory. Note that a pre-155 transaction with a gas price of 100 gwei (or a manual workaround) is required as part of the deployment process (subsequent transactions can be submitted without these constraints), and that EVM equivalence (particularly consistent CREATE2 address derivation) is required in order to deploy to the canonical cross-chain deployment addresses.
@@ -81,7 +90,7 @@ cast send --rpc-url ${RPC_URL} --private-key ${PK} 0x0000000000ffe8b47b3e2130213
 3. Validate deployments were successful by checking that `Seaport` is returned:
 
 ```
-cast --to-ascii $(cast call --rpc-url ${RPC_URL}  0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC 'name()')
+cast call --rpc-url ${RPC_URL} 0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC 'name()(string)'
 ```
 
 ## Verifying Seaport and ConduitController
@@ -92,7 +101,7 @@ After `Seaport` and `ConduitController` are deployed, they are verified as follo
 ```
 git clone https://github.com/ProjectOpenSea/seaport && cd seaport
 git checkout 821a049
-yarn build
+yarn install && yarn build
 ```
 
 3. Verify `ConduitController` by calling:

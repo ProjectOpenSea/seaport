@@ -11,7 +11,7 @@ import {
     OfferItemLib,
     OrderLib,
     OrderParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -24,11 +24,11 @@ import {
     OrderParameters,
     ReceivedItem,
     SpentItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType, Side } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType, Side } from "seaport-sol/src/SeaportEnums.sol";
 
-import { OrderDetails } from "seaport-sol/fulfillments/lib/Structs.sol";
+import { OrderDetails } from "seaport-sol/src/fulfillments/lib/Structs.sol";
 import { Solarray } from "solarray/Solarray.sol";
 import {
     Amount,
@@ -50,20 +50,20 @@ import {
     UnavailableReason,
     Zone,
     ZoneHash
-} from "seaport-sol/SpaceEnums.sol";
+} from "seaport-sol/src/SpaceEnums.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
     ConduitControllerInterface
-} from "seaport-sol/ConduitControllerInterface.sol";
+} from "seaport-sol/src/ConduitControllerInterface.sol";
 
 import {
     AdvancedOrdersSpace,
     ConsiderationItemSpace,
     OfferItemSpace,
     OrderComponentsSpace
-} from "seaport-sol/StructSpace.sol";
+} from "seaport-sol/src/StructSpace.sol";
 
 import { EIP712MerkleTree } from "../../utils/EIP712MerkleTree.sol";
 
@@ -87,8 +87,9 @@ import {
     FulfillAvailableStrategy,
     MatchStrategy,
     FulfillmentGeneratorLib,
-    FulfillmentStrategy
-} from "seaport-sol/fulfillments/lib/FulfillmentLib.sol";
+    FulfillmentStrategy,
+    DefaultFulfillmentGeneratorLib
+} from "seaport-sol/src/fulfillments/lib/FulfillmentLib.sol";
 
 /**
  *  @dev Generators are responsible for creating guided, random order data for
@@ -160,11 +161,10 @@ library TestStateGenerator {
         for (uint256 i; i < totalOrders; ++i) {
             UnavailableReason reason = (
                 context.randRange(0, 1) == 0
-                    ? UnavailableReason.AVAILABLE
-                    // Don't fuzz 5 (maxfulfilled satisfied), since it's a more
-                    // of a consequence (to be handled in derivers) than a
-                    // target.
-                    : UnavailableReason(context.choice(Solarray.uint256s(1, 2, 3, 4, 6)))
+                    ? UnavailableReason.AVAILABLE // Don't fuzz 5 (maxfulfilled satisfied), since it's a more // of a consequence (to be handled in derivers) than a // target.
+                    : UnavailableReason(
+                        context.choice(Solarray.uint256s(1, 2, 3, 4, 6))
+                    )
             );
 
             if (reason == UnavailableReason.AVAILABLE) {
@@ -343,7 +343,7 @@ library TestStateGenerator {
         }
 
         FulfillmentStrategy memory strategy = (
-            FulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
+            DefaultFulfillmentGeneratorLib.getDefaultFulfillmentStrategy()
         );
 
         {
@@ -487,7 +487,7 @@ library TestStateGenerator {
                 recipient: FulfillmentRecipient.ZERO,
                 conduit: ConduitChoice.NONE,
                 caller: Caller.TEST_CONTRACT,
-                strategy: FulfillmentGeneratorLib
+                strategy: DefaultFulfillmentGeneratorLib
                     .getDefaultFulfillmentStrategy()
             });
     }
@@ -504,7 +504,7 @@ library AdvancedOrdersSpaceGenerator {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
-    using FulfillmentGeneratorLib for OrderDetails[];
+    using DefaultFulfillmentGeneratorLib for OrderDetails[];
 
     using BroadOrderTypeGenerator for AdvancedOrder;
     using ConduitGenerator for ConduitChoice;
@@ -818,7 +818,9 @@ library AdvancedOrdersSpaceGenerator {
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
 
-            bytes32[] memory orderHashes = orders.getOrderHashes(address(context.seaport));
+            bytes32[] memory orderHashes = orders.getOrderHashes(
+                address(context.seaport)
+            );
 
             OrderDetails[] memory details = orders.getOrderDetails(
                 infra.resolvers,
@@ -837,10 +839,14 @@ library AdvancedOrdersSpaceGenerator {
 
                 // Unpack the remainder from the MatchComponent into its
                 // constituent parts.
-                (infra.amount, orderIndex, itemIndex) = infra.remainders[i].unpack();
+                (infra.amount, orderIndex, itemIndex) = infra
+                    .remainders[i]
+                    .unpack();
 
                 // Get the consideration item with the remainder.
-                infra.item = orders[orderIndex].parameters.consideration[itemIndex];
+                infra.item = orders[orderIndex].parameters.consideration[
+                    itemIndex
+                ];
 
                 infra.resolvedIdentifier = infra.item.identifierOrCriteria;
                 infra.resolvedItemType = infra.item.itemType;
@@ -848,7 +854,9 @@ library AdvancedOrdersSpaceGenerator {
                     infra.item.itemType == ItemType.ERC721_WITH_CRITERIA ||
                     infra.item.itemType == ItemType.ERC1155_WITH_CRITERIA
                 ) {
-                    infra.resolvedItemType = _convertCriteriaItemType(infra.item.itemType);
+                    infra.resolvedItemType = _convertCriteriaItemType(
+                        infra.item.itemType
+                    );
                     if (infra.item.identifierOrCriteria == 0) {
                         bytes32 itemHash = keccak256(
                             abi.encodePacked(
@@ -972,7 +980,9 @@ library AdvancedOrdersSpaceGenerator {
                 .testHelpers
                 .criteriaResolverHelper()
                 .deriveCriteriaResolvers(orders);
-            bytes32[] memory orderHashes = orders.getOrderHashes(address(context.seaport));
+            bytes32[] memory orderHashes = orders.getOrderHashes(
+                address(context.seaport)
+            );
             OrderDetails[] memory details = orders.getOrderDetails(
                 infra.resolvers,
                 orderHashes,
@@ -2423,8 +2433,9 @@ function bound(
     // Similarly for the UINT256_MAX side. This helps ensure coverage of the
     // min/max values.
     if (x <= 3 && size > x) return min + x;
-    if (x >= type(uint256).max - 3 && size > type(uint256).max - x)
+    if (x >= type(uint256).max - 3 && size > type(uint256).max - x) {
         return max - (type(uint256).max - x);
+    }
 
     // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
     if (x > max) {

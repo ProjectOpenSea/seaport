@@ -20,6 +20,10 @@ import {
 } from "../../../contracts/helpers/order-validator/SeaportValidator.sol";
 
 import {
+    ConduitControllerInterface
+} from "seaport-sol/src/ConduitControllerInterface.sol";
+
+import {
     SeaportValidatorHelper
 } from "../../../contracts/helpers/order-validator/lib/SeaportValidatorHelper.sol";
 
@@ -36,7 +40,7 @@ import {
     OrderType,
     AdvancedOrderLib,
     ItemType
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -45,11 +49,12 @@ import {
     OrderComponents,
     Order,
     AdvancedOrder
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
+import { SeaportValidatorTest } from "./SeaportValidatorTest.sol";
 
-contract SeaportValidatorTest is BaseOrderTest {
+contract SeaportValidatorTestSuite is BaseOrderTest, SeaportValidatorTest {
     using ConsiderationItemLib for ConsiderationItem;
     using OfferItemLib for OfferItem;
     using OrderParametersLib for OrderParameters;
@@ -79,7 +84,7 @@ contract SeaportValidatorTest is BaseOrderTest {
 
     address internal noTokens = makeAddr("no tokens/approvals");
 
-    function setUp() public override {
+    function setUp() public override(BaseOrderTest, SeaportValidatorTest) {
         super.setUp();
 
         OrderLib
@@ -205,22 +210,6 @@ contract SeaportValidatorTest is BaseOrderTest {
             .empty()
             .addError(TimeIssue.EndTimeBeforeStartTime)
             .addError(SignatureIssue.Invalid)
-            .addError(GenericIssue.InvalidOrderFormat)
-            .addWarning(OfferIssue.ZeroItems)
-            .addWarning(ConsiderationIssue.ZeroItems);
-
-        assertEq(actual, expected);
-    }
-
-    function test_empty_isValidOrderReadOnly() public {
-        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            OrderLib.empty(),
-            address(seaport)
-        );
-
-        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
-            .empty()
-            .addError(TimeIssue.EndTimeBeforeStartTime)
             .addError(GenericIssue.InvalidOrderFormat)
             .addWarning(OfferIssue.ZeroItems)
             .addWarning(ConsiderationIssue.ZeroItems);
@@ -896,25 +885,6 @@ contract SeaportValidatorTest is BaseOrderTest {
         assertEq(actual, expected);
     }
 
-    function test_default_full_isValidOrderReadOnly() public {
-        Order memory order = OrderLib.empty().withParameters(
-            OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
-        );
-        ErrorsAndWarnings memory actual = validator.isValidOrderReadOnly(
-            order,
-            address(seaport)
-        );
-
-        ErrorsAndWarnings memory expected = ErrorsAndWarningsLib
-            .empty()
-            .addError(GenericIssue.InvalidOrderFormat)
-            .addWarning(TimeIssue.ShortOrder)
-            .addWarning(OfferIssue.ZeroItems)
-            .addWarning(ConsiderationIssue.ZeroItems);
-
-        assertEq(actual, expected);
-    }
-
     function assertEq(
         ErrorsAndWarnings memory left,
         ErrorsAndWarnings memory right
@@ -929,14 +899,14 @@ contract SeaportValidatorTest is BaseOrderTest {
             right.warnings.length,
             "Unexpected number of warnings"
         );
-        for (uint i = 0; i < left.errors.length; i++) {
+        for (uint256 i = 0; i < left.errors.length; i++) {
             assertEq(
                 left.errors[i].toIssueString(),
                 right.errors[i].toIssueString(),
                 "Unexpected error"
             );
         }
-        for (uint i = 0; i < left.warnings.length; i++) {
+        for (uint256 i = 0; i < left.warnings.length; i++) {
             assertEq(
                 left.warnings[i].toIssueString(),
                 right.warnings[i].toIssueString(),

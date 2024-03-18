@@ -12,7 +12,7 @@ import {
     OrderParametersLib,
     SeaportArrays,
     ZoneParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     ConsiderationItem,
@@ -25,11 +25,11 @@ import {
     OrderComponents,
     OrderParameters,
     OrderType
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import {
     HashValidationZoneOfferer
@@ -376,8 +376,10 @@ contract FuzzEngineTest is FuzzEngine {
         expectedActions[2] = SeaportInterface.matchOrders.selector;
         expectedActions[3] = SeaportInterface.matchAdvancedOrders.selector;
         // TODO: undo pended actions (cancel, validate)
-        /** expectedActions[4] = SeaportInterface.cancel.selector;
-        expectedActions[5] = SeaportInterface.validate.selector; */
+        /**
+         * expectedActions[4] = SeaportInterface.cancel.selector;
+         *     expectedActions[5] = SeaportInterface.validate.selector;
+         */
 
         FuzzTestContext memory context = FuzzTestContextLib
             .from({
@@ -519,21 +521,23 @@ contract FuzzEngineTest is FuzzEngine {
         );
 
         // TODO: undo pended actions (match, cancel, validate)
-        /** context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 4 })
-        });
-        assertEq(context.action(), SeaportInterface.cancel.selector);
-
-        context = FuzzTestContextLib.from({
-            orders: orders,
-            seaport: getSeaport(),
-            caller: address(this),
-            fuzzParams: FuzzParams({ seed: 5 })
-        });
-        assertEq(context.action(), SeaportInterface.validate.selector); */
+        /**
+         * context = FuzzTestContextLib.from({
+         *         orders: orders,
+         *         seaport: getSeaport(),
+         *         caller: address(this),
+         *         fuzzParams: FuzzParams({ seed: 4 })
+         *     });
+         *     assertEq(context.action(), SeaportInterface.cancel.selector);
+         *
+         *     context = FuzzTestContextLib.from({
+         *         orders: orders,
+         *         seaport: getSeaport(),
+         *         caller: address(this),
+         *         fuzzParams: FuzzParams({ seed: 5 })
+         *     });
+         *     assertEq(context.action(), SeaportInterface.validate.selector);
+         */
     }
 
     /// @dev Call exec for a single standard order.
@@ -1723,8 +1727,8 @@ contract FuzzEngineTest is FuzzEngine {
             .withChecks(checks)
             .withMaximumFulfilled(2);
 
-        context.expectations.expectedZoneCalldataHash = advancedOrders
-            .getExpectedZoneCalldataHash(
+        context.expectations.expectedZoneValidateCalldataHashes = advancedOrders
+            .getExpectedZoneValidateCalldataHash(
                 address(getSeaport()),
                 address(this),
                 new CriteriaResolver[](0),

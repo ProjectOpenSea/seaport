@@ -7,30 +7,30 @@ import { AdjustedAmountOfferer } from "./impl/AdjustedAmountOfferer.sol";
 
 import {
     ERC20Interface
-} from "../../../contracts/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 import {
     ConsiderationInterface
-} from "../../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     OrderType,
     ItemType
-} from "../../../contracts/lib/ConsiderationEnums.sol";
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationItem,
     AdvancedOrder,
     CriteriaResolver
-} from "../../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "../../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     ZoneInteractionErrors
-} from "../../../contracts/interfaces/ZoneInteractionErrors.sol";
+} from "seaport-types/src/interfaces/ZoneInteractionErrors.sol";
 
 contract AdjustedAmountOffererTest is
     BaseOrderTest,
@@ -198,57 +198,57 @@ contract AdjustedAmountOffererTest is
         fulfillAdvanced(context, configureAdvancedOrder());
     }
 
-    // make sure altering offer item start/end amount results in falure
+    // NOTE: this behavior has been modified as generateOrder is now called
+    // after amount derivation; the following tests are no longer valid
+    // function testAlterOfferItem() public {
+    //     setUpOfferer(0, 0);
+    //     setUpNormalOrder(address(offerer));
+    //     offerItems[0].endAmount += 1;
 
-    function testAlterOfferItem() public {
-        setUpOfferer(0, 0);
-        setUpNormalOrder(address(offerer));
-        offerItems[0].endAmount += 1;
+    //     test(this.execAlterOfferItem, Context({ seaport: consideration }));
+    //     test(
+    //         this.execAlterOfferItem,
+    //         Context({ seaport: referenceConsideration })
+    //     );
+    // }
 
-        test(this.execAlterOfferItem, Context({ seaport: consideration }));
-        test(
-            this.execAlterOfferItem,
-            Context({ seaport: referenceConsideration })
-        );
-    }
+    // function execAlterOfferItem(Context memory context) external stateless {
+    //     vm.expectRevert(
+    //         abi.encodeWithSelector(
+    //             InvalidContractOrder.selector,
+    //             uint256(uint160(address(offerer))) << 96
+    //         )
+    //     );
+    //     fulfillAdvanced(context, configureAdvancedOrder());
+    // }
 
-    function execAlterOfferItem(Context memory context) external stateless {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidContractOrder.selector,
-                uint256(uint160(address(offerer))) << 96
-            )
-        );
-        fulfillAdvanced(context, configureAdvancedOrder());
-    }
+    // // make sure altering consideration item start/end amount results in falure
+    // function testAlterConsiderationItem() public {
+    //     setUpOfferer(0, 0);
+    //     setUpNormalOrder(address(offerer));
+    //     considerationItems[0].endAmount += 1;
 
-    // make sure altering consideration item start/end amount results in falure
-    function testAlterConsiderationItem() public {
-        setUpOfferer(0, 0);
-        setUpNormalOrder(address(offerer));
-        considerationItems[0].endAmount += 1;
+    //     test(
+    //         this.execAlterConsiderationItem, Context({ seaport: consideration })
+    //     );
+    //     test(
+    //         this.execAlterConsiderationItem,
+    //         Context({ seaport: referenceConsideration })
+    //     );
+    // }
 
-        test(
-            this.execAlterConsiderationItem,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execAlterConsiderationItem,
-            Context({ seaport: referenceConsideration })
-        );
-    }
-
-    function execAlterConsiderationItem(
-        Context memory context
-    ) external stateless {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                InvalidContractOrder.selector,
-                uint256(uint160(address(offerer))) << 96
-            )
-        );
-        fulfillAdvanced(context, configureAdvancedOrder());
-    }
+    // function execAlterConsiderationItem(Context memory context)
+    //     external
+    //     stateless
+    // {
+    //     vm.expectRevert(
+    //         abi.encodeWithSelector(
+    //             InvalidContractOrder.selector,
+    //             uint256(uint160(address(offerer))) << 96
+    //         )
+    //     );
+    //     fulfillAdvanced(context, configureAdvancedOrder());
+    // }
 
     function configureAdvancedOrder() internal returns (AdvancedOrder memory) {
         return configureAdvancedOrder(1, 1);

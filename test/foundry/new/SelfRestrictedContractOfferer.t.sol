@@ -9,9 +9,9 @@ import {
     Order,
     OrderComponents,
     OrderParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType, OrderType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType, OrderType } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     AdvancedOrderLib,
@@ -23,9 +23,9 @@ import {
     OrderLib,
     OrderParametersLib,
     SeaportArrays
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
 import { BaseOrderTest } from "./BaseOrderTest.sol";
 
@@ -34,7 +34,7 @@ import { ValidationOffererZone } from "./zones/ValidationOffererZone.sol";
 import {
     ERC20Interface,
     ERC721Interface
-} from "seaport-core/interfaces/AbridgedTokenInterfaces.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
 
 contract SelfRestrictedContractOffererTest is BaseOrderTest {
     using AdvancedOrderLib for AdvancedOrder;
@@ -155,8 +155,6 @@ contract SelfRestrictedContractOffererTest is BaseOrderTest {
             Fulfillment[] memory fulfillments
         )
     {
-        erc721s[0].mint(offerer1.addr, 1);
-
         AdvancedOrder memory advancedOrder;
         OfferItem[] memory offer;
         ConsiderationItem[] memory consideration;
@@ -167,6 +165,8 @@ contract SelfRestrictedContractOffererTest is BaseOrderTest {
 
         uint256 considerAmount = 10;
         offerer = new ValidationOffererZone(considerAmount + 1);
+
+        erc721s[0].mint(address(offerer), 1);
 
         allocateTokensAndApprovals(address(offerer), type(uint128).max);
 

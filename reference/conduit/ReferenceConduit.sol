@@ -3,9 +3,11 @@ pragma solidity ^0.8.13;
 
 import {
     ConduitInterface
-} from "../../contracts/interfaces/ConduitInterface.sol";
+} from "seaport-types/src/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
+import {
+    ConduitItemType
+} from "seaport-types/src/conduit/lib/ConduitEnums.sol";
 
 import {
     ReferenceTokenTransferrer
@@ -14,7 +16,7 @@ import {
 import {
     ConduitBatch1155Transfer,
     ConduitTransfer
-} from "../../contracts/conduit/lib/ConduitStructs.sol";
+} from "seaport-types/src/conduit/lib/ConduitStructs.sol";
 
 /**
  * @title ReferenceConduit

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { ItemType } from "../../lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 import {
     Order,
     OrderParameters,
@@ -10,28 +10,30 @@ import {
     ConsiderationItem,
     Schema,
     ZoneParameters
-} from "../../lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 import { ConsiderationTypeHashes } from "./lib/ConsiderationTypeHashes.sol";
 import {
     ConsiderationInterface
-} from "../../interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 import {
     ConduitControllerInterface
-} from "../../interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 import {
     ContractOffererInterface
-} from "../../interfaces/ContractOffererInterface.sol";
-import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
-import { GettersAndDerivers } from "../../lib/GettersAndDerivers.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
+import {
+    GettersAndDerivers
+} from "seaport-core/src/lib/GettersAndDerivers.sol";
 import { SeaportValidatorInterface } from "./lib/SeaportValidatorInterface.sol";
-import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../../interfaces/AbridgedTokenInterfaces.sol";
-import { IERC165 } from "../../interfaces/IERC165.sol";
-import { IERC2981 } from "../../interfaces/IERC2981.sol";
+} from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
+import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import { IERC2981 } from "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import {
     ErrorsAndWarnings,
     ErrorsAndWarningsLib
@@ -57,7 +59,8 @@ import {
     GenericIssue,
     ConsiderationItemConfiguration
 } from "./lib/SeaportValidatorTypes.sol";
-import { Verifiers } from "../../lib/Verifiers.sol";
+import { Verifiers } from "seaport-core/src/lib/Verifiers.sol";
+import { ReadOnlyOrderValidator } from "./lib/ReadOnlyOrderValidator.sol";
 import { SeaportValidatorHelper } from "./lib/SeaportValidatorHelper.sol";
 
 /**
@@ -78,6 +81,8 @@ contract SeaportValidator is
 
     SeaportValidatorHelper private immutable _helper;
 
+    ReadOnlyOrderValidator private immutable _readOnlyOrderValidator;
+
     bytes4 public constant ERC20_INTERFACE_ID = 0x36372b07;
 
     bytes4 public constant ERC721_INTERFACE_ID = 0x80ac58cd;
@@ -89,9 +94,13 @@ contract SeaportValidator is
     bytes4 public constant ZONE_INTERFACE_ID = 0x3839be19;
 
     constructor(
+        address readOnlyOrderValidatorAddress,
         address seaportValidatorHelperAddress,
         address conduitControllerAddress
     ) {
+        _readOnlyOrderValidator = ReadOnlyOrderValidator(
+            readOnlyOrderValidatorAddress
+        );
         _helper = SeaportValidatorHelper(seaportValidatorHelperAddress);
         _conduitController = ConduitControllerInterface(
             conduitControllerAddress
@@ -115,31 +124,9 @@ contract SeaportValidator is
     function isValidOrder(
         Order calldata order,
         address seaportAddress
-    ) external returns (ErrorsAndWarnings memory errorsAndWarnings) {
-        return
-            isValidOrderWithConfiguration(
-                ValidationConfiguration(
-                    seaportAddress,
-                    address(0),
-                    0,
-                    false,
-                    false,
-                    30 minutes,
-                    26 weeks
-                ),
-                order
-            );
-    }
-
-    /**
-     * @notice Same as `isValidOrder` but does not modify state.
-     */
-    function isValidOrderReadOnly(
-        Order calldata order,
-        address seaportAddress
     ) external view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         return
-            isValidOrderWithConfigurationReadOnly(
+            isValidOrderWithConfiguration(
                 ValidationConfiguration(
                     seaportAddress,
                     address(0),
@@ -159,61 +146,6 @@ contract SeaportValidator is
      *       checked and there may be more than one offer item as well as any number of consideration items.
      */
     function isValidOrderWithConfiguration(
-        ValidationConfiguration memory validationConfiguration,
-        Order memory order
-    ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
-        errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
-
-        // Concatenates errorsAndWarnings with the returned errorsAndWarnings
-        errorsAndWarnings.concat(
-            validateTime(
-                order.parameters,
-                validationConfiguration.shortOrderDuration,
-                validationConfiguration.distantOrderExpiration
-            )
-        );
-        errorsAndWarnings.concat(
-            validateOrderStatus(
-                order.parameters,
-                validationConfiguration.seaport
-            )
-        );
-        errorsAndWarnings.concat(
-            validateOfferItems(
-                order.parameters,
-                validationConfiguration.seaport
-            )
-        );
-        errorsAndWarnings.concat(
-            validateConsiderationItems(
-                order.parameters,
-                validationConfiguration.seaport
-            )
-        );
-        errorsAndWarnings.concat(isValidZone(order.parameters));
-        errorsAndWarnings.concat(
-            validateSignature(order, validationConfiguration.seaport)
-        );
-
-        // Skip strict validation if requested
-        if (!validationConfiguration.skipStrictValidation) {
-            errorsAndWarnings.concat(
-                validateStrictLogic(
-                    order.parameters,
-                    validationConfiguration.primaryFeeRecipient,
-                    validationConfiguration.primaryFeeBips,
-                    validationConfiguration.checkCreatorFee
-                )
-            );
-        }
-    }
-
-    /**
-     * @notice Same as `isValidOrderWithConfiguration` but doesn't call `validate` on Seaport.
-     *    If `skipStrictValidation` is set order logic validation is not carried out: fees are not
-     *       checked and there may be more than one offer item as well as any number of consideration items.
-     */
-    function isValidOrderWithConfigurationReadOnly(
         ValidationConfiguration memory validationConfiguration,
         Order memory order
     ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
@@ -246,6 +178,9 @@ contract SeaportValidator is
             )
         );
         errorsAndWarnings.concat(isValidZone(order.parameters));
+        errorsAndWarnings.concat(
+            validateSignature(order, validationConfiguration.seaport)
+        );
 
         // Skip strict validation if requested
         if (!validationConfiguration.skipStrictValidation) {
@@ -398,7 +333,7 @@ contract SeaportValidator is
     function validateSignature(
         Order memory order,
         address seaportAddress
-    ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
+    ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         // Pull current counter from seaport
         uint256 currentCounter = ConsiderationInterface(seaportAddress)
             .getCounter(order.parameters.offerer);
@@ -415,7 +350,7 @@ contract SeaportValidator is
         Order memory order,
         uint256 counter,
         address seaportAddress
-    ) public returns (ErrorsAndWarnings memory errorsAndWarnings) {
+    ) public view returns (ErrorsAndWarnings memory errorsAndWarnings) {
         errorsAndWarnings = ErrorsAndWarnings(new uint16[](0), new uint16[](0));
 
         // Typecast Seaport address to ConsiderationInterface
@@ -459,7 +394,7 @@ contract SeaportValidator is
 
         try
             // Call validate on Seaport
-            seaport.validate(orderArray)
+            _readOnlyOrderValidator.canValidate(seaportAddress, orderArray)
         returns (bool success) {
             if (!success) {
                 // Call was unsuccessful, so signature is invalid

@@ -1,20 +1,20 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 import {
     ReceivedItem,
     Schema,
     SpentItem,
     ZoneParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import {
     ContractOffererInterface
-} from "seaport-core/interfaces/ContractOffererInterface.sol";
+} from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
-import { ZoneInterface } from "seaport-core/interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     error IncorrectSpentAmount(address fulfiller, bytes32 got, uint256 want);
@@ -26,6 +26,12 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
     }
 
     receive() external payable {}
+
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
+        return this.authorizeOrder.selector;
+    }
 
     /**
      * @dev Validates that the parties have received the correct items.

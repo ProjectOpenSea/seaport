@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity ^0.8.17;
 
 import {
     FreeMemoryPointerSlot,
     OneWord,
     OneWordShift,
     ThirtyOneBytes
-} from "../lib/ConsiderationConstants.sol";
+} from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 /**
  * @title TypehashDirectory

@@ -12,7 +12,7 @@ import {
     OrderParametersLib,
     SeaportArrays,
     ZoneParametersLib
-} from "seaport-sol/SeaportSol.sol";
+} from "seaport-sol/src/SeaportSol.sol";
 
 import {
     AdvancedOrder,
@@ -26,7 +26,7 @@ import {
     ReceivedItem,
     SpentItem,
     ZoneParameters
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import {
     BasicOrderRouteType,
@@ -34,17 +34,17 @@ import {
     ItemType,
     OrderType,
     Side
-} from "seaport-sol/SeaportEnums.sol";
+} from "seaport-sol/src/SeaportEnums.sol";
 
-import { UnavailableReason } from "seaport-sol/SpaceEnums.sol";
+import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 
 import {
     ContractOffererInterface
-} from "seaport-sol/ContractOffererInterface.sol";
+} from "seaport-sol/src/ContractOffererInterface.sol";
 
-import { SeaportInterface } from "seaport-sol/SeaportInterface.sol";
+import { SeaportInterface } from "seaport-sol/src/SeaportInterface.sol";
 
-import { ZoneInterface } from "seaport-sol/ZoneInterface.sol";
+import { ZoneInterface } from "seaport-sol/src/ZoneInterface.sol";
 
 import { FuzzTestContext } from "./FuzzTestContextLib.sol";
 
@@ -355,8 +355,9 @@ library FuzzHelpers {
             uint256 totalSize
         ) = seaport.getOrderStatus(orderHash);
 
-        if (totalFilled != 0 && totalSize != 0 && totalFilled == totalSize)
+        if (totalFilled != 0 && totalSize != 0 && totalFilled == totalSize) {
             return State.FULLY_FILLED;
+        }
         if (totalFilled != 0 && totalSize != 0) return State.PARTIALLY_FILLED;
         if (isCancelled) return State.CANCELLED;
         if (isValidated) return State.VALIDATED;
@@ -724,6 +725,50 @@ library FuzzHelpers {
 
     /**
      * @dev Derive ZoneParameters from a given restricted order and return
+     *      the expected calldata hash for the call to authorizeOrder.
+     *
+     * @param orders             The restricted orders.
+     * @param seaport            The Seaport address.
+     * @param fulfiller          The fulfiller.
+     * @param maximumFulfilled   The maximum number of orders to fulfill.
+     * @param criteriaResolvers  The criteria resolvers.
+     * @param maximumFulfilled   The maximum number of orders to fulfill.
+     * @param unavailableReasons The availability status.
+     *
+     * @return calldataHashes The derived calldata hashes.
+     */
+    function getExpectedZoneAuthorizeCalldataHash(
+        AdvancedOrder[] memory orders,
+        address seaport,
+        address fulfiller,
+        CriteriaResolver[] memory criteriaResolvers,
+        uint256 maximumFulfilled,
+        UnavailableReason[] memory unavailableReasons
+    ) internal view returns (bytes32[] memory calldataHashes) {
+        calldataHashes = new bytes32[](orders.length);
+
+        ZoneParameters[] memory zoneParameters = orders
+            .getZoneAuthorizeParameters(
+                fulfiller,
+                maximumFulfilled,
+                seaport,
+                criteriaResolvers,
+                unavailableReasons
+            );
+
+        for (uint256 i; i < zoneParameters.length; ++i) {
+            // Derive the expected calldata hash for the call to authorizeOrder
+            calldataHashes[i] = keccak256(
+                abi.encodeCall(
+                    ZoneInterface.authorizeOrder,
+                    (zoneParameters[i])
+                )
+            );
+        }
+    }
+
+    /**
+     * @dev Derive ZoneParameters from a given restricted order and return
      *      the expected calldata hash for the call to validateOrder.
      *
      * @param orders             The restricted orders.
@@ -736,7 +781,7 @@ library FuzzHelpers {
      *
      * @return calldataHashes The derived calldata hashes.
      */
-    function getExpectedZoneCalldataHash(
+    function getExpectedZoneValidateCalldataHash(
         AdvancedOrder[] memory orders,
         address seaport,
         address fulfiller,
@@ -746,13 +791,14 @@ library FuzzHelpers {
     ) internal view returns (bytes32[] memory calldataHashes) {
         calldataHashes = new bytes32[](orders.length);
 
-        ZoneParameters[] memory zoneParameters = orders.getZoneParameters(
-            fulfiller,
-            maximumFulfilled,
-            seaport,
-            criteriaResolvers,
-            unavailableReasons
-        );
+        ZoneParameters[] memory zoneParameters = orders
+            .getZoneValidateParameters(
+                fulfiller,
+                maximumFulfilled,
+                seaport,
+                criteriaResolvers,
+                unavailableReasons
+            );
 
         for (uint256 i; i < zoneParameters.length; ++i) {
             // Derive the expected calldata hash for the call to validateOrder
@@ -807,6 +853,36 @@ library FuzzHelpers {
                 .parameters
                 .consideration
                 .toSpentItemArray();
+
+            // apply criteria resolvers before hashing
+            for (
+                uint256 j = 0;
+                j < context.executionState.criteriaResolvers.length;
+                ++j
+            ) {
+                CriteriaResolver memory resolver = context
+                    .executionState
+                    .criteriaResolvers[j];
+
+                if (resolver.orderIndex != i) {
+                    continue;
+                }
+
+                // NOTE: assumes that all provided resolvers are valid
+                if (resolver.side == Side.OFFER) {
+                    minimumReceived[resolver.index].itemType = ItemType(
+                        uint256(minimumReceived[resolver.index].itemType) - 2
+                    );
+                    minimumReceived[resolver.index].identifier = resolver
+                        .identifier;
+                } else {
+                    maximumSpent[resolver.index].itemType = ItemType(
+                        uint256(maximumSpent[resolver.index].itemType) - 2
+                    );
+                    maximumSpent[resolver.index].identifier = resolver
+                        .identifier;
+                }
+            }
 
             // Derive the expected calldata hash for the call to generateOrder
             calldataHashes[i][0] = keccak256(

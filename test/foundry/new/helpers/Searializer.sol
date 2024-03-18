@@ -15,14 +15,14 @@ import {
     OfferItem,
     OrderParameters,
     ReceivedItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
 import {
     BasicOrderType,
     ItemType,
     OrderType,
     Side
-} from "seaport-sol/SeaportEnums.sol";
+} from "seaport-sol/src/SeaportEnums.sol";
 
 import { Result } from "./FuzzHelpers.sol";
 
@@ -745,8 +745,13 @@ library Searializer {
         tojsonDynArrayBytes4(obj, "checks", value.checks);
         tojsonDynArrayBytes32(
             obj,
-            "expectedZoneCalldataHash",
-            value.expectations.expectedZoneCalldataHash
+            "expectedZoneAuthorizeCalldataHashes",
+            value.expectations.expectedZoneAuthorizeCalldataHashes
+        );
+        tojsonDynArrayBytes32(
+            obj,
+            "expectedZoneValidateCalldataHashes",
+            value.expectations.expectedZoneValidateCalldataHashes
         );
         tojsonDynArrayArray2Bytes32(
             obj,

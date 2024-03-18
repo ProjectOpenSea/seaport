@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { AdvancedOrder } from "seaport-sol/SeaportStructs.sol";
+import { AdvancedOrder } from "seaport-sol/src/SeaportStructs.sol";
 
-import { Side } from "seaport-sol/SeaportEnums.sol";
+import { Side } from "seaport-sol/src/SeaportEnums.sol";
 
 import { FuzzGeneratorContext } from "./FuzzGeneratorContextLib.sol";
 
@@ -23,9 +23,9 @@ import {
     CriteriaResolver,
     Execution,
     OfferItem
-} from "seaport-sol/SeaportStructs.sol";
+} from "seaport-sol/src/SeaportStructs.sol";
 
-import { ItemType } from "seaport-sol/SeaportEnums.sol";
+import { ItemType } from "seaport-sol/src/SeaportEnums.sol";
 
 enum MutationContextDerivation {
     GENERIC, // No specific selection
@@ -648,7 +648,8 @@ library MutationContextDeriverLib {
             mutationState.selectedOrderIndex = orderIndex;
             mutationState.selectedOrderHash = context
                 .executionState
-                .orderDetails[orderIndex].orderHash;
+                .orderDetails[orderIndex]
+                .orderHash;
             mutationState.side = Side(context.generatorContext.randEnum(0, 1));
             mutationState.selectedArbitraryAddress = address(
                 uint160(

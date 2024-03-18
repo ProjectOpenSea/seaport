@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { Side } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     _revertBadFraction,
@@ -18,21 +18,17 @@ import {
     _revertInvalidNativeOfferItem,
     _revertInvalidProof,
     _revertInvalidTime,
-    _revertMismatchedFulfillmentOfferAndConsiderationComponents,
     _revertMissingFulfillmentComponentOnAggregation,
     _revertMissingOriginalConsiderationItems,
     _revertNoReentrantCalls,
     _revertNoSpecifiedOrdersAvailable,
-    _revertOfferAndConsiderationRequiredOnFulfillment,
     _revertOrderAlreadyFilled,
     _revertOrderCriteriaResolverOutOfRange,
     _revertOrderIsCancelled,
     _revertOrderPartiallyFilled,
     _revertPartialFillsNotEnabledForOrder,
-    _revertUnresolvedConsiderationCriteria,
-    _revertUnresolvedOfferCriteria,
     _revertUnusedItemParameters
-} from "../../../contracts/lib/ConsiderationErrors.sol";
+} from "seaport-types/src/lib/ConsiderationErrors.sol";
 
 contract ConsiderationErrorsWrapper {
     /**
@@ -176,21 +172,6 @@ contract ConsiderationErrorsWrapper {
     }
 
     /**
-     * @dev Reverts execution with a
-     *      "MismatchedFulfillmentOfferAndConsiderationComponents" error message.
-     *
-     * @param fulfillmentIndex         The index of the fulfillment that caused the
-     *                                 error.
-     */
-    function __revertMismatchedFulfillmentOfferAndConsiderationComponents(
-        uint256 fulfillmentIndex
-    ) external pure {
-        _revertMismatchedFulfillmentOfferAndConsiderationComponents(
-            fulfillmentIndex
-        );
-    }
-
-    /**
      * @dev Reverts execution with a "MissingFulfillmentComponentOnAggregation"
      *       error message.
      *
@@ -224,17 +205,6 @@ contract ConsiderationErrorsWrapper {
      */
     function __revertNoSpecifiedOrdersAvailable() external pure {
         _revertNoSpecifiedOrdersAvailable();
-    }
-
-    /**
-     * @dev Reverts execution with a "OfferAndConsiderationRequiredOnFulfillment"
-     *      error message.
-     */
-    function __revertOfferAndConsiderationRequiredOnFulfillment()
-        external
-        pure
-    {
-        _revertOfferAndConsiderationRequiredOnFulfillment();
     }
 
     /**
@@ -282,27 +252,6 @@ contract ConsiderationErrorsWrapper {
      */
     function __revertPartialFillsNotEnabledForOrder() external pure {
         _revertPartialFillsNotEnabledForOrder();
-    }
-
-    /**
-     * @dev Reverts execution with an "UnresolvedConsiderationCriteria" error
-     *      message.
-     */
-    function __revertUnresolvedConsiderationCriteria(
-        uint256 orderIndex,
-        uint256 considerationIndex
-    ) external pure {
-        _revertUnresolvedConsiderationCriteria(orderIndex, considerationIndex);
-    }
-
-    /**
-     * @dev Reverts execution with an "UnresolvedOfferCriteria" error message.
-     */
-    function __revertUnresolvedOfferCriteria(
-        uint256 orderIndex,
-        uint256 offerIndex
-    ) external pure {
-        _revertUnresolvedOfferCriteria(orderIndex, offerIndex);
     }
 
     /**

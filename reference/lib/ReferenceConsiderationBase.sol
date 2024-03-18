@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import {
     ConduitControllerInterface
-} from "../../contracts/interfaces/ConduitControllerInterface.sol";
+} from "seaport-types/src/interfaces/ConduitControllerInterface.sol";
 
 import {
     ConsiderationEventsAndErrors
-} from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+} from "seaport-types/src/interfaces/ConsiderationEventsAndErrors.sol";
 
 import {
     ReentrancyErrors
-} from "../../contracts/interfaces/ReentrancyErrors.sol";
+} from "seaport-types/src/interfaces/ReentrancyErrors.sol";
 
 /**
  * @title ConsiderationBase
@@ -25,7 +25,7 @@ contract ReferenceConsiderationBase is
 {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "1.5-reference";
+    string internal constant _VERSION = "1.6-reference";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 

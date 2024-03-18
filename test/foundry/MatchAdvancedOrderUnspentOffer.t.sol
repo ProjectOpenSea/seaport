@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.17;
 
-import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
 
-import { Order } from "../../contracts/lib/ConsiderationStructs.sol";
+import { Order } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import {
     ConsiderationInterface
-} from "../../contracts/interfaces/ConsiderationInterface.sol";
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
 
 import {
     AdvancedOrder,
@@ -16,7 +16,7 @@ import {
     ConsiderationItem,
     CriteriaResolver,
     Fulfillment
-} from "../../contracts/lib/ConsiderationStructs.sol";
+} from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -38,25 +38,6 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         } catch (bytes memory reason) {
             assertPass(reason);
         }
-    }
-
-    /**
-     * @dev test that specifying the offerer as the recipient of the considerationItem results in
-     *      execution filtering for items not specified in the matched order(s)
-     *      ie: offer nft1, nft2 for erc20
-     *          fulfiller matches to erc20 offer, nft1 consideration
-     *          specifies original offerer as recipient of unspent considerations
-     *          fulfilling does not result in nft2 being transferred at all
-     */
-    function testFilterOfferItemBySpecifyingOffererAsRecipient() public {
-        test(
-            this.execFilterOfferItemBySpecifyingOffererAsRecipient,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execFilterOfferItemBySpecifyingOffererAsRecipient,
-            Context({ seaport: referenceConsideration })
-        );
     }
 
     function setUpFilterOfferItemBySpecifyingOffererAsRecipient(
@@ -168,34 +149,6 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         orders[1] = fulfillerAdvanced;
 
         return (orders, _fulfillments);
-    }
-
-    function execFilterOfferItemBySpecifyingOffererAsRecipient(
-        Context memory context
-    ) external stateless {
-        (
-            AdvancedOrder[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpFilterOfferItemBySpecifyingOffererAsRecipient(context);
-        vm.recordLogs();
-        context.seaport.matchAdvancedOrders({
-            orders: orders,
-            criteriaResolvers: new CriteriaResolver[](0),
-            fulfillments: _fulfillments,
-            recipient: makeAddr("offerer")
-        });
-        Vm.Log[] memory recordedLogs = vm.getRecordedLogs();
-        // ensure that token2 was not transferred at any point
-        assertEq(recordedLogs.length, 5);
-        // first two are OrderFulfilled events
-        assertEq(recordedLogs[0].emitter, address(context.seaport));
-        assertEq(recordedLogs[1].emitter, address(context.seaport));
-        // next is OrdersMatched event
-        assertEq(recordedLogs[2].emitter, address(context.seaport));
-        // next is 721_1 transfer
-        assertEq(recordedLogs[3].emitter, address(test721_1));
-        // last is ERC20 transfer
-        assertEq(recordedLogs[4].emitter, address(token1));
     }
 
     // TODO: look into sporadic failures here
