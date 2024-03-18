@@ -5629,7 +5629,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
               ethers.constants.AddressZero,
               {
                 value,
-                gasLimit: baseGas.add(74000),
+                gasLimit: baseGas.add(80000),
               }
             )
         ).to.be.revertedWithCustomError(
