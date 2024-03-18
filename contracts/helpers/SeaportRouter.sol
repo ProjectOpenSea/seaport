@@ -26,9 +26,9 @@ import {
  *         all consideration items across all listings are native tokens.
  */
 contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
-    /// @dev The allowed v1.4 contract usable through this router.
-    address private immutable _SEAPORT_V1_5;
     /// @dev The allowed v1.5 contract usable through this router.
+    address private immutable _SEAPORT_V1_5;
+    /// @dev The allowed v1.6 contract usable through this router.
     address private immutable _SEAPORT_V1_6;
 
     /**
