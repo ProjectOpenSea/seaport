@@ -97,10 +97,10 @@ cast call --rpc-url ${RPC_URL} 0x0000000000000068F116a894984e2DB1123eB395 'name(
 After `Seaport` and `ConduitController` are deployed, they are verified as follows:
 
 1. Ensure that `EXPLORER_API_KEY` and `NETWORK_RPC` are set in `.env` appropriately.
-2. Navigate to the `1.6` release tag on the Seaport repo and build artifacts:
+2. For verifying the `ConduitController`, navigate to the `1.1` release tag on the Seaport repo and build artifacts:
 ```
 git clone https://github.com/ProjectOpenSea/seaport && cd seaport
-git checkout df943a9
+git checkout 821a049
 yarn install && yarn build
 ```
 
@@ -110,24 +110,24 @@ yarn install && yarn build
 npx hardhat verify --network verificationNetwork "0x00000000F9490004C11Cef243f5400493c00Ad63"
 ```
 
-4. Navigate to the `1.6` release tag on the Seaport repo and clean up existing artifacts:
+4. Navigate to the `1.6` release tag on the [seaport-core](https://github.com/ProjectOpenSea/seaport-core) repo:
 ```
-git checkout ab3b5cb
-yarn clean
+cd ../ && git clone https://github.com/ProjectOpenSea/seaport-core && cd seaport-core
+git checkout 523097f
 ```
 
-5. Open `hardhat.config.ts` and modify the `runs` setting on line 78 to work around a limitation on the max optimization run value on many block explorers (the build artifacts are equivalent):
+5. Open `foundry.toml` and modify the `runs` setting to work around a limitation on the max optimization run value on many block explorers (the build artifacts are equivalent):
 ```
-runs: 4_294_967_295 => runs: 9_999_999
+optimizer_runs = 4_294_967_295 => optimizer_runs = 9_999_999
 ```
 
 6. Build artifacts:
 ```
-yarn build
+forge build
 ```
 
 7. Verify `Seaport 1.6` by calling:
 
 ```
-npx hardhat verify --network verificationNetwork "0x0000000000000068F116a894984e2DB1123eB395" "0x00000000F9490004C11Cef243f5400493c00Ad63"
+forge verify-contract --chain {chain} 0x0000000000000068F116a894984e2DB1123eB395 src/Seaport.sol:Seaport
 ```
