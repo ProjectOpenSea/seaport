@@ -1,7 +1,7 @@
 name: Publish Package to npmjs
 on:
   release:
-    types: [created]
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,7 +11,6 @@ jobs:
         with:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
-      - run: grep -RiIln 'openzeppelin-contracts' contracts | xargs sed -i 's/openzeppelin\-contracts/@openzeppelin\/contracts/g'
       - run: yarn
       - run: npm publish --access public
         env:
