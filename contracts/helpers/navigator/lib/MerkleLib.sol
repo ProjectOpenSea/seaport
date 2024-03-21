@@ -57,11 +57,11 @@ library MerkleLib {
     ) internal pure returns (bool) {
         // Proof length must be less than max array size.
         bytes32 rollingHash = valueToProve;
-        uint256 length = proof.length;
+        uint256 proofLength = proof.length;
 
         // Loop through each proof element to compute the rolling hash.
         unchecked {
-            for (uint i = 0; i < length; ++i) {
+            for (uint i = 0; i < proofLength; ++i) {
                 rollingHash = hashLeafPairs(rollingHash, proof[i]);
             }
         }
@@ -136,19 +136,19 @@ library MerkleLib {
         // Underflow is not possible as lowest possible value for data/result index is 1
         // overflow should be safe as length is / 2 always.
         unchecked {
-            uint256 length = data.length;
-            if (length & 0x1 == 1) {
-                result = new bytes32[](length / 2 + 1);
+            uint256 dataLength = data.length;
+            if (dataLength & 0x1 == 1) {
+                result = new bytes32[](dataLength / 2 + 1);
                 result[result.length - 1] = hashLeafPairs(
-                    data[length - 1],
+                    data[dataLength - 1],
                     bytes32(0)
                 );
             } else {
-                result = new bytes32[](length / 2);
+                result = new bytes32[](dataLength / 2);
             }
             // pos is upper bounded by data.length / 2, so safe even if array is at max size
             uint256 pos = 0;
-            for (uint256 i = 0; i < length - 1; i += 2) {
+            for (uint256 i = 0; i < dataLength - 1; i += 2) {
                 result[pos] = hashLeafPairs(data[i], data[i + 1]);
                 ++pos;
             }

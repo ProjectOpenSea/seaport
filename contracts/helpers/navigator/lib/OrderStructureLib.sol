@@ -100,6 +100,8 @@ library OrderStructureLib {
     using OrderLib for Order;
     using OrderParametersLib for OrderParameters;
 
+    // this function is only used by the below function and in tests. 
+    // It seems a waste of gas to call this rather than using the built-in `length` property from solidity
     function getQuantity(
         AdvancedOrder[] memory orders
     ) internal pure returns (uint256) {
@@ -109,8 +111,8 @@ library OrderStructureLib {
     function getFamily(
         AdvancedOrder[] memory orders
     ) internal pure returns (Family) {
-        uint256 quantity = getQuantity(orders);
-        if (quantity > 1) {
+        // uint256 quantity = getQuantity(orders);
+        if (orders.length > 1) {
             return Family.COMBINED;
         }
         return Family.SINGLE;
@@ -211,12 +213,15 @@ library OrderStructureLib {
         AdvancedOrder[] memory orders,
         address seaport
     ) internal view returns (Structure) {
-        if (orders.length == 1) {
+        uint256 ordersLength = orders.length;
+        if (ordersLength == 1) {
             return getStructure(orders[0], seaport);
         }
 
-        for (uint256 i; i < orders.length; i++) {
-            Structure structure = getStructure(orders[i], seaport);
+        Structure structure;
+
+        for (uint256 i; i < ordersLength; i++) {
+            structure = getStructure(orders[i], seaport);
             if (structure == Structure.ADVANCED) {
                 return Structure.ADVANCED;
             }
@@ -235,13 +240,15 @@ library OrderStructureLib {
             .consideration;
         OfferItem[] memory offer = order.parameters.offer;
 
+        uint256 considerationLength = consideration.length;
+
         // Order must contain exactly one offer item and one or more
         // consideration items.
         if (offer.length != 1) {
             return false;
         }
         if (
-            consideration.length == 0 ||
+            considerationLength == 0 ||
             order.parameters.totalOriginalConsiderationItems == 0
         ) {
             return false;
@@ -280,7 +287,7 @@ library OrderStructureLib {
         }
 
         // Order cannot contain any criteria-based items.
-        for (i = 0; i < consideration.length; ++i) {
+        for (i = 0; i < considerationLength; ++i) {
             if (
                 consideration[i].itemType == ItemType.ERC721_WITH_CRITERIA ||
                 consideration[i].itemType == ItemType.ERC1155_WITH_CRITERIA
@@ -309,7 +316,7 @@ library OrderStructureLib {
         ) {
             totalNFTs += 1;
         }
-        for (i = 0; i < consideration.length; ++i) {
+        for (i = 0; i < considerationLength; ++i) {
             if (
                 consideration[i].itemType == ItemType.ERC721 ||
                 consideration[i].itemType == ItemType.ERC1155
@@ -342,7 +349,7 @@ library OrderStructureLib {
             ItemType expectedItemType = consideration[0].itemType;
             address expectedToken = consideration[0].token;
 
-            for (i = 0; i < consideration.length; ++i) {
+            for (i = 0; i < considerationLength; ++i) {
                 if (consideration[i].itemType != expectedItemType) {
                     return false;
                 }
@@ -361,10 +368,10 @@ library OrderStructureLib {
             consideration[0].itemType == ItemType.ERC721 ||
             consideration[0].itemType == ItemType.ERC1155
         ) {
-            if (consideration.length >= 2) {
+            if (considerationLength >= 2) {
                 ItemType expectedItemType = offer[0].itemType;
                 address expectedToken = offer[0].token;
-                for (i = 1; i < consideration.length; ++i) {
+                for (i = 1; i < considerationLength; ++i) {
                     if (consideration[i].itemType != expectedItemType) {
                         return false;
                     }
@@ -393,7 +400,7 @@ library OrderStructureLib {
             consideration[0].itemType == ItemType.ERC1155
         ) {
             uint256 totalConsiderationAmount;
-            for (i = 1; i < consideration.length; ++i) {
+            for (i = 1; i < considerationLength; ++i) {
                 totalConsiderationAmount += consideration[i].startAmount;
             }
 
@@ -412,7 +419,7 @@ library OrderStructureLib {
         if (offer[0].startAmount != offer[0].endAmount) {
             return false;
         }
-        for (i = 0; i < consideration.length; ++i) {
+        for (i = 0; i < considerationLength; ++i) {
             if (consideration[i].startAmount != consideration[i].endAmount) {
                 return false;
             }
@@ -487,8 +494,10 @@ library OrderStructureLib {
     ) internal pure returns (bool hasCriteria, bool hasNonzeroCriteria) {
         // Check if any offer item has criteria
         OfferItem[] memory offer = order.parameters.offer;
-        for (uint256 i; i < offer.length; ++i) {
-            OfferItem memory offerItem = offer[i];
+        uint256 offerLength = offer.length;
+        OfferItem memory offerItem;
+        for (uint256 i; i < offerLength; ++i) {
+            offerItem = offer[i];
             ItemType itemType = offerItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);
@@ -501,8 +510,10 @@ library OrderStructureLib {
         ConsiderationItem[] memory consideration = order
             .parameters
             .consideration;
-        for (uint256 i; i < consideration.length; ++i) {
-            ConsiderationItem memory considerationItem = consideration[i];
+        uint256 considerationLength = consideration.length;
+        ConsiderationItem memory considerationItem;
+        for (uint256 i; i < considerationLength; ++i) {
+            considerationItem = consideration[i];
             ItemType itemType = considerationItem.itemType;
             hasCriteria = (itemType == ItemType.ERC721_WITH_CRITERIA ||
                 itemType == ItemType.ERC1155_WITH_CRITERIA);

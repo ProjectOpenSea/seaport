@@ -55,7 +55,8 @@ library CriteriaHelperLib {
             uint256 idx;
             bool found;
             bytes32[] memory idHashes = toSortedHashes(tokenIds);
-            for (; idx < idHashes.length; idx++) {
+            uint256 idHashesLength = idHashes.length;
+            for (; idx < idHashesLength; idx++) {
                 if (idHashes[idx] == idHash) {
                     found = true;
                     break;
@@ -73,12 +74,12 @@ library CriteriaHelperLib {
         uint256[] memory tokenIds
     ) internal pure returns (uint256[] memory sortedIds) {
         // Instantiate a new array of HashAndIntTuple structs.
+        uint256 tokenIdsLength = tokenIds.length;
         HashAndIntTuple[] memory toSort = new HashAndIntTuple[](
-            tokenIds.length
-        );
-
-        // Populate the array of HashAndIntTuple structs.
-        for (uint256 i = 0; i < tokenIds.length; i++) {
+            tokenIdsLength
+        );  
+        // Populate the array of HashAndIntTuple structs.      
+        for (uint256 i = 0; i < tokenIdsLength; i++) {
             toSort[i] = HashAndIntTuple(
                 tokenIds[i],
                 keccak256(abi.encode(tokenIds[i]))
@@ -87,10 +88,9 @@ library CriteriaHelperLib {
 
         // Sort the array of HashAndIntTuple structs.
         _quickSort(toSort, 0, int256(toSort.length - 1));
-
         // Populate the sortedIds array with the sorted token ids.
-        sortedIds = new uint256[](tokenIds.length);
-        for (uint256 i = 0; i < tokenIds.length; i++) {
+        sortedIds = new uint256[](tokenIdsLength);
+        for (uint256 i = 0; i < tokenIdsLength; i++) {
             sortedIds[i] = toSort[i].num;
         }
     }
@@ -107,9 +107,9 @@ library CriteriaHelperLib {
 
         // Sort the token ids by their hashes.
         uint256[] memory ids = sortByHash(tokenIds);
-
         // Hash each token id and store it in the hashes array.
-        for (uint256 i; i < ids.length; ++i) {
+        uint256 idsLength = ids.length;
+        for (uint256 i; i < idsLength; ++i) {
             hashes[i] = keccak256(abi.encode(ids[i]));
         }
     }

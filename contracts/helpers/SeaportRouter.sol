@@ -103,7 +103,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
         }
 
         // Iterate through the provided Seaport contracts.
-        for (uint256 i = 0; i < params.seaportContracts.length; ) {
+        for (uint256 i = 0; i < seaportContractsLength; ) {
             // Ensure the provided Seaport contract is allowed.
             _assertSeaportAllowed(params.seaportContracts[i]);
 

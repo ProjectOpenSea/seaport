@@ -150,14 +150,17 @@ contract BaseConduitTest is
         ConduitTransfer[] memory original,
         ConduitTransfer[] memory extension
     ) internal pure returns (ConduitTransfer[] memory) {
+        uint originalLength = original.length;
+        uint extensionLength = extension.length;
+
         ConduitTransfer[] memory transfers = new ConduitTransfer[](
-            original.length + extension.length
+            originalLength + extensionLength
         );
-        for (uint256 i = 0; i < original.length; ++i) {
+        for (uint256 i = 0; i < originalLength; ++i) {
             transfers[i] = original[i];
         }
-        for (uint256 i = 0; i < extension.length; ++i) {
-            transfers[i + original.length] = extension[i];
+        for (uint256 i = 0; i < extensionLength; ++i) {
+            transfers[i + originalLength] = extension[i];
         }
         return transfers;
     }
@@ -166,15 +169,17 @@ contract BaseConduitTest is
         ConduitBatch1155Transfer[] memory original,
         ConduitBatch1155Transfer[] memory extension
     ) internal pure returns (ConduitBatch1155Transfer[] memory) {
+        uint originalLength = original.length;
+        uint extensionLength = extension.length;
         ConduitBatch1155Transfer[]
             memory transfers = new ConduitBatch1155Transfer[](
-                original.length + extension.length
-            );
-        for (uint256 i = 0; i < original.length; ++i) {
+               originalLength + extensionLength
+        );
+        for (uint256 i = 0; i < originalLength; ++i) {
             transfers[i] = original[i];
         }
-        for (uint256 i = 0; i < extension.length; ++i) {
-            transfers[i + original.length] = extension[i];
+        for (uint256 i = 0; i < extensionLength; ++i) {
+            transfers[i + originalLength] = extension[i];
         }
         return transfers;
     }
@@ -213,14 +218,16 @@ contract BaseConduitTest is
     ) internal returns (ConduitBatch1155Transfer[] memory) {
         ConduitBatch1155Transfer[] memory batchTransfers;
 
+        uint batchIntermediateLength = batchIntermediate.idAmounts.length;
+
         TestERC1155 erc1155 = new TestERC1155();
         uint256[] memory ids = new uint256[](
-            batchIntermediate.idAmounts.length
+            batchIntermediateLength
         );
         uint256[] memory amounts = new uint256[](
-            batchIntermediate.idAmounts.length
+            batchIntermediateLength
         );
-        for (uint256 n = 0; n < batchIntermediate.idAmounts.length; ++n) {
+        for (uint256 n = 0; n < batchIntermediateLength; ++n) {
             ids[n] = batchIntermediate.idAmounts[n].id;
             amounts[n] = uint256(batchIntermediate.idAmounts[n].amount) + 1;
         }
@@ -244,7 +251,8 @@ contract BaseConduitTest is
      *      address if it can't
      */
     function makeRecipientsSafe(ConduitTransfer[] memory transfers) internal {
-        for (uint256 i; i < transfers.length; ++i) {
+        uint transfersLength = transfers.length;
+        for (uint256 i; i < transfersLength; ++i) {
             ConduitTransfer memory transfer = transfers[i];
             address from = receiver(transfer.from, transfer.itemType);
             address to = receiver(transfer.to, transfer.itemType);
@@ -256,7 +264,8 @@ contract BaseConduitTest is
     function makeRecipientsSafe(
         ConduitBatch1155Transfer[] memory batchTransfers
     ) internal {
-        for (uint256 i; i < batchTransfers.length; ++i) {
+        uint batchTransfersLength = batchTransfers.length;
+        for (uint256 i; i < batchTransfersLength; ++i) {
             ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
             address from = receiver(
                 batchTransfer.from,
@@ -272,7 +281,8 @@ contract BaseConduitTest is
     function mintTokensAndSetTokenApprovalsForConduit(
         ConduitTransfer[] memory transfers
     ) internal {
-        for (uint256 i = 0; i < transfers.length; ++i) {
+        uint transfersLength = transfers.length;
+        for (uint256 i = 0; i < transfersLength; ++i) {
             ConduitTransfer memory transfer = transfers[i];
             ConduitItemType itemType = transfer.itemType;
             address from = transfer.from;
@@ -305,7 +315,8 @@ contract BaseConduitTest is
     function mintTokensAndSetTokenApprovalsForConduit(
         ConduitBatch1155Transfer[] memory batchTransfers
     ) internal {
-        for (uint256 i = 0; i < batchTransfers.length; ++i) {
+        uint batchTransfersLength = batchTransfers.length;
+        for (uint256 i = 0; i < batchTransfersLength; ++i) {
             ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
             address from = batchTransfer.from;
             address token = batchTransfer.token;
@@ -336,10 +347,11 @@ contract BaseConduitTest is
     function getExpectedBatchTokenBalances(
         ConduitBatch1155Transfer memory batchTransfer
     ) internal view returns (uint256[] memory) {
+        uint256 batchTransferIdsLength = batchTransfer.ids.length;
         uint256[] memory batchTokenBalances = new uint256[](
-            batchTransfer.ids.length
+            batchTransferIdsLength
         );
-        for (uint256 i = 0; i < batchTransfer.ids.length; ++i) {
+        for (uint256 i = 0; i < batchTransferIdsLength; ++i) {
             batchTokenBalances[i] = userToExpectedTokenIdentifierBalance[
                 batchTransfer.to
             ][batchTransfer.token][batchTransfer.ids[i]];
@@ -350,7 +362,8 @@ contract BaseConduitTest is
     function updateExpectedTokenBalances(
         ConduitTransfer[] memory transfers
     ) internal {
-        for (uint256 i = 0; i < transfers.length; ++i) {
+        uint transfersLength = transfers.length;
+        for (uint256 i = 0; i < transfersLength; ++i) {
             ConduitTransfer memory transfer = transfers[i];
             ConduitItemType itemType = transfer.itemType;
             if (itemType != ConduitItemType.ERC721) {
@@ -362,7 +375,8 @@ contract BaseConduitTest is
     function updateExpectedTokenBalances(
         ConduitBatch1155Transfer[] memory batchTransfers
     ) internal {
-        for (uint256 i = 0; i < batchTransfers.length; ++i) {
+        uint batchTransfersLength = batchTransfers.length;
+        for (uint256 i = 0; i < batchTransfersLength; ++i) {
             updateExpectedBatchBalances(batchTransfers[i]);
         }
     }
@@ -376,7 +390,8 @@ contract BaseConduitTest is
     function updateExpectedBatchBalances(
         ConduitBatch1155Transfer memory batchTransfer
     ) internal {
-        for (uint256 i = 0; i < batchTransfer.ids.length; ++i) {
+        uint256 batchTransferIdsLength = batchTransfer.ids.length;
+        for (uint256 i = 0; i < batchTransferIdsLength; ++i) {
             userToExpectedTokenIdentifierBalance[batchTransfer.to][
                 batchTransfer.token
             ][batchTransfer.ids[i]] += batchTransfer.amounts[i];

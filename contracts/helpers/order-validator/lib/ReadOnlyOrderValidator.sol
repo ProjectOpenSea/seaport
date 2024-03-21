@@ -107,11 +107,12 @@ contract ReadOnlyOrderValidator is SignatureVerification {
         unchecked {
             // Read length of the orders array from memory and place on stack.
             uint256 totalOrders = orders.length;
+            Order memory order;
 
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the order.
-                Order memory order = orders[i];
+                order = orders[i];
 
                 // Retrieve the order parameters.
                 OrderParameters memory orderParameters = order.parameters;
