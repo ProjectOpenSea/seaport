@@ -902,7 +902,7 @@ contract SeaportValidatorHelper is Murky {
     }
 
     /**
-     * @notice Creates a merkle proof for the the targetIndex contained in includedTokens.
+     * @notice Creates a merkle proof for the targetIndex contained in includedTokens.
      * @dev `targetIndex` is referring to the index of an element in `includedTokens`.
      *    `includedTokens` must be sorting in ascending order according to the keccak256 hash of the value.
      * @return merkleProof The merkle proof
