@@ -177,29 +177,29 @@ This repository is also split into smaller repositories for easier use and integ
 [0x0000f00000627D293Ab4Dfb40082001724dB006F](https://polygonscan.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
-<tr><td>Mumbai</td><td>
+<tr><td>Amoy</td><td>
 
-[0x0000000000000068F116a894984e2DB1123eB395](https://mumbai.polygonscan.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://mumbai.polygonscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
+[0x0000000000000068F116a894984e2DB1123eB395](https://www.oklink.com/amoy/address/0x0000000000000068F116a894984e2DB1123eB395#code)
 
 </td><td>
 
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://mumbai.polygonscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
+[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://www.oklink.com/amoy/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
 
 </td><td>
 
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://mumbai.polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
+[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://www.oklink.com/amoy/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
 
 </td><td>
 
-[0x00e5F120f500006757E984F1DED400fc00370000](https://mumbai.polygonscan.com/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
+[0x00000000F9490004C11Cef243f5400493c00Ad63](https://www.oklink.com/amoy/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
 
 </td><td>
 
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://mumbai.polygonscan.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
+[0x00e5F120f500006757E984F1DED400fc00370000](https://www.oklink.com/amoy/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
+
+</td><td>
+
+[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://www.oklink.com/amoy/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
 
 </td></tr>
 <tr><td>Optimism</td><td>
