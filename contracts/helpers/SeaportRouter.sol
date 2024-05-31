@@ -26,20 +26,20 @@ import {
  *         all consideration items across all listings are native tokens.
  */
 contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
-    /// @dev The allowed v1.4 contract usable through this router.
-    address private immutable _SEAPORT_V1_4;
     /// @dev The allowed v1.5 contract usable through this router.
     address private immutable _SEAPORT_V1_5;
+    /// @dev The allowed v1.6 contract usable through this router.
+    address private immutable _SEAPORT_V1_6;
 
     /**
      * @dev Deploy contract with the supported Seaport contracts.
      *
-     * @param seaportV1point4 The address of the Seaport v1.4 contract.
      * @param seaportV1point5 The address of the Seaport v1.5 contract.
+     * @param seaportV1point6 The address of the Seaport v1.6 contract.
      */
-    constructor(address seaportV1point4, address seaportV1point5) {
-        _SEAPORT_V1_4 = seaportV1point4;
+    constructor(address seaportV1point5, address seaportV1point6) {
         _SEAPORT_V1_5 = seaportV1point5;
+        _SEAPORT_V1_6 = seaportV1point6;
     }
 
     /**
@@ -218,8 +218,8 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
         returns (address[] memory seaportContracts)
     {
         seaportContracts = new address[](2);
-        seaportContracts[0] = _SEAPORT_V1_4;
-        seaportContracts[1] = _SEAPORT_V1_5;
+        seaportContracts[0] = _SEAPORT_V1_5;
+        seaportContracts[1] = _SEAPORT_V1_6;
     }
 
     /**
@@ -227,7 +227,7 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
      */
     function _assertSeaportAllowed(address seaport) internal view {
         if (
-            _cast(seaport == _SEAPORT_V1_4) | _cast(seaport == _SEAPORT_V1_5) ==
+            _cast(seaport == _SEAPORT_V1_5) | _cast(seaport == _SEAPORT_V1_6) ==
             0
         ) {
             revert SeaportNotAllowed(seaport);

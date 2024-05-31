@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
-    "@openzeppelin/contracts": "^4.9.3",
+    "@openzeppelin/contracts": "^4.9.6",
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.21.0",

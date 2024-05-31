@@ -3060,7 +3060,7 @@ contract FuzzMutations is Test, FuzzExecutor {
 
         // This mutation triggers a revert by modifying the first proof element
         // in a criteria resolver's proof array. Seaport will reject a criteria
-        // resolver if the the identifiers, criteria, and proof do not
+        // resolver if the identifiers, criteria, and proof do not
         // harmonize.
 
         bytes32 firstProofElement = resolver.criteriaProof[0];

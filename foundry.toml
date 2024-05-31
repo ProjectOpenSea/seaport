@@ -73,10 +73,7 @@ optimizer = false
 test = 'test/foundry/new'
 
 [profile.offerers]
-src='offerers'
-test='offerers'
-out = 'offerers-out'
-script = 'offerers'
+test='test/foundry/offerers'
 
 [fmt]
 line_length = 80
