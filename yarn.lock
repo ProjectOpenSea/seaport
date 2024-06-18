@@ -5113,10 +5113,10 @@ scuffed-abi@^1.0.4:
   resolved "https://registry.npmjs.org/scuffed-abi/-/scuffed-abi-1.0.4.tgz"
   integrity sha512-1NN2L1j+TMF6+/J2jHcAnhPH8Lwaqu5dlgknZPqejEVFQ8+cvcnXYNbaHtGEXTjSNrQLBGePXicD4oFGqecOnQ==
 
-seaport-core@1.6.5:
-  version "1.6.5"
-  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.6.5.tgz#97c85dd5161e57ec28df6c43c93ee3eb9943ec66"
-  integrity sha512-jpGOpaKpH1B49oOYqAYAAVXN8eGlI/NjE6fYHPYlQaDVx325NS5dpiDDgGLtQZNgQ3EbqrfhfB5KyIbg7owyFg==
+seaport-core@1.6.6:
+  version "1.6.6"
+  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.6.6.tgz#c599ffbfaccab8e031bd702a67ed5fc48d256802"
+  integrity sha512-BNOg9EizHcLXN27UMKPB+2ewwcRnZkuNV8lRawKORnlpHI7SlCXhLkvCT+SHL/s5W8sJbnq2ef/SCvNB0r+KKA==
   dependencies:
     seaport-types "1.6.3"
 
@@ -6108,9 +6108,9 @@ write@1.0.3:
     mkdirp "^0.5.1"
 
 ws@7.4.6, ws@>=5.2.3, ws@^7.4.6:
-  version "8.12.1"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-8.12.1.tgz#c51e583d79140b5e42e39be48c934131942d4a8f"
-  integrity sha512-1qo+M9Ba+xNhPB+YTWUlK6M17brTut5EXbcBaMRN5pH5dFrXz7lzz1ChFSUq3bOUl8yEvSenhHmYUNJxFzdJew==
+  version "8.17.1"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.17.1.tgz#9293da530bb548febc95371d90f9c878727d919b"
+  integrity sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==
 
 xmlhttprequest@1.8.0:
   version "1.8.0"
