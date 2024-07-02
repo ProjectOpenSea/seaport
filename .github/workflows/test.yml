@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.15.1]
+        node-version: [18.15.0]
 
     steps:
       - uses: actions/checkout@v3
@@ -36,7 +36,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.15.1]
+        node-version: [18.15.0]
 
     steps:
       - uses: actions/checkout@v3
@@ -54,7 +54,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.15.1]
+        node-version: [18.15.0]
 
     steps:
       - uses: actions/checkout@v3
@@ -73,7 +73,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.15.1]
+        node-version: [18.15.0]
 
     env:
       REFERENCE: true
@@ -107,15 +107,41 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Precompile reference using 0.8.13 and via-ir=false
+      - name: Precompile reference using 0.8.24 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
 
-      - name: Precompile optimized using 0.8.17 and via-ir=true
+      - name: Precompile optimized using 0.8.24 and via-ir=true
         run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
 
+  forge-ref:
+    name: Run Forge Reference Tests (via_ir = false; fuzz_runs = 5000)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Precompile reference using 0.8.24 and via-ir=false
+        run: FOUNDRY_PROFILE=reference forge build
+
+      - name: Precompile optimized using 0.8.24 and via-ir=true
+        run: FOUNDRY_PROFILE=optimized forge build
+
+      - name: Run reference tests
+        run: FOUNDRY_PROFILE=reference MOAT_PROFILE=reference forge test -vvv
+  
   forge-offerers:
     name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
     runs-on: ubuntu-latest
@@ -159,28 +185,29 @@ jobs:
           files: ./lcov.info
           flags: foundry
 
-  coverage:
-    name: Run Coverage Tests
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.15.1]
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
-      - run: yarn coverage
-      - uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/lcov.info
-          flags: production
+# TODO: work out how to run legacy coverage (also how to run against core)
+#  coverage:
+#    name: Run Coverage Tests
+#    runs-on: ubuntu-latest
+#
+#    strategy:
+#      matrix:
+#        node-version: [18.15.0]
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#      - name: Use Node.js
+#        uses: actions/setup-node@v3
+#        with:
+#          node-version: ${{ matrix.node-version }}
+#          cache: "yarn"
+#      - run: yarn install
+#      - run: yarn build
+#      - run: yarn coverage
+#      - uses: codecov/codecov-action@v3
+#        with:
+#          files: ./coverage/lcov.info
+#          flags: production
 
   reference-coverage:
     name: Run Reference Coverage Tests
@@ -188,7 +215,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.15.1]
+        node-version: [18.15.0]
 
     env:
       REFERENCE: true

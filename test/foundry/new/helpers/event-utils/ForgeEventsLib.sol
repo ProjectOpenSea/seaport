@@ -80,7 +80,7 @@ library ForgeEventsLib {
             bytes32 topic3,
 
         ) = getTopics(log);
-        MemoryPointer data = toMemoryPointer(log).pptr(32);
+        MemoryPointer data = toMemoryPointer(log).pptrOffset(32);
         assembly {
             switch topicsCount
             case 4 {
@@ -128,10 +128,10 @@ library ForgeEventsLib {
                         address(uint160(uint256(topic1))),
                         address(uint160(uint256(topic2))),
                         uint256(topic3)
-                        // getForgeTopicsHash(log),
-                        // getDataHash(log),
-                        // getForgeEventHash(log)
                     ).serializeERC721TransferEvent(objectKey, valueKey);
+                // getForgeTopicsHash(log),
+                // getDataHash(log),
+                // getForgeEventHash(log)
             } else {
                 ERC20TransferEvent memory eventData;
                 eventData.kind = "ERC20";

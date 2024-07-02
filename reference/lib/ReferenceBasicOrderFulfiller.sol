@@ -815,6 +815,15 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             );
         }
 
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderAuthorization(
+            hashes.orderHash,
+            orderType,
+            parameters,
+            offeredItemType,
+            receivedItemType
+        );
+
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
             hashes.orderHash,

@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.17;
 
-import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
@@ -39,6 +42,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         uint128 amount;
         bool useConduit;
     }
+
     struct FuzzInputsAscendingDescending {
         address zone;
         uint256 id;
@@ -51,11 +55,13 @@ contract MatchAdvancedOrder is BaseOrderTest {
         bool useConduit;
         uint256 warp;
     }
+
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputs args;
         ItemType itemType;
     }
+
     struct ContextAscendingDescending {
         ConsiderationInterface consideration;
         FuzzInputsAscendingDescending args;

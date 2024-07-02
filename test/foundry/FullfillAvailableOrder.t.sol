@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.17;
 
-import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
@@ -30,6 +33,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
     using ArithmeticUtil for uint120;
 
     FuzzInputs empty;
+
     struct FuzzInputs {
         address zone;
         uint256 id;

@@ -11,6 +11,12 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract BadZone is ERC165, ZoneInterface {
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
+        return this.authorizeOrder.selector;
+    }
+
     function validateOrder(
         ZoneParameters calldata zoneParameters
     ) external pure returns (bytes4 validOrderMagicValue) {

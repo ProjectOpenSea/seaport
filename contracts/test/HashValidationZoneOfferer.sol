@@ -21,6 +21,7 @@ import {
 } from "seaport-types/src/interfaces/ContractOffererInterface.sol";
 
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
+
 import { OffererZoneFailureReason } from "./OffererZoneFailureReason.sol";
 
 /**
@@ -57,8 +58,11 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         uint256 expectedBalance,
         uint256 actualBalance
     );
+    error HashValidationZoneOffererAuthorizeOrderReverts();
     error HashValidationZoneOffererValidateOrderReverts();
     error HashValidationZoneOffererRatifyOrderReverts();
+
+    event AuthorizeOrderDataHash(bytes32 dataHash);
     event ValidateOrderDataHash(bytes32 dataHash);
 
     struct ItemAmountMutation {
@@ -203,6 +207,7 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
 
     address internal _expectedOfferRecipient;
 
+    mapping(bytes32 => bytes32) public orderHashToAuthorizeOrderDataHash;
     mapping(bytes32 => bytes32) public orderHashToValidateOrderDataHash;
 
     // Pass in the null address to expect the fulfiller.
@@ -211,15 +216,72 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
     }
 
     bool public called = false;
-    uint public callCount = 0;
+    uint256 public callCount = 0;
 
-    mapping(bytes32 => OffererZoneFailureReason) public failureReasons;
+    mapping(bytes32 => OffererZoneFailureReason) public authorizeFailureReasons;
+    mapping(bytes32 => OffererZoneFailureReason) public validateFailureReasons;
 
-    function setFailureReason(
+    function setAuthorizeFailureReason(
         bytes32 orderHash,
         OffererZoneFailureReason newFailureReason
     ) external {
-        failureReasons[orderHash] = newFailureReason;
+        authorizeFailureReasons[orderHash] = newFailureReason;
+    }
+
+    function setValidateFailureReason(
+        bytes32 orderHash,
+        OffererZoneFailureReason newFailureReason
+    ) external {
+        validateFailureReasons[orderHash] = newFailureReason;
+    }
+
+    function authorizeOrder(
+        ZoneParameters calldata zoneParameters
+    ) public returns (bytes4 authorizeOrderReturnValue) {
+        // Get the orderHash from zoneParameters
+        bytes32 orderHash = zoneParameters.orderHash;
+
+        if (
+            authorizeFailureReasons[orderHash] ==
+            OffererZoneFailureReason.Zone_authorizeRevertsMatchReverts
+        ) {
+            revert HashValidationZoneOffererAuthorizeOrderReverts();
+        }
+
+        // Get the length of msg.data
+        uint256 dataLength = msg.data.length;
+
+        // Create a variable to store msg.data in memory
+        bytes memory data;
+
+        // Copy msg.data to memory
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(add(ptr, 0x20), 0, dataLength)
+            mstore(ptr, dataLength)
+            data := ptr
+        }
+
+        // Get the hash of msg.data
+        bytes32 calldataHash = keccak256(data);
+
+        // Store callDataHash in orderHashToAuthorizeOrderDataHash
+        orderHashToAuthorizeOrderDataHash[orderHash] = calldataHash;
+
+        // Emit a DataHash event with the hash of msg.data
+        emit AuthorizeOrderDataHash(calldataHash);
+
+        if (
+            authorizeFailureReasons[orderHash] ==
+            OffererZoneFailureReason.Zone_authorizeInvalidMagicValue
+        ) {
+            authorizeOrderReturnValue = bytes4(0x12345678);
+        } else {
+            // Return the selector of authorizeOrder as the magic value.
+            authorizeOrderReturnValue = this.authorizeOrder.selector;
+        }
+
+        return authorizeOrderReturnValue;
     }
 
     /**
@@ -237,7 +299,8 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         bytes32 orderHash = zoneParameters.orderHash;
 
         if (
-            failureReasons[orderHash] == OffererZoneFailureReason.Zone_reverts
+            validateFailureReasons[orderHash] ==
+            OffererZoneFailureReason.Zone_validateReverts
         ) {
             revert HashValidationZoneOffererValidateOrderReverts();
         }
@@ -283,8 +346,8 @@ contract HashValidationZoneOfferer is ContractOffererInterface, ZoneInterface {
         callCount++;
 
         if (
-            failureReasons[orderHash] ==
-            OffererZoneFailureReason.Zone_InvalidMagicValue
+            validateFailureReasons[orderHash] ==
+            OffererZoneFailureReason.Zone_validateInvalidMagicValue
         ) {
             validOrderMagicValue = bytes4(0x12345678);
         } else {

@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.17;
 
-import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     Order,
@@ -23,6 +26,7 @@ import { stdError } from "forge-std/Test.sol";
 
 contract MatchOrders is BaseOrderTest {
     using ArithmeticUtil for uint128;
+
     struct FuzzInputsCommon {
         address zone;
         uint256 id;

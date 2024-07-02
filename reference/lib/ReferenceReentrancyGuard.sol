@@ -10,9 +10,9 @@ import {
 } from "seaport-types/src/interfaces/ReentrancyErrors.sol";
 
 import {
-    _ENTERED_AND_ACCEPTING_NATIVE_TOKENS,
-    _ENTERED,
-    _NOT_ENTERED
+    _ENTERED_AND_ACCEPTING_NATIVE_TOKENS_SSTORE,
+    _ENTERED_SSTORE,
+    _NOT_ENTERED_SSTORE
 } from "seaport-types/src/lib/ConsiderationConstants.sol";
 
 /**
@@ -33,7 +33,7 @@ contract ReferenceReentrancyGuard is
      */
     constructor() {
         // Initialize the reentrancy guard in a cleared state.
-        _reentrancyGuard = _NOT_ENTERED;
+        _reentrancyGuard = _NOT_ENTERED_SSTORE;
     }
 
     /**
@@ -41,7 +41,7 @@ contract ReferenceReentrancyGuard is
      *      is not currently set by a previous call.
      */
     modifier notEntered() {
-        if (_reentrancyGuard != _NOT_ENTERED) {
+        if (_reentrancyGuard != _NOT_ENTERED_SSTORE) {
             revert NoReentrantCalls();
         }
 
@@ -56,19 +56,19 @@ contract ReferenceReentrancyGuard is
      *                           be received during execution or not.
      */
     modifier nonReentrant(bool acceptNativeTokens) {
-        if (_reentrancyGuard != _NOT_ENTERED) {
+        if (_reentrancyGuard != _NOT_ENTERED_SSTORE) {
             revert NoReentrantCalls();
         }
 
         if (acceptNativeTokens) {
-            _reentrancyGuard = _ENTERED_AND_ACCEPTING_NATIVE_TOKENS;
+            _reentrancyGuard = _ENTERED_AND_ACCEPTING_NATIVE_TOKENS_SSTORE;
         } else {
-            _reentrancyGuard = _ENTERED;
+            _reentrancyGuard = _ENTERED_SSTORE;
         }
 
         _;
 
-        _reentrancyGuard = _NOT_ENTERED;
+        _reentrancyGuard = _NOT_ENTERED_SSTORE;
     }
 
     /**
@@ -77,7 +77,7 @@ contract ReferenceReentrancyGuard is
      */
     function _assertAcceptingNativeTokens() internal view {
         // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard != _ENTERED_AND_ACCEPTING_NATIVE_TOKENS) {
+        if (_reentrancyGuard != _ENTERED_AND_ACCEPTING_NATIVE_TOKENS_SSTORE) {
             revert InvalidMsgValue(msg.value);
         }
     }

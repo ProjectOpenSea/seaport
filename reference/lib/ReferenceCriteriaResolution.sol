@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { ItemType, Side } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    ItemType,
+    OrderType,
+    Side
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     AdvancedOrder,
@@ -41,6 +45,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
      *                           that no proof needs to be supplied.
      */
     function _applyCriteriaResolvers(
+        AdvancedOrder[] memory advancedOrders,
         OrderToExecute[] memory ordersToExecute,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
@@ -171,7 +176,13 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 if (
                     _isItemWithCriteria(orderToExecute.spentItems[j].itemType)
                 ) {
-                    revert UnresolvedOfferCriteria(i, j);
+                    if (
+                        advancedOrders[i].parameters.orderType !=
+                        OrderType.CONTRACT ||
+                        orderToExecute.spentItems[j].identifier != 0
+                    ) {
+                        revert UnresolvedOfferCriteria(i, j);
+                    }
                 }
             }
 
@@ -186,7 +197,13 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                         orderToExecute.receivedItems[j].itemType
                     )
                 ) {
-                    revert UnresolvedConsiderationCriteria(i, j);
+                    if (
+                        advancedOrders[i].parameters.orderType !=
+                        OrderType.CONTRACT ||
+                        orderToExecute.receivedItems[j].identifier != 0
+                    ) {
+                        revert UnresolvedConsiderationCriteria(i, j);
+                    }
                 }
             }
         }
@@ -321,7 +338,16 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                     advancedOrder.parameters.consideration[i].itemType
                 )
             ) {
-                revert UnresolvedConsiderationCriteria(0, i);
+                if (
+                    advancedOrder.parameters.orderType != OrderType.CONTRACT ||
+                    advancedOrder
+                        .parameters
+                        .consideration[i]
+                        .identifierOrCriteria !=
+                    0
+                ) {
+                    revert UnresolvedConsiderationCriteria(0, i);
+                }
             }
         }
 
@@ -334,7 +360,12 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
             if (
                 _isItemWithCriteria(advancedOrder.parameters.offer[i].itemType)
             ) {
-                revert UnresolvedOfferCriteria(0, i);
+                if (
+                    advancedOrder.parameters.orderType != OrderType.CONTRACT ||
+                    advancedOrder.parameters.offer[i].identifierOrCriteria != 0
+                ) {
+                    revert UnresolvedOfferCriteria(0, i);
+                }
             }
         }
     }

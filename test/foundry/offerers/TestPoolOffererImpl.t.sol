@@ -30,6 +30,8 @@ import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 
 import { TestPoolOfferer } from "./impl/TestPoolOfferer.sol";
 
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
 contract TestPoolFactoryImpl {
     address immutable seaport;
 

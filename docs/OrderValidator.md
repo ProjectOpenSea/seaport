@@ -1,3 +1,12 @@
+---
+title: Order Validation
+category: 6520398b749af50013f52ff4
+slug: seaport-order-validator
+parentDocSlug: seaport-overview
+order: 3
+hidden: false
+---
+
 # Seaport Order Validator
 
 The SeaportValidator contract offers various validation methods to ensure that supplied Seaport orders are being constructed correctly. Most contract calls return an `ErrorsAndWarnings` struct with two `uint16` arrays to help developers debug issues with their orders.

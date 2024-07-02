@@ -34,6 +34,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     uint256 badIdentifier;
     address badToken;
+
     struct FuzzInputsCommon {
         address zone;
         uint128 id;

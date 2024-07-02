@@ -28,7 +28,9 @@ import { OrderToExecute } from "./lib/ReferenceConsiderationStructs.sol";
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1.5-reference
+ * @custom:coauthor James Wenzel
+ * @custom:coauthor Daniel Viau
+ * @custom:version 1.6-reference
  * @notice Consideration is a generalized native token/ERC20/ERC721/ERC1155
  *         marketplace. It minimizes external calls to the greatest extent
  *         possible and provides lightweight methods for common routes as well

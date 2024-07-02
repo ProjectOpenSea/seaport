@@ -142,7 +142,8 @@ struct Expectations {
     /**
      * @dev Expected zone calldata hashes.
      */
-    bytes32[] expectedZoneCalldataHash;
+    bytes32[] expectedZoneAuthorizeCalldataHashes;
+    bytes32[] expectedZoneValidateCalldataHashes;
     /**
      * @dev Expected contract order calldata hashes. Index 0 of the outer array
      *      corresponds to the generateOrder hash, while index 1 corresponds to
@@ -394,10 +395,35 @@ library FuzzTestContextLib {
         Result[] memory results;
         bool[] memory available;
         Execution[] memory executions;
-        bytes32[] memory hashes;
-        bytes32[] memory expectedTransferEventHashes;
-        bytes32[] memory expectedSeaportEventHashes;
         Vm.Log[] memory actualEvents;
+        Expectations memory expectations;
+
+        {
+            bytes32[] memory authorizeHashes;
+            bytes32[] memory validateHashes;
+            bytes32[] memory expectedTransferEventHashes;
+            bytes32[] memory expectedSeaportEventHashes;
+
+            expectations = Expectations({
+                expectedZoneAuthorizeCalldataHashes: authorizeHashes,
+                expectedZoneValidateCalldataHashes: validateHashes,
+                expectedContractOrderCalldataHashes: new bytes32[2][](0),
+                expectedImplicitPreExecutions: new Execution[](0),
+                expectedImplicitPostExecutions: new Execution[](0),
+                expectedExplicitExecutions: new Execution[](0),
+                allExpectedExecutions: new Execution[](0),
+                expectedResults: results,
+                // expectedAvailableOrders: new bool[](0),
+                expectedTransferEventHashes: expectedTransferEventHashes,
+                expectedSeaportEventHashes: expectedSeaportEventHashes,
+                ineligibleOrders: new bool[](orders.length),
+                ineligibleFailures: new bool[](uint256(Failure.length)),
+                expectedImpliedNativeExecutions: 0,
+                expectedNativeTokensReturned: 0,
+                minimumValue: 0,
+                expectedFillFractions: new FractionResults[](orders.length)
+            });
+        }
 
         return
             FuzzTestContext({
@@ -422,24 +448,7 @@ library FuzzTestContextLib {
                     availableOrders: available,
                     executions: executions
                 }),
-                expectations: Expectations({
-                    expectedZoneCalldataHash: hashes,
-                    expectedContractOrderCalldataHashes: new bytes32[2][](0),
-                    expectedImplicitPreExecutions: new Execution[](0),
-                    expectedImplicitPostExecutions: new Execution[](0),
-                    expectedExplicitExecutions: new Execution[](0),
-                    allExpectedExecutions: new Execution[](0),
-                    expectedResults: results,
-                    // expectedAvailableOrders: new bool[](0),
-                    expectedTransferEventHashes: expectedTransferEventHashes,
-                    expectedSeaportEventHashes: expectedSeaportEventHashes,
-                    ineligibleOrders: new bool[](orders.length),
-                    ineligibleFailures: new bool[](uint256(Failure.length)),
-                    expectedImpliedNativeExecutions: 0,
-                    expectedNativeTokensReturned: 0,
-                    minimumValue: 0,
-                    expectedFillFractions: new FractionResults[](orders.length)
-                }),
+                expectations: expectations,
                 executionState: ExecutionState({
                     caller: address(0),
                     contractOffererNonce: 0,
@@ -1081,8 +1090,9 @@ function bound(
     // Similarly for the UINT256_MAX side. This helps ensure coverage of the
     // min/max values.
     if (x <= 3 && size > x) return min + x;
-    if (x >= type(uint256).max - 3 && size > type(uint256).max - x)
+    if (x >= type(uint256).max - 3 && size > type(uint256).max - x) {
         return max - (type(uint256).max - x);
+    }
 
     // Otherwise, wrap x into the range [min, max], i.e. the range is inclusive.
     if (x > max) {

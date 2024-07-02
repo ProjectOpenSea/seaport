@@ -88,10 +88,9 @@ interface PausableZoneInterface {
     /**
      * @notice Pause this contract, safely stopping orders from using
      *         the contract as a zone. Restricted orders with this address as a
-     *         zone will not be fulfillable unless the zone is redeployed to the
-     *         same address.
+     *         zone will not be fulfillable unless the zone is unpaused.
      */
-    function pause(address payee) external;
+    function pause() external;
 
     /**
      * @notice Assign the given address with the ability to operate the zone.

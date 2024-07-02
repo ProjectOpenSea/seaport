@@ -40,25 +40,6 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         }
     }
 
-    /**
-     * @dev test that specifying the offerer as the recipient of the considerationItem results in
-     *      execution filtering for items not specified in the matched order(s)
-     *      ie: offer nft1, nft2 for erc20
-     *          fulfiller matches to erc20 offer, nft1 consideration
-     *          specifies original offerer as recipient of unspent considerations
-     *          fulfilling does not result in nft2 being transferred at all
-     */
-    function testFilterOfferItemBySpecifyingOffererAsRecipient() public {
-        test(
-            this.execFilterOfferItemBySpecifyingOffererAsRecipient,
-            Context({ seaport: consideration })
-        );
-        test(
-            this.execFilterOfferItemBySpecifyingOffererAsRecipient,
-            Context({ seaport: referenceConsideration })
-        );
-    }
-
     function setUpFilterOfferItemBySpecifyingOffererAsRecipient(
         Context memory context
     ) internal returns (AdvancedOrder[] memory, Fulfillment[] memory) {
@@ -168,34 +149,6 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         orders[1] = fulfillerAdvanced;
 
         return (orders, _fulfillments);
-    }
-
-    function execFilterOfferItemBySpecifyingOffererAsRecipient(
-        Context memory context
-    ) external stateless {
-        (
-            AdvancedOrder[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpFilterOfferItemBySpecifyingOffererAsRecipient(context);
-        vm.recordLogs();
-        context.seaport.matchAdvancedOrders({
-            orders: orders,
-            criteriaResolvers: new CriteriaResolver[](0),
-            fulfillments: _fulfillments,
-            recipient: makeAddr("offerer")
-        });
-        Vm.Log[] memory recordedLogs = vm.getRecordedLogs();
-        // ensure that token2 was not transferred at any point
-        assertEq(recordedLogs.length, 5);
-        // first two are OrderFulfilled events
-        assertEq(recordedLogs[0].emitter, address(context.seaport));
-        assertEq(recordedLogs[1].emitter, address(context.seaport));
-        // next is OrdersMatched event
-        assertEq(recordedLogs[2].emitter, address(context.seaport));
-        // next is 721_1 transfer
-        assertEq(recordedLogs[3].emitter, address(test721_1));
-        // last is ERC20 transfer
-        assertEq(recordedLogs[4].emitter, address(token1));
     }
 
     // TODO: look into sporadic failures here

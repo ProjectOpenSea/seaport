@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.17;
 
-import { OrderType, ItemType } from "seaport-types/src/lib/ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType
+} from "seaport-types/src/lib/ConsiderationEnums.sol";
 
 import {
     ConsiderationInterface
@@ -1077,7 +1080,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             100
         );
 
-        // Assert six-tenths of the offer has been fulfilled.
+        // Assert three-fifths of the offer has been fulfilled.
         {
             (
                 bool isValidated,
@@ -1087,9 +1090,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, 6);
+            assertEq(totalFilled, 3);
 
-            assertEq(totalSize, 10);
+            assertEq(totalSize, 5);
             assertEq(60, test1155_1.balanceOf(address(this), 1));
         }
     }
@@ -1182,7 +1185,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             100
         );
 
-        // Assert six-tenths of the offer has been fulfilled.
+        // Assert three-fifths of the offer has been fulfilled.
         {
             (
                 bool isValidated,
@@ -1192,9 +1195,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, 6);
+            assertEq(totalFilled, 3);
 
-            assertEq(totalSize, 10);
+            assertEq(totalSize, 5);
             assertEq(60, test1155_1.balanceOf(address(this), 1));
         }
     }

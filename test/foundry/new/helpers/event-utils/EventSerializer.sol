@@ -21,10 +21,10 @@ struct ERC721TransferEvent {
     address from;
     address to;
     uint256 identifier;
-    // bytes32 topicHash;
-    // bytes32 dataHash;
-    // bytes32 eventHash;
 }
+// bytes32 topicHash;
+// bytes32 dataHash;
+// bytes32 eventHash;
 
 struct ERC1155TransferEvent {
     string kind;
@@ -34,10 +34,10 @@ struct ERC1155TransferEvent {
     address to;
     uint256 identifier;
     uint256 amount;
-    // bytes32 topicHash;
-    // bytes32 dataHash;
-    // bytes32 eventHash;
 }
+// bytes32 topicHash;
+// bytes32 dataHash;
+// bytes32 eventHash;
 
 struct OrderFulfilledEvent {
     bytes32 orderHash;

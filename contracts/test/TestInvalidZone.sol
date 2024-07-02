@@ -10,6 +10,12 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract TestInvalidZone is ERC165, ZoneInterface {
+    function authorizeOrder(
+        ZoneParameters calldata
+    ) public pure returns (bytes4) {
+        return this.authorizeOrder.selector;
+    }
+
     // Returns invalid magic value
     function validateOrder(
         ZoneParameters calldata
