@@ -2065,7 +2065,7 @@ ecc-jsbn@~0.1.1:
     jsbn "~0.1.0"
     safer-buffer "^2.1.0"
 
-elliptic@6.5.4, elliptic@>=6.5.4, elliptic@^6.5.2, elliptic@^6.5.4:
+elliptic@6.5.4, elliptic@>=6.5.4, elliptic@^6.5.2, elliptic@^6.5.7:
   version "6.5.4"
   resolved "https://registry.yarnpkg.com/elliptic/-/elliptic-6.5.4.tgz#da37cebd31e79a1367e941b592ed1fbebd58abbb"
   integrity sha512-iLhC6ULemrljPZb+QutR5TQGB+pdW6KGD5RSegS+8sorOZT+rdQFbsQFJgvN3eRqNALqJer4oQ16YvJHlU8hzQ==
@@ -4311,6 +4311,11 @@ node-addon-api@^2.0.0:
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-2.0.2.tgz"
   integrity sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA==
 
+node-addon-api@^5.0.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-5.1.0.tgz#49da1ca055e109a23d537e9de43c09cca21eb762"
+  integrity sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==
+
 node-domexception@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/node-domexception/-/node-domexception-1.0.0.tgz#6888db46a1f71c0b76b3f7555016b63fe64766e5"
@@ -5113,10 +5118,10 @@ scuffed-abi@^1.0.4:
   resolved "https://registry.npmjs.org/scuffed-abi/-/scuffed-abi-1.0.4.tgz"
   integrity sha512-1NN2L1j+TMF6+/J2jHcAnhPH8Lwaqu5dlgknZPqejEVFQ8+cvcnXYNbaHtGEXTjSNrQLBGePXicD4oFGqecOnQ==
 
-seaport-core@1.6.5:
-  version "1.6.5"
-  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.6.5.tgz#97c85dd5161e57ec28df6c43c93ee3eb9943ec66"
-  integrity sha512-jpGOpaKpH1B49oOYqAYAAVXN8eGlI/NjE6fYHPYlQaDVx325NS5dpiDDgGLtQZNgQ3EbqrfhfB5KyIbg7owyFg==
+seaport-core@1.6.6:
+  version "1.6.6"
+  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.6.6.tgz#c599ffbfaccab8e031bd702a67ed5fc48d256802"
+  integrity sha512-BNOg9EizHcLXN27UMKPB+2ewwcRnZkuNV8lRawKORnlpHI7SlCXhLkvCT+SHL/s5W8sJbnq2ef/SCvNB0r+KKA==
   dependencies:
     seaport-types "1.6.3"
 
@@ -5146,12 +5151,12 @@ seaport-types@^0.0.1:
   integrity sha512-m7MLa7sq3YPwojxXiVvoX1PM9iNVtQIn7AdEtBnKTwgxPfGRWUlbs/oMgetpjT/ZYTmv3X5/BghOcstWYvKqRA==
 
 secp256k1@^4.0.1:
-  version "4.0.3"
-  resolved "https://registry.npmjs.org/secp256k1/-/secp256k1-4.0.3.tgz"
-  integrity sha512-NLZVf+ROMxwtEj3Xa562qgv2BK5e2WNmXPiOdVIPLgs6lyTzMvBq0aWTYMI5XCP9jZMVKOcqZLw/Wc4vDkuxhA==
+  version "4.0.4"
+  resolved "https://registry.yarnpkg.com/secp256k1/-/secp256k1-4.0.4.tgz#58f0bfe1830fe777d9ca1ffc7574962a8189f8ab"
+  integrity sha512-6JfvwvjUOn8F/jUoBY2Q1v5WY5XS+rj8qSe0v8Y4ezH4InLgTEeOOPQsRll9OV429Pvo6BCHGavIyJfr3TAhsw==
   dependencies:
-    elliptic "^6.5.4"
-    node-addon-api "^2.0.0"
+    elliptic "^6.5.7"
+    node-addon-api "^5.0.0"
     node-gyp-build "^4.2.0"
 
 semver@^5.5.0, semver@^5.5.1, semver@^5.7.0:
