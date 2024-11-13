@@ -38,8 +38,8 @@ The contract is deployed to the following addresses:
 
 Special thanks to:
 - [arr00](https://github.com/arr00), who deployed an earlier version of a SeaportValidator contract which can be found [here](https://etherscan.io/address/0xF75194740067D6E4000000003b350688DD770000#code)
-- [stephankmin](https://github.com/stephankmin), who extended the SeaportValidator contract to support more errors/warnings and arbitary Seaport instances with compatible versions
-- [horsefacts](https://github.com/horsefacts), who implemented support for a ready-only version of the helper contract
+- [stephankmin](https://github.com/stephankmin), who extended the SeaportValidator contract to support more errors/warnings and arbitrary Seaport instances with compatible versions
+- [horsefacts](https://github.com/horsefacts), who implemented support for a read-only version of the helper contract
 
 ## Errors and Warnings
 | Code | Issue | Type
