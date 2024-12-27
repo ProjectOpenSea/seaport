@@ -3112,7 +3112,7 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         );
         return receipt;
       });
-      it("ERC721 <=> ERC20 (restriced match checked post-execution)", async () => {
+      it("ERC721 <=> ERC20 (restricted match checked post-execution)", async () => {
         // Buyer mints nft
         const nftId = await mint721(buyer);
 
