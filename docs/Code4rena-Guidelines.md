@@ -86,7 +86,7 @@ A full suite of unit tests using Hardhat and Foundry have been provided in this 
 
 ## Information:
 
-[https://docs.opensea.io/v2.0/reference/seaport-overview](https://docs.opensea.io/v2.0/reference/seaport-overview)
+[https://docs.opensea.io/docs/what-is-seaport](https://docs.opensea.io/docs/what-is-seaport)
 
 ### Reference Implementation:
 
