@@ -204,14 +204,15 @@ contract NavigatorDeployer is Script {
         return deploymentAddress;
     }
 
-    function pad(
-        string memory name,
-        uint256 n
-    ) internal pure returns (string memory) {
-        string memory padded = name;
-        while (bytes(padded).length < n) {
-            padded = string.concat(padded, " ");
+    function pad(string memory name, uint256 n) internal pure returns (string memory) {
+        uint256 len = bytes(name).length;
+        if (len >= n) {
+            return name;
         }
-        return padded;
+        bytes memory padding = new bytes(n - len);
+        for (uint256 i = 0; i < n - len; i++) {
+            padding[i] = " ";
+        }
+        return string(abi.encodePacked(name, padding));
     }
 }
