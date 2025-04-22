@@ -6,7 +6,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Copy developer docs to repository
         if: github.ref == 'refs/heads/main'
         uses: nkoppel/push-files-to-another-repository@v1.1.1
