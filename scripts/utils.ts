@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -61,7 +61,7 @@ export function haveReportForCurrentCommit(): boolean {
 
 export function fileLastUpdate(filePath: string): number {
   let timestamp = parseInt(
-    execSync(`git log -1 --pretty="format:%ct" ${filePath}`)
+    execFileSync("git", ["log", "-1", `--pretty=format:%ct`, filePath])
       .toString()
       .trim() || "0"
   );
