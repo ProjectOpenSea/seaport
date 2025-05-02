@@ -706,6 +706,58 @@ Not deployed
 
 </td></tr>
 
+<tr><td>Sophon</td><td>
+
+[0x18f4D8BbEE9F8783E17B7f2F3Cc18c9Be346ba44](https://explorer.sophon.xyz/address/0x18f4D8BbEE9F8783E17B7f2F3Cc18c9Be346ba44)
+
+</td><td>
+
+[0x9E5EAD5eD29BBc92be13b0969Ca17CC26fB390E6](https://explorer.sophon.xyz/address/0x9E5EAD5eD29BBc92be13b0969Ca17CC26fB390E6)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x0E5267441f3dC4BEC3bbC7f0e6588239c76C1B75](https://explorer.sophon.xyz/address/0x0E5267441f3dC4BEC3bbC7f0e6588239c76C1B75)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td></tr>
+
+<tr><td>Sophon Testnet</td><td>
+
+[0x18f4D8BbEE9F8783E17B7f2F3Cc18c9Be346ba44](https://explorer.testnet.sophon.xyz/address/0x18f4D8BbEE9F8783E17B7f2F3Cc18c9Be346ba44)
+
+</td><td>
+
+[0x9E5EAD5eD29BBc92be13b0969Ca17CC26fB390E6](https://explorer.testnet.sophon.xyz/address/0x9E5EAD5eD29BBc92be13b0969Ca17CC26fB390E6)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+[0x0E5267441f3dC4BEC3bbC7f0e6588239c76C1B75](https://explorer.testnet.sophon.xyz/address/0x0E5267441f3dC4BEC3bbC7f0e6588239c76C1B75)
+
+</td><td>
+
+Not deployed
+
+</td><td>
+
+Not deployed
+
+</td></tr>
+
 <tr><td>Zora</td><td>
 
 [0x0000000000000068F116a894984e2DB1123eB395](https://explorer.zora.energy/address/0x0000000000000068F116a894984e2DB1123eB395#code)
