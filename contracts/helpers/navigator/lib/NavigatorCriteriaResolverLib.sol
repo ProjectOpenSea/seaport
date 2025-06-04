@@ -20,7 +20,7 @@ library NavigatorCriteriaResolverLib {
      * @dev Calculate criteria resolvers, merkle proofs, and criteria merkle
      *      roots for the provided orders and criteria constraints. Modifies
      *      orders in place to add criteria merkle roots to the appropriate
-     *      offer/consdieration items. Adds calculated criteria resolvers to
+     *      offer/consideration items. Adds calculated criteria resolvers to
      *      the NavigatorResponse.
      */
     function withCriteria(
