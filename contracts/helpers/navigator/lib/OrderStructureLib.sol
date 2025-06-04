@@ -191,7 +191,7 @@ library OrderStructureLib {
         if (hasCriteria) {
             // Unless it's a contract order
             if (isContractOrder) {
-                // And the contract order's critera are all zero
+                // And the contract order's criteria are all zero
                 if (hasNonzeroCriteria) {
                     return Structure.ADVANCED;
                 }
