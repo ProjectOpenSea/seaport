@@ -33,7 +33,7 @@ interface SeaportNavigatorInterface {
      * @param tokenIds An array of integer token IDs.
      * @param id       The integer token ID to generate a proof for.
      *
-     * @return Merkle proof that the given token ID is  amember of the criteria
+     * @return Merkle proof that the given token ID is a member of the criteria
      *         tree containing the given token IDs.
      */
     function criteriaProof(
