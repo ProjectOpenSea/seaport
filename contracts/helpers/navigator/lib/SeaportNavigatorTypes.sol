@@ -136,7 +136,7 @@ struct NavigatorResponse {
      */
     OrderDetails[] orderDetails;
     /**
-     * @dev Calculated fulfillment components and combined Fullfiilments.
+     * @dev Calculated fulfillment components and combined Fullfilments.
      */
     FulfillmentComponent[][] offerFulfillments;
     FulfillmentComponent[][] considerationFulfillments;
