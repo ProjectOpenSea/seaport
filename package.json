@@ -13,6 +13,8 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
     "@opensea/seaport-js": "^4.0.4",
     "@openzeppelin/contracts": "^4.9.6",
+    "@privy-io/react-auth": "^2.14.1",
+    "alchemy-sdk": "^3.6.0",
     "ethers": "^5.7.2",
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.21.0",
@@ -79,7 +81,7 @@
     "cookiejar": ">=2.1.4"
   },
   "scripts": {
-    "build": "yarn clean; hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
+    "build": "next build",
     "build:quick": "hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
     "build:ref": "hardhat compile --config ./hardhat-reference.config.ts",
     "build:nospec": "yarn clean; NO_SPECIALIZER=true hardhat compile --config ./hardhat.config.ts; yarn show:headroom;",
@@ -112,7 +114,10 @@
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "dev": "next dev",
+    "start": "next start",
+    "lint": "next lint"
   },
   "lint-staged": {
     "*.sol": "prettier --write",
