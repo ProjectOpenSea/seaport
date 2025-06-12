@@ -2,199 +2,131 @@ import { useState, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Seaport } from '@opensea/seaport-js';
 import { ethers } from 'ethers';
-import { base, avalanche } from 'viem/chains';
+import { base, avalanche, zora } from 'viem/chains';
+import { ItemType } from '@opensea/seaport-js/lib/constants';
 
-// Types
-interface OrderItem {
-  itemType: number;
+// Seaport contract addresses for different networks
+const SEAPORT_ADDRESSES = {
+  [base.id]: '0x00000000006c3852cbEf3e08E8dF289169EdE581',
+  [avalanche.id]: '0x00000000006c3852cbEf3e08E8dF289169EdE581',
+  [zora.id]: '0x00000000006c3852cbEf3e08E8dF289169EdE581',
+};
+
+export type OrderItem = {
   token: string;
   identifierOrCriteria: string;
   startAmount: string;
   endAmount: string;
-}
+};
 
-interface OrderStatus {
-  isValid: boolean;
-  isCancelled: boolean;
-  isFulfilled: boolean;
-  error?: string;
-}
+export type OrderStatus = 'pending' | 'completed' | 'failed';
 
-interface OrderResult {
+export type OrderResult = {
   orderHash: string;
   status: OrderStatus;
-}
+  error?: string;
+};
 
-// Constants for Base Mainnet
-const SEAPORT_ADDRESS = "0x00000000000001ad428e4906aE43D8F9852d0dD6"; // Seaport 1.6 on Base
-const ALCHEMY_API_URL = "https://base-mainnet.g.alchemy.com/v2";
-
-// Utility functions
-function validateOrderInput(offer: OrderItem[], consideration: OrderItem[]) {
-    if (!offer.length || !consideration.length) {
-        throw new Error("Offer and consideration must not be empty");
-    }
-    
-    // Validate offer
-    for (const item of offer) {
-        if (!item.itemType || !item.token || !item.amount) {
-            throw new Error("Invalid offer item: missing required fields");
-        }
-        if (item.amount === "0") {
-            throw new Error("Invalid offer amount: cannot be zero");
-        }
-    }
-
-    // Validate consideration
-    for (const item of consideration) {
-        if (!item.itemType || !item.token || !item.amount || !item.recipient) {
-            throw new Error("Invalid consideration item: missing required fields");
-        }
-        if (item.amount === "0") {
-            throw new Error("Invalid consideration amount: cannot be zero");
-        }
-    }
-}
-
-async function withRetry<T>(operation: () => Promise<T>, maxRetries: number = 3): Promise<T> {
-    let lastError;
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            return await operation();
-        } catch (error) {
-            lastError = error;
-            console.log(`Attempt ${i + 1} failed, retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        }
-    }
-    throw lastError;
-}
-
-// Custom hook for Seaport interactions
 export function useSeaport() {
-    const { user, wallet } = usePrivy();
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [orderStatus, setOrderStatus] = useState<OrderStatus | null>(null);
+  const { user } = usePrivy();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const getSeaportInstance = useCallback(() => {
-        if (!wallet) throw new Error('Wallet not connected');
-        
-        // Get the current chain ID from the wallet
-        const chainId = wallet.chainId;
-        
-        // Create a Web3Provider from the wallet's provider
-        const provider = new ethers.providers.Web3Provider(wallet.provider);
-        const signer = provider.getSigner();
-        
-        // Configure Seaport based on network
-        const seaportConfig = {
-            overrides: {
-                contractAddress: chainId === base.id 
-                    ? '0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC' // Base Seaport
-                    : '0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC', // Avalanche Seaport
-            },
-        };
+  const createOrder = useCallback(async (
+    offerItems: OrderItem[],
+    considerationItems: OrderItem[],
+  ): Promise<OrderResult> => {
+    if (!user?.wallet) {
+      throw new Error('Wallet not connected');
+    }
 
-        return new Seaport(signer, seaportConfig);
-    }, [wallet]);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    const validateOrderInput = useCallback((offer: OrderItem[], consideration: OrderItem[]) => {
-        if (!offer.length || !consideration.length) {
-            throw new Error('Offer and consideration must not be empty');
-        }
-        // Add more validation as needed
-    }, []);
+      // Get the current chain ID
+      const chainId = await user.wallet.getChainId();
+      const provider = new ethers.providers.Web3Provider(user.wallet.provider);
+      const signer = provider.getSigner();
 
-    const createOrder = useCallback(async (
-        offer: OrderItem[],
-        consideration: OrderItem[],
-        zone = ethers.constants.AddressZero,
-        conduitKey = '0x0000000000000000000000000000000000000000000000000000000000000000'
-    ): Promise<OrderResult> => {
-        try {
-            setIsLoading(true);
-            setError(null);
+      // Configure Seaport based on the network
+      const seaport = new Seaport(signer, {
+        overrides: {
+          contractAddress: SEAPORT_ADDRESSES[chainId],
+        },
+      });
 
-            if (!wallet) {
-                throw new Error('Wallet not connected');
-            }
+      // Validate order input
+      if (!offerItems.length || !considerationItems.length) {
+        throw new Error('Offer and consideration items are required');
+      }
 
-            validateOrderInput(offer, consideration);
+      // Create the order
+      const { executeAllActions } = await seaport.createOrder({
+        offer: offerItems.map(item => ({
+          itemType: item.token === ethers.constants.AddressZero ? ItemType.NATIVE : ItemType.ERC20,
+          token: item.token,
+          identifierOrCriteria: item.identifierOrCriteria,
+          startAmount: item.startAmount,
+          endAmount: item.endAmount,
+        })),
+        consideration: considerationItems.map(item => ({
+          itemType: item.token === ethers.constants.AddressZero ? ItemType.NATIVE : ItemType.ERC20,
+          token: item.token,
+          identifierOrCriteria: item.identifierOrCriteria,
+          startAmount: item.startAmount,
+          endAmount: item.endAmount,
+          recipient: await signer.getAddress(),
+        })),
+      });
 
-            const seaport = getSeaportInstance();
-            
-            const { executeAllActions } = await seaport.createOrder({
-                offer,
-                consideration,
-                zone,
-                conduitKey,
-            });
+      // Execute the order
+      const transaction = await executeAllActions();
+      const receipt = await transaction.wait();
 
-            const order = await executeAllActions();
-            
-            // Verify the order
-            const isValid = await seaport.validate([order]);
-            
-            setOrderStatus({
-                isValid,
-                isCancelled: false,
-                isFulfilled: false,
-            });
+      return {
+        orderHash: receipt.transactionHash,
+        status: 'completed',
+      };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      return {
+        orderHash: '',
+        status: 'failed',
+        error: errorMessage,
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
-            return {
-                orderHash: order.hash,
-                status: {
-                    isValid,
-                    isCancelled: false,
-                    isFulfilled: false,
-                },
-            };
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to create order';
-            setError(errorMessage);
-            throw new Error(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [wallet, validateOrderInput, getSeaportInstance]);
+  const getOrderStatus = useCallback(async (orderHash: string): Promise<OrderStatus> => {
+    if (!user?.wallet) {
+      throw new Error('Wallet not connected');
+    }
 
-    const getOrderStatus = useCallback(async (orderHash: string): Promise<OrderStatus> => {
-        try {
-            setIsLoading(true);
-            setError(null);
+    try {
+      const chainId = await user.wallet.getChainId();
+      const provider = new ethers.providers.Web3Provider(user.wallet.provider);
+      const seaport = new Seaport(provider, {
+        overrides: {
+          contractAddress: SEAPORT_ADDRESSES[chainId],
+        },
+      });
 
-            if (!wallet) {
-                throw new Error('Wallet not connected');
-            }
+      const order = await seaport.getOrder(orderHash);
+      return order ? 'completed' : 'pending';
+    } catch (err) {
+      console.error('Error getting order status:', err);
+      return 'failed';
+    }
+  }, [user]);
 
-            const seaport = getSeaportInstance();
-            
-            // Get order status from Seaport
-            const isValid = await seaport.validate([{ hash: orderHash }]);
-            
-            const status: OrderStatus = {
-                isValid,
-                isCancelled: false, // You'll need to implement cancellation check
-                isFulfilled: false, // You'll need to implement fulfillment check
-            };
-
-            setOrderStatus(status);
-            return status;
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to get order status';
-            setError(errorMessage);
-            throw new Error(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [wallet, getSeaportInstance]);
-
-    return {
-        createOrder,
-        getOrderStatus,
-        isLoading,
-        error,
-        orderStatus,
-    };
+  return {
+    createOrder,
+    getOrderStatus,
+    isLoading,
+    error,
+  };
 } 

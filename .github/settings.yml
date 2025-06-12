@@ -1,0 +1,96 @@
+repository:
+  name: seaport
+  description: Art Authentication & Marketplace Platform
+  homepage: https://your-website.com
+  private: true
+  has_issues: true
+  has_wiki: false
+  has_downloads: false
+  default_branch: main
+
+branches:
+  - name: main
+    protection:
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Security Checks"
+          - "CodeQL Analysis"
+          - "Dependency Check"
+          - "License Check"
+      enforce_admins: true
+      required_pull_request_reviews:
+        required_approving_review_count: 2
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+      restrictions:
+        users: []
+        teams: ["maintainers"]
+
+  - name: develop
+    protection:
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Security Checks"
+          - "CodeQL Analysis"
+          - "Dependency Check"
+      enforce_admins: true
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+      restrictions:
+        users: []
+        teams: ["developers"]
+
+teams:
+  - name: maintainers
+    permission: admin
+    members:
+      - "maintainer1"
+      - "maintainer2"
+
+  - name: developers
+    permission: push
+    members:
+      - "developer1"
+      - "developer2"
+
+  - name: security
+    permission: maintain
+    members:
+      - "security1"
+      - "security2"
+
+labels:
+  - name: security
+    color: "FF0000"
+    description: "Security related issues"
+
+  - name: bug
+    color: "FF0000"
+    description: "Bug fixes"
+
+  - name: enhancement
+    color: "00FF00"
+    description: "New features"
+
+  - name: documentation
+    color: "0000FF"
+    description: "Documentation updates"
+
+  - name: critical
+    color: "FF0000"
+    description: "Critical issues"
+
+  - name: high-priority
+    color: "FFA500"
+    description: "High priority issues"
+
+  - name: medium-priority
+    color: "FFFF00"
+    description: "Medium priority issues"
+
+  - name: low-priority
+    color: "00FF00"
+    description: "Low priority issues" 

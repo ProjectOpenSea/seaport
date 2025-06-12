@@ -1,14 +1,95 @@
 # Dependencies
-node_modules
-.pnp
+node_modules/
+.pnp/
 .pnp.js
 
-# Environment files
+# Testing
+coverage/
+
+# Production
+build/
+dist/
+out/
+
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
+!.env.example
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug.log
+
+# AI Models and Data
+models/
+*.weights
+*.bin
+*.pt
+*.pth
+*.onnx
+training_data/
+curator_data/
+similarity_vectors/
+
+# Security and Monitoring
+security_logs/
+monitoring_data/
+audit_logs/
+*.pem
+*.key
+*.cert
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Build artifacts
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Sensitive data
+**/secrets.json
+**/api-keys.json
+**/private-keys.json
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Documentation
+docs/internal/
+docs/private/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Contract artifacts
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# Hardhat files
+.hardhat/
+
+# Environment files
 .env.*
 
 # Build outputs
@@ -24,19 +105,15 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # Testing
-coverage
 coverage.json
 typechain-types
 
 # Hardhat files
-artifacts/
 artifacts-ref/
 hh-cache/
 hh-cache-ref/
 
 # Foundry files
-cache
-out
 reference-out
 optimized-out
 reference-working
@@ -44,9 +121,9 @@ offerers-out
 broadcast/
 
 # IDE and OS files
-.DS_Store
-.idea/
-.vscode/
+*.DS_Store
+*.idea/
+*.vscode/
 *.swp
 *.swo
 
@@ -61,8 +138,6 @@ broadcast/
 *.jks
 
 # Misc
-.DS_Store
-*.pem
 __pycache__
 
 # Project specific
@@ -72,3 +147,16 @@ test/utils/eip712/gen.sol
 metrics.txt
 *-metrics.txt
 fuzz_debug.json
+
+# Database
+*.sqlite
+*.db
+prisma/*.db
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.wmv
+*.flv
+*.mkv

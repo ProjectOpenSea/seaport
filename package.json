@@ -49,7 +49,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "hardhat-gas-reporter": "^1.0.7",
-    "husky": ">=6",
+    "husky": "^9.1.7",
     "lint-staged": ">=10",
     "prettier": "^2.5.1",
     "prettier-plugin-solidity": "^1.1.0",
@@ -116,7 +116,7 @@
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
-    "prepare": "husky install",
+    "prepare": "husky",
     "dev": "next dev",
     "start": "next start",
     "lint": "next lint"

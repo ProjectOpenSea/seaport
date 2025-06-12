@@ -1,0 +1,46 @@
+name: Repository Protection
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Secret Scanner
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: Check for exposed secrets
+        uses: zricethezav/gitleaks-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for sensitive files
+        run: |
+          if git ls-files | grep -E '\.(pem|key|cert|env|secret)'; then
+            echo "Error: Sensitive files detected in commit"
+            exit 1
+          fi
+
+      - name: Verify NDA status
+        run: |
+          # Add your NDA verification logic here
+          echo "Checking NDA status for contributors..." 

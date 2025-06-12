@@ -2,41 +2,33 @@
 
 import React from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
-import { base, avalanche } from 'viem/chains';
+import { base, avalanche, zora } from 'viem/chains';
+
+const ZORA_CHAIN = {
+  ...zora,
+  rpcUrls: {
+    default: {
+      http: [process.env.NEXT_PUBLIC_ZORA_RPC_URL || 'https://rpc.zora.energy'],
+    },
+    public: {
+      http: [process.env.NEXT_PUBLIC_ZORA_RPC_URL || 'https://rpc.zora.energy'],
+    },
+  },
+};
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
       config={{
+        supportedChains: [base, avalanche, ZORA_CHAIN],
+        appearance: {
+          theme: 'dark',
+          accentColor: '#0052FF',
+        },
         embeddedWallets: {
           createOnLogin: 'all-users',
         },
-        supportedChains: [
-          {
-            id: base.id,
-            name: 'Base',
-            rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org',
-            blockExplorer: 'https://basescan.org',
-            nativeCurrency: {
-              name: 'ETH',
-              symbol: 'ETH',
-              decimals: 18,
-            },
-          },
-          {
-            id: avalanche.id,
-            name: 'Avalanche',
-            rpcUrl: process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc',
-            blockExplorer: 'https://snowtrace.io',
-            nativeCurrency: {
-              name: 'AVAX',
-              symbol: 'AVAX',
-              decimals: 18,
-            },
-          },
-        ],
-        defaultChain: base,
       }}
     >
       {children}
