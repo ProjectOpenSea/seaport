@@ -1,45 +1,42 @@
 'use client';
 
+import React from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
+import { base, avalanche } from 'viem/chains';
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
-      clientId={process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID || ''}
       config={{
-        // Create embedded wallets for users who don't have a wallet
         embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'users-without-wallets'
-          }
+          createOnLogin: 'all-users',
         },
-        // Add Base network configuration
-        defaultChain: {
-          id: 8453, // Base Mainnet
-          name: 'Base',
-          rpcUrl: 'https://mainnet.base.org',
-          blockExplorer: 'https://basescan.org',
-          nativeCurrency: {
-            name: 'Ether',
-            symbol: 'ETH',
-            decimals: 18
-          }
-        },
-        // Add supported chains
         supportedChains: [
           {
-            id: 8453, // Base Mainnet
+            id: base.id,
             name: 'Base',
-            rpcUrl: 'https://mainnet.base.org',
+            rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || 'https://mainnet.base.org',
             blockExplorer: 'https://basescan.org',
             nativeCurrency: {
-              name: 'Ether',
+              name: 'ETH',
               symbol: 'ETH',
-              decimals: 18
-            }
-          }
-        ]
+              decimals: 18,
+            },
+          },
+          {
+            id: avalanche.id,
+            name: 'Avalanche',
+            rpcUrl: process.env.NEXT_PUBLIC_AVALANCHE_RPC_URL || 'https://api.avax.network/ext/bc/C/rpc',
+            blockExplorer: 'https://snowtrace.io',
+            nativeCurrency: {
+              name: 'AVAX',
+              symbol: 'AVAX',
+              decimals: 18,
+            },
+          },
+        ],
+        defaultChain: base,
       }}
     >
       {children}

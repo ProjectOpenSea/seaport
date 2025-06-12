@@ -1,46 +1,74 @@
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+
+# Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Testing
 coverage
 coverage.json
 typechain-types
-yarn-error.log
 
-#Hardhat files
+# Hardhat files
 artifacts/
 artifacts-ref/
 hh-cache/
 hh-cache-ref/
 
-
-#foundry test compilation files
+# Foundry files
 cache
 out
 reference-out
 optimized-out
 reference-working
 offerers-out
-
-#foundry script run output files
 broadcast/
 
+# IDE and OS files
 .DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# VScode
-.vscode
+# Security
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+
+# Misc
+.DS_Store
+*.pem
 __pycache__
 
+# Project specific
 Seaport.yul
-
-# coverage
-html
-lcov.info
-
 test/utils/eip712/gen.sol
 .gas_reports/*.md
-
-# fuzz metrics
 metrics.txt
 *-metrics.txt
-
 fuzz_debug.json
-.env

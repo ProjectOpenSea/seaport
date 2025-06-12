@@ -1,949 +1,220 @@
-![Seaport](img/Seaport-banner.png)
-
-[![Version][version-badge]][version-link]
-[![Test CI][ci-badge]][ci-link]
-[![Code Coverage][coverage-badge]][coverage-link]
-[![License][license-badge]][license-link]
-[![Docs][docs-badge]][docs-link]
-[![Discussions][discussions-badge]][discussions-link]
-[![JS Library][js-library-badge]][js-library-link]
-[![Discord][discord-badge]][discord-link]
-
-# Seaport
-
-Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs.
-
-## Table of Contents
-
-- [Seaport](#seaport)
-  - [Table of Contents](#table-of-contents)
-  - [Background](#background)
-  - [Deployments](#deployments)
-  - [Diagram](#diagram)
-  - [Docs](#docs)
-  - [Install](#install)
-  - [Usage](#usage)
-    - [Foundry Tests](#foundry-tests)
-    - [Linting](#linting)
-  - [Audits](#audits)
-  - [Contributing](#contributing)
-  - [License](#license)
-
-## Background
-
-Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
-
-See the [documentation](docs/SeaportDocumentation.md), the [interface](https://github.com/ProjectOpenSea/seaport-types/blob/main/src/interfaces/ConsiderationInterface.sol), and the full [interface documentation](https://docs.opensea.io/docs/seaport) for more information on Seaport.
-
-This repository is also split into smaller repositories for easier use and integration:
-
-- [seaport-core][seaport-core]
-- [seaport-types][seaport-types]
-- [seaport-sol][seaport-sol]
-
-## Deployments
-
-### Canonical Cross-chain Deployment Addresses
-
-<table>
-<tr>
-<th>Contract</th>
-<th>Canonical Cross-chain Deployment Address</th>
-</tr>
-<tr>
-<td>Seaport 1.1</td>
-<td><code>0x00000000006c3852cbEf3e08E8dF289169EdE581</code></td>
-</tr>
-<tr>
-<td>Seaport 1.2*</td>
-<td><code>0x00000000000006c7676171937C444f6BDe3D6282</code></td>
-</tr>
-<tr>
-<td>Seaport 1.3*</td>
-<td><code>0x0000000000000aD24e80fd803C6ac37206a45f15</code></td>
-</tr>
-<tr>
-<td>Seaport 1.4*</td>
-<td><code>0x00000000000001ad428e4906aE43D8F9852d0dD6</code></td>
-</tr>
-<tr>
-<td>Seaport 1.5</td>
-<td><code>0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC</code></td>
-</tr>
-<tr>
-<td>Seaport 1.6</td>
-<td><code>0x0000000000000068F116a894984e2DB1123eB395</code></td>
-</tr>
-<tr>
-<td>ConduitController</td>
-<td><code>0x00000000F9490004C11Cef243f5400493c00Ad63</code></td>
-</tr>
-<tr>
-<td>SeaportValidator</td>
-<td><code>0x00e5F120f500006757E984F1DED400fc00370000</code></td>
-</tr>
-<tr>
-<td>SeaportNavigator</td>
-<td><code>0x0000f00000627D293Ab4Dfb40082001724dB006F</code></td>
-</tr>
-</table>
-
-> *Note: Seaport 1.2 through 1.4 contain known limitations; proceed with caution if interacting with them, particularly when utilizing restricted or contract orders.
-
-### Deployments By EVM Chain
-
-<table>
-<tr>
-<th>Network</th>
-<th>Seaport 1.6</th>
-<th>Seaport 1.5</th>
-<th>Seaport 1.1</th>
-<th>ConduitController</th>
-<th>SeaportValidator</th>
-<th>SeaportNavigator</th>
-</tr>
-<tr><td>Ethereum</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://etherscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Sepolia</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://sepolia.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://sepolia.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia.etherscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Polygon</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://polygonscan.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://polygonscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://polygonscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://polygonscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://polygonscan.com/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://polygonscan.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Amoy</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://www.oklink.com/amoy/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://www.oklink.com/amoy/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://www.oklink.com/amoy/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://www.oklink.com/amoy/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://www.oklink.com/amoy/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://www.oklink.com/amoy/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Optimism</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://optimistic.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://optimistic.etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://optimistic.etherscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://optimistic.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://optimistic.etherscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://optimistic.etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Optimism Sepolia</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://sepolia-optimism.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia-optimism.etherscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia-optimism.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia-optimism.etherscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia-optimism.etherscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Arbitrum</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://arbiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://arbiscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://arbiscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://arbiscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Arbitrum Sepolia</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://sepolia.arbiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.arbiscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia.arbiscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.arbiscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Arbitrum Nova</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://nova.arbiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://nova.arbiscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://nova.arbiscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://nova.arbiscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://nova.arbiscan.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://nova.arbiscan.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Base</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://basescan.org/address/0x0000000000000068F116a894984e2DB1123eB395)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://basescan.org/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://basescan.org/address/0x00000000f9490004c11cef243f5400493c00ad63)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://basescan.org/address/0x00e5f120f500006757e984f1ded400fc00370000)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://basescan.org/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Base Sepolia</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://sepolia.basescan.org/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.basescan.org/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.basescan.org/address/0x00000000f9490004c11cef243f5400493c00ad63)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia.basescan.org/address/0x00e5f120f500006757e984f1ded400fc00370000)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.basescan.org/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Avalanche C-Chain</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://snowtrace.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://snowtrace.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://snowtrace.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://snowtrace.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://snowtrace.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Avalanche Fuji</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://testnet.snowtrace.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://testnet.snowtrace.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://testnet.snowtrace.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.snowtrace.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://testnet.snowtrace.io/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://testnet.snowtrace.io/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Gnosis Chain</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://gnosisscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://gnosisscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://gnosisscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://gnosisscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://gnosisscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-<tr><td>Chiado</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://blockscout.com/gnosis/chiado/address/0x0000000000000068F116a894984e2DB1123eB395/contracts#address-tabs)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://blockscout.com/gnosis/chiado/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC/contracsts#address-tabs)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://blockscout.com/gnosis/chiado/address/0x00000000F9490004C11Cef243f5400493c00Ad63/contracts#address-tabs)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-<tr><td>BSC</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://bscscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://bscscan.com/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://bscscan.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>BSC Testnet</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://testnet.bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://testnet.bscscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://testnet.bscscan.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://testnet.bscscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://testnet.bscscan.com/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://testnet.bscscan.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Klaytn</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://scope.klaytn.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://scope.klaytn.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://scope.klaytn.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://scope.klaytn.com/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://scope.klaytn.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Baobab</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://baobab.scope.klaytn.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://baobab.scope.klaytn.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://baobab.scope.klaytn.com/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://baobab.scope.klaytn.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://baobab.scope.klaytn.com/address/0x00e5F120f500006757E984F1DED400fc00370000#code)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://baobab.scope.klaytn.com/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Moonbeam</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://moonscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://moonscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://moonscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-<tr><td>Moonriver</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://moonriver.moonscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://moonriver.moonscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://moonriver.moonscan.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://moonriver.moonscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-
-<tr><td>Canto</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://evm.explorer.canto.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://evm.explorer.canto.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC)
-
-</td><td>
-
-[0x00000000006c3852cbEf3e08E8dF289169EdE581](https://evm.explorer.canto.io/address/0x00000000006c3852cbEf3e08E8dF289169EdE581#code)
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://evm.explorer.canto.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-
-<tr><td>Fantom</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://ftmscan.com/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://ftmscan.com/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://ftmscan.com/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-
-<tr><td>Celo</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://celoscan.io/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://celoscan.io/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://celoscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-Not deployed
-
-</td></tr>
-
-<tr><td>Zora</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://explorer.zora.energy/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://explorer.zora.energy/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://explorer.zora.energy/address/0x00000000f9490004c11cef243f5400493c00ad63)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://explorer.zora.energy/address/0x00e5f120f500006757e984f1ded400fc00370000)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://explorer.zora.energy/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-<tr><td>Zora Sepolia</td><td>
-
-[0x0000000000000068F116a894984e2DB1123eB395](https://sepolia.explorer.zora.energy/address/0x0000000000000068F116a894984e2DB1123eB395#code)
-
-</td><td>
-
-[0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC](https://sepolia.explorer.zora.energy/address/0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC#code)
-
-</td><td>
-
-Not deployed
-
-</td><td>
-
-[0x00000000F9490004C11Cef243f5400493c00Ad63](https://sepolia.explorer.zora.energy/address/0x00000000f9490004c11cef243f5400493c00ad63)
-
-</td><td>
-
-[0x00e5F120f500006757E984F1DED400fc00370000](https://sepolia.explorer.zora.energy/address/0x00e5f120f500006757e984f1ded400fc00370000)
-
-</td><td>
-
-[0x0000f00000627D293Ab4Dfb40082001724dB006F](https://sepolia.explorer.zora.energy/address/0x0000f00000627D293Ab4Dfb40082001724dB006F#code)
-
-</td></tr>
-</table>
-
-To deploy to a new EVM chain, follow the [steps outlined here](docs/Deployment.md).
-
-## Diagram
-
-```mermaid
-graph TD
-    Offer & Consideration --> Order
-    zone & conduitKey --> Order
-
-    subgraph Seaport[ ]
-    Order --> Fulfill & Match
-    Order --> Validate & Cancel
-    end
-
-    Validate --> Verify
-    Cancel --> OrderStatus
-
-    Fulfill & Match --> OrderCombiner --> OrderFulfiller
-
-    OrderCombiner --> BasicOrderFulfiller --> OrderValidator
-    OrderCombiner --> FulfillmentApplier
-
-    OrderFulfiller --> CriteriaResolution
-    OrderFulfiller --> AmountDeriver
-    OrderFulfiller --> OrderValidator
-
-    OrderValidator --> ZoneInteraction
-    OrderValidator --> Executor --> TokenTransferrer
-    Executor --> Conduit --> TokenTransferrer
-    Executor --> Verify
-
-    subgraph Verifiers[ ]
-    Verify --> Time & Signature & OrderStatus
-    end
-```
-
-For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.svg).
-
-## Docs
-
-- [Seaport Deployment](./docs/Deployment.md)
-- [Seaport Documentation](./docs/SeaportDocumentation.md)
-- [Zone Documentation](./docs/ZoneDocumentation.md)
-- [Function Signatures](./docs/FunctionSignatures.md)
-- [Order Validator](./docs/OrderValidator.md)
-
-## Install
-
-To install dependencies and compile contracts:
+# Seaport dApp 🚢
+
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Base](https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=base&logoColor=white)](https://base.org/)
+[![Avalanche](https://img.shields.io/badge/Avalanche-E84142?style=for-the-badge&logo=avalanche&logoColor=white)](https://www.avax.network/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+A modern, responsive dApp for creating and managing NFT orders on Base and Avalanche networks using the Seaport protocol. Built with Next.js, TypeScript, and Tailwind CSS.
+
+![Seaport dApp Preview](public/preview.png)
+
+## ✨ Features
+
+- 🔐 **Secure Authentication**: Privy integration for wallet connection
+- 📱 **Responsive Design**: Mobile-first approach with dark mode support
+- 🔄 **Real-time Updates**: Live transaction tracking and order status
+- 🎨 **Modern UI**: Beautiful gradients and smooth animations
+- 📊 **Transaction History**: Track all your orders and transactions
+- 🌙 **Dark Mode**: Toggle between light and dark themes
+- 🌐 **Multi-chain Support**: Seamless integration with Base and Avalanche networks
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 16+
+- npm or yarn
+- Base or Avalanche network wallet
+- Privy credentials
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/seaport-dapp.git
+   cd seaport-dapp
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Then edit `.env.local` with your actual values.
+
+4. Start development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## 🔒 Security
+
+### Environment Variables
+Never commit sensitive information to the repository. Use `.env.local` for local development and set up environment variables in your deployment platform.
+
+Required environment variables:
+- `NEXT_PUBLIC_PRIVY_APP_ID`: Your Privy application ID
+- `NEXT_PUBLIC_PRIVY_CLIENT_ID`: Your Privy client ID
+- `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS`: Your NFT contract address
+- `NEXT_PUBLIC_NFT_ID`: Your NFT ID
+- `NEXT_PUBLIC_AVALANCHE_RPC_URL`: Avalanche RPC URL
+- `NEXT_PUBLIC_BASE_RPC_URL`: Base RPC URL
+
+### Security Features
+The repository includes several security features to prevent accidental exposure of sensitive data:
+
+1. **Pre-commit Hooks**
+   - Automatically checks for sensitive data patterns before each commit
+   - Prevents commits containing API keys, private keys, or other sensitive information
+   - Creates automatic backups before each commit
+
+2. **Git Secrets**
+   - Installed and configured to detect sensitive data patterns
+   - Checks for common patterns like API keys, private keys, and credentials
+   - Includes blockchain-specific patterns for private keys and mnemonics
+
+3. **Automatic Backups**
+   - Creates timestamped backups before each commit
+   - Stores backups in a dedicated branch
+   - Helps prevent work loss in case of crashes or errors
+
+To set up these security features:
 
 ```bash
-git clone --recurse-submodules https://github.com/ProjectOpenSea/seaport && cd seaport
-yarn install
-yarn build
+# Install git-secrets
+./scripts/setup-git-secrets.sh
+
+# The pre-commit hook is automatically installed
+# You can test it by trying to commit a file with sensitive data
 ```
 
-## Usage
+### Security Best Practices
+1. Never commit API keys or private keys
+2. Use environment variables for sensitive data
+3. Keep dependencies updated
+4. Follow the principle of least privilege
+5. Implement proper error handling
+6. Use secure communication channels
+7. Regular security audits
 
-To run hardhat tests written in javascript:
+## 🛠️ Tech Stack
 
-```bash
-yarn test
-yarn coverage
-```
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Authentication**: [Privy](https://privy.io/)
+- **Blockchain**: 
+  - [Base](https://base.org/)
+  - [Avalanche](https://www.avax.network/)
+- **Protocol**: [Seaport](https://opensea.io/blog/announcements/introducing-seaport-the-next-generation-web3-marketplace-protocol/)
 
-> Note: artifacts and cache folders may occasionally need to be removed between standard and coverage test runs.
+## 🌐 Network Support
 
-To run hardhat tests against reference contracts:
+### Avalanche (AVAX)
+- Mainnet (C-Chain)
+- Fuji Testnet
+- Custom RPC support
+- Native AVAX token support
+- Cross-chain compatibility
 
-```bash
-yarn test:ref
-yarn coverage:ref
-```
+### Base
+- Mainnet
+- Goerli Testnet
+- Optimized gas fees
+- Fast transaction processing
 
-To open the generated Hardhat coverage report locally after running `yarn coverage` or `yarn coverage:ref`:
+## 📱 Mobile Support
 
-```bash
-open coverage/index.html
-```
+The dApp is fully responsive and optimized for mobile devices:
 
-To profile gas usage:
+- Touch-friendly interface
+- Mobile menu navigation
+- Optimized form inputs
+- Full-width elements on mobile
+- Smooth animations
 
-```bash
-yarn profile
-```
+## 🎨 UI Components
 
-### Foundry Tests
+- Loading Spinner
+- Network Badge
+- Mobile Menu
+- Transaction History
+- Theme Toggle
+- Order Form
+- Status Indicators
+- Network Switcher
 
-Seaport also includes a suite of fuzzing tests written in Solidity with Foundry.
+## 🤝 Contributing
 
-Before running these tests, you will need to compile an optimized build by running:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```bash
-FOUNDRY_PROFILE=optimized forge build
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-This should create an `optimized-out/` directory in your project root.
+## 📝 License and Copyright
 
-To run tests with full traces and debugging with source, create an `.env` file with the following line:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-```bash
-FOUNDRY_PROFILE=debug
-```
+### Copyright Notice
+© 2024 ASKNIGHTS & PARTNERS. All rights reserved.
 
-You may then run tests with `forge test`, optionally specifying a level of verbosity (anywhere from one to five `v`'s, eg, `-vvv`)
+All new features, developments, and optimizations in this project are made by ASKNIGHTS & PARTNERS under the supervision of Sebastian Clej. All copyrights and intellectual property rights are owned by ASKNIGHTS & PARTNERS.
 
-This will compile tests and contracts without `via-ir` enabled, which is much faster, but will not exactly match the deployed bytecode.
+This includes but is not limited to:
+- Custom implementations and modifications
+- UI/UX designs and components
+- Network integrations and optimizations
+- Security implementations
+- Mobile optimizations
+- Cross-chain functionality
 
-To run tests against the actual bytecode intended to be deployed on networks, you will need to pre-compile the contracts, and remove the `FOUNDRY_PROFILE` variable from your `.env` file. **Note** that informative error traces may not be available, and the Forge debugger will not show the accompanying source code.
+## 🙏 Acknowledgments
 
-```bash
-FOUNDRY_PROFILE=optimized forge build
-FOUNDRY_PROFILE=reference forge build
-```
+- [OpenSea](https://opensea.io/) for the Seaport protocol
+- [Base](https://base.org/) for the network infrastructure
+- [Avalanche](https://www.avax.network/) for the C-Chain infrastructure
+- [Privy](https://privy.io/) for authentication
+- [Next.js](https://nextjs.org/) team for the amazing framework
 
-To run Forge coverage tests and open the generated coverage report locally:
+## 📞 Support
 
-```bash
-brew install lcov
-SEAPORT_COVERAGE=true forge coverage --report summary --report lcov && lcov -o lcov.info --remove lcov.info --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 "test/*" "script/*" && genhtml lcov.info -o html --branch
-open html/index.html
-```
+If you have any questions or need help, please:
 
-When working on the test suite based around `FuzzEngine.sol`, using `FOUNDRY_PROFILE=moat_debug` will cut compile times roughly in half.
+- Open an issue
+- Join our [Discord](https://discord.gg/your-discord)
+- Follow us on [Twitter](https://twitter.com/your-handle)
 
-**Note** that Forge does not yet ignore specific filepaths when running coverage tests.
+---
 
-For information on Foundry, including installation and testing, see the [Foundry Book](https://book.getfoundry.sh/).
+Developed by ASKNIGHTS & PARTNERS
+Supervised by Sebastian Clej
 
-### Linting
+# API Keys
+ALCHEMY_API_KEY=your_alchemy_key_here
 
-To run lint checks:
+# Wallet
+ENCRYPTED_PRIVATE_KEY=your_encrypted_private_key_here
+ENCRYPTION_KEY=your_encryption_key_here
 
-```bash
-yarn lint:check
-```
+# NFT Details
+NFT_CONTRACT_ADDRESS=your_nft_contract_address_here
+NFT_ID=your_nft_id_here
 
-Lint checks utilize prettier, prettier-plugin-solidity, and solhint.
+# Contract Addresses
+SEAPORT_ADDRESS=your_seaport_contract_address_here
 
-```javascript
-"prettier": "^2.5.1",
-"prettier-plugin-solidity": "^1.0.0-beta.19",
-```
-
-## Audits
-
-OpenSea engaged Trail of Bits to audit the security of Seaport. From April 18th to May 12th 2022, a team of Trail of Bits consultants conducted a security review of Seaport. The audit did not uncover significant flaws that could result in the compromise of a smart contract, loss of funds, or unexpected behavior in the target system. Their [full report is available here](https://github.com/trailofbits/publications/blob/master/reviews/SeaportProtocol.pdf).
-
-## Contributing
-
-Contributions to Seaport are welcome by anyone interested in writing more tests, improving readability, optimizing for gas efficiency, or extending the protocol via new zone contracts or other features.
-
-When making a pull request, ensure that:
-
-- All tests pass.
-- Code coverage remains at 100% (coverage tests must currently be written in hardhat).
-- All new code adheres to the style guide:
-  - All lint checks pass.
-  - Code is thoroughly commented with natspec where relevant.
-- If making a change to the contracts:
-  - Gas snapshots are provided and demonstrate an improvement (or an acceptable deficit given other improvements).
-  - Reference contracts are modified correspondingly if relevant.
-  - New tests (ideally via foundry) are included for all new features or code paths.
-- If making a modification to third-party dependencies, `yarn audit` passes.
-- A descriptive summary of the PR has been provided.
-
-## License
-
-[MIT](LICENSE) Copyright 2023 Ozone Networks, Inc.
-
-[version-badge]: https://img.shields.io/github/package-json/v/ProjectOpenSea/seaport
-[version-link]: https://github.com/ProjectOpenSea/seaport/releases
-[ci-badge]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml/badge.svg
-[ci-link]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml
-[coverage-badge]: https://codecov.io/gh/ProjectOpenSea/seaport/branch/main/graph/badge.svg
-[coverage-link]: https://codecov.io/gh/ProjectOpenSea/seaport
-[license-badge]: https://img.shields.io/github/license/ProjectOpenSea/seaport
-[license-link]: https://github.com/ProjectOpenSea/seaport/blob/main/LICENSE
-[docs-badge]: https://img.shields.io/badge/Seaport-documentation-informational
-[docs-link]: https://github.com/ProjectOpenSea/seaport/tree/main/docs
-[discussions-badge]: https://img.shields.io/badge/Seaport-discussions-blueviolet
-[discussions-link]: https://github.com/ProjectOpenSea/seaport/discussions
-[js-library-badge]: https://img.shields.io/badge/Seaport.js-library-red
-[js-library-link]: https://github.com/ProjectOpenSea/seaport-js
-[discord-badge]: https://img.shields.io/static/v1?logo=discord&label=discord&message=Join&color=blue
-[discord-link]: https://discord.gg/ADXcTXpqry
-[seaport-core]: https://github.com/ProjectOpenSea/seaport-core
-[seaport-types]: https://github.com/ProjectOpenSea/seaport-types
-[seaport-sol]: https://github.com/ProjectOpenSea/seaport-sol
+# Privy Configuration
+NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id_here
+NEXT_PUBLIC_PRIVY_CLIENT_ID=your_privy_client_id_here
