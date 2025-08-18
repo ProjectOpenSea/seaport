@@ -16,7 +16,7 @@ The `zone` of the order is an optional secondary account attached to the order w
 
 An example zone contract implementation can be found at `/contracts/zones/PausableZone.sol`.
 
-The `PausableZone` contract can be used by its controller to cancel orders, execute fulfillment on restricted order, and pause all orders which use it as a zone.
+The `PausableZone` contract can be used by its controller to cancel orders, execute fulfillment on restricted orders, and pause all orders which use it as a zone.
 
 ## Ideas
 
