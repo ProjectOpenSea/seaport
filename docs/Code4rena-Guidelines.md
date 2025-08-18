@@ -11,7 +11,7 @@ At a high level, the core invariants that we expect to be upheld are that:
 - Only items that are explicitly offered as part of a valid order may be transferred from an offerer’s account as long as they only set token approvals on either Seaport directly or on a conduit that only has Seaport set as a channel.
 - No order fulfillment may spend more than the offer items that are explicitly set for the order in question. Note that not all offer items need to be spent.
 - All consideration items (or fractions thereof in the case of orders that support partial fills) must be received in full by the named recipients in order for the corresponding offer items (or fractions thereof) to be spent. Note that additional consideration items may be added to any order on fulfillment as “tips”. Note also that when calling any fulfillment method other than `matchOrders` or `matchAdvancedOrders` that an implied “mirror” order is created for the fulfiller and so offer items on fulfilled orders should be treated as consideration items for the fulfiller (with the exception of `fulfillBasicOrder` where ERC721 ⇒ ERC20 and ERC1155 ⇒ ERC20 route types will use a portion of the offered item on the fulfilled order to pay out consideration items on that order).
-- In all cases, assume that that all items contain standard ERC20/721/1155 behavior. This may include popular tokens or contracts (though reporting particular tokens that would violate these invariants would be categorized as a low-severity finding).
+- In all cases, assume that all items contain standard ERC20/721/1155 behavior. This may include popular tokens or contracts (though reporting particular tokens that would violate these invariants would be categorized as a low-severity finding).
 
 ## Out of scope
 
