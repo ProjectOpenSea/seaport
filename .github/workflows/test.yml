@@ -21,7 +21,7 @@ jobs:
         node-version: [18.15.0]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -39,7 +39,7 @@ jobs:
         node-version: [18.15.0]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -57,7 +57,7 @@ jobs:
         node-version: [18.15.0]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -79,7 +79,7 @@ jobs:
       REFERENCE: true
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -146,7 +146,7 @@ jobs:
     name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -171,7 +171,7 @@ jobs:
     name: Run Forge Coverage report on tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -201,7 +201,7 @@ jobs:
 #        node-version: [18.15.0]
 #
 #    steps:
-#      - uses: actions/checkout@v3
+#      - uses: actions/checkout@v5
 #      - name: Use Node.js
 #        uses: actions/setup-node@v3
 #        with:
@@ -227,7 +227,7 @@ jobs:
       REFERENCE: true
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
