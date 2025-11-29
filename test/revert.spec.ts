@@ -26,6 +26,7 @@ import {
   minRandom,
   simulateMatchOrders,
 } from "./utils/helpers";
+import { resetFork } from "./utils/resetFork";
 
 import type {
   ConduitInterface,
@@ -74,6 +75,11 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+
+  // Reset chain state before any setup to prevent nonce reuse errors
+  before(async () => {
+    await resetFork();
+  });
 
   after(async () => {
     await network.provider.request({

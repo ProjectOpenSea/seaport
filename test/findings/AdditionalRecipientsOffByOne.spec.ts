@@ -7,6 +7,7 @@ import { getScuffedContract } from "scuffed-abi";
 import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
 import { getWalletWithEther } from "../utils/faucet";
 import { seaportFixture } from "../utils/fixtures";
+import { resetFork } from "../utils/resetFork";
 
 import type {
   ConsiderationInterface,
@@ -36,6 +37,11 @@ describe("Additional recipients off by one error allows skipping second consider
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
   let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+
+  // Reset chain state before any setup to prevent nonce reuse errors
+  before(async function () {
+    await resetFork();
+  });
 
   after(async () => {
     await network.provider.request({

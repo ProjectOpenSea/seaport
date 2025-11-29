@@ -43,6 +43,7 @@
     "eslint-plugin-n": "^15.2.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-promise": "^6.0.0",
+    "glob": "^13.0.0",
     "hardhat-gas-reporter": "^1.0.7",
     "husky": ">=6",
     "lint-staged": ">=10",

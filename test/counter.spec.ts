@@ -14,6 +14,7 @@ import {
 import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION, getCustomRevertSelector } from "./utils/helpers";
+import { resetFork } from "./utils/resetFork";
 
 import type { ConsiderationInterface } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
@@ -33,6 +34,11 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
   let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
   let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
   let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+
+  // Reset chain state before any setup to prevent nonce reuse errors
+  before(async () => {
+    await resetFork();
+  });
 
   after(async () => {
     await network.provider.request({
