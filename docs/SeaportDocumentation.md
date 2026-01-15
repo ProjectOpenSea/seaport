@@ -78,7 +78,7 @@ While the standard method can technically be used for fulfilling any order, it s
 
 > Note: Calls to Seaport that would fulfill or match a collection of advanced orders can be monitored and where there are unused offer items, it's possible for a third party to claim them. Anyone can monitor the mempool to find calls to `matchOrders` or `matchAdvancedOrders` without "ad-hoc" orders (where the offerer is the caller, hence does not require a signature) and calculate if there are any unused offer item amounts.  If there are unused offer item amounts, the third party can frontrun the transaction and supply themselves as the recipient, thereby allowing that third party to claim the unused offer items for themselves. A Seaport app or a zone could prevent this, or the fulfiller can utilize a private mempool, but by default it's possible.
 
-> Note: Contract orders can supply additional offer amounts when the order is executed. However, if they supply extra offer items with criteria, on the fly, the fulfiller won't be able to supply the necessary criteria resolvers, which would make fulfilling the order infeasible.  Seaport apps should specifically avoid returning criteria-based items and generally avoid mismatches between previewOrder and what's executed on-chain.
+> Note: Contract orders can supply additional offer amounts when the order is executed. However, if they supply extra offer items with criteria on-the-fly, the fulfiller won't be able to supply the necessary criteria resolvers, which would make fulfilling the order infeasible. Seaport apps should specifically avoid returning criteria-based items and generally avoid mismatches between previewOrder and what's executed on-chain.
 
 ### Balance and Approval Requirements
 
