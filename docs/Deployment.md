@@ -9,7 +9,7 @@ hidden: false
 
 # Deploying Seaport
 
-Seaport 1.6 and the ConduitController can each be deployed to their respective canonical deployment address on all EVM chains using the CREATE2 Factory. Note that a pre-155 transaction with a gas price of 100 gwei (or a manual workaround) is required as part of the deployment process (subsequent transactions can be submitted without these constraints), and that EVM equivalence (particularly consistent CREATE2 address derivation) is required in order to deploy to the canonical cross-chain deployment addresses.
+Seaport 1.6 and the ConduitController can each be deployed to their respective canonical deployment address on all EVM chains using the CREATE2 Factory. Note that a pre-155 transaction (see [EIP-155](https://eips.ethereum.org/EIPS/eip-155)) with a gas price of 100 gwei (or a manual workaround) is required as part of the deployment process (subsequent transactions can be submitted without these constraints), and that EVM equivalence (particularly consistent CREATE2 address derivation) is required in order to deploy to the canonical cross-chain deployment addresses.
 
 If you are deploying a fork of Seaport, it is *highly* advised that you **supply the canonical conduit controller** as its constructor argument; this allows the Seaport fork to use conduits that are fully interoperable with the canonical Seaport instance. (Better yet, deploy the canonical Seaport instance and use a distinct conduit if needed!)
 
