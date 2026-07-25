@@ -3418,9 +3418,9 @@ ignore@^5.1.1, ignore@^5.2.0:
   integrity sha512-d2qQLzTJ9WxQftPAuEQpSPmKqzxePjzVbpAVv62AQ64NTL+wR4JkrVqR/LqFsFEUsHDAiId52mJteHDFuDkElA==
 
 immutable@^4.0.0-rc.12:
-  version "4.1.0"
-  resolved "https://registry.npmjs.org/immutable/-/immutable-4.1.0.tgz"
-  integrity sha512-oNkuqVTA8jqG1Q6c+UglTOD1xhC1BtjKI7XkCXRkZHrN5m18/XsnUp8Q89GkQO/z+0WjonSvl0FLhDYftp46nQ==
+  version "4.3.9"
+  resolved "https://registry.yarnpkg.com/immutable/-/immutable-4.3.9.tgz#c98349e05e9c6e2a4d8fe88ac0b363e0d536b544"
+  integrity sha512-ObHy4YN7ycwZOUCLI1/6svfyAFu7vL8RhAvVu/bh/RZW9EPlOyDaQ9jDQWCtdqzaXUjgXZCW1migtHE7YI7UGQ==
 
 import-fresh@^2.0.0:
   version "2.0.0"
@@ -5113,10 +5113,10 @@ scuffed-abi@^1.0.4:
   resolved "https://registry.npmjs.org/scuffed-abi/-/scuffed-abi-1.0.4.tgz"
   integrity sha512-1NN2L1j+TMF6+/J2jHcAnhPH8Lwaqu5dlgknZPqejEVFQ8+cvcnXYNbaHtGEXTjSNrQLBGePXicD4oFGqecOnQ==
 
-seaport-core@1.6.5:
-  version "1.6.5"
-  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.6.5.tgz#97c85dd5161e57ec28df6c43c93ee3eb9943ec66"
-  integrity sha512-jpGOpaKpH1B49oOYqAYAAVXN8eGlI/NjE6fYHPYlQaDVx325NS5dpiDDgGLtQZNgQ3EbqrfhfB5KyIbg7owyFg==
+seaport-core@1.6.6:
+  version "1.6.6"
+  resolved "https://registry.yarnpkg.com/seaport-core/-/seaport-core-1.6.6.tgz#c599ffbfaccab8e031bd702a67ed5fc48d256802"
+  integrity sha512-BNOg9EizHcLXN27UMKPB+2ewwcRnZkuNV8lRawKORnlpHI7SlCXhLkvCT+SHL/s5W8sJbnq2ef/SCvNB0r+KKA==
   dependencies:
     seaport-types "1.6.3"
 
