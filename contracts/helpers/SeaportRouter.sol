@@ -148,8 +148,10 @@ contract SeaportRouter is SeaportRouterInterface, ReentrancyGuard {
                     if (newAvailableOrders[j]) {
                         unchecked {
                             --fulfillmentsLeft;
-                            ++j;
                         }
+                    }
+                    unchecked {
+                        ++j;
                     }
                 }
 
