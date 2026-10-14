@@ -1,14 +1,14 @@
 name: Publish Docs to Central Repository
 on:
   release:
-    types: [created]
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
       - name: Copy developer docs to repository
-        if: github.ref == 'refs/heads/main'
+        if: github.event.release.target_commitish == 'main'
         uses: nkoppel/push-files-to-another-repository@v1.1.1
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
