@@ -627,16 +627,21 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // If the fuzz args call for using the transfer validation zone, make
         // sure that it is actually enforcing the expected requirements.
         if (context.fulfillArgs.shouldUseTransferValidationZone) {
+            // Keep the negative-test recipient distinct from the authorized one.
+            address expectedRecipient = context.fulfillArgs.shouldSpecifyRecipient
+                ? context.fulfillArgs.offerRecipient
+                : address(this);
             address strangerAddress = address(0xdeafbeef);
+            if (strangerAddress == expectedRecipient) {
+                strangerAddress = address(0xdeafbef0);
+            }
 
             vm.expectRevert(
                 abi.encodeWithSignature(
                     "InvalidOwner(address,address,address,uint256)",
                     // The expected recipient is either the offer recipient or
                     // the caller, depending on the fuzz args.
-                    context.fulfillArgs.shouldSpecifyRecipient
-                        ? context.fulfillArgs.offerRecipient
-                        : address(this),
+                    expectedRecipient,
                     // The stranger address gets passed into the recipient field
                     // below, so it will be the actual recipient.
                     strangerAddress,
