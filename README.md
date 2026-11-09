@@ -806,7 +806,7 @@ For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.sv
 
 ## Install
 
-To install dependencies and compile contracts:
+To install dependencies and compile contracts (Node.js version in `.nvmrc`):
 
 ```bash
 git clone --recurse-submodules https://github.com/ProjectOpenSea/seaport && cd seaport
@@ -855,6 +855,8 @@ FOUNDRY_PROFILE=optimized forge build
 ```
 
 This should create an `optimized-out/` directory in your project root.
+
+The optimized build reproduces the init code of the deployed Seaport 1.6 contract byte for byte. `test/foundry/DeployedBytecode.t.sol` fails if a toolchain or dependency change breaks that. CI uses Foundry v1.9.0 (`foundryup --install v1.9.0`).
 
 To run tests with full traces and debugging with source, create an `.env` file with the following line:
 

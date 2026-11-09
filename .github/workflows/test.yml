@@ -7,243 +7,265 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+# A new push to a pull request cancels its older run. Every other run gets
+# its own group, so no run on a branch or tag is cancelled while it waits.
 concurrency:
-  group: ${{github.workflow}}-${{github.ref}}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FOUNDRY_VERSION: v1.9.0
 
 jobs:
   build:
     name: Build Artifacts
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.15.0]
-
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn build
 
   lint:
     name: Run Linters
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.15.0]
-
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn lint:check
 
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.15.0]
-
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn build
       - run: yarn test
 
   reference-test:
     name: Run Reference Tests
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.15.0]
-
+    timeout-minutes: 20
     env:
       REFERENCE: true
-
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn build
       - run: yarn build:ref
       - run: yarn test:ref
 
-  forge:
-    name: Run Forge Tests (via_ir = true; fuzz_runs = 5000)
+  reference-coverage:
+    name: Run Reference Coverage Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    env:
+      REFERENCE: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+      - run: yarn build:ref
+      - run: yarn coverage:ref
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: ./coverage/lcov.info
+          flags: reference
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Compiles the reference (via_ir = false) and optimized (via_ir = true)
+  # profiles once and caches them. The Forge test jobs load these precompiled
+  # artifacts instead of each spending several minutes rebuilding them.
+  forge-build:
+    name: Build Forge Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      cache-key: ${{ steps.key.outputs.cache-key }}
+    steps:
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/actions/setup-foundry
         with:
-          version: v1.4.4
+          version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Install forge dependencies
-        run: forge install
+      # The key covers every input of the two builds: compiler settings,
+      # sources, and each submodule commit (hashFiles can't see gitlinks).
+      - name: Compute cache key
+        id: key
+        run: |
+          submodules=$(git submodule status --recursive | sha256sum | cut -c1-16)
+          echo "cache-key=forge-precompiled-${{ env.FOUNDRY_VERSION }}-${{ hashFiles('foundry.toml', 'contracts/**', 'reference/**') }}-${submodules}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore precompiled artifacts
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            reference-out
+            reference-cache
+            optimized-out
+            optimized-cache
+          key: ${{ steps.key.outputs.cache-key }}
 
       - name: Precompile reference using 0.8.24 and via-ir=false
+        if: steps.cache.outputs.cache-hit != 'true'
         run: FOUNDRY_PROFILE=reference forge build
 
       - name: Precompile optimized using 0.8.24 and via-ir=true
+        if: steps.cache.outputs.cache-hit != 'true'
         run: FOUNDRY_PROFILE=optimized forge build
+
+  forge:
+    name: Run Forge Tests (via_ir = true)
+    needs: forge-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/setup-foundry
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+
+      - name: Restore precompiled artifacts
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            reference-out
+            reference-cache
+            optimized-out
+            optimized-cache
+          key: ${{ needs.forge-build.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Check the build matches deployed Seaport 1.6
+        run: FOUNDRY_PROFILE=test forge test --match-path test/foundry/DeployedBytecode.t.sol -vvv
 
       - name: Run tests
         run: FOUNDRY_PROFILE=test forge test -vvv
 
   forge-ref:
-    name: Run Forge Reference Tests (via_ir = false; fuzz_runs = 5000)
+    name: Run Forge Reference Tests (via_ir = false)
+    needs: forge-build
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/actions/setup-foundry
         with:
-          version: v1.4.4
+          version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Install forge dependencies
-        run: forge install
-
-      - name: Precompile reference using 0.8.24 and via-ir=false
-        run: FOUNDRY_PROFILE=reference forge build
-
-      - name: Precompile optimized using 0.8.24 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build
+      - name: Restore precompiled artifacts
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            reference-out
+            reference-cache
+            optimized-out
+            optimized-cache
+          key: ${{ needs.forge-build.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run reference tests
         run: FOUNDRY_PROFILE=reference MOAT_PROFILE=reference forge test -vvv
-  
+
   forge-offerers:
-    name: Run Contract Offerer Forge Tests (via_ir = false; fuzz_runs = 1000)
+    name: Run Contract Offerer Forge Tests (via_ir = false)
+    needs: forge-build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/actions/setup-foundry
         with:
-          version: v1.4.4
+          version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Install forge dependencies
-        run: forge install
-
-      - name: Precompile reference using 0.8.24 and via-ir=false
-        run: FOUNDRY_PROFILE=reference forge build
-
-      - name: Precompile optimized using 0.8.24 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build
+      - name: Restore precompiled artifacts
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            reference-out
+            reference-cache
+            optimized-out
+            optimized-cache
+          key: ${{ needs.forge-build.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run tests
         run: FOUNDRY_PROFILE=offerers forge test -vvv
 
   forge-coverage:
     name: Run Forge Coverage report on tests
+    needs: forge-build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/actions/setup-foundry
         with:
-          version: v1.4.4
+          version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Install forge dependencies
-        run: forge install
-
-      - name: Precompile reference using 0.8.24 and via-ir=false
-        run: FOUNDRY_PROFILE=reference forge build
-
-      - name: Precompile optimized using 0.8.24 and via-ir=true
-        run: FOUNDRY_PROFILE=optimized forge build
+      - name: Restore precompiled artifacts
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            reference-out
+            reference-cache
+            optimized-out
+            optimized-cache
+          key: ${{ needs.forge-build.outputs.cache-key }}
+          fail-on-cache-miss: true
 
       - name: Run coverage with lcov output
         run: FOUNDRY_PROFILE=default SEAPORT_COVERAGE=true forge coverage --report lcov
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ./lcov.info
           flags: foundry
-
-# TODO: work out how to run legacy coverage (also how to run against core)
-#  coverage:
-#    name: Run Coverage Tests
-#    runs-on: ubuntu-latest
-#
-#    strategy:
-#      matrix:
-#        node-version: [18.15.0]
-#
-#    steps:
-#      - uses: actions/checkout@v5
-#      - name: Use Node.js
-#        uses: actions/setup-node@v3
-#        with:
-#          node-version: ${{ matrix.node-version }}
-#          cache: "yarn"
-#      - run: yarn install
-#      - run: yarn build
-#      - run: yarn coverage
-#      - uses: codecov/codecov-action@v3
-#        with:
-#          files: ./coverage/lcov.info
-#          flags: production
-
-  reference-coverage:
-    name: Run Reference Coverage Tests
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.15.0]
-
-    env:
-      REFERENCE: true
-
-    steps:
-      - uses: actions/checkout@v5
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "yarn"
-      - run: yarn install
-      - run: yarn build
-      - run: yarn build:ref
-      - run: yarn coverage:ref
-      - uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage/lcov.info
-          flags: reference
+          token: ${{ secrets.CODECOV_TOKEN }}
