@@ -628,7 +628,9 @@ contract TestTransferValidationZoneOffererTest is BaseOrderTest {
         // sure that it is actually enforcing the expected requirements.
         if (context.fulfillArgs.shouldUseTransferValidationZone) {
             // Keep the negative-test recipient distinct from the authorized one.
-            address expectedRecipient = context.fulfillArgs.shouldSpecifyRecipient
+            address expectedRecipient = context
+                .fulfillArgs
+                .shouldSpecifyRecipient
                 ? context.fulfillArgs.offerRecipient
                 : address(this);
             address strangerAddress = address(0xdeafbeef);
