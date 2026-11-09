@@ -1,17 +1,8 @@
----
-title: Deployment
-category: 6520398b749af50013f52ff4
-slug: seaport-deployment
-parentDocSlug: seaport-overview
-order: 6
-hidden: false
----
-
 # Deploying Seaport
 
 Seaport 1.6 and the ConduitController can each be deployed to their respective canonical deployment address on all EVM chains using the CREATE2 Factory. Note that a pre-155 transaction with a gas price of 100 gwei (or a manual workaround) is required as part of the deployment process (subsequent transactions can be submitted without these constraints), and that EVM equivalence (particularly consistent CREATE2 address derivation) is required in order to deploy to the canonical cross-chain deployment addresses.
 
-If you are deploying a fork of Seaport, it is *highly* advised that you **supply the canonical conduit controller** as its constructor argument; this allows the Seaport fork to use conduits that are fully interoperable with the canonical Seaport instance. (Better yet, deploy the canonical Seaport instance and use a distinct conduit if needed!)
+If you are deploying a fork of Seaport, it is _highly_ advised that you **supply the canonical conduit controller** as its constructor argument; this allows the Seaport fork to use conduits that are fully interoperable with the canonical Seaport instance. (Better yet, deploy the canonical Seaport instance and use a distinct conduit if needed!)
 
 ## Relevant Addresses
 
@@ -94,6 +85,7 @@ cast call --rpc-url ${RPC_URL} 0x0000000000000068F116a894984e2DB1123eB395 'name(
 ```
 
 ## Verifying Seaport and ConduitController
+
 After `Seaport` and `ConduitController` are deployed, they are verified as follows:
 
 1. Ensure that `EXPLORER_API_KEY` and `NETWORK_RPC` are set in `.env` appropriately.

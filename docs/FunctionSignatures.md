@@ -1,12 +1,3 @@
----
-title: Seaport Functions
-category: 6520398b749af50013f52ff4
-slug: seaport-functions
-parentDocSlug: seaport-overview
-order: 4
-hidden: false
----
-
 # Seaport Function Signatures
 
 <table>
