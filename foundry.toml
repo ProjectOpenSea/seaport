@@ -7,7 +7,6 @@ libs = ["node_modules", "lib"]
 test = 'test/foundry'
 remappings = [
     '@rari-capital/solmate/=lib/solmate/',
-    'ds-test/=lib/ds-test/src/',
     'forge-std/=lib/forge-std/src/',
     'murky/=lib/murky/src/',
     '@openzeppelin/=lib/openzeppelin-contracts/',
