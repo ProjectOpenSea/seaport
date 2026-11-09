@@ -4,6 +4,7 @@ on:
     - cron: "0 0 * * *"
 
 permissions:
+  actions: write # actions/stale keeps its state in the Actions cache
   issues: write
   pull-requests: write
 
