@@ -33,12 +33,14 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 | ApeChain          | 33139    | [view](https://apescan.io/address/0x0000000000000068F116a894984e2DB1123eB395)                     |
 | Arbitrum Nova     | 42170    | [view](https://arbitrum-nova.blockscout.com/address/0x0000000000000068F116a894984e2DB1123eB395)   |
 | Arbitrum One      | 42161    | [view](https://arbiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)                    |
+| Arc               | 5042     | [view](https://explorer.arc.io/address/0x0000000000000068F116a894984e2DB1123eB395)                |
 | Avalanche C-Chain | 43114    | [view](https://snowtrace.io/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
 | Base              | 8453     | [view](https://basescan.org/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
 | Berachain         | 80094    | [view](https://berascan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
 | BNB Chain         | 56       | [view](https://bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                    |
 | Core              | 1116     | [view](https://scan.coredao.org/address/0x0000000000000068F116a894984e2DB1123eB395)               |
 | Cyber             | 7560     | [view](https://cyberscan.co/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
+| Elysium           | 99901    | [view](https://elysium.kinetiq.xyz/address/0x0000000000000068F116a894984e2DB1123eB395)            |
 | Ethereum          | 1        | [view](https://etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
 | Flow EVM          | 747      | [view](https://evm.flowscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)                |
 | Fraxtal           | 252      | [view](https://fraxscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
@@ -56,6 +58,7 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 | opBNB             | 204      | [view](https://opbnb.bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)              |
 | Plasma            | 9745     | [view](https://plasmascan.to/address/0x0000000000000068F116a894984e2DB1123eB395)                  |
 | Polygon PoS       | 137      | [view](https://polygonscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                |
+| Robinhood Chain   | 4663     | [view](https://robin.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)             |
 | Ronin             | 2020     | [view](https://app.roninchain.com/address/0x0000000000000068F116a894984e2DB1123eB395)             |
 | Scroll            | 534352   | [view](https://scrollscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                 |
 | Sei               | 1329     | [view](https://seiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)                     |
@@ -72,30 +75,32 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 
 ### Testnets
 
-| Chain             | Chain ID  | Explorer                                                                                           |
-| ----------------- | --------- | -------------------------------------------------------------------------------------------------- |
-| Abstract Testnet  | 11124     | [view](https://sepolia.abscan.org/address/0x0000000000000068F116a894984e2DB1123eB395)              |
-| Arbitrum Sepolia  | 421614    | [view](https://sepolia.arbiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)             |
-| Avalanche Fuji    | 43113     | [view](https://testnet.snowtrace.io/address/0x0000000000000068F116a894984e2DB1123eB395)            |
-| Base Sepolia      | 84532     | [view](https://sepolia.basescan.org/address/0x0000000000000068F116a894984e2DB1123eB395)            |
-| BNB Chain Testnet | 97        | [view](https://testnet.bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)             |
-| Curtis            | 33111     | [view](https://curtis.apescan.io/address/0x0000000000000068F116a894984e2DB1123eB395)               |
-| Flow EVM Testnet  | 545       | [view](https://evm-testnet.flowscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)         |
-| GUNZ Testnet      | 49321     |                                                                                                    |
-| HyperEVM Testnet  | 998       |                                                                                                    |
-| Ink Sepolia       | 763373    | [view](https://explorer-sepolia.inkonchain.com/address/0x0000000000000068F116a894984e2DB1123eB395) |
-| Kaia Kairos       | 1001      | [view](https://kairos.kaiascan.io/address/0x0000000000000068F116a894984e2DB1123eB395)              |
-| Monad Testnet     | 10143     | [view](https://testnet.monadscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)           |
-| OP Sepolia        | 11155420  | [view](https://sepolia-optimism.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)   |
-| Polygon Amoy      | 80002     | [view](https://amoy.polygonscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)            |
-| Ronin Saigon      | 202601    | [view](https://saigon-app.roninchain.com/address/0x0000000000000068F116a894984e2DB1123eB395)       |
-| Sei Testnet       | 1328      | [view](https://testnet.seiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)              |
-| Sepolia           | 11155111  | [view](https://sepolia.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)            |
-| Shape Sepolia     | 11011     | [view](https://sepolia.shapescan.xyz/address/0x0000000000000068F116a894984e2DB1123eB395)           |
-| Soneium Minato    | 1946      | [view](https://soneium-minato.blockscout.com/address/0x0000000000000068F116a894984e2DB1123eB395)   |
-| Unichain Sepolia  | 1301      | [view](https://sepolia.uniscan.xyz/address/0x0000000000000068F116a894984e2DB1123eB395)             |
-| zkSync Sepolia    | 300       | [view](https://sepolia.explorer.zksync.io/address/0x0000000000000068F116a894984e2DB1123eB395)      |
-| Zora Sepolia      | 999999999 | [view](https://sepolia.explorer.zora.energy/address/0x0000000000000068F116a894984e2DB1123eB395)    |
+| Chain                   | Chain ID  | Explorer                                                                                           |
+| ----------------------- | --------- | -------------------------------------------------------------------------------------------------- |
+| Abstract Testnet        | 11124     | [view](https://sepolia.abscan.org/address/0x0000000000000068F116a894984e2DB1123eB395)              |
+| Arbitrum Sepolia        | 421614    | [view](https://sepolia.arbiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)             |
+| Arc Testnet             | 5042002   | [view](https://testnet.arcscan.app/address/0x0000000000000068F116a894984e2DB1123eB395)             |
+| Avalanche Fuji          | 43113     | [view](https://testnet.snowtrace.io/address/0x0000000000000068F116a894984e2DB1123eB395)            |
+| Base Sepolia            | 84532     | [view](https://sepolia.basescan.org/address/0x0000000000000068F116a894984e2DB1123eB395)            |
+| BNB Chain Testnet       | 97        | [view](https://testnet.bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)             |
+| Curtis                  | 33111     | [view](https://curtis.apescan.io/address/0x0000000000000068F116a894984e2DB1123eB395)               |
+| Flow EVM Testnet        | 545       | [view](https://evm-testnet.flowscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)         |
+| GUNZ Testnet            | 49321     |                                                                                                    |
+| HyperEVM Testnet        | 998       |                                                                                                    |
+| Ink Sepolia             | 763373    | [view](https://explorer-sepolia.inkonchain.com/address/0x0000000000000068F116a894984e2DB1123eB395) |
+| Kaia Kairos             | 1001      | [view](https://kairos.kaiascan.io/address/0x0000000000000068F116a894984e2DB1123eB395)              |
+| Monad Testnet           | 10143     | [view](https://testnet.monadscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)           |
+| OP Sepolia              | 11155420  | [view](https://sepolia-optimism.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)   |
+| Polygon Amoy            | 80002     | [view](https://amoy.polygonscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)            |
+| Robinhood Chain Testnet | 46630     |                                                                                                    |
+| Ronin Saigon            | 202601    | [view](https://saigon-app.roninchain.com/address/0x0000000000000068F116a894984e2DB1123eB395)       |
+| Sei Testnet             | 1328      | [view](https://testnet.seiscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)              |
+| Sepolia                 | 11155111  | [view](https://sepolia.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)            |
+| Shape Sepolia           | 11011     | [view](https://sepolia.shapescan.xyz/address/0x0000000000000068F116a894984e2DB1123eB395)           |
+| Soneium Minato          | 1946      | [view](https://soneium-minato.blockscout.com/address/0x0000000000000068F116a894984e2DB1123eB395)   |
+| Unichain Sepolia        | 1301      | [view](https://sepolia.uniscan.xyz/address/0x0000000000000068F116a894984e2DB1123eB395)             |
+| zkSync Sepolia          | 300       | [view](https://sepolia.explorer.zksync.io/address/0x0000000000000068F116a894984e2DB1123eB395)      |
+| Zora Sepolia            | 999999999 | [view](https://sepolia.explorer.zora.energy/address/0x0000000000000068F116a894984e2DB1123eB395)    |
 
 ## Seaport 1.5 only
 
