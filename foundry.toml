@@ -54,10 +54,9 @@ out = 'optimized-out'
 cache_path = 'optimized-cache'
 script = 'contracts'
 bytecode_hash = 'none'
-# Seaport 1.6 was deployed with 9_999_999 optimizer runs. Keeping this profile
-# on the same settings means it reproduces the deployed init code, which
-# test/foundry/DeployedBytecode.t.sol checks.
-optimizer_runs = 9_999_999
+# This profile reproduces the deployed Seaport 1.6 init code, which
+# test/foundry/DeployedBytecode.t.sol checks. 1.6 was verified with 9_999_999
+# optimizer runs, but the default 4_294_967_295 produces identical bytecode.
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
 test ='contracts'
 
