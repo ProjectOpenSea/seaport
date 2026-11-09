@@ -63,7 +63,7 @@ contract TestTransferValidationZoneOfferer is
 
     event ValidateOrderDataHash(bytes32 dataHash);
 
-    receive() external payable {}
+    receive() external payable { }
 
     address internal _expectedOfferRecipient;
 
@@ -77,9 +77,11 @@ contract TestTransferValidationZoneOfferer is
     bool public called = false;
     uint256 public callCount = 0;
 
-    function authorizeOrder(
-        ZoneParameters calldata
-    ) public pure returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
         return this.authorizeOrder.selector;
     }
 
@@ -91,9 +93,11 @@ contract TestTransferValidationZoneOfferer is
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         // Validate the order.
 
         // Currently assumes that the balances of all tokens of addresses are
@@ -205,12 +209,22 @@ contract TestTransferValidationZoneOfferer is
      * @return ratifyOrderMagicValue The magic value to indicate things are OK.
      */
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata minimumReceived,
+        /* offer */
+        ReceivedItem[] calldata maximumSpent,
+        /* consideration */
+        bytes calldata context,
+        /* context */
+        bytes32[] calldata,
+        /* orderHashes */
         uint256 /* contractNonce */
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         // Ratify the order.
         // Check if Seaport is empty. This makes sure that we've transferred
         // all native token balance out of Seaport before we do the validation.
@@ -255,34 +269,37 @@ contract TestTransferValidationZoneOfferer is
         schemas[0].metadata = new bytes(0);
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
-        );
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
+        ReceivedItem[] memory receivedItems =
+            new ReceivedItem[](spentItems.length);
         for (uint256 i = 0; i < spentItems.length; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
-        return
-            ReceivedItem({
-                itemType: spentItem.itemType,
-                token: spentItem.token,
-                identifier: spentItem.identifier,
-                amount: spentItem.amount,
-                recipient: payable(address(this))
-            });
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
+        return ReceivedItem({
+            itemType: spentItem.itemType,
+            token: spentItem.token,
+            identifier: spentItem.identifier,
+            amount: spentItem.amount,
+            recipient: payable(address(this))
+        });
     }
 
-    function _assertValidReceivedItems(
-        ReceivedItem[] calldata receivedItems
-    ) internal view {
+    function _assertValidReceivedItems(ReceivedItem[] calldata receivedItems)
+        internal
+        view
+    {
         address recipient;
         ItemType itemType;
         ReceivedItem memory receivedItem;
@@ -303,16 +320,12 @@ contract TestTransferValidationZoneOfferer is
             } else if (itemType == ItemType.ERC20) {
                 // ERC20 Token
                 _assertERC20Transfer(
-                    receivedItem.amount,
-                    receivedItem.token,
-                    recipient
+                    receivedItem.amount, receivedItem.token, recipient
                 );
             } else if (itemType == ItemType.ERC721) {
                 // ERC721 Token
                 _assertERC721Transfer(
-                    receivedItem.identifier,
-                    receivedItem.token,
-                    recipient
+                    receivedItem.identifier, receivedItem.token, recipient
                 );
             } else if (itemType == ItemType.ERC1155) {
                 // ERC1155 Token
@@ -347,16 +360,12 @@ contract TestTransferValidationZoneOfferer is
             } else if (itemType == ItemType.ERC20) {
                 // ERC20 Token
                 _assertERC20Transfer(
-                    spentItem.amount,
-                    spentItem.token,
-                    expectedRecipient
+                    spentItem.amount, spentItem.token, expectedRecipient
                 );
             } else if (itemType == ItemType.ERC721) {
                 // ERC721 Token
                 _assertERC721Transfer(
-                    spentItem.identifier,
-                    spentItem.token,
-                    expectedRecipient
+                    spentItem.identifier, spentItem.token, expectedRecipient
                 );
             } else if (itemType == ItemType.ERC1155) {
                 // ERC1155 Token
@@ -396,9 +405,8 @@ contract TestTransferValidationZoneOfferer is
         // If the amount we read from the spent item or received item (the
         // expected transfer value) is greater than the balance of the expected
         // recipient, revert.
-        if (
-            expectedAmount > ERC20Interface(token).balanceOf(expectedRecipient)
-        ) {
+        if (expectedAmount > ERC20Interface(token).balanceOf(expectedRecipient))
+        {
             revert InvalidERC20Balance(
                 expectedAmount,
                 ERC20Interface(token).balanceOf(expectedRecipient),
@@ -436,15 +444,14 @@ contract TestTransferValidationZoneOfferer is
         // expected transfer value) is greater than the balance of the expected
         // recipient, revert.
         if (
-            expectedAmount >
-            ERC1155Interface(token).balanceOf(expectedRecipient, identifier)
+            expectedAmount
+                > ERC1155Interface(token)
+                    .balanceOf(expectedRecipient, identifier)
         ) {
             revert InvalidERC1155Balance(
                 expectedAmount,
-                ERC1155Interface(token).balanceOf(
-                    expectedRecipient,
-                    identifier
-                ),
+                ERC1155Interface(token)
+                    .balanceOf(expectedRecipient, identifier),
                 expectedRecipient,
                 token
             );
@@ -455,18 +462,15 @@ contract TestTransferValidationZoneOfferer is
         _expectedOfferRecipient = expectedOfferRecipient;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(ERC165, ContractOffererInterface, ZoneInterface)
         returns (bool)
     {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(ContractOffererInterface).interfaceId
+            || interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

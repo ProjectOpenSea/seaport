@@ -66,7 +66,7 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
     mapping(bytes32 => bytes32) public orderHashToGenerateOrderDataHash;
     mapping(bytes32 => bytes32) public orderHashToRatifyOrderDataHash;
 
-    receive() external payable {}
+    receive() external payable { }
 
     constructor(address seaport) {
         _SEAPORT = seaport;
@@ -80,7 +80,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
     function activate(
         address,
         SpentItem[] memory minimumReceived,
-        SpentItem[] memory /* maximumSpent */,
+        SpentItem[] memory,
+        /* maximumSpent */
         bytes calldata /* context */
     ) public payable {
         uint256 requiredEthBalance;
@@ -99,11 +100,7 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
                 ERC1155Interface token = ERC1155Interface(item.token);
 
                 token.safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    item.identifier,
-                    item.amount,
-                    ""
+                    msg.sender, address(this), item.identifier, item.amount, ""
                 );
 
                 token.setApprovalForAll(_SEAPORT, true);
@@ -139,9 +136,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         returns (SpentItem[] memory offer, ReceivedItem[] memory consideration)
     {
         {
-            (bool success, ) = payable(_SEAPORT).call{
-                value: address(this).balance
-            }("");
+            (bool success,) =
+                payable(_SEAPORT).call{ value: address(this).balance }("");
 
             if (!success) {
                 revert NativeTokenTransferFailed();
@@ -213,12 +209,22 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
      * @return ratifyOrderMagicValue The magic value to indicate things are OK.
      */
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata minimumReceived,
+        /* offer */
+        ReceivedItem[] calldata maximumSpent,
+        /* consideration */
+        bytes calldata context,
+        /* context */
+        bytes32[] calldata,
+        /* orderHashes */
         uint256 /* contractNonce */
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         // Ratify the order.
         {
             // Get the length of msg.data
@@ -287,34 +293,37 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         schemas[0].metadata = new bytes(0);
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
-        );
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
+        ReceivedItem[] memory receivedItems =
+            new ReceivedItem[](spentItems.length);
         for (uint256 i = 0; i < spentItems.length; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
-        return
-            ReceivedItem({
-                itemType: spentItem.itemType,
-                token: spentItem.token,
-                identifier: spentItem.identifier,
-                amount: spentItem.amount,
-                recipient: payable(address(this))
-            });
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
+        return ReceivedItem({
+            itemType: spentItem.itemType,
+            token: spentItem.token,
+            identifier: spentItem.identifier,
+            amount: spentItem.amount,
+            recipient: payable(address(this))
+        });
     }
 
-    function _assertValidReceivedItems(
-        ReceivedItem[] calldata receivedItems
-    ) internal view {
+    function _assertValidReceivedItems(ReceivedItem[] calldata receivedItems)
+        internal
+        view
+    {
         address recipient;
         ItemType itemType;
         ReceivedItem memory receivedItem;
@@ -335,16 +344,12 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             } else if (itemType == ItemType.ERC20) {
                 // ERC20 Token
                 _assertERC20Transfer(
-                    receivedItem.amount,
-                    receivedItem.token,
-                    recipient
+                    receivedItem.amount, receivedItem.token, recipient
                 );
             } else if (itemType == ItemType.ERC721) {
                 // ERC721 Token
                 _assertERC721Transfer(
-                    receivedItem.identifier,
-                    receivedItem.token,
-                    recipient
+                    receivedItem.identifier, receivedItem.token, recipient
                 );
             } else if (itemType == ItemType.ERC1155) {
                 // ERC1155 Token
@@ -379,16 +384,12 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
             } else if (itemType == ItemType.ERC20) {
                 // ERC20 Token
                 _assertERC20Transfer(
-                    spentItem.amount,
-                    spentItem.token,
-                    expectedRecipient
+                    spentItem.amount, spentItem.token, expectedRecipient
                 );
             } else if (itemType == ItemType.ERC721) {
                 // ERC721 Token
                 _assertERC721Transfer(
-                    spentItem.identifier,
-                    spentItem.token,
-                    expectedRecipient
+                    spentItem.identifier, spentItem.token, expectedRecipient
                 );
             } else if (itemType == ItemType.ERC1155) {
                 // ERC1155 Token
@@ -428,9 +429,8 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         // If the amount we read from the spent item or received item (the
         // expected transfer value) is greater than the balance of the expected
         // recipient, revert.
-        if (
-            expectedAmount > ERC20Interface(token).balanceOf(expectedRecipient)
-        ) {
+        if (expectedAmount > ERC20Interface(token).balanceOf(expectedRecipient))
+        {
             revert InvalidERC20Balance(
                 expectedAmount,
                 ERC20Interface(token).balanceOf(expectedRecipient),
@@ -468,15 +468,14 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         // expected transfer value) is greater than the balance of the expected
         // recipient, revert.
         if (
-            expectedAmount >
-            ERC1155Interface(token).balanceOf(expectedRecipient, identifier)
+            expectedAmount
+                > ERC1155Interface(token)
+                    .balanceOf(expectedRecipient, identifier)
         ) {
             revert InvalidERC1155Balance(
                 expectedAmount,
-                ERC1155Interface(token).balanceOf(
-                    expectedRecipient,
-                    identifier
-                ),
+                ERC1155Interface(token)
+                    .balanceOf(expectedRecipient, identifier),
                 expectedRecipient,
                 token
             );
@@ -487,9 +486,13 @@ contract TestCalldataHashContractOfferer is ContractOffererInterface {
         _expectedOfferRecipient = expectedOfferRecipient;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ContractOffererInterface) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ContractOffererInterface)
+        returns (bool)
+    {
         return interfaceId == type(ContractOffererInterface).interfaceId;
     }
 }

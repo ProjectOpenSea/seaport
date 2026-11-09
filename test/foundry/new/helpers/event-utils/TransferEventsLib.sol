@@ -79,14 +79,14 @@ library TransferEventsLib {
         if (itemType == ItemType.ERC721) {
             ReceivedItem memory item = execution.item;
 
-            return
-                ERC721TransferEvent(
+            return ERC721TransferEvent(
                     "ERC721",
                     item.token,
                     execution.offerer,
                     address(item.recipient),
                     item.identifier
-                ).serializeERC721TransferEvent(objectKey, valueKey);
+                )
+                .serializeERC721TransferEvent(objectKey, valueKey);
             // getTopicsHash(
             //     Transfer.selector, // topic0
             //     execution.offerer.toBytes32(), // topic1
@@ -138,10 +138,7 @@ library TransferEventsLib {
         string memory out;
         for (uint256 i; i < length; i++) {
             string memory _log = serializeTransferLog(
-                value[i],
-                obj,
-                string.concat("event", vm.toString(i)),
-                context
+                value[i], obj, string.concat("event", vm.toString(i)), context
             );
             uint256 len;
             assembly {
@@ -176,33 +173,35 @@ library TransferEventsLib {
         }
     }
 
-    function getERC20TransferEventHash(
-        Execution memory execution
-    ) internal pure returns (bytes32) {
+    function getERC20TransferEventHash(Execution memory execution)
+        internal
+        pure
+        returns (bytes32)
+    {
         ReceivedItem memory item = execution.item;
-        return
-            getEventHashWithTopics(
-                item.token, // emitter
-                Transfer.selector, // topic0
-                execution.offerer.toBytes32(), // topic1
-                toBytes32(item.recipient), // topic2
-                keccak256(abi.encode(item.amount)) // dataHash
-            );
+        return getEventHashWithTopics(
+            item.token, // emitter
+            Transfer.selector, // topic0
+            execution.offerer.toBytes32(), // topic1
+            toBytes32(item.recipient), // topic2
+            keccak256(abi.encode(item.amount)) // dataHash
+        );
     }
 
-    function getERC721TransferEventHash(
-        Execution memory execution
-    ) internal pure returns (bytes32) {
+    function getERC721TransferEventHash(Execution memory execution)
+        internal
+        pure
+        returns (bytes32)
+    {
         ReceivedItem memory item = execution.item;
-        return
-            getEventHashWithTopics(
-                item.token, // emitter
-                Transfer.selector, // topic0
-                execution.offerer.toBytes32(), // topic1
-                toBytes32(item.recipient), // topic2
-                bytes32(item.identifier), // topic3
-                keccak256("") // dataHash
-            );
+        return getEventHashWithTopics(
+            item.token, // emitter
+            Transfer.selector, // topic0
+            execution.offerer.toBytes32(), // topic1
+            toBytes32(item.recipient), // topic2
+            bytes32(item.identifier), // topic3
+            keccak256("") // dataHash
+        );
     }
 
     function getERC1155TransferEventHash(
@@ -210,25 +209,24 @@ library TransferEventsLib {
         FuzzTestContext memory context
     ) internal view returns (bytes32) {
         ReceivedItem memory item = execution.item;
-        return
-            getEventHashWithTopics(
-                item.token, // emitter
-                TransferSingle.selector, // topic0
-                _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
-                execution.offerer.toBytes32(), // topic2 = from
-                toBytes32(item.recipient), // topic3 = to
-                keccak256(abi.encode(item.identifier, item.amount)) // dataHash
-            );
+        return getEventHashWithTopics(
+            item.token, // emitter
+            TransferSingle.selector, // topic0
+            _getConduit(execution.conduitKey, context).toBytes32(), // topic1 = operator
+            execution.offerer.toBytes32(), // topic2 = from
+            toBytes32(item.recipient), // topic3 = to
+            keccak256(abi.encode(item.identifier, item.amount)) // dataHash
+        );
     }
 
-    function _getConduit(
-        bytes32 conduitKey,
-        FuzzTestContext memory context
-    ) internal view returns (address) {
+    function _getConduit(bytes32 conduitKey, FuzzTestContext memory context)
+        internal
+        view
+        returns (address)
+    {
         if (conduitKey == bytes32(0)) return address(context.seaport);
-        (address conduit, bool exists) = context.conduitController.getConduit(
-            conduitKey
-        );
+        (address conduit, bool exists) =
+            context.conduitController.getConduit(conduitKey);
         if (exists) return conduit;
         revert("TransferEventsLib: bad conduit key");
     }
@@ -247,28 +245,18 @@ function toBytes32(address a) pure returns (bytes32 b) {
  * @dev Low level helper.
  */
 library TransferEventsLibCasts {
-    function cast(
-        function(
-            MemoryPointer,
-            function(MemoryPointer, MemoryPointer)
-                internal
-                pure
-                returns (MemoryPointer),
-            MemoryPointer
-        ) internal pure returns (MemoryPointer) fnIn
-    )
+    function cast(function(MemoryPointer, function(MemoryPointer, MemoryPointer)
+                    internal
+                    pure returns (MemoryPointer), MemoryPointer)
+            internal
+            pure returns (MemoryPointer) fnIn)
         internal
         pure
-        returns (
-            function(
-                Execution[] memory,
-                function(Execution memory, FuzzTestContext memory)
-                    internal
-                    view
-                    returns (bytes32),
-                FuzzTestContext memory
-            ) internal pure returns (bytes32[] memory) fnOut
-        )
+        returns (function(Execution[] memory, function(Execution memory, FuzzTestContext memory)
+                        internal
+                        view returns (bytes32), FuzzTestContext memory)
+                internal
+                pure returns (bytes32[] memory) fnOut)
     {
         assembly {
             fnOut := fnIn

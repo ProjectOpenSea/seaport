@@ -17,8 +17,7 @@ import { Test } from "forge-std/Test.sol";
 contract NonMatchSelectorTest is Test {
     function testNonMatchSelectorMagicMaskAndInvalidErrorValue() public {
         assertEq(
-            NonMatchSelector_MagicMask + 1,
-            NonMatchSelector_InvalidErrorValue
+            NonMatchSelector_MagicMask + 1, NonMatchSelector_InvalidErrorValue
         );
     }
 
@@ -28,22 +27,19 @@ contract NonMatchSelectorTest is Test {
 
     function testSelectorMatchAdvancedOrders() public {
         _testSelector(
-            ConsiderationInterface.matchAdvancedOrders.selector,
-            false
+            ConsiderationInterface.matchAdvancedOrders.selector, false
         );
     }
 
     function testSelectorFulfillAvailableOrders() public {
         _testSelector(
-            ConsiderationInterface.fulfillAvailableOrders.selector,
-            true
+            ConsiderationInterface.fulfillAvailableOrders.selector, true
         );
     }
 
     function testSelectorFulfillAvailableAdvancedOrders() public {
         _testSelector(
-            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector,
-            true
+            ConsiderationInterface.fulfillAvailableAdvancedOrders.selector, true
         );
     }
 

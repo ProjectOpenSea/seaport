@@ -9,7 +9,7 @@ import {
 import { TestContractOfferer } from "./TestContractOfferer.sol";
 
 contract TestInvalidContractOffererRatifyOrder is TestContractOfferer {
-    constructor(address seaport) TestContractOfferer(seaport) {}
+    constructor(address seaport) TestContractOfferer(seaport) { }
 
     function ratifyOrder(
         SpentItem[] calldata,

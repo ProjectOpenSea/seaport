@@ -17,8 +17,10 @@ import {
     vm
 } from "./EventSerializer.sol";
 
-bytes32 constant Topic0_ERC20_ERC721_Transfer = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
-bytes32 constant Topic0_ERC1155_TransferSingle = 0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
+bytes32 constant Topic0_ERC20_ERC721_Transfer =
+    0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
+bytes32 constant Topic0_ERC1155_TransferSingle =
+    0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62;
 
 library ForgeEventsLib {
     using { ifTrue } for bytes32;
@@ -27,9 +29,11 @@ library ForgeEventsLib {
     /**
      * @dev Returns the hash of the event emitted by Forge.
      */
-    function getForgeEventHash(
-        Vm.Log memory log
-    ) internal pure returns (bytes32) {
+    function getForgeEventHash(Vm.Log memory log)
+        internal
+        pure
+        returns (bytes32)
+    {
         bytes32 topicsHash = getForgeTopicsHash(log);
         bytes32 dataHash = getDataHash(log);
         return getEventHash(log.emitter, topicsHash, dataHash);
@@ -38,9 +42,11 @@ library ForgeEventsLib {
     /**
      * @dev Returns the memory pointer for a given log.
      */
-    function toMemoryPointer(
-        Vm.Log memory log
-    ) internal pure returns (MemoryPointer ptr) {
+    function toMemoryPointer(Vm.Log memory log)
+        internal
+        pure
+        returns (MemoryPointer ptr)
+    {
         assembly {
             ptr := log
         }
@@ -70,16 +76,8 @@ library ForgeEventsLib {
     function reEmit(Vm.Log memory log) internal {
         MemoryPointer topics = toMemoryPointer(log).pptr();
         uint256 topicsCount = topics.readUint256();
-        (
-            bytes32 topic0,
-            ,
-            bytes32 topic1,
-            ,
-            bytes32 topic2,
-            ,
-            bytes32 topic3,
-
-        ) = getTopics(log);
+        (bytes32 topic0,, bytes32 topic1,, bytes32 topic2,, bytes32 topic3,) =
+            getTopics(log);
         MemoryPointer data = toMemoryPointer(log).pptrOffset(32);
         assembly {
             switch topicsCount
@@ -110,25 +108,22 @@ library ForgeEventsLib {
         string memory valueKey
     ) internal returns (string memory) {
         (
-            bytes32 topic0,
-            ,
-            bytes32 topic1,
-            ,
-            bytes32 topic2,
-            ,
+            bytes32 topic0,,
+            bytes32 topic1,,
+            bytes32 topic2,,
             bytes32 topic3,
             bool hasTopic3
         ) = getTopics(log);
         if (topic0 == Topic0_ERC20_ERC721_Transfer) {
             if (hasTopic3) {
-                return
-                    ERC721TransferEvent(
+                return ERC721TransferEvent(
                         "ERC721",
                         log.emitter,
                         address(uint160(uint256(topic1))),
                         address(uint160(uint256(topic2))),
                         uint256(topic3)
-                    ).serializeERC721TransferEvent(objectKey, valueKey);
+                    )
+                    .serializeERC721TransferEvent(objectKey, valueKey);
                 // getForgeTopicsHash(log),
                 // getDataHash(log),
                 // getForgeEventHash(log)
@@ -138,9 +133,8 @@ library ForgeEventsLib {
                 eventData.token = log.emitter;
                 eventData.from = address(uint160(uint256(topic1)));
                 eventData.to = address(uint160(uint256(topic2)));
-                eventData.amount = log.data.length >= 32
-                    ? abi.decode(log.data, (uint256))
-                    : 0;
+                eventData.amount =
+                    log.data.length >= 32 ? abi.decode(log.data, (uint256)) : 0;
                 if (log.data.length == 0) {
                     string memory obj = string.concat(objectKey, valueKey);
                     string memory finalJson = vm.serializeString(
@@ -160,10 +154,8 @@ library ForgeEventsLib {
             eventData.operator = address(uint160(uint256(topic1)));
             eventData.from = address(uint160(uint256(topic2)));
             eventData.to = address(uint160(uint256(topic3)));
-            (eventData.identifier, eventData.amount) = abi.decode(
-                log.data,
-                (uint256, uint256)
-            );
+            (eventData.identifier, eventData.amount) =
+                abi.decode(log.data, (uint256, uint256));
             // eventData.topicHash = getForgeTopicsHash(log);
             // eventData.dataHash = getDataHash(log);
             // eventData.eventHash = getForgeEventHash(log);
@@ -187,9 +179,7 @@ library ForgeEventsLib {
         string memory out;
         for (uint256 i; i < length; i++) {
             string memory _log = serializeTransferLog(
-                value[i],
-                obj,
-                string.concat("event", vm.toString(i))
+                value[i], obj, string.concat("event", vm.toString(i))
             );
             uint256 len;
             assembly {
@@ -205,9 +195,7 @@ library ForgeEventsLib {
     /**
      * @dev Gets the topics for a log.
      */
-    function getTopics(
-        Vm.Log memory log
-    )
+    function getTopics(Vm.Log memory log)
         internal
         pure
         returns (
@@ -239,9 +227,11 @@ library ForgeEventsLib {
     /**
      * @dev Gets the hash for a log's topics.
      */
-    function getForgeTopicsHash(
-        Vm.Log memory log
-    ) internal pure returns (bytes32 topicHash) {
+    function getForgeTopicsHash(Vm.Log memory log)
+        internal
+        pure
+        returns (bytes32 topicHash)
+    {
         // (
         //     bytes32 topic0,
         //     bool hasTopic0,

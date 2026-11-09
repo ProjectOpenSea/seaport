@@ -109,8 +109,7 @@ contract ConstantsTest is BaseConsiderationTest {
     {
         _test(
             MissingFulfillmentComponentOnAggregation_error_selector,
-            FulfillmentApplicationErrors
-                .MissingFulfillmentComponentOnAggregation
+            FulfillmentApplicationErrors.MissingFulfillmentComponentOnAggregation
                 .selector
         );
     }
@@ -120,8 +119,7 @@ contract ConstantsTest is BaseConsiderationTest {
     {
         _test(
             OfferAndConsiderationRequiredOnFulfillment_error_selector,
-            FulfillmentApplicationErrors
-                .OfferAndConsiderationRequiredOnFulfillment
+            FulfillmentApplicationErrors.OfferAndConsiderationRequiredOnFulfillment
                 .selector
         );
     }
@@ -131,8 +129,7 @@ contract ConstantsTest is BaseConsiderationTest {
     {
         _test(
             MismatchedOfferAndConsiderationComponents_error_selector,
-            FulfillmentApplicationErrors
-                .MismatchedFulfillmentOfferAndConsiderationComponents
+            FulfillmentApplicationErrors.MismatchedFulfillmentOfferAndConsiderationComponents
                 .selector
         );
     }
@@ -140,9 +137,8 @@ contract ConstantsTest is BaseConsiderationTest {
     function testInvalidFulfillmentComponentData_error_selector() public {
         _test(
             InvalidFulfillmentComponentData_error_selector,
-            FulfillmentApplicationErrors
-                .InvalidFulfillmentComponentData
-                .selector
+            FulfillmentApplicationErrors.InvalidFulfillmentComponentData
+            .selector
         );
     }
 
@@ -186,8 +182,7 @@ contract ConstantsTest is BaseConsiderationTest {
     {
         _test(
             ConsiderationCriteriaResolverOutOfRange_error_selector,
-            CriteriaResolutionErrors
-                .ConsiderationCriteriaResolverOutOfRange
+            CriteriaResolutionErrors.ConsiderationCriteriaResolverOutOfRange
                 .selector
         );
     }
@@ -321,9 +316,8 @@ contract ConstantsTest is BaseConsiderationTest {
     function testMissingOriginalConsiderationItems_error_selector() public {
         _test(
             MissingOriginalConsiderationItems_error_selector,
-            ConsiderationEventsAndErrors
-                .MissingOriginalConsiderationItems
-                .selector
+            ConsiderationEventsAndErrors.MissingOriginalConsiderationItems
+            .selector
         );
     }
 
@@ -344,18 +338,16 @@ contract ConstantsTest is BaseConsiderationTest {
     function testInsufficientNativeTokensSupplied_error_selector() public {
         _test(
             InsufficientNativeTokensSupplied_error_selector,
-            ConsiderationEventsAndErrors
-                .InsufficientNativeTokensSupplied
-                .selector
+            ConsiderationEventsAndErrors.InsufficientNativeTokensSupplied
+            .selector
         );
     }
 
     function testNativeTokenTransferGenericFailure_error_selector() public {
         _test(
             NativeTokenTransferGenericFailure_error_selector,
-            ConsiderationEventsAndErrors
-                .NativeTokenTransferGenericFailure
-                .selector
+            ConsiderationEventsAndErrors.NativeTokenTransferGenericFailure
+            .selector
         );
     }
 
@@ -404,8 +396,7 @@ contract ConstantsTest is BaseConsiderationTest {
     function testInvalidBasicOrderParameterEncoding_error_selector() public {
         _test(
             InvalidBasicOrderParameterEncoding_error_selector,
-            ConsiderationEventsAndErrors
-                .InvalidBasicOrderParameterEncoding
+            ConsiderationEventsAndErrors.InvalidBasicOrderParameterEncoding
                 .selector
         );
     }
@@ -429,8 +420,7 @@ contract ConstantsTest is BaseConsiderationTest {
     {
         _test(
             ConsiderationLengthNotEqualToTotalOriginal_error_selector,
-            ConsiderationEventsAndErrors
-                .ConsiderationLengthNotEqualToTotalOriginal
+            ConsiderationEventsAndErrors.ConsiderationLengthNotEqualToTotalOriginal
                 .selector
         );
     }
@@ -451,8 +441,7 @@ contract ConstantsTest is BaseConsiderationTest {
 
     function testRatifyOrder_selector() public {
         _test(
-            ratifyOrder_selector,
-            ContractOffererInterface.ratifyOrder.selector
+            ratifyOrder_selector, ContractOffererInterface.ratifyOrder.selector
         );
     }
 

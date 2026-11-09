@@ -77,14 +77,9 @@ library FuzzInscribers {
         // Get the order hash.
         bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
 
-        bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
-            orderHash,
-            seaport
-        );
-        bytes32 rawOrderStatus = vm.load(
-            address(seaport),
-            orderHashStorageSlot
-        );
+        bytes32 orderHashStorageSlot =
+            _getStorageSlotForOrderHash(orderHash, seaport);
+        bytes32 rawOrderStatus = vm.load(address(seaport), orderHashStorageSlot);
 
         // NOTE: This will permit putting an order in a 0x0...0101 state.
         //       In other words, it will allow you to inscribe an order as
@@ -102,9 +97,7 @@ library FuzzInscribers {
         vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
 
         // Get the fresh baked order status straight from Seaport.
-        (bool isValidatedOrganicValue, , , ) = seaport.getOrderStatus(
-            orderHash
-        );
+        (bool isValidatedOrganicValue,,,) = seaport.getOrderStatus(orderHash);
 
         if (isValidated != isValidatedOrganicValue) {
             revert("FuzzInscribers/inscribeOrderStatusValidated: Mismatch");
@@ -134,14 +127,9 @@ library FuzzInscribers {
         bool isCancelled,
         SeaportInterface seaport
     ) internal {
-        bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
-            orderHash,
-            seaport
-        );
-        bytes32 rawOrderStatus = vm.load(
-            address(seaport),
-            orderHashStorageSlot
-        );
+        bytes32 orderHashStorageSlot =
+            _getStorageSlotForOrderHash(orderHash, seaport);
+        bytes32 rawOrderStatus = vm.load(address(seaport), orderHashStorageSlot);
 
         // NOTE: This will not permit putting an order in a 0x0...0101 state. If
         //       An order that's validated is inscribed as cancelled, it will
@@ -161,21 +149,15 @@ library FuzzInscribers {
         vm.store(address(seaport), orderHashStorageSlot, rawOrderStatus);
 
         // Get the fresh baked order status straight from Seaport.
-        (
-            bool isValidatedOrganicValue,
-            bool isCancelledOrganicValue,
-            ,
-
-        ) = seaport.getOrderStatus(orderHash);
+        (bool isValidatedOrganicValue, bool isCancelledOrganicValue,,) =
+            seaport.getOrderStatus(orderHash);
 
         if (isCancelled != isCancelledOrganicValue) {
             revert("FuzzInscribers/inscribeOrderStatusCancelled: Mismatch");
         }
 
         if (isCancelledOrganicValue && isValidatedOrganicValue) {
-            revert(
-                "FuzzInscribers/inscribeOrderStatusCancelled: Invalid state"
-            );
+            revert("FuzzInscribers/inscribeOrderStatusCancelled: Invalid state");
         }
     }
 
@@ -194,14 +176,9 @@ library FuzzInscribers {
     ) internal {
         // Get the order hash, storage slot, and raw order status.
         bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
-        bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
-            orderHash,
-            seaport
-        );
-        bytes32 rawOrderStatus = vm.load(
-            address(seaport),
-            orderHashStorageSlot
-        );
+        bytes32 orderHashStorageSlot =
+            _getStorageSlotForOrderHash(orderHash, seaport);
+        bytes32 rawOrderStatus = vm.load(address(seaport), orderHashStorageSlot);
 
         // Convert the numerator to bytes.
         bytes32 numeratorBytes = bytes32(uint256(numerator));
@@ -235,14 +212,9 @@ library FuzzInscribers {
     ) internal {
         // Get the order hash, storage slot, and raw order status.
         bytes32 orderHash = order.getTipNeutralizedOrderHash(seaport);
-        bytes32 orderHashStorageSlot = _getStorageSlotForOrderHash(
-            orderHash,
-            seaport
-        );
-        bytes32 rawOrderStatus = vm.load(
-            address(seaport),
-            orderHashStorageSlot
-        );
+        bytes32 orderHashStorageSlot =
+            _getStorageSlotForOrderHash(orderHash, seaport);
+        bytes32 rawOrderStatus = vm.load(address(seaport), orderHashStorageSlot);
 
         // Convert the denominator to bytes.
         bytes32 denominatorBytes = bytes32(uint256(denominator));
@@ -275,16 +247,12 @@ library FuzzInscribers {
         SeaportInterface seaport
     ) internal {
         // Get the storage slot for the contract offerer's nonce.
-        bytes32 contractOffererNonceStorageSlot = _getStorageSlotForContractNonce(
-                contractOfferer,
-                seaport
-            );
+        bytes32 contractOffererNonceStorageSlot =
+            _getStorageSlotForContractNonce(contractOfferer, seaport);
 
         // Store the new nonce.
         vm.store(
-            address(seaport),
-            contractOffererNonceStorageSlot,
-            bytes32(nonce)
+            address(seaport), contractOffererNonceStorageSlot, bytes32(nonce)
         );
     }
 
@@ -302,10 +270,7 @@ library FuzzInscribers {
         SeaportInterface seaport
     ) internal {
         // Get the storage slot for the counter.
-        bytes32 counterStorageSlot = _getStorageSlotForCounter(
-            offerer,
-            seaport
-        );
+        bytes32 counterStorageSlot = _getStorageSlotForCounter(offerer, seaport);
 
         // Store the new counter.
         vm.store(address(seaport), counterStorageSlot, bytes32(counter));
@@ -317,24 +282,21 @@ library FuzzInscribers {
     ) private returns (bytes32) {
         vm.record();
         seaport.getOrderStatus(orderHash);
-        (bytes32[] memory readAccesses, ) = vm.accesses(address(seaport));
+        (bytes32[] memory readAccesses,) = vm.accesses(address(seaport));
 
         uint256 expectedReadAccessCount = 4;
 
-        string memory profile = vm.envOr(
-            "FOUNDRY_PROFILE",
-            string("optimized")
-        );
+        string memory profile = vm.envOr("FOUNDRY_PROFILE", string("optimized"));
 
         if (
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("optimized")) ||
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("test")) ||
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("lite")) ||
-            keccak256(abi.encodePacked(profile)) ==
-            keccak256(abi.encodePacked("reference"))
+            keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("optimized"))
+                || keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("test"))
+                || keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("lite"))
+                || keccak256(abi.encodePacked(profile))
+                    == keccak256(abi.encodePacked("reference"))
         ) {
             expectedReadAccessCount = 1;
         }
@@ -353,7 +315,7 @@ library FuzzInscribers {
     ) private returns (bytes32) {
         vm.record();
         seaport.getContractOffererNonce(contractOfferer);
-        (bytes32[] memory readAccesses, ) = vm.accesses(address(seaport));
+        (bytes32[] memory readAccesses,) = vm.accesses(address(seaport));
 
         require(readAccesses.length == 1, "Expected 1 read access.");
 
@@ -366,7 +328,7 @@ library FuzzInscribers {
     ) private returns (bytes32) {
         vm.record();
         seaport.getCounter(offerer);
-        (bytes32[] memory readAccesses, ) = vm.accesses(address(seaport));
+        (bytes32[] memory readAccesses,) = vm.accesses(address(seaport));
 
         require(readAccesses.length == 1, "Expected 1 read access.");
 

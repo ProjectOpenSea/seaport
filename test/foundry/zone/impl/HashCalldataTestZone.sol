@@ -12,13 +12,14 @@ contract HashCalldataTestZone is ZoneInterface {
     bytes32 public expectedZoneAuthorizeCalldataHash;
     bytes32 public expectedZoneValidateCalldataHash;
 
-    function authorizeOrder(
-        ZoneParameters calldata zoneParameters
-    ) public view returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata zoneParameters)
+        public
+        view
+        returns (bytes4)
+    {
         // Hash the zone parameters.
-        bytes32 _expectedZoneHash = bytes32(
-            keccak256(abi.encode(zoneParameters))
-        );
+        bytes32 _expectedZoneHash =
+            bytes32(keccak256(abi.encode(zoneParameters)));
 
         if (_expectedZoneHash != expectedZoneAuthorizeCalldataHash) {
             revert(
@@ -38,13 +39,14 @@ contract HashCalldataTestZone is ZoneInterface {
      *
      * @return validOrderMagicValue The validOrder magic value.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        returns (bytes4 validOrderMagicValue)
+    {
         // Hash the zone parameters.
-        bytes32 _expectedZoneHash = bytes32(
-            keccak256(abi.encode(zoneParameters))
-        );
+        bytes32 _expectedZoneHash =
+            bytes32(keccak256(abi.encode(zoneParameters)));
 
         if (_expectedZoneHash != expectedZoneValidateCalldataHash) {
             revert(
@@ -56,19 +58,19 @@ contract HashCalldataTestZone is ZoneInterface {
         return ZoneInterface.validateOrder.selector;
     }
 
-    function setExpectedAuthorizeCalldataHash(
-        bytes32 _expectedZoneAuthorizeCalldataHash
-    ) public {
+    function setExpectedAuthorizeCalldataHash(bytes32 _expectedZoneAuthorizeCalldataHash)
+        public
+    {
         expectedZoneAuthorizeCalldataHash = _expectedZoneAuthorizeCalldataHash;
     }
 
-    function setExpectedValidateCalldataHash(
-        bytes32 _expectedZoneValidateCalldataHash
-    ) public {
+    function setExpectedValidateCalldataHash(bytes32 _expectedZoneValidateCalldataHash)
+        public
+    {
         expectedZoneValidateCalldataHash = _expectedZoneValidateCalldataHash;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
     function getSeaportMetadata()
         external
@@ -96,9 +98,13 @@ contract HashCalldataTestZone is ZoneInterface {
         return this.onERC1155Received.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ZoneInterface) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ZoneInterface)
+        returns (bool)
+    {
         return interfaceId == type(ZoneInterface).interfaceId;
     }
 }

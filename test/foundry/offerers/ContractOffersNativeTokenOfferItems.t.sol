@@ -70,18 +70,19 @@ contract ContractOffersNativeTokenOfferItems is
         erc721 = new TestERC721();
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testEthForErc721(
-        FuzzArgs memory args
-    ) public validateInputs(args) {
+    function testEthForErc721(FuzzArgs memory args)
+        public
+        validateInputs(args)
+    {
         test(
             this.ethForErc721,
             Context({
@@ -96,9 +97,8 @@ contract ContractOffersNativeTokenOfferItems is
     }
 
     function ethForErc721(Context memory context) public stateless {
-        TestContractOffererNativeToken contractOfferer = new TestContractOffererNativeToken(
-                address(context.seaport)
-            );
+        TestContractOffererNativeToken contractOfferer =
+            new TestContractOffererNativeToken(address(context.seaport));
         vm.deal(address(contractOfferer), UINT256_MAX);
 
         test721_1.setApprovalForAll(address(contractOfferer), true);
@@ -122,8 +122,7 @@ contract ContractOffersNativeTokenOfferItems is
 
         addEthOfferItem(context.args.ethAmount);
         addErc721ConsiderationItem(
-            payable(address(contractOfferer)),
-            context.args.nftId
+            payable(address(contractOfferer)), context.args.nftId
         );
 
         OrderParameters memory orderParameters = OrderParameters(
@@ -140,30 +139,21 @@ contract ContractOffersNativeTokenOfferItems is
             considerationItems.length
         );
 
-        AdvancedOrder memory advancedOrder = AdvancedOrder(
-            orderParameters,
-            1,
-            1,
-            "",
-            ""
-        );
+        AdvancedOrder memory advancedOrder =
+            AdvancedOrder(orderParameters, 1, 1, "", "");
 
         uint256 originalBalance = address(this).balance;
 
-        context.seaport.fulfillAdvancedOrder(
-            advancedOrder,
-            new CriteriaResolver[](0),
-            bytes32(0),
-            address(0)
-        );
+        context.seaport
+            .fulfillAdvancedOrder(
+                advancedOrder, new CriteriaResolver[](0), bytes32(0), address(0)
+            );
 
         assertEq(
-            context.args.ethAmount,
-            address(this).balance - originalBalance
+            context.args.ethAmount, address(this).balance - originalBalance
         );
         assertEq(
-            address(contractOfferer),
-            test721_1.ownerOf(context.args.nftId)
+            address(contractOfferer), test721_1.ownerOf(context.args.nftId)
         );
     }
 }

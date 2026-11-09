@@ -47,11 +47,11 @@ contract BadOffererTest is BaseOrderTest, ZoneInteractionErrors {
         token1.mint(address(this), 100000);
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -201,15 +201,16 @@ contract BadOffererTest is BaseOrderTest, ZoneInteractionErrors {
                 vm.expectRevert();
             }
         }
-        context.seaport.fulfillAvailableAdvancedOrders({
-            advancedOrders: advancedOrders,
-            criteriaResolvers: resolvers,
-            offerFulfillments: offerComponentsArray,
-            considerationFulfillments: considerationComponentsArray,
-            fulfillerConduitKey: bytes32(0),
-            recipient: address(0),
-            maximumFulfilled: 2
-        });
+        context.seaport
+            .fulfillAvailableAdvancedOrders({
+                advancedOrders: advancedOrders,
+                criteriaResolvers: resolvers,
+                offerFulfillments: offerComponentsArray,
+                considerationFulfillments: considerationComponentsArray,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(0),
+                maximumFulfilled: 2
+            });
     }
 
     function configureFulfillmentComponents() internal {
@@ -231,9 +232,10 @@ contract BadOffererTest is BaseOrderTest, ZoneInteractionErrors {
         );
     }
 
-    function configureBadOffererOrder(
-        uint256 id
-    ) internal returns (AdvancedOrder memory advancedOrder) {
+    function configureBadOffererOrder(uint256 id)
+        internal
+        returns (AdvancedOrder memory advancedOrder)
+    {
         test721_1.mint(address(this), id);
 
         OfferItem[] memory offer = new OfferItem[](1);
@@ -275,9 +277,10 @@ contract BadOffererTest is BaseOrderTest, ZoneInteractionErrors {
         });
     }
 
-    function configureNormalOrder(
-        Context memory context
-    ) internal returns (AdvancedOrder memory advancedOrder) {
+    function configureNormalOrder(Context memory context)
+        internal
+        returns (AdvancedOrder memory advancedOrder)
+    {
         (address offerer, uint256 pkey) = makeAddrAndKey("normal offerer");
         vm.prank(offerer);
         test721_1.setApprovalForAll(address(context.seaport), true);

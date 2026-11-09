@@ -9,7 +9,7 @@ interface ImmutableCreate2Factory {
 }
 
 contract TransferHelperDeployer is Script {
-    function setUp() public {}
+    function setUp() public { }
 
     function run() public {
         vm.broadcast();

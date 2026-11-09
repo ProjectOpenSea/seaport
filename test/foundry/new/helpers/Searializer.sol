@@ -89,9 +89,7 @@ library Searializer {
         tojsonUint256(obj, "totalOrders", value.totalOrders);
         tojsonUint256(obj, "maxOfferItems", value.maxOfferItems);
         string memory finalJson = tojsonUint256(
-            obj,
-            "maxConsiderationItems",
-            value.maxConsiderationItems
+            obj, "maxConsiderationItems", value.maxConsiderationItems
         );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
@@ -123,11 +121,8 @@ library Searializer {
         tojsonAddress(obj, "token", value.token);
         tojsonUint256(obj, "identifierOrCriteria", value.identifierOrCriteria);
         tojsonUint256(obj, "startAmount", value.startAmount);
-        string memory finalJson = tojsonUint256(
-            obj,
-            "endAmount",
-            value.endAmount
-        );
+        string memory finalJson =
+            tojsonUint256(obj, "endAmount", value.endAmount);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -156,11 +151,8 @@ library Searializer {
         tojsonUint256(obj, "identifierOrCriteria", value.identifierOrCriteria);
         tojsonUint256(obj, "startAmount", value.startAmount);
         tojsonUint256(obj, "endAmount", value.endAmount);
-        string memory finalJson = tojsonAddress(
-            obj,
-            "recipient",
-            value.recipient
-        );
+        string memory finalJson =
+            tojsonAddress(obj, "recipient", value.recipient);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -204,9 +196,7 @@ library Searializer {
         tojsonAddress(obj, "zone", value.zone);
         tojsonDynArrayOfferItem(obj, "offer", value.offer);
         tojsonDynArrayConsiderationItem(
-            obj,
-            "consideration",
-            value.consideration
+            obj, "consideration", value.consideration
         );
         tojsonOrderType(obj, "orderType", value.orderType);
         tojsonUint256(obj, "startTime", value.startTime);
@@ -240,11 +230,7 @@ library Searializer {
         tojsonUint256(obj, "numerator", value.numerator);
         tojsonUint256(obj, "denominator", value.denominator);
         tojsonBytes(obj, "signature", value.signature);
-        string memory finalJson = tojsonBytes(
-            obj,
-            "extraData",
-            value.extraData
-        );
+        string memory finalJson = tojsonBytes(obj, "extraData", value.extraData);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -290,11 +276,8 @@ library Searializer {
         tojsonSide(obj, "side", value.side);
         tojsonUint256(obj, "index", value.index);
         tojsonUint256(obj, "identifier", value.identifier);
-        string memory finalJson = tojsonDynArrayBytes32(
-            obj,
-            "criteriaProof",
-            value.criteriaProof
-        );
+        string memory finalJson =
+            tojsonDynArrayBytes32(obj, "criteriaProof", value.criteriaProof);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -319,11 +302,8 @@ library Searializer {
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonUint256(obj, "orderIndex", value.orderIndex);
-        string memory finalJson = tojsonUint256(
-            obj,
-            "itemIndex",
-            value.itemIndex
-        );
+        string memory finalJson =
+            tojsonUint256(obj, "itemIndex", value.itemIndex);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -348,14 +328,10 @@ library Searializer {
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonDynArrayFulfillmentComponent(
-            obj,
-            "offerComponents",
-            value.offerComponents
+            obj, "offerComponents", value.offerComponents
         );
         string memory finalJson = tojsonDynArrayFulfillmentComponent(
-            obj,
-            "considerationComponents",
-            value.considerationComponents
+            obj, "considerationComponents", value.considerationComponents
         );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
@@ -384,9 +360,7 @@ library Searializer {
         string memory out;
         for (uint256 i; i < length; i++) {
             out = tojsonDynArrayFulfillmentComponent(
-                obj,
-                vm.toString(i),
-                value[i]
+                obj, vm.toString(i), value[i]
             );
         }
         return vm.serializeString(objectKey, valueKey, out);
@@ -434,11 +408,8 @@ library Searializer {
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonUint256(obj, "amount", value.amount);
-        string memory finalJson = tojsonAddress(
-            obj,
-            "recipient",
-            value.recipient
-        );
+        string memory finalJson =
+            tojsonAddress(obj, "recipient", value.recipient);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -464,9 +435,7 @@ library Searializer {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonAddress(obj, "considerationToken", value.considerationToken);
         tojsonUint256(
-            obj,
-            "considerationIdentifier",
-            value.considerationIdentifier
+            obj, "considerationIdentifier", value.considerationIdentifier
         );
         tojsonUint256(obj, "considerationAmount", value.considerationAmount);
         tojsonAddress(obj, "offerer", value.offerer);
@@ -487,15 +456,9 @@ library Searializer {
             value.totalOriginalAdditionalRecipients
         );
         tojsonDynArrayAdditionalRecipient(
-            obj,
-            "additionalRecipients",
-            value.additionalRecipients
+            obj, "additionalRecipients", value.additionalRecipients
         );
-        string memory finalJson = tojsonBytes(
-            obj,
-            "signature",
-            value.signature
-        );
+        string memory finalJson = tojsonBytes(obj, "signature", value.signature);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -547,10 +510,7 @@ library Searializer {
         Result value
     ) internal returns (string memory) {
         string[4] memory members = [
-            "FULFILLMENT",
-            "UNAVAILABLE",
-            "VALIDATE",
-            "CANCEL"
+            "FULFILLMENT", "UNAVAILABLE", "VALIDATE", "CANCEL"
         ];
         uint256 index = uint256(value);
         return vm.serializeString(objectKey, valueKey, members[index]);
@@ -580,11 +540,8 @@ library Searializer {
         tojsonAddress(obj, "token", value.token);
         tojsonUint256(obj, "identifier", value.identifier);
         tojsonUint256(obj, "amount", value.amount);
-        string memory finalJson = tojsonAddress(
-            obj,
-            "recipient",
-            value.recipient
-        );
+        string memory finalJson =
+            tojsonAddress(obj, "recipient", value.recipient);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -596,11 +553,8 @@ library Searializer {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonReceivedItem(obj, "item", value.item);
         tojsonAddress(obj, "offerer", value.offerer);
-        string memory finalJson = tojsonBytes32(
-            obj,
-            "conduitKey",
-            value.conduitKey
-        );
+        string memory finalJson =
+            tojsonBytes32(obj, "conduitKey", value.conduitKey);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -670,11 +624,8 @@ library Searializer {
         tojsonBool(obj, "cancelled", value.cancelled);
         tojsonBool(obj, "validated", value.validated);
         tojsonDynArrayBool(obj, "availableOrders", value.availableOrders);
-        string memory finalJson = tojsonDynArrayExecution(
-            obj,
-            "executions",
-            value.executions
-        );
+        string memory finalJson =
+            tojsonDynArrayExecution(obj, "executions", value.executions);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -687,34 +638,24 @@ library Searializer {
         tojsonBytes32(obj, "_action", value._action);
         tojsonAddress(obj, "seaport", address(value.seaport));
         tojsonAddress(
-            obj,
-            "conduitController",
-            address(value.conduitController)
+            obj, "conduitController", address(value.conduitController)
         );
         tojsonAddress(obj, "caller", value.executionState.caller);
         tojsonAddress(obj, "recipient", value.executionState.recipient);
         tojsonFuzzParams(obj, "fuzzParams", value.fuzzParams);
         tojsonDynArrayAdvancedOrder(obj, "orders", value.executionState.orders);
         tojsonDynArrayAdvancedOrder(
-            obj,
-            "previewedOrders",
-            value.executionState.previewedOrders
+            obj, "previewedOrders", value.executionState.previewedOrders
         );
         tojsonUint256(obj, "counter", value.executionState.counter);
         tojsonBytes32(
-            obj,
-            "fulfillerConduitKey",
-            value.executionState.fulfillerConduitKey
+            obj, "fulfillerConduitKey", value.executionState.fulfillerConduitKey
         );
         tojsonDynArrayCriteriaResolver(
-            obj,
-            "criteriaResolvers",
-            value.executionState.criteriaResolvers
+            obj, "criteriaResolvers", value.executionState.criteriaResolvers
         );
         tojsonDynArrayFulfillment(
-            obj,
-            "fulfillments",
-            value.executionState.fulfillments
+            obj, "fulfillments", value.executionState.fulfillments
         );
         tojsonDynArrayFulfillmentComponent(
             obj,
@@ -722,9 +663,7 @@ library Searializer {
             value.executionState.remainingOfferComponents
         );
         tojsonDynArrayDynArrayFulfillmentComponent(
-            obj,
-            "offerFulfillments",
-            value.executionState.offerFulfillments
+            obj, "offerFulfillments", value.executionState.offerFulfillments
         );
         tojsonDynArrayDynArrayFulfillmentComponent(
             obj,
@@ -732,9 +671,7 @@ library Searializer {
             value.executionState.considerationFulfillments
         );
         tojsonUint256(
-            obj,
-            "maximumFulfilled",
-            value.executionState.maximumFulfilled
+            obj, "maximumFulfilled", value.executionState.maximumFulfilled
         );
         tojsonBasicOrderParameters(
             obj,
@@ -759,9 +696,7 @@ library Searializer {
             value.expectations.expectedContractOrderCalldataHashes
         );
         tojsonDynArrayResult(
-            obj,
-            "expectedResults",
-            value.expectations.expectedResults
+            obj, "expectedResults", value.expectations.expectedResults
         );
         tojsonDynArrayExecution(
             obj,
@@ -794,11 +729,8 @@ library Searializer {
             value.expectations.expectedSeaportEventHashes
         );
         tojsonDynArrayLog(obj, "actualEvents", value.actualEvents);
-        string memory finalJson = tojsonReturnValues(
-            obj,
-            "returnValues",
-            value.returnValues
-        );
+        string memory finalJson =
+            tojsonReturnValues(obj, "returnValues", value.returnValues);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -851,11 +783,8 @@ library Searializer {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonAddress(obj, "token", value.token);
         tojsonDynArrayAddress(obj, "accounts", value.accounts);
-        string memory finalJson = tojsonDynArrayUint256(
-            obj,
-            "balances",
-            value.balances
-        );
+        string memory finalJson =
+            tojsonDynArrayUint256(obj, "balances", value.balances);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -882,9 +811,7 @@ library Searializer {
         tojsonAddress(obj, "token", value.token);
         tojsonDynArrayAddress(obj, "accounts", value.accounts);
         string memory finalJson = tojsonDynArrayDynArrayUint256(
-            obj,
-            "accountIdentifiers",
-            value.accountIdentifiers
+            obj, "accountIdentifiers", value.accountIdentifiers
         );
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
@@ -897,11 +824,8 @@ library Searializer {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonAddress(obj, "account", value.account);
         tojsonDynArrayUint256(obj, "identifiers", value.identifiers);
-        string memory finalJson = tojsonDynArrayUint256(
-            obj,
-            "balances",
-            value.balances
-        );
+        string memory finalJson =
+            tojsonDynArrayUint256(obj, "balances", value.balances);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -926,11 +850,8 @@ library Searializer {
     ) internal returns (string memory) {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonAddress(obj, "token", value.token);
-        string memory finalJson = tojsonDynArrayERC1155AccountDump(
-            obj,
-            "accounts",
-            value.accounts
-        );
+        string memory finalJson =
+            tojsonDynArrayERC1155AccountDump(obj, "accounts", value.accounts);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -984,11 +905,8 @@ library Searializer {
         string memory obj = string.concat(objectKey, valueKey);
         tojsonDynArrayERC20TokenDump(obj, "erc20", value.erc20);
         tojsonDynArrayERC721TokenDump(obj, "erc721", value.erc721);
-        string memory finalJson = tojsonDynArrayERC1155TokenDump(
-            obj,
-            "erc1155",
-            value.erc1155
-        );
+        string memory finalJson =
+            tojsonDynArrayERC1155TokenDump(obj, "erc1155", value.erc1155);
         return vm.serializeString(objectKey, valueKey, finalJson);
     }
 
@@ -1003,9 +921,7 @@ library Searializer {
         for (uint256 i; i < length; i++) {
             if (value[i].errors.length > 0) {
                 out = tojsonDynArrayValidationErrorMessages(
-                    obj,
-                    vm.toString(i),
-                    value[i].errors
+                    obj, vm.toString(i), value[i].errors
                 );
             }
         }

@@ -72,20 +72,17 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         OfferItem[] memory offerItems = new OfferItem[](2);
-        offerItems[0] = OfferItemLib
-            .empty()
+        offerItems[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withAmount(100);
 
-        offerItems[1] = OfferItemLib
-            .empty()
+        offerItems[1] = OfferItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withAmount(100);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
             .withStartTime(block.timestamp)
@@ -114,10 +111,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -130,15 +125,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         OfferItem[] memory offerItems = new OfferItem[](1);
-        offerItems[0] = OfferItemLib
-            .empty()
+        offerItems[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withStartAmount(500)
             .withEndAmount(1000);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
             .withStartTime(block.timestamp)
@@ -169,10 +162,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -185,15 +176,13 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
         OfferItem[] memory offerItems = new OfferItem[](1);
-        offerItems[0] = OfferItemLib
-            .empty()
+        offerItems[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withStartAmount(1000)
             .withEndAmount(500);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
             .withStartTime(block.timestamp)
@@ -224,10 +213,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -246,22 +233,19 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         );
 
         OfferItem[] memory offerItems = new OfferItem[](2);
-        offerItems[0] = OfferItemLib
-            .empty()
+        offerItems[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(1);
 
-        offerItems[1] = OfferItemLib
-            .empty()
+        offerItems[1] = OfferItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[1]))
             .withIdentifierOrCriteria(2)
             .withAmount(1);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
             .withStartTime(block.timestamp)
@@ -290,10 +274,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -314,22 +296,19 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         );
 
         OfferItem[] memory offerItems = new OfferItem[](2);
-        offerItems[0] = OfferItemLib
-            .empty()
+        offerItems[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC1155)
             .withToken(address(erc1155s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(100);
 
-        offerItems[1] = OfferItemLib
-            .empty()
+        offerItems[1] = OfferItemLib.empty()
             .withItemType(ItemType.ERC1155)
             .withToken(address(erc1155s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(100);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
             .withStartTime(block.timestamp)
@@ -358,10 +337,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -378,16 +355,14 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         );
 
         OfferItem[] memory offerItems = new OfferItem[](1);
-        offerItems[0] = OfferItemLib
-            .empty()
+        offerItems[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC1155)
             .withToken(address(erc1155s[0]))
             .withIdentifierOrCriteria(1)
             .withStartAmount(500)
             .withStartAmount(1000);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
             .withStartTime(block.timestamp)
@@ -418,10 +393,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpOfferItems(context);
 
@@ -435,23 +408,19 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         assertEq(erc20s[0].balanceOf(charlie.addr), 0);
         assertEq(erc20s[0].allowance(charlie.addr, address(getSeaport())), 0);
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            2
-        );
-        considerationItems[0] = ConsiderationItemLib
-            .empty()
+        ConsiderationItem[] memory considerationItems =
+            new ConsiderationItem[](2);
+        considerationItems[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withAmount(100);
 
-        considerationItems[1] = ConsiderationItemLib
-            .empty()
+        considerationItems[1] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withAmount(100);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withConsideration(considerationItems)
             .withStartTime(block.timestamp)
@@ -480,10 +449,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpConsiderationItems(context);
 
@@ -498,25 +465,21 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             false
         );
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            2
-        );
-        considerationItems[0] = ConsiderationItemLib
-            .empty()
+        ConsiderationItem[] memory considerationItems =
+            new ConsiderationItem[](2);
+        considerationItems[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(1);
 
-        considerationItems[1] = ConsiderationItemLib
-            .empty()
+        considerationItems[1] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(2)
             .withAmount(1);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withConsideration(considerationItems)
             .withStartTime(block.timestamp)
@@ -545,10 +508,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpConsiderationItems(context);
 
@@ -565,25 +526,21 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             erc1155s[0].isApprovedForAll(charlie.addr, address(getSeaport()))
         );
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            2
-        );
-        considerationItems[0] = ConsiderationItemLib
-            .empty()
+        ConsiderationItem[] memory considerationItems =
+            new ConsiderationItem[](2);
+        considerationItems[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC1155)
             .withToken(address(erc1155s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(100);
 
-        considerationItems[1] = ConsiderationItemLib
-            .empty()
+        considerationItems[1] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC1155)
             .withToken(address(erc1155s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(100);
 
-        OrderParameters memory orderParams = OrderParametersLib
-            .empty()
+        OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withConsideration(considerationItems)
             .withStartTime(block.timestamp)
@@ -612,10 +569,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         // Do some surgery on the context so that the setup function thinks
         // that the order is available and worth providing balance and approvals
         // for.
-        context
-            .executionState
-            .orderDetails[0]
-            .unavailableReason = UnavailableReason.AVAILABLE;
+        context.executionState.orderDetails[0].unavailableReason =
+        UnavailableReason.AVAILABLE;
 
         setUpConsiderationItems(context);
 

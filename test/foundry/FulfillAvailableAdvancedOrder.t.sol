@@ -56,14 +56,12 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     modifier validateInputs(FuzzInputs memory inputs) {
         vm.assume(inputs.amount > 0);
         vm.assume(
-            inputs.paymentAmts[0] > 0 &&
-                inputs.paymentAmts[1] > 0 &&
-                inputs.paymentAmts[2] > 0
+            inputs.paymentAmts[0] > 0 && inputs.paymentAmts[1] > 0
+                && inputs.paymentAmts[2] > 0
         );
         vm.assume(
-            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
-                inputs.paymentAmts[2]
-            ) <= 2 ** 128 - 1
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1])
+                .add(inputs.paymentAmts[2]) <= 2 ** 128 - 1
         );
         _;
     }
@@ -76,26 +74,25 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             inputs.denom = temp;
         }
         vm.assume(
-            inputs.paymentAmts[0].mul(inputs.denom) +
-                inputs.paymentAmts[1].mul(inputs.denom) +
-                inputs.paymentAmts[2].mul(inputs.denom) <=
-                2 ** 128 - 1
+            inputs.paymentAmts[0].mul(inputs.denom)
+                    + inputs.paymentAmts[1].mul(inputs.denom)
+                    + inputs.paymentAmts[2].mul(inputs.denom) <= 2 ** 128 - 1
         );
         _;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
-    function testNoNativeOffersFulfillAvailableAdvanced(
-        uint8[8] memory itemTypes
-    ) public {
+    function testNoNativeOffersFulfillAvailableAdvanced(uint8[8] memory itemTypes)
+        public
+    {
         uint256 tokenId;
         for (uint256 i; i < 8; i++) {
             ItemType itemType = ItemType(itemTypes[i] % 4);
@@ -128,20 +125,17 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function noNativeOfferItemsFulfillAvailableAdvanced(
-        Context memory context
-    ) external stateless {
+    function noNativeOfferItemsFulfillAvailableAdvanced(Context memory context)
+        external
+        stateless
+    {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
         configureOrderComponents(counter);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[1] = AdvancedOrder(baseOrderParameters, 1, 1, signature, "");
@@ -159,14 +153,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         configureOrderParameters(alice);
         counter = context.consideration.getCounter(alice);
         configureOrderComponents(counter);
-        bytes32 orderHash2 = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature2 = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash2
-        );
+        bytes32 orderHash2 =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature2 =
+            signOrder(context.consideration, alicePk, orderHash2);
         offerComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
@@ -229,42 +219,37 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 continue;
             }
             test(
-                this
-                    .fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts,
+                this.fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts,
                 Context(consideration, empty, ItemType(i))
             );
             test(
-                this
-                    .fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts,
+                this.fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts,
                 Context(referenceConsideration, empty, ItemType(i))
             );
         }
     }
 
-    function testFulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts(
-        FuzzInputs memory args
-    ) public validateInputs(args) {
+    function testFulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts(FuzzInputs memory args)
+        public
+        validateInputs(args)
+    {
         for (uint256 i; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
             }
             test(
-                this
-                    .fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
+                this.fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
                 Context(consideration, args, ItemType(i))
             );
             test(
-                this
-                    .fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
+                this.fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts,
                 Context(referenceConsideration, args, ItemType(i))
             );
         }
     }
 
-    function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
-        FuzzInputs memory args
-    )
+    function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(FuzzInputs memory args)
         public
         validateInputs(args)
         onlyPayable(args.zone)
@@ -273,20 +258,16 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         only1155Receiver(args.recipient)
     {
         test(
-            this
-                .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
+            this.fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
             Context(referenceConsideration, args, ItemType(0))
         );
         test(
-            this
-                .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
+            this.fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
             Context(consideration, args, ItemType(0))
         );
     }
 
-    function testPartialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
-        FuzzInputs memory args
-    )
+    function testPartialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(FuzzInputs memory args)
         public
         validateInputs(args)
         onlyPayable(args.zone)
@@ -296,20 +277,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         validateNumerDenom(args)
     {
         test(
-            this
-                .partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
+            this.partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
             Context(referenceConsideration, args, ItemType(0))
         );
         test(
-            this
-                .partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
+            this.partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
             Context(consideration, args, ItemType(0))
         );
     }
 
-    function fulfillAvailableAdvancedOrdersOverflow(
-        Context memory context
-    ) external stateless {
+    function fulfillAvailableAdvancedOrdersOverflow(Context memory context)
+        external
+        stateless
+    {
         test721_1.mint(alice, 1);
         addErc721OfferItem(1);
         addConsiderationItem(alice, context.itemType, 1, 100);
@@ -329,8 +309,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getCounter(alice)
+            orderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -361,8 +340,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters,
-            context.consideration.getCounter(bob)
+            secondOrderParameters, context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -372,18 +350,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
         advancedOrders[0] = AdvancedOrder(
-            orderParameters,
-            uint120(1),
-            uint120(1),
-            signature,
-            "0x"
+            orderParameters, uint120(1), uint120(1), signature, "0x"
         );
         advancedOrders[1] = AdvancedOrder(
-            secondOrderParameters,
-            uint120(1),
-            uint120(1),
-            secondSignature,
-            "0x"
+            secondOrderParameters, uint120(1), uint120(1), secondSignature, "0x"
         );
 
         offerComponents.push(FulfillmentComponent(0, 0));
@@ -413,9 +383,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersPanic(
-        Context memory context
-    ) external stateless {
+    function fulfillAvailableAdvancedOrdersPanic(Context memory context)
+        external
+        stateless
+    {
         test721_1.mint(alice, 1);
         addErc721OfferItem(1);
         addConsiderationItem(alice, context.itemType, 1, 100);
@@ -435,8 +406,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getCounter(alice)
+            orderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -468,8 +438,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters,
-            context.consideration.getCounter(bob)
+            secondOrderParameters, context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -479,18 +448,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
         advancedOrders[0] = AdvancedOrder(
-            orderParameters,
-            uint120(1),
-            uint120(1),
-            signature,
-            "0x"
+            orderParameters, uint120(1), uint120(1), signature, "0x"
         );
         advancedOrders[1] = AdvancedOrder(
-            secondOrderParameters,
-            uint120(1),
-            uint120(1),
-            secondSignature,
-            "0x"
+            secondOrderParameters, uint120(1), uint120(1), secondSignature, "0x"
         );
 
         offerComponents.push(FulfillmentComponent(0, 0));
@@ -521,9 +482,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts(
-        Context memory context
-    ) external stateless {
+    function fulfillAvailableAdvancedOrdersAggregateMissingOfferItemAmounts(Context memory context)
+        external
+        stateless
+    {
         // add zero-amount 1155 offer item
         addErc1155OfferItem(context.args.id, 0);
         addConsiderationItem(alice, context.itemType, 1, 100);
@@ -543,8 +505,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getCounter(alice)
+            orderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -573,8 +534,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters,
-            context.consideration.getCounter(bob)
+            secondOrderParameters, context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -584,18 +544,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
         advancedOrders[0] = AdvancedOrder(
-            orderParameters,
-            uint120(1),
-            uint120(1),
-            signature,
-            "0x"
+            orderParameters, uint120(1), uint120(1), signature, "0x"
         );
         advancedOrders[1] = AdvancedOrder(
-            secondOrderParameters,
-            uint120(1),
-            uint120(1),
-            secondSignature,
-            "0x"
+            secondOrderParameters, uint120(1), uint120(1), secondSignature, "0x"
         );
 
         offerComponents.push(FulfillmentComponent(0, 0));
@@ -625,19 +577,15 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts(
-        Context memory context
-    ) external stateless {
+    function fulfillAvailableAdvancedOrdersAggregateMissingConsiderationItemAmounts(Context memory context)
+        external
+        stateless
+    {
         // add zero-amount 1155 offer item
         addErc1155OfferItem(context.args.id, 100);
         if (context.itemType == ItemType.ERC721) {
             addConsiderationItem(
-                alice,
-                ItemType.ERC721,
-                address(test721_1),
-                0,
-                0,
-                0
+                alice, ItemType.ERC721, address(test721_1), 0, 0, 0
             );
         } else {
             addConsiderationItem(alice, context.itemType, 0, 0);
@@ -658,8 +606,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getCounter(alice)
+            orderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -688,8 +635,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            secondOrderParameters,
-            context.consideration.getCounter(bob)
+            secondOrderParameters, context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -699,18 +645,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
         advancedOrders[0] = AdvancedOrder(
-            orderParameters,
-            uint120(1),
-            uint120(1),
-            signature,
-            "0x"
+            orderParameters, uint120(1), uint120(1), signature, "0x"
         );
         advancedOrders[1] = AdvancedOrder(
-            secondOrderParameters,
-            uint120(1),
-            uint120(1),
-            secondSignature,
-            "0x"
+            secondOrderParameters, uint120(1), uint120(1), secondSignature, "0x"
         );
 
         offerComponents.push(FulfillmentComponent(0, 0));
@@ -740,12 +678,12 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.args.amount);
         offerItems.push(
@@ -759,12 +697,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
         considerationItems.push(
             ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                10,
-                10,
-                payable(alice)
+                ItemType.NATIVE, address(0), 0, 10, 10, payable(alice)
             )
         );
         considerationItems.push(
@@ -779,12 +712,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
         considerationItems.push(
             ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                10,
-                10,
-                payable(cal)
+                ItemType.NATIVE, address(0), 0, 10, 10, payable(cal)
             )
         );
         OrderComponents memory orderComponents = OrderComponents(
@@ -840,11 +768,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
         advancedOrders[0] = AdvancedOrder(
-            orderParameters,
-            uint120(1),
-            uint120(1),
-            signature,
-            "0x"
+            orderParameters, uint120(1), uint120(1), signature, "0x"
         );
 
         context.consideration.fulfillAvailableAdvancedOrders{ value: 30 }(
@@ -858,22 +782,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         assertEq(
-            test1155_1.balanceOf(bob, context.args.id),
-            context.args.amount
+            test1155_1.balanceOf(bob, context.args.id), context.args.amount
         );
     }
 
-    function partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(
-            alice,
-            context.args.id,
-            context.args.amount.mul(context.args.denom)
+            alice, context.args.id, context.args.amount.mul(context.args.denom)
         );
 
         offerItems.push(
@@ -977,9 +898,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         CriteriaResolver[] memory criteriaResolvers;
-        uint256 value = (context.args.paymentAmts[0] +
-            context.args.paymentAmts[1] +
-            context.args.paymentAmts[2]).mul(context.args.denom);
+        uint256 value = (context.args.paymentAmts[0]
+                + context.args.paymentAmts[1] + context.args.paymentAmts[2])
+        .mul(context.args.denom);
 
         context.consideration.fulfillAvailableAdvancedOrders{ value: value }(
             advancedOrders,
@@ -992,9 +913,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
-        (, , uint256 totalFilled, uint256 totalSize) = context
-            .consideration
-            .getOrderStatus(orderHash);
+        (,, uint256 totalFilled, uint256 totalSize) =
+            context.consideration.getOrderStatus(orderHash);
         assertEq(totalFilled, context.args.numer);
         assertEq(totalSize, context.args.denom);
     }
@@ -1010,9 +930,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function partialFulfillDenominatorOverflowEthToErc1155(
-        Context memory context
-    ) external stateless {
+    function partialFulfillDenominatorOverflowEthToErc1155(Context memory context)
+        external
+        stateless
+    {
         // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
@@ -1022,16 +943,12 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
         OrderComponents memory orderComponents = getOrderComponents(
-            baseOrderParameters,
-            context.consideration.getCounter(alice)
+            baseOrderParameters, context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         {
             (
@@ -1049,11 +966,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // Aggregate the orders in an AdvancedOrder array.
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = AdvancedOrder(
-            baseOrderParameters,
-            2 ** 118,
-            2 ** 119,
-            signature,
-            ""
+            baseOrderParameters, 2 ** 118, 2 ** 119, signature, ""
         );
         orders[1] = AdvancedOrder(baseOrderParameters, 1, 10, signature, "");
 
@@ -1110,9 +1023,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function partialFulfillDenominatorOverflowEthToErc1155NonAggregated(
-        Context memory context
-    ) external stateless {
+    function partialFulfillDenominatorOverflowEthToErc1155NonAggregated(Context memory context)
+        external
+        stateless
+    {
         // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
@@ -1122,16 +1036,12 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
         OrderComponents memory orderComponents = getOrderComponents(
-            baseOrderParameters,
-            context.consideration.getCounter(alice)
+            baseOrderParameters, context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         {
             (
@@ -1149,11 +1059,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // Aggregate the orders in an AdvancedOrder array.
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = AdvancedOrder(
-            baseOrderParameters,
-            2 ** 118,
-            2 ** 119,
-            signature,
-            ""
+            baseOrderParameters, 2 ** 118, 2 ** 119, signature, ""
         );
         orders[1] = AdvancedOrder(baseOrderParameters, 1, 10, signature, "");
 

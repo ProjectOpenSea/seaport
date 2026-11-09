@@ -84,5 +84,34 @@ test='test/foundry/offerers'
 line_length = 80
 tab_width = 4
 bracket_spacing = true
+int_types = "preserve"
+number_underscore = "preserve"
+quote_style = "double"
+prefer_compact = "none"
+# The deployed contracts keep their audited formatting, so their source stays
+# identical to what was verified onchain. Tests, scripts, mocks, and the
+# reference implementation are formatted.
+ignore = [
+    "contracts/Seaport.sol",
+    "contracts/conduit/**",
+    "contracts/helpers/**",
+    "contracts/interfaces/**",
+    "contracts/zones/**",
+]
+
+[lint]
+lint_on_build = false
+# Deployed contracts are frozen, so findings there can't be fixed. The mocks in
+# contracts/test are deliberately unsafe (reentrancy, unchecked transfers,
+# arbitrary calls) to exercise Seaport's defenses. CI runs
+# `forge lint --deny warnings` on everything else.
+ignore = [
+    "contracts/Seaport.sol",
+    "contracts/conduit/**",
+    "contracts/helpers/**",
+    "contracts/interfaces/**",
+    "contracts/zones/**",
+    "contracts/test/**",
+]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/crates/config

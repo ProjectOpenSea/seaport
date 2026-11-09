@@ -77,16 +77,14 @@ library FractionUtil {
 
         // Ensure fractional amounts are below max uint120.
         if (
-            filledNumerator > type(uint120).max ||
-            denominator > type(uint120).max
+            filledNumerator > type(uint120).max
+                || denominator > type(uint120).max
         ) {
             applyGcd = true;
 
             // Derive greatest common divisor using euclidean algorithm.
-            uint256 scaleDown = _gcd(
-                numerator,
-                _gcd(filledNumerator, denominator)
-            );
+            uint256 scaleDown =
+                _gcd(numerator, _gcd(filledNumerator, denominator));
 
             // Scale all fractional values down by gcd.
             numerator = numerator / scaleDown;
@@ -95,18 +93,17 @@ library FractionUtil {
         }
 
         if (denominator > type(uint120).max) {
-            return
-                FractionResults({
-                    realizedNumerator: 0,
-                    realizedDenominator: 0,
-                    finalFilledNumerator: 0,
-                    finalFilledDenominator: 0,
-                    originalStatusNumerator: currentStatusNumerator,
-                    originalStatusDenominator: currentStatusDenominator,
-                    requestedNumerator: numeratorToFill,
-                    requestedDenominator: denominatorToFill,
-                    status: FractionStatus.INVALID
-                });
+            return FractionResults({
+                realizedNumerator: 0,
+                realizedDenominator: 0,
+                finalFilledNumerator: 0,
+                finalFilledDenominator: 0,
+                originalStatusNumerator: currentStatusNumerator,
+                originalStatusDenominator: currentStatusDenominator,
+                requestedNumerator: numeratorToFill,
+                requestedDenominator: denominatorToFill,
+                status: FractionStatus.INVALID
+            });
         }
         FractionStatus status;
         if (partialFill && applyGcd) {
@@ -139,8 +136,8 @@ library FractionUtil {
 
         // Ensure fractional amounts are below max uint120.
         if (
-            filledNumerator > type(uint120).max ||
-            denominator > type(uint120).max
+            filledNumerator > type(uint120).max
+                || denominator > type(uint120).max
         ) {
             // Derive greatest common divisor using euclidean algorithm.
             uint256 scaleDown = _gcd(filledNumerator, denominator);
@@ -150,17 +147,16 @@ library FractionUtil {
             denominator = denominator / scaleDown;
         }
 
-        return
-            FractionResults({
-                realizedNumerator: realizedNumerator,
-                realizedDenominator: realizedDenominator,
-                finalFilledNumerator: uint120(filledNumerator),
-                finalFilledDenominator: uint120(denominator),
-                originalStatusNumerator: currentStatusNumerator,
-                originalStatusDenominator: currentStatusDenominator,
-                requestedNumerator: numeratorToFill,
-                requestedDenominator: denominatorToFill,
-                status: status
-            });
+        return FractionResults({
+            realizedNumerator: realizedNumerator,
+            realizedDenominator: realizedDenominator,
+            finalFilledNumerator: uint120(filledNumerator),
+            finalFilledDenominator: uint120(denominator),
+            originalStatusNumerator: currentStatusNumerator,
+            originalStatusDenominator: currentStatusDenominator,
+            requestedNumerator: numeratorToFill,
+            requestedDenominator: denominatorToFill,
+            status: status
+        });
     }
 }

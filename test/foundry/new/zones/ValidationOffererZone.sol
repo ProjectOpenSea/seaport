@@ -25,11 +25,13 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         expectedMaxSpentAmount = expectedMax;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
-    function authorizeOrder(
-        ZoneParameters calldata
-    ) public pure returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
         return this.authorizeOrder.selector;
     }
 
@@ -41,9 +43,12 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
      *
      * @return validOrderMagicValue The magic value to indicate things are OK.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         validate(zoneParameters.fulfiller, zoneParameters.offer);
 
         // Return the selector of validateOrder as the magic value.
@@ -87,46 +92,59 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         return (a, _convertSpentToReceived(b));
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
-        );
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
+        ReceivedItem[] memory receivedItems =
+            new ReceivedItem[](spentItems.length);
         for (uint256 i = 0; i < spentItems.length; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
-        return
-            ReceivedItem({
-                itemType: spentItem.itemType,
-                token: spentItem.token,
-                identifier: spentItem.identifier,
-                amount: spentItem.amount,
-                recipient: payable(address(this))
-            });
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
+        return ReceivedItem({
+            itemType: spentItem.itemType,
+            token: spentItem.token,
+            identifier: spentItem.identifier,
+            amount: spentItem.amount,
+            recipient: payable(address(this))
+        });
     }
 
     function ratifyOrder(
-        SpentItem[] calldata spentItems /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata spentItems,
+        /* offer */
+        ReceivedItem[] calldata,
+        /* consideration */
+        bytes calldata,
+        /* context */
+        bytes32[] calldata,
+        /* orderHashes */
         uint256 /* contractNonce */
-    ) external view override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        view
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         validate(address(0), spentItems);
         return ValidationOffererZone.ratifyOrder.selector;
     }
 
-    function validate(
-        address fulfiller,
-        SpentItem[] calldata offer
-    ) internal view {
+    function validate(address fulfiller, SpentItem[] calldata offer)
+        internal
+        view
+    {
         if (offer[0].amount > expectedMaxSpentAmount) {
             revert IncorrectSpentAmount(
                 fulfiller,
@@ -149,17 +167,14 @@ contract ValidationOffererZone is ContractOffererInterface, ZoneInterface {
         schemas[0].metadata = new bytes(0);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(ContractOffererInterface, ZoneInterface)
         returns (bool)
     {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            interfaceId == type(ZoneInterface).interfaceId;
+        return interfaceId == type(ContractOffererInterface).interfaceId
+            || interfaceId == type(ZoneInterface).interfaceId;
     }
 }

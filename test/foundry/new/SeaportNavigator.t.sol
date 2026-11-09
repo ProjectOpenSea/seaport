@@ -78,8 +78,7 @@ contract SeaportNavigatorTestSuite is
     function setUp() public override(BaseOrderTest, SeaportValidatorTest) {
         super.setUp();
 
-        OrderLib
-            .empty()
+        OrderLib.empty()
             .withParameters(
                 OrderComponentsLib.fromDefault(STANDARD).toOrderParameters()
             )
@@ -87,14 +86,14 @@ contract SeaportNavigatorTestSuite is
 
         // Set up and store order with single ERC721 offer item
         OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib
-            .empty()
+        offer[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(1)
             .withAmount(1);
-        OrderParameters memory parameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory parameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withStartTime(block.timestamp)
             .withEndTime(block.timestamp + 1)
             .toOrderParameters()
@@ -103,48 +102,44 @@ contract SeaportNavigatorTestSuite is
         OrderLib.empty().withParameters(parameters).saveDefault(SINGLE_ERC721);
 
         ConsiderationItem[] memory _consideration = new ConsiderationItem[](1);
-        _consideration[0] = ConsiderationItemLib
-            .empty()
+        _consideration[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withAmount(1);
-        parameters = OrderParametersLib
-            .fromDefault(SINGLE_ERC721)
+        parameters = OrderParametersLib.fromDefault(SINGLE_ERC721)
             .withConsideration(_consideration)
             .withTotalOriginalConsiderationItems(1);
-        OrderLib.empty().withParameters(parameters).saveDefault(
-            SINGLE_ERC721_SINGLE_ERC20
-        );
+        OrderLib.empty()
+            .withParameters(parameters)
+            .saveDefault(SINGLE_ERC721_SINGLE_ERC20);
 
-        offer[0] = OfferItemLib
-            .empty()
+        offer[0] = OfferItemLib.empty()
             .withItemType(ItemType.ERC721_WITH_CRITERIA)
             .withToken(address(erc721s[0]))
             .withAmount(1);
-        _consideration[0] = ConsiderationItemLib
-            .empty()
+        _consideration[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC721_WITH_CRITERIA)
             .withToken(address(erc721s[0]))
             .withAmount(1);
-        parameters = OrderParametersLib
-            .fromDefault(SINGLE_ERC721)
+        parameters = OrderParametersLib.fromDefault(SINGLE_ERC721)
             .withOffer(offer)
             .withConsideration(_consideration)
             .withTotalOriginalConsiderationItems(1);
         parameters.saveDefault(
             SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
         );
-        OrderLib.empty().withParameters(parameters).saveDefault(
-            SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
-        );
+        OrderLib.empty()
+            .withParameters(parameters)
+            .saveDefault(
+                SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
+            );
     }
 
     function test_basicOrder() public {
-        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
-            1
-        );
-        AdvancedOrder memory advancedOrder = OrderLib
-            .fromDefault(SINGLE_ERC721_SINGLE_ERC20)
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](1);
+        AdvancedOrder memory advancedOrder = OrderLib.fromDefault(
+                SINGLE_ERC721_SINGLE_ERC20
+            )
             .toAdvancedOrder(1, 1, "");
         orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
@@ -178,19 +173,15 @@ contract SeaportNavigatorTestSuite is
             res.suggestedCallData,
             abi.encodeCall(
                 ConsiderationInterface.fulfillBasicOrder_efficient_6GL6yc,
-                (
-                    advancedOrder.toBasicOrderParameters(
+                (advancedOrder.toBasicOrderParameters(
                         advancedOrder.getBasicOrderType()
-                    )
-                )
+                    ))
             ),
             "unexpected suggested calldata"
         );
 
         assertEq(
-            res.validationErrors.length,
-            1,
-            "unexpected validationErrors length"
+            res.validationErrors.length, 1, "unexpected validationErrors length"
         );
         assertEq(
             res.validationErrors[0].errors.length,
@@ -253,12 +244,9 @@ contract SeaportNavigatorTestSuite is
     }
 
     function test_simpleOrder() public {
-        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
-            1
-        );
-        AdvancedOrder memory advancedOrder = OrderLib
-            .fromDefault(SINGLE_ERC721)
-            .toAdvancedOrder(1, 1, "");
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](1);
+        AdvancedOrder memory advancedOrder =
+            OrderLib.fromDefault(SINGLE_ERC721).toAdvancedOrder(1, 1, "");
         orders[0] = NavigatorAdvancedOrderLib.fromAdvancedOrder(advancedOrder);
 
         FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({
@@ -296,9 +284,7 @@ contract SeaportNavigatorTestSuite is
             "unexpected suggested calldata"
         );
         assertEq(
-            res.validationErrors.length,
-            1,
-            "unexpected validationErrors length"
+            res.validationErrors.length, 1, "unexpected validationErrors length"
         );
         assertEq(
             res.validationErrors[0].errors.length,
@@ -360,16 +346,11 @@ contract SeaportNavigatorTestSuite is
     }
 
     function test_simpleOrderWithNativeReturned() public {
-        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
-            1
-        );
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](1);
 
         Order memory order = OrderLib.fromDefault(SINGLE_ERC721).copy();
-        AdvancedOrder memory advancedOrder = order.toAdvancedOrder(
-            1,
-            1,
-            "dummy"
-        );
+        AdvancedOrder memory advancedOrder =
+            order.toAdvancedOrder(1, 1, "dummy");
 
         address offerer = offerer1.addr;
         OfferItem memory item = advancedOrder.parameters.offer[0];
@@ -378,22 +359,19 @@ contract SeaportNavigatorTestSuite is
         TestERC721(item.token).setApprovalForAll(address(seaport), true);
 
         ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib
-            .empty()
+        consideration[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.NATIVE)
             .withToken(address(0))
             .withAmount(1 ether)
             .withRecipient(offerer);
 
-        advancedOrder.parameters = advancedOrder
-            .parameters
+        advancedOrder.parameters = advancedOrder.parameters
             .withTotalConsideration(consideration)
             .withOfferer(offerer);
 
         uint256 counter = getSeaport().getCounter(offerer1.addr);
-        bytes32 orderHash = getSeaport().getOrderHash(
-            advancedOrder.parameters.toOrderComponents(counter)
-        );
+        bytes32 orderHash = getSeaport()
+            .getOrderHash(advancedOrder.parameters.toOrderComponents(counter));
         advancedOrder = advancedOrder.withSignature(
             signOrder(getSeaport(), offerer1.key, orderHash)
         );
@@ -443,8 +421,8 @@ contract SeaportNavigatorTestSuite is
         );
 
         if (
-            keccak256(bytes(vm.envOr("FOUNDRY_PROFILE", string("test")))) !=
-            keccak256(bytes(string("reference")))
+            keccak256(bytes(vm.envOr("FOUNDRY_PROFILE", string("test"))))
+                != keccak256(bytes(string("reference")))
         ) {
             assertEq(
                 res.validationErrors.length,
@@ -517,11 +495,8 @@ contract SeaportNavigatorTestSuite is
     }
 
     function test_inferredCriteria() public {
-        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
-            1
-        );
-        AdvancedOrder memory advancedOrder = OrderLib
-            .fromDefault(
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](1);
+        AdvancedOrder memory advancedOrder = OrderLib.fromDefault(
                 SINGLE_ERC721_WITH_CRITERIA_SINGLE_ERC721_WITH_CRITERIA
             )
             .toAdvancedOrder(1, 1, "");
@@ -538,10 +513,8 @@ contract SeaportNavigatorTestSuite is
         considerationIds[0] = 4;
         considerationIds[1] = 5;
         considerationIds[2] = 6;
-        orders[0]
-            .parameters
-            .consideration[0]
-            .candidateIdentifiers = considerationIds;
+        orders[0].parameters.consideration[0].candidateIdentifiers =
+        considerationIds;
         orders[0].parameters.consideration[0].identifier = 4;
 
         FulfillmentStrategy memory fulfillmentStrategy = FulfillmentStrategy({

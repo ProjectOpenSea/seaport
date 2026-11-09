@@ -9,15 +9,20 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract TestZone is ERC165, ZoneInterface {
-    function authorizeOrder(
-        ZoneParameters calldata
-    ) public pure returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
         return this.authorizeOrder.selector;
     }
 
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external pure override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        pure
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         if (zoneParameters.extraData.length == 0) {
             if (zoneParameters.zoneHash == bytes32(uint256(1))) {
                 revert("Revert on zone hash 1");
@@ -33,13 +38,11 @@ contract TestZone is ERC165, ZoneInterface {
                 revert(0, 0)
             }
         } else if (
-            zoneParameters.extraData.length > 32 &&
-            zoneParameters.extraData.length % 32 == 0
+            zoneParameters.extraData.length > 32
+                && zoneParameters.extraData.length % 32 == 0
         ) {
-            bytes32[] memory expectedOrderHashes = abi.decode(
-                zoneParameters.extraData,
-                (bytes32[])
-            );
+            bytes32[] memory expectedOrderHashes =
+                abi.decode(zoneParameters.extraData, (bytes32[]));
 
             uint256 expectedLength = expectedOrderHashes.length;
 
@@ -78,11 +81,13 @@ contract TestZone is ERC165, ZoneInterface {
         return ("TestZone", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

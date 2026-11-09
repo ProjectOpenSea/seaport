@@ -45,10 +45,11 @@ contract BaseSeaportTest is DifferentialTest {
     ConsiderationInterface referenceSeaport;
     ConsiderationInterface seaport;
 
-    function stringEq(
-        string memory a,
-        string memory b
-    ) internal pure returns (bool) {
+    function stringEq(string memory a, string memory b)
+        internal
+        pure
+        returns (bool)
+    {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
@@ -76,8 +77,7 @@ contract BaseSeaportTest is DifferentialTest {
         setLabel(address(seaport), "seaport");
         setLabel(address(conduit), "conduit");
         setLabel(
-            address(referenceConduitController),
-            "referenceConduitController"
+            address(referenceConduitController), "referenceConduitController"
         );
         setLabel(address(referenceSeaport), "referenceSeaport");
         setLabel(address(referenceConduit), "referenceConduit");
@@ -138,9 +138,7 @@ contract BaseSeaportTest is DifferentialTest {
             conduitController.createConduit(conduitKey, address(this))
         );
         conduitController.updateChannel(
-            address(conduit),
-            address(seaport),
-            true
+            address(conduit), address(seaport), true
         );
     }
 
@@ -172,9 +170,7 @@ contract BaseSeaportTest is DifferentialTest {
             referenceConduitController.createConduit(conduitKey, address(this))
         );
         referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(referenceSeaport),
-            true
+            address(referenceConduit), address(referenceSeaport), true
         );
     }
 
@@ -184,9 +180,7 @@ contract BaseSeaportTest is DifferentialTest {
         bytes32 _orderHash
     ) internal view returns (bytes memory) {
         (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
-            _consideration,
-            _pkOfSigner,
-            _orderHash
+            _consideration, _pkOfSigner, _orderHash
         );
         return abi.encodePacked(r, s, v);
     }
@@ -196,7 +190,7 @@ contract BaseSeaportTest is DifferentialTest {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal view returns (bytes32, bytes32, uint8) {
-        (, bytes32 domainSeparator, ) = _consideration.information();
+        (, bytes32 domainSeparator,) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(

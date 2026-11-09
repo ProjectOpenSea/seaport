@@ -24,9 +24,7 @@ contract FuzzMainTest is FuzzEngine {
                 totalOrders: bound(orders, 1, 10),
                 maxOfferItems: bound(maxOfferItemsPerOrder, 0, 10),
                 maxConsiderationItems: bound(
-                    maxConsiderationItemsPerOrder,
-                    0,
-                    10
+                    maxConsiderationItemsPerOrder, 0, 10
                 ),
                 seedInput: abi.encodePacked(
                     seed,
