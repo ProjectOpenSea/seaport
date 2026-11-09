@@ -179,8 +179,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             bytes32(0),
             0,
             bytes32(0),
@@ -208,8 +208,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             bytes32(0),
             0,
             bytes32(0),
@@ -240,8 +240,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             bytes32(0),
             0,
             bytes32(0),
@@ -327,8 +327,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             bytes32(0),
             0,
             bytes32(0),
@@ -357,8 +357,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             bytes32(0),
             0,
             bytes32(0),
@@ -387,8 +387,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             bytes32(0),
             0,
             bytes32(0),
@@ -491,8 +491,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -537,8 +537,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             mirrorOfferItems,
             mirrorConsiderationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -616,7 +616,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         addConsiderationItem(alice, ItemType.ERC1155, context.args.id, 20);
 
-        uint256 startTime = block.timestamp;
+        uint256 startTime = vm.getBlockTimestamp();
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             context.args.zone,
@@ -759,7 +759,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             alice, context.args.baseStart.mul(20), context.args.baseEnd.mul(20)
         );
 
-        uint256 startTime = block.timestamp;
+        uint256 startTime = vm.getBlockTimestamp();
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             context.args.zone,
@@ -816,8 +816,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,

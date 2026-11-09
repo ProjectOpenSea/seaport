@@ -196,8 +196,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -219,8 +219,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         AdvancedOrder memory advancedOrder =
             AdvancedOrder(orderParameters, 1, 2, signature, "");
 
-        uint256 startTime = block.timestamp;
-        vm.warp(block.timestamp + context.warpAmount);
+        uint256 startTime = vm.getBlockTimestamp();
+        vm.warp(vm.getBlockTimestamp() + context.warpAmount);
         // calculate current amount of order based on warpAmount, round down since it's an offer
         // and divide by two to fulfill half of the order
         uint256 currentAmount = _locateCurrentAmount(
@@ -295,8 +295,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -319,7 +319,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             AdvancedOrder(orderParameters, 1, 2, signature, "");
 
         // set blockTimestamp to right before endTime and set insufficient value for transaction
-        vm.warp(block.timestamp + 999);
+        vm.warp(vm.getBlockTimestamp() + 999);
         vm.expectRevert(
             ConsiderationEventsAndErrors.InsufficientNativeTokensSupplied
             .selector
@@ -388,8 +388,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -405,8 +405,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,

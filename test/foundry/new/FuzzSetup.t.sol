@@ -85,8 +85,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -134,8 +134,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1000);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1000);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -145,7 +145,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        vm.warp(block.timestamp + 500);
+        vm.warp(vm.getBlockTimestamp() + 500);
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
@@ -185,8 +185,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1000);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1000);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -196,7 +196,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        vm.warp(block.timestamp + 500);
+        vm.warp(vm.getBlockTimestamp() + 500);
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
@@ -248,8 +248,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -311,8 +311,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -365,8 +365,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withOffer(offerItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1000);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1000);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -376,7 +376,7 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
             extraData: bytes("")
         });
 
-        vm.warp(block.timestamp + 500);
+        vm.warp(vm.getBlockTimestamp() + 500);
 
         FuzzTestContext memory context = FuzzTestContextLib.from({
             orders: orders,
@@ -423,8 +423,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withConsideration(considerationItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -482,8 +482,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withConsideration(considerationItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -543,8 +543,8 @@ contract FuzzSetupTest is BaseOrderTest, FuzzSetup {
         OrderParameters memory orderParams = OrderParametersLib.empty()
             .withOfferer(charlie.addr)
             .withConsideration(considerationItems)
-            .withStartTime(block.timestamp)
-            .withEndTime(block.timestamp + 1);
+            .withStartTime(vm.getBlockTimestamp())
+            .withEndTime(vm.getBlockTimestamp() + 1);
         Order memory order = OrderLib.empty().withParameters(orderParams);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
