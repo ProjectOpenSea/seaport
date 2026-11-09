@@ -99,4 +99,4 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 
 ## Seaport 1.5 only
 
-Gnosis, Gnosis Chiado, Celo, Moonbeam, Moonriver, and Fantom (now Sonic) have Seaport 1.5 and the ConduitController but not Seaport 1.6.
+Gnosis, Gnosis Chiado, Celo, Moonbeam, Moonriver, and Fantom Opera (chain ID 250) have Seaport 1.5 and the ConduitController but not Seaport 1.6.
