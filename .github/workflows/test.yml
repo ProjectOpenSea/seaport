@@ -105,8 +105,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   # Compiles the reference (via_ir = false) and optimized (via_ir = true)
-  # profiles once and caches them. The Forge test jobs load these precompiled
-  # artifacts instead of each spending several minutes rebuilding them.
+  # profiles once and caches them. The Forge test jobs restore that cache
+  # instead of each spending several minutes rebuilding, and rebuild only if
+  # the cache is unavailable.
   forge-build:
     name: Build Forge Artifacts
     runs-on: ubuntu-latest
@@ -130,24 +131,10 @@ jobs:
           submodules=$(git submodule status --recursive | sha256sum | cut -c1-16)
           echo "cache-key=forge-precompiled-${{ env.FOUNDRY_VERSION }}-${{ hashFiles('foundry.toml', 'contracts/**', 'reference/**') }}-${submodules}" >> "$GITHUB_OUTPUT"
 
-      - name: Restore precompiled artifacts
-        id: cache
-        uses: actions/cache@v6
+      - uses: ./.github/actions/forge-precompile
         with:
-          path: |
-            reference-out
-            reference-cache
-            optimized-out
-            optimized-cache
-          key: ${{ steps.key.outputs.cache-key }}
-
-      - name: Precompile reference using 0.8.24 and via-ir=false
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: FOUNDRY_PROFILE=reference forge build
-
-      - name: Precompile optimized using 0.8.24 and via-ir=true
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: FOUNDRY_PROFILE=optimized forge build
+          cache-key: ${{ steps.key.outputs.cache-key }}
+          save: "true"
 
   forge:
     name: Run Forge Tests (via_ir = true)
@@ -163,16 +150,9 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Restore precompiled artifacts
-        uses: actions/cache/restore@v6
+      - uses: ./.github/actions/forge-precompile
         with:
-          path: |
-            reference-out
-            reference-cache
-            optimized-out
-            optimized-cache
-          key: ${{ needs.forge-build.outputs.cache-key }}
-          fail-on-cache-miss: true
+          cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Check the build matches deployed Seaport 1.6
         run: FOUNDRY_PROFILE=test forge test --match-path test/foundry/DeployedBytecode.t.sol -vvv
@@ -194,16 +174,9 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Restore precompiled artifacts
-        uses: actions/cache/restore@v6
+      - uses: ./.github/actions/forge-precompile
         with:
-          path: |
-            reference-out
-            reference-cache
-            optimized-out
-            optimized-cache
-          key: ${{ needs.forge-build.outputs.cache-key }}
-          fail-on-cache-miss: true
+          cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run reference tests
         run: FOUNDRY_PROFILE=reference MOAT_PROFILE=reference forge test -vvv
@@ -222,16 +195,9 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Restore precompiled artifacts
-        uses: actions/cache/restore@v6
+      - uses: ./.github/actions/forge-precompile
         with:
-          path: |
-            reference-out
-            reference-cache
-            optimized-out
-            optimized-cache
-          key: ${{ needs.forge-build.outputs.cache-key }}
-          fail-on-cache-miss: true
+          cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run tests
         run: FOUNDRY_PROFILE=offerers forge test -vvv
@@ -250,16 +216,9 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Restore precompiled artifacts
-        uses: actions/cache/restore@v6
+      - uses: ./.github/actions/forge-precompile
         with:
-          path: |
-            reference-out
-            reference-cache
-            optimized-out
-            optimized-cache
-          key: ${{ needs.forge-build.outputs.cache-key }}
-          fail-on-cache-miss: true
+          cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run coverage with lcov output
         run: FOUNDRY_PROFILE=default SEAPORT_COVERAGE=true forge coverage --report lcov
