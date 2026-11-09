@@ -64,6 +64,21 @@ jobs:
       - name: Check formatting and lint with Biome
         run: yarn biome ci .
 
+      - name: Check TOML formatting
+        run: yarn taplo fmt --check
+
+      - name: Lint shell scripts
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/shfmt" "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
+          chmod +x "$RUNNER_TEMP/shfmt"
+          shellcheck templates/*.sh scripts/*.sh
+          "$RUNNER_TEMP/shfmt" -d templates/*.sh scripts/*.sh
+        env:
+          SHFMT_VERSION: v3.14.1
+
+      - name: Lint workflows
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -171,10 +186,14 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Check the build matches deployed Seaport 1.6
-        run: FOUNDRY_PROFILE=test forge test --match-path test/foundry/DeployedBytecode.t.sol -vvv
+        env:
+          FOUNDRY_PROFILE: test
+        run: forge test --match-path test/foundry/DeployedBytecode.t.sol -vvv
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=test forge test -vvv
+        env:
+          FOUNDRY_PROFILE: test
+        run: forge test -vvv
 
   forge-ref:
     name: Run Forge Reference Tests (via_ir = false)
@@ -195,7 +214,10 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run reference tests
-        run: FOUNDRY_PROFILE=reference MOAT_PROFILE=reference forge test -vvv
+        env:
+          FOUNDRY_PROFILE: reference
+          MOAT_PROFILE: reference
+        run: forge test -vvv
 
   forge-offerers:
     name: Run Contract Offerer Forge Tests (via_ir = false)
@@ -216,7 +238,9 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=offerers forge test -vvv
+        env:
+          FOUNDRY_PROFILE: offerers
+        run: forge test -vvv
 
   forge-coverage:
     name: Run Forge Coverage report on tests
@@ -237,7 +261,10 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run coverage with lcov output
-        run: FOUNDRY_PROFILE=default SEAPORT_COVERAGE=true forge coverage --report lcov
+        env:
+          FOUNDRY_PROFILE: default
+          SEAPORT_COVERAGE: true
+        run: forge coverage --report lcov
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:

@@ -30,12 +30,16 @@ runs:
     - name: Precompile reference using 0.8.24 and via-ir=false
       if: steps.restore.outputs.cache-hit != 'true'
       shell: bash
-      run: FOUNDRY_PROFILE=reference forge build
+      env:
+        FOUNDRY_PROFILE: reference
+      run: forge build
 
     - name: Precompile optimized using 0.8.24 and via-ir=true
       if: steps.restore.outputs.cache-hit != 'true'
       shell: bash
-      run: FOUNDRY_PROFILE=optimized forge build
+      env:
+        FOUNDRY_PROFILE: optimized
+      run: forge build
 
     - name: Save precompiled artifacts
       if: inputs.save == 'true' && steps.restore.outputs.cache-hit != 'true'

@@ -1,6 +1,6 @@
 [profile.default]
 solc = '0.8.24'
-evm_version='cancun'
+evm_version = 'cancun'
 src = 'contracts'
 out = 'out'
 libs = ["node_modules", "lib"]
@@ -15,7 +15,7 @@ remappings = [
     'seaport-sol/=lib/seaport-sol/',
     'seaport-types/=lib/seaport-types/',
     'seaport-core/=lib/seaport-core/',
-    'seaport/=contracts/'
+    'seaport/=contracts/',
 ]
 optimizer_runs = 4_294_967_295
 fs_permissions = [
@@ -24,7 +24,7 @@ fs_permissions = [
     { access = "write", path = "./call-metrics.txt" },
     { access = "write", path = "./mutation-metrics.txt" },
     { access = "write", path = "./assume-metrics.txt" },
-    { access = "write", path = "./fuzz_debug.json" }
+    { access = "write", path = "./fuzz_debug.json" },
 ]
 
 [profile.validator]
@@ -58,7 +58,7 @@ bytecode_hash = 'none'
 # test/foundry/DeployedBytecode.t.sol checks. 1.6 was verified with 9_999_999
 # optimizer runs, but the default 4_294_967_295 produces identical bytecode.
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
-test ='contracts'
+test = 'contracts'
 
 [profile.test]
 src = 'test/foundry'
@@ -78,7 +78,7 @@ optimizer = false
 test = 'test/foundry/new'
 
 [profile.offerers]
-test='test/foundry/offerers'
+test = 'test/foundry/offerers'
 
 [fmt]
 line_length = 80

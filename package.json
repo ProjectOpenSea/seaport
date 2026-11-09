@@ -27,6 +27,7 @@
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@rari-capital/solmate": "^6.2.0",
+    "@taplo/cli": "0.7.0",
     "@typechain/ethers-v5": "^10.0.0",
     "@typechain/hardhat": "^6.0.0",
     "@types/chai": "^4.3.0",
@@ -93,7 +94,7 @@
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
     "prepare": "lefthook install",
-    "lint:check": "forge fmt --check && forge lint --deny warnings && biome ci .",
-    "lint:fix": "forge fmt && biome check --write ."
+    "lint:check": "forge fmt --check && forge lint --deny warnings && biome ci . && taplo fmt --check",
+    "lint:fix": "forge fmt && biome check --write . && taplo fmt"
   }
 }

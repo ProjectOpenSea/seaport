@@ -17,8 +17,7 @@
       "!!**/broadcast",
       "!!.gas_reports",
       "!!diagrams",
-      "!!img",
-      "!**/*.md"
+      "!!img"
     ]
   },
   "formatter": {

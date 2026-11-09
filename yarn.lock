@@ -804,6 +804,11 @@
   dependencies:
     defer-to-connect "^2.0.1"
 
+"@taplo/cli@0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@taplo/cli/-/cli-0.7.0.tgz#f0b2c65a169fc6ae9ebecadc2e09d5c681177731"
+  integrity sha512-Ck3zFhQhIhi02Hl6T4ZmJsXdnJE+wXcJz5f8klxd4keRYgenMnip3JDPMGDRLbnC/2iGd8P0sBIQqI3KxfVjBg==
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.npmjs.org/@tsconfig/node10/-/node10-1.0.9.tgz"
