@@ -16,6 +16,8 @@ hh-cache-ref/
 cache
 out
 reference-out
+reference-cache
+optimized-cache
 optimized-out
 reference-working
 offerers-out

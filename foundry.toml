@@ -49,8 +49,15 @@ cache_path = 'reference-cache'
 [profile.optimized]
 via_ir = true
 out = 'optimized-out'
+# Separate from the default `cache`, so the test profile doesn't evict it and
+# CI can cache this build on its own.
+cache_path = 'optimized-cache'
 script = 'contracts'
 bytecode_hash = 'none'
+# Seaport 1.6 was deployed with 9_999_999 optimizer runs. Keeping this profile
+# on the same settings means it reproduces the deployed init code, which
+# test/foundry/DeployedBytecode.t.sol checks.
+optimizer_runs = 9_999_999
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
 test ='contracts'
 
