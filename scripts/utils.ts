@@ -1,6 +1,6 @@
-import { execSync } from "child_process";
-import fs from "fs";
-import path from "path";
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 export const GAS_REPORTS_DIR = path.join(__dirname, "../.gas_reports");
 
@@ -63,7 +63,8 @@ export function fileLastUpdate(filePath: string): number {
   let timestamp = parseInt(
     execSync(`git log -1 --pretty="format:%ct" ${filePath}`)
       .toString()
-      .trim() || "0"
+      .trim() || "0",
+    10
   );
   if (!timestamp) {
     timestamp = Math.floor(+fs.statSync(filePath).mtime / 1000);

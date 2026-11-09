@@ -1,10 +1,9 @@
+import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { diffPctString, toCommentTable } from "./comment-table";
 import { printLastReport } from "./print_report";
+import type { ContractReport } from "./utils";
 import { getAllReports } from "./utils";
 import { writeReports } from "./write_reports";
-
-import type { ContractReport } from "./utils";
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
 
 export function compareReports(
   oldReport: ContractReport,

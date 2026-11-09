@@ -1,6 +1,5 @@
-import { hexConcat, hexlify, keccak256 } from "ethers/lib/utils";
-
 import type { BytesLike } from "ethers";
+import { hexConcat, hexlify, keccak256 } from "ethers/lib/utils";
 
 export const makeArray = <T>(len: number, getValue: (i: number) => T) =>
   Array(len)

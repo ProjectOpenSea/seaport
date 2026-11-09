@@ -1,6 +1,13 @@
+import type { JsonRpcSigner } from "@ethersproject/providers";
 import { expect } from "chai";
+import type { BigNumber, BigNumberish, Contract, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
+import type {
+  TestERC20,
+  TestERC721,
+  TestERC1155,
+} from "../../../typechain-types";
 import { deployContract } from "../contracts";
 import {
   getOfferOrConsiderationItem,
@@ -8,14 +15,6 @@ import {
   randomBN,
   toBN,
 } from "../encoding";
-
-import type {
-  TestERC1155,
-  TestERC20,
-  TestERC721,
-} from "../../../typechain-types";
-import type { JsonRpcSigner } from "@ethersproject/providers";
-import type { BigNumber, BigNumberish, Contract, Wallet } from "ethers";
 
 export const fixtureERC20 = async (signer: JsonRpcSigner | Wallet) => {
   const testERC20: TestERC20 = await deployContract("TestERC20", signer);

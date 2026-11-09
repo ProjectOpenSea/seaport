@@ -1,5 +1,5 @@
+import fs from "node:fs";
 import barChart from "cli-barchart";
-import fs from "fs";
 
 function plotMetrics() {
   const file = process.argv.length > 2 ? process.argv[2] : "call-metrics.txt";

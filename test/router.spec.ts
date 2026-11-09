@@ -1,13 +1,7 @@
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import { parseEther } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
-
-import { deployContract } from "./utils/contracts";
-import { getItemETH, randomHex, toKey } from "./utils/encoding";
-import { faucet } from "./utils/faucet";
-import { seaportFixture } from "./utils/fixtures";
-import { VERSION } from "./utils/helpers";
-
 import type {
   ConduitControllerInterface,
   ConduitInterface,
@@ -16,10 +10,14 @@ import type {
   SeaportRouter,
   TestERC721,
 } from "../typechain-types";
+import { deployContract } from "./utils/contracts";
+import { getItemETH, randomHex, toKey } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import type { SeaportFixtures } from "./utils/fixtures";
-import type { Wallet } from "ethers";
+import { seaportFixture } from "./utils/fixtures";
+import { VERSION } from "./utils/helpers";
 
-describe(`SeaportRouter tests (Seaport v${VERSION})`, function () {
+describe(`SeaportRouter tests (Seaport v${VERSION})`, () => {
   if (process.env.REFERENCE) return;
 
   const { provider } = ethers;

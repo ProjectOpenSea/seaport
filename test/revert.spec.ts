@@ -1,8 +1,20 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import type { BigNumber, Wallet } from "ethers";
 import hre, { ethers, network } from "hardhat";
-
+import type {
+  ConduitInterface,
+  ConsiderationInterface,
+  EIP1271Wallet,
+  EIP1271Wallet__factory,
+  Reenterer,
+  TestBadContractOfferer,
+  TestERC20,
+  TestERC721,
+  TestERC1155,
+  TestZone,
+} from "../typechain-types";
 import { deployContract } from "./utils/contracts";
 import { merkleTree } from "./utils/criteria";
 import {
@@ -19,33 +31,19 @@ import {
   toKey,
 } from "./utils/encoding";
 import { faucet, getWalletWithEther } from "./utils/faucet";
+import type { SeaportFixtures } from "./utils/fixtures";
 import { fixtureERC20, seaportFixture } from "./utils/fixtures";
 import {
-  VERSION,
   getCustomRevertSelector,
   minRandom,
   simulateMatchOrders,
+  VERSION,
 } from "./utils/helpers";
-
-import type {
-  ConduitInterface,
-  ConsiderationInterface,
-  EIP1271Wallet,
-  EIP1271Wallet__factory,
-  Reenterer,
-  TestBadContractOfferer,
-  TestERC1155,
-  TestERC20,
-  TestERC721,
-  TestZone,
-} from "../typechain-types";
-import type { SeaportFixtures } from "./utils/fixtures";
 import type { ConsiderationItem, Fulfillment, OfferItem } from "./utils/types";
-import type { BigNumber, Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Reverts (Seaport v${VERSION})`, function () {
+describe(`Reverts (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -6225,9 +6223,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       const { nftId } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       const offer = [
         getTestItem1155(nftId, 0, 0),
@@ -6273,9 +6270,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       const { nftId, amount } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       const offer = [
         getTestItem1155(nftId, amount, amount, undefined),
@@ -6677,9 +6673,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       const { nftId, amount } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       const offer = [
         getTestItem1155(nftId, amount, amount, testERC1155.address),
@@ -8396,7 +8391,7 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   });
 
   // TODO: Add this test back in
-  describe(`Changing chainId`, function () {
+  describe(`Changing chainId`, () => {
     // Note: Run this test last in this file as it hacks changing the hre
     it.skip("Reverts on changed chainId", async () => {
       const nftId = await mintAndApprove721(

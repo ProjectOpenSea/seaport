@@ -1,11 +1,9 @@
 import { _TypedDataEncoder, keccak256, toUtf8Bytes } from "ethers/lib/utils";
-
-import { Eip712MerkleTree } from "./Eip712MerkleTree";
-import { DefaultGetter } from "./defaults";
-import { fillArray } from "./utils";
-
 import type { OrderComponents } from "../types";
 import type { EIP712TypeDefinitions } from "./defaults";
+import { DefaultGetter } from "./defaults";
+import { Eip712MerkleTree } from "./Eip712MerkleTree";
+import { fillArray } from "./utils";
 
 const { bulkOrderType } = require("../../../eip-712-types/bulkOrder.js");
 

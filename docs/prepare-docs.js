@@ -1,4 +1,4 @@
-const fs = require("fs");
+const fs = require("node:fs");
 const glob = require("glob");
 
 /**
@@ -10,7 +10,7 @@ const glob = require("glob");
  * documentation.
  */
 
-glob("contracts/**/*.sol", {}, (er, files) => {
+glob("contracts/**/*.sol", {}, (_er, files) => {
   files.forEach((file) => {
     let content = fs.readFileSync(file, "utf-8");
 

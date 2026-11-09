@@ -1,7 +1,8 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import { ethers, network } from "hardhat";
-
+import type { ConsiderationInterface } from "../typechain-types";
 import { deployContract } from "./utils/contracts";
 import {
   buildOrderStatus,
@@ -12,16 +13,13 @@ import {
   toKey,
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
-import { seaportFixture } from "./utils/fixtures";
-import { VERSION, getCustomRevertSelector } from "./utils/helpers";
-
-import type { ConsiderationInterface } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
-import type { Wallet } from "ethers";
+import { seaportFixture } from "./utils/fixtures";
+import { getCustomRevertSelector, VERSION } from "./utils/helpers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, function () {
+describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -603,9 +601,8 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         offererContract.address.toLowerCase() +
         contractOffererNonce.toHexString().slice(2).padStart(24, "0");
 
-      const orderStatus = await marketplaceContract.getOrderStatus(
-        contractOrderHash
-      );
+      const orderStatus =
+        await marketplaceContract.getOrderStatus(contractOrderHash);
 
       expect({ ...orderStatus }).to.deep.equal(
         buildOrderStatus(false, false, 0, 0)
@@ -1095,9 +1092,8 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         offererContract.address.toLowerCase() +
         contractOffererNonce.toHexString().slice(2).padStart(24, "0");
 
-      const orderStatus = await marketplaceContract.getOrderStatus(
-        contractOrderHash
-      );
+      const orderStatus =
+        await marketplaceContract.getOrderStatus(contractOrderHash);
 
       expect({ ...orderStatus }).to.deep.equal(
         buildOrderStatus(false, false, 0, 0)
@@ -1107,9 +1103,8 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
         marketplaceContract.connect(seller).cancel([contractOrderComponents])
       ).to.be.revertedWithCustomError(marketplaceContract, "CannotCancelOrder");
 
-      const contractOrderStatus = await marketplaceContract.getOrderStatus(
-        contractOrderHash
-      );
+      const contractOrderStatus =
+        await marketplaceContract.getOrderStatus(contractOrderHash);
       expect({ ...contractOrderStatus }).to.deep.eq(
         buildOrderStatus(false, false, 0, 0)
       );

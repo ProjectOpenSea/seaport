@@ -1,0 +1,16 @@
+# Installed by `yarn install` (the `prepare` script runs `lefthook install`).
+pre-commit:
+  parallel: true
+  jobs:
+    - name: forge fmt
+      glob: "*.sol"
+      exclude:
+        - "lib/**"
+      run: forge fmt {staged_files}
+      stage_fixed: true
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,jsonc}"
+      exclude:
+        - "lib/**"
+      run: yarn -s biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true

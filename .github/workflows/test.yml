@@ -40,13 +40,29 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/setup-foundry
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+
       - name: Use Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn lint:check
+
+      - run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Check Solidity formatting
+        run: forge fmt --check
+
+      - name: Lint Solidity
+        run: forge lint --deny warnings
+
+      - name: Check formatting and lint with Biome
+        run: yarn biome ci .
 
   test:
     name: Run Tests

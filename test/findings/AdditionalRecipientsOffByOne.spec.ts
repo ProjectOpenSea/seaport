@@ -1,21 +1,19 @@
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import { Contract, constants } from "ethers";
 import { hexZeroPad } from "ethers/lib/utils";
 import { network } from "hardhat";
 import { getScuffedContract } from "scuffed-abi";
-
-import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
-import { getWalletWithEther } from "../utils/faucet";
-import { seaportFixture } from "../utils/fixtures";
-
 import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
+import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
 import type { SeaportFixtures } from "../utils/fixtures";
+import { seaportFixture } from "../utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "../utils/types";
-import type { Wallet } from "ethers";
 
 const IS_FIXED = true;
 
@@ -43,7 +41,7 @@ describe("Additional recipients off by one error allows skipping second consider
     });
   });
 
-  before(async function () {
+  before(async () => {
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();

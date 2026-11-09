@@ -892,18 +892,12 @@ For information on Foundry, including installation and testing, see the [Foundry
 
 ### Linting
 
-To run lint checks:
-
 ```bash
-yarn lint:check
+yarn lint:check   # forge fmt --check, forge lint, and Biome
+yarn lint:fix
 ```
 
-Lint checks utilize prettier, prettier-plugin-solidity, and solhint.
-
-```javascript
-"prettier": "^2.5.1",
-"prettier-plugin-solidity": "^1.0.0-beta.19",
-```
+`yarn install` sets up a lefthook pre-commit hook that formats staged Solidity with `forge fmt` and staged TypeScript, JavaScript, and JSON with Biome. The deployed contracts are excluded from `forge fmt` and `forge lint` so their source matches what was verified onchain.
 
 ## Audits
 

@@ -22,6 +22,7 @@
     "solady": "^0.0.84"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.6",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
@@ -31,25 +32,12 @@
     "@types/chai": "^4.3.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.11",
-    "@typescript-eslint/eslint-plugin": "^5.9.1",
-    "@typescript-eslint/parser": "^5.9.1",
     "chai": "^4.3.4",
     "cli-barchart": "^0.2.3",
     "dotenv": "^16.0.0",
-    "eslint": "^8.6.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-config-standard": "^17.0.0",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-n": "^15.2.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "eslint-plugin-promise": "^6.0.0",
     "hardhat-gas-reporter": "^1.0.7",
-    "husky": ">=6",
-    "lint-staged": ">=10",
-    "prettier": "^2.5.1",
-    "prettier-plugin-solidity": "^1.1.0",
+    "lefthook": "2.2.2",
     "scuffed-abi": "^1.0.4",
-    "solhint": "^3.3.6",
     "solidity-coverage": "^0.8.10",
     "ts-node": "^10.4.0",
     "typechain": "^8.0.0",
@@ -95,13 +83,6 @@
     "coverage:forge": "SEAPORT_COVERAGE=true forge coverage --report summary",
     "coverage:fuzz": "SEAPORT_COVERAGE=true forge coverage --match-path test/foundry/new/FuzzCoverage.t.sol --report summary --report lcov && lcov -o lcov.info --remove lcov.info --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 'test/*' 'script/*' 'contracts/helpers/*' 'contracts/test/*' 'contracts/zones/*' 'reference/*' && genhtml lcov.info -o html --branch",
     "generate:optimized-yul": "yarn build; jq -r '.output.contracts.\"contracts/Seaport.sol\".Seaport.irOptimized' artifacts/build-info/\"$(jq -r '.buildInfo[17:]' artifacts/contracts/Seaport.sol/Seaport.dbg.json)\" | cat > Seaport.yul",
-    "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
-    "lint:check:format": "prettier --check **.{sol,js,ts}",
-    "lint:check:solhint": "yarn build && solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore contracts/**/*.sol",
-    "lint:check:eslint": "eslint . --ext js,ts",
-    "lint:fix": "yarn lint:fix:format && yarn lint:fix:eslint",
-    "lint:fix:format": "prettier --write **.{sol,js,ts}",
-    "lint:fix:eslint": "eslint --fix . --ext js,ts",
     "show:headroom": "jq -r '.deployedBytecode' artifacts/contracts/Seaport.sol/Seaport.json | tr -d '\n' | wc -m | awk '{print 24577 - ($1 - 2)/2}'",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
@@ -111,11 +92,8 @@
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
-    "prepare": "husky install"
-  },
-  "lint-staged": {
-    "*.sol": "prettier --write",
-    "*.js": "prettier --write",
-    "*.ts": "prettier --write"
+    "prepare": "lefthook install",
+    "lint:check": "forge fmt --check && forge lint --deny warnings && biome ci .",
+    "lint:fix": "forge fmt && biome check --write ."
   }
 }

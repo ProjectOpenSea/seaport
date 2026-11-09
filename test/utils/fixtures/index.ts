@@ -1,22 +1,4 @@
 import { expect } from "chai";
-import { Contract /* , constants */ } from "ethers";
-import { ethers } from "hardhat";
-
-import { deployContract } from "../contracts";
-import { toBN } from "../encoding";
-
-import { conduitFixture } from "./conduit";
-import { create2FactoryFixture } from "./create2";
-import { marketplaceFixture } from "./marketplace";
-import { tokensFixture } from "./tokens";
-
-import type { Reenterer } from "../../../typechain-types";
-import type {
-  AdvancedOrder,
-  ConsiderationItem,
-  CriteriaResolver,
-  OfferItem,
-} from "../types";
 import type {
   BigNumber,
   BigNumberish,
@@ -24,6 +6,21 @@ import type {
   ContractTransaction,
   Wallet,
 } from "ethers";
+import { Contract /* , constants */ } from "ethers";
+import { ethers } from "hardhat";
+import type { Reenterer } from "../../../typechain-types";
+import { deployContract } from "../contracts";
+import { toBN } from "../encoding";
+import type {
+  AdvancedOrder,
+  ConsiderationItem,
+  CriteriaResolver,
+  OfferItem,
+} from "../types";
+import { conduitFixture } from "./conduit";
+import { create2FactoryFixture } from "./create2";
+import { marketplaceFixture } from "./marketplace";
+import { tokensFixture } from "./tokens";
 
 export { conduitFixture } from "./conduit";
 export {
@@ -104,7 +101,7 @@ export const seaportFixture = async (owner: Wallet) => {
     ) as any;
     for (const [i, order] of Object.entries(ordersClone) as any as [
       number,
-      AdvancedOrder
+      AdvancedOrder,
     ][]) {
       order.parameters.startTime = ordersArray[i].parameters.startTime;
       order.parameters.endTime = ordersArray[i].parameters.endTime;
@@ -146,30 +143,26 @@ export const seaportFixture = async (owner: Wallet) => {
       }
     }
 
-    const allOfferedItems = ordersClone
-      .map((x) =>
-        x.parameters.offer.map((offerItem) => ({
-          ...offerItem,
-          account: x.parameters.offerer,
-          numerator: x.numerator,
-          denominator: x.denominator,
-          startTime: x.parameters.startTime,
-          endTime: x.parameters.endTime,
-        }))
-      )
-      .flat();
+    const allOfferedItems = ordersClone.flatMap((x) =>
+      x.parameters.offer.map((offerItem) => ({
+        ...offerItem,
+        account: x.parameters.offerer,
+        numerator: x.numerator,
+        denominator: x.denominator,
+        startTime: x.parameters.startTime,
+        endTime: x.parameters.endTime,
+      }))
+    );
 
-    const allReceivedItems = ordersClone
-      .map((x) =>
-        x.parameters.consideration.map((considerationItem) => ({
-          ...considerationItem,
-          numerator: x.numerator,
-          denominator: x.denominator,
-          startTime: x.parameters.startTime,
-          endTime: x.parameters.endTime,
-        }))
-      )
-      .flat();
+    const allReceivedItems = ordersClone.flatMap((x) =>
+      x.parameters.consideration.map((considerationItem) => ({
+        ...considerationItem,
+        numerator: x.numerator,
+        denominator: x.denominator,
+        startTime: x.parameters.startTime,
+        endTime: x.parameters.endTime,
+      }))
+    );
 
     for (const offeredItem of allOfferedItems as any[]) {
       if (offeredItem.itemType > 3) {
