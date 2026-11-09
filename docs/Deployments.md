@@ -1,6 +1,6 @@
 # Deployments
 
-Seaport and its supporting contracts live at the same address on every chain they're deployed to. Each chain's Seaport 1.6 bytecode matches Ethereum's except for the chain ID and domain separator that the constructor stores.
+Seaport and its supporting contracts live at the same address on every chain they're deployed to. Each chain's Seaport 1.6 runtime code matches Ethereum's except for three values its constructor stores: the chain ID, the domain separator, and whether the chain supported transient storage (EIP-1153) at deployment.
 
 ## Canonical addresses
 
