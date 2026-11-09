@@ -29,4 +29,3 @@ Changes that leave the deployed 1.6 bytecode alone (tests, tooling, docs, the re
 
 - Move files between this repo and seaport-core in a way that keeps git history, so diffs between versions stay readable. The 1.5 split recreated the core files instead of moving them. [Repo does not seem to be setup properly to track changes/diffs](https://github.com/ProjectOpenSea/seaport-core/issues/3)
 - Ship a changelog and release notes with the release tag. [changelog file](https://github.com/ProjectOpenSea/seaport/issues/1248), [Release notes and change logs in GitHub release tags](https://github.com/ProjectOpenSea/seaport/issues/1233)
-- Build the release from a single Foundry profile whose settings match the deployment, and add its init code hash to `DeployedBytecode.t.sol`, so the repo can always reproduce what is onchain. Seaport 1.6 shipped with 9,999,999 optimizer runs from seaport-core, while this repo's profiles used 4,294,967,295 until the toolchain update.
