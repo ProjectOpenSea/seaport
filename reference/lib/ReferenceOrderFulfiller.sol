@@ -50,9 +50,9 @@ contract ReferenceOrderFulfiller is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(
-        address conduitController
-    ) ReferenceBasicOrderFulfiller(conduitController) {}
+    constructor(address conduitController)
+        ReferenceBasicOrderFulfiller(conduitController)
+    { }
 
     /**
      * @dev Internal function to validate an order and update its status, adjust
@@ -87,10 +87,8 @@ contract ReferenceOrderFulfiller is
         address recipient
     ) internal returns (bool) {
         // Validate the order and revert if it's invalid.
-        OrderValidation memory orderValidation = _validateOrder(
-            advancedOrder,
-            true
-        );
+        OrderValidation memory orderValidation =
+            _validateOrder(advancedOrder, true);
 
         // Apply criteria resolvers using generated orders and details arrays.
         _applyCriteriaResolversAdvanced(advancedOrder, criteriaResolvers);
@@ -205,9 +203,8 @@ contract ReferenceOrderFulfiller is
         );
 
         // Create the array to store the spent items for event.
-        orderToExecute.spentItems = (
-            new SpentItem[](orderParameters.offer.length)
-        );
+        orderToExecute.spentItems =
+        (new SpentItem[](orderParameters.offer.length));
 
         // Declare a nested scope to minimize stack depth.
         {
@@ -219,8 +216,8 @@ contract ReferenceOrderFulfiller is
                 // Offer items for the native token can not be received outside
                 // of a match order function except as part of a contract order.
                 if (
-                    offerItem.itemType == ItemType.NATIVE &&
-                    orderParameters.orderType != OrderType.CONTRACT
+                    offerItem.itemType == ItemType.NATIVE
+                        && orderParameters.orderType != OrderType.CONTRACT
                 ) {
                     revert InvalidNativeOfferItem();
                 }
@@ -244,18 +241,16 @@ contract ReferenceOrderFulfiller is
         }
 
         // Create the array to store the received items for event.
-        orderToExecute.receivedItems = (
-            new ReceivedItem[](orderParameters.consideration.length)
-        );
+        orderToExecute.receivedItems =
+        (new ReceivedItem[](orderParameters.consideration.length));
 
         // Declare a nested scope to minimize stack depth.
         {
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < orderParameters.consideration.length; ++i) {
                 // Retrieve the consideration item.
-                ConsiderationItem memory considerationItem = (
-                    orderParameters.consideration[i]
-                );
+                ConsiderationItem memory considerationItem =
+                (orderParameters.consideration[i]);
 
                 // Apply fraction & derive considerationItem amount to transfer.
                 uint256 amount = _applyFraction(
@@ -334,9 +329,8 @@ contract ReferenceOrderFulfiller is
             // Iterate over each received item on the order.
             for (uint256 i = 0; i < orderToExecute.receivedItems.length; ++i) {
                 // Retrieve the received item.
-                ReceivedItem memory receivedItem = (
-                    orderToExecute.receivedItems[i]
-                );
+                ReceivedItem memory receivedItem =
+                (orderToExecute.receivedItems[i]);
 
                 if (receivedItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
@@ -373,17 +367,14 @@ contract ReferenceOrderFulfiller is
      *
      * @return advancedOrder The new advanced order.
      */
-    function _convertOrderToAdvanced(
-        Order calldata order
-    ) internal pure returns (AdvancedOrder memory advancedOrder) {
+    function _convertOrderToAdvanced(Order calldata order)
+        internal
+        pure
+        returns (AdvancedOrder memory advancedOrder)
+    {
         // Convert to partial order (1/1 or full fill) and return new value.
-        advancedOrder = AdvancedOrder(
-            order.parameters,
-            1,
-            1,
-            order.signature,
-            ""
-        );
+        advancedOrder =
+            AdvancedOrder(order.parameters, 1, 1, order.signature, "");
     }
 
     /**
@@ -394,9 +385,11 @@ contract ReferenceOrderFulfiller is
      *
      * @return advancedOrders The new array of partial orders.
      */
-    function _convertOrdersToAdvanced(
-        Order[] calldata orders
-    ) internal pure returns (AdvancedOrder[] memory advancedOrders) {
+    function _convertOrdersToAdvanced(Order[] calldata orders)
+        internal
+        pure
+        returns (AdvancedOrder[] memory advancedOrders)
+    {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = orders.length;
 

@@ -24,9 +24,9 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(
-        address conduitController
-    ) ReferenceConsiderationBase(conduitController) {}
+    constructor(address conduitController)
+        ReferenceConsiderationBase(conduitController)
+    { }
 
     /**
      * @dev Internal view function to derive the EIP-712 hash for an offer item.
@@ -35,20 +35,21 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *
      * @return The hash.
      */
-    function _hashOfferItem(
-        OfferItem memory offerItem
-    ) internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _OFFER_ITEM_TYPEHASH,
-                    offerItem.itemType,
-                    offerItem.token,
-                    offerItem.identifierOrCriteria,
-                    offerItem.startAmount,
-                    offerItem.endAmount
-                )
-            );
+    function _hashOfferItem(OfferItem memory offerItem)
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encode(
+                _OFFER_ITEM_TYPEHASH,
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount,
+                offerItem.endAmount
+            )
+        );
     }
 
     /**
@@ -59,21 +60,22 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *
      * @return The hash.
      */
-    function _hashConsiderationItem(
-        ConsiderationItem memory considerationItem
-    ) internal view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _CONSIDERATION_ITEM_TYPEHASH,
-                    considerationItem.itemType,
-                    considerationItem.token,
-                    considerationItem.identifierOrCriteria,
-                    considerationItem.startAmount,
-                    considerationItem.endAmount,
-                    considerationItem.recipient
-                )
-            );
+    function _hashConsiderationItem(ConsiderationItem memory considerationItem)
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encode(
+                _CONSIDERATION_ITEM_TYPEHASH,
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount,
+                considerationItem.endAmount,
+                considerationItem.recipient
+            )
+        );
     }
 
     /**
@@ -92,12 +94,10 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
         uint256 counter
     ) internal view returns (bytes32 orderHash) {
         // Designate new memory regions for offer and consideration item hashes.
-        bytes32[] memory offerHashes = new bytes32[](
-            orderParameters.offer.length
-        );
-        bytes32[] memory considerationHashes = new bytes32[](
-            orderParameters.totalOriginalConsiderationItems
-        );
+        bytes32[] memory offerHashes =
+            new bytes32[](orderParameters.offer.length);
+        bytes32[] memory considerationHashes =
+            new bytes32[](orderParameters.totalOriginalConsiderationItems);
 
         // Iterate over each offer on the order.
         for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
@@ -112,30 +112,28 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
             ++i
         ) {
             // Hash the consideration and place the result into memory.
-            considerationHashes[i] = _hashConsiderationItem(
-                orderParameters.consideration[i]
-            );
+            considerationHashes[i] =
+                _hashConsiderationItem(orderParameters.consideration[i]);
         }
 
         // Derive and return the order hash as specified by EIP-712.
 
-        return
-            keccak256(
-                abi.encode(
-                    _ORDER_TYPEHASH,
-                    orderParameters.offerer,
-                    orderParameters.zone,
-                    keccak256(abi.encodePacked(offerHashes)),
-                    keccak256(abi.encodePacked(considerationHashes)),
-                    orderParameters.orderType,
-                    orderParameters.startTime,
-                    orderParameters.endTime,
-                    orderParameters.zoneHash,
-                    orderParameters.salt,
-                    orderParameters.conduitKey,
-                    counter
-                )
-            );
+        return keccak256(
+            abi.encode(
+                _ORDER_TYPEHASH,
+                orderParameters.offerer,
+                orderParameters.zone,
+                keccak256(abi.encodePacked(offerHashes)),
+                keccak256(abi.encodePacked(considerationHashes)),
+                orderParameters.orderType,
+                orderParameters.startTime,
+                orderParameters.endTime,
+                orderParameters.zoneHash,
+                orderParameters.salt,
+                orderParameters.conduitKey,
+                counter
+            )
+        );
     }
 
     /**
@@ -147,10 +145,11 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *
      * @return value The hash.
      */
-    function _deriveEIP712Digest(
-        bytes32 domainSeparator,
-        bytes32 orderHash
-    ) internal pure returns (bytes32 value) {
+    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
         value = keccak256(
             abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
         );
@@ -168,9 +167,11 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      * @return conduit The address of the conduit associated with the given
      *                 conduit key.
      */
-    function _deriveConduit(
-        bytes32 conduitKey
-    ) internal view returns (address conduit) {
+    function _deriveConduit(bytes32 conduitKey)
+        internal
+        view
+        returns (address conduit)
+    {
         // Derive the address of the conduit.
         conduit = address(
             uint160(
@@ -195,14 +196,11 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *      scratch.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        return
-            block.chainid == _CHAIN_ID
-                ? _DOMAIN_SEPARATOR
-                : _deriveDomainSeparator(
-                    _EIP_712_DOMAIN_TYPEHASH,
-                    _NAME_HASH,
-                    _VERSION_HASH
-                );
+        return block.chainid == _CHAIN_ID
+            ? _DOMAIN_SEPARATOR
+            : _deriveDomainSeparator(
+                _EIP_712_DOMAIN_TYPEHASH, _NAME_HASH, _VERSION_HASH
+            );
     }
 
     /**

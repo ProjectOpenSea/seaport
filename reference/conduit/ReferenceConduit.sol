@@ -49,9 +49,11 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function execute(
-        ConduitTransfer[] calldata transfers
-    ) external override returns (bytes4 magicValue) {
+    function execute(ConduitTransfer[] calldata transfers)
+        external
+        override
+        returns (bytes4 magicValue)
+    {
         // Ensure that the caller is an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed(msg.sender);
@@ -77,9 +79,11 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
      */
-    function executeBatch1155(
-        ConduitBatch1155Transfer[] calldata batchTransfers
-    ) external override returns (bytes4 magicValue) {
+    function executeBatch1155(ConduitBatch1155Transfer[] calldata batchTransfers)
+        external
+        override
+        returns (bytes4 magicValue)
+    {
         // Ensure that the caller is an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed(msg.sender);
@@ -208,19 +212,12 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
 
             // Transfer ERC721 token.
             _performERC721Transfer(
-                item.token,
-                item.from,
-                item.to,
-                item.identifier
+                item.token, item.from, item.to, item.identifier
             );
         } else if (item.itemType == ConduitItemType.ERC1155) {
             // Transfer ERC1155 token.
             _performERC1155Transfer(
-                item.token,
-                item.from,
-                item.to,
-                item.identifier,
-                item.amount
+                item.token, item.from, item.to, item.identifier, item.amount
             );
         } else {
             // Throw with an error.
@@ -235,9 +232,9 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
      *
      * @param batchTransfer The batch of 1155 tokens to be transferred.
      */
-    function _batchTransferERC1155(
-        ConduitBatch1155Transfer calldata batchTransfer
-    ) internal {
+    function _batchTransferERC1155(ConduitBatch1155Transfer calldata batchTransfer)
+        internal
+    {
         // Place elements of the batch execution in memory onto the stack.
         address token = batchTransfer.token;
         address from = batchTransfer.from;
