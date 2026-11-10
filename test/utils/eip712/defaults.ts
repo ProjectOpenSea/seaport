@@ -1,6 +1,3 @@
-/* eslint-disable no-dupe-class-members */
-/* eslint-disable no-unused-vars */
-
 import type { TypedDataField } from "@ethersproject/abstract-signer";
 import { Logger } from "@ethersproject/logger";
 import { hexZeroPad } from "ethers/lib/utils";

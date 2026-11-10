@@ -53,7 +53,7 @@
 	Qualifying MWC multipliers are: 187884, 686118, 898134, 1104375, 1250205,
 	1460910 and 1768863. (Use the largest one that's < 2^21)
 	============================================================================ */
-
+"use strict";
 const stringify = JSON.stringify;
 
 /*	============================================================================
@@ -63,9 +63,9 @@ const stringify = JSON.stringify;
   which is good.	See: http://baagoe.com/en/RandomMusings/hash/avalanche.xhtml
   ============================================================================
   */
-const Mash = () => {
+const Mash = function () {
   let n = 0xefc8249d;
-  const mash = (data) => {
+  const mash = function (data) {
     if (data) {
       data = data.toString();
       for (let i = 0; i < data.length; i++) {
@@ -86,8 +86,8 @@ const Mash = () => {
   return mash;
 };
 
-const uheprng = (seed) =>
-  (() => {
+const uheprng = function (seed) {
+  return (function () {
     const o = 48; // set the 'order' number of ENTROPY-holding 32-bit values
     let c = 1; // init the 'carry' used by the multiply-with-carry (MWC) algorithm
     let p = o; // init the 'phase' (max-1) of the intermediate variable pointer
@@ -111,7 +111,7 @@ const uheprng = (seed) =>
     // 32-bit JavaScript fraction (0.0 to <1.0) it is a PRIVATE function used by the default
     // [0-1] return function, and by the random 'string(n)' function which returns 'n'
     // characters from 33 to 126.
-    const rawprng = () => {
+    const rawprng = function () {
       if (++p >= o) {
         p = 0;
       }
@@ -124,7 +124,7 @@ const uheprng = (seed) =>
     // obtain two 32-bit fractions (from rawprng) to synthesize a single high
     // resolution 53-bit prng (0 to <1), then we multiply this by the caller's
     // "range" param and take the "floor" to return a equally probable integer.
-    const random = (range) => {
+    const random = function (range) {
       return Math.floor(
         range *
           (rawprng() + ((rawprng() * 0x200000) | 0) * 1.1102230246251565e-16)
@@ -133,7 +133,7 @@ const uheprng = (seed) =>
 
     // this EXPORTED function 'string(n)' returns a pseudo-random string of
     // 'n' printable characters ranging from chr(33) to chr(126) inclusive.
-    random.string = (count) => {
+    random.string = function (count) {
       let i;
       let s = "";
       for (i = 0; i < count; i++) {
@@ -161,7 +161,7 @@ const uheprng = (seed) =>
     // control characters, including any embedded carriage-return (CR) and line-feed (LF) characters,
     // from any string it is handed. this is also used by the 'hashstring' function (below) to help
     // users always obtain the same EFFECTIVE uheprng seeding key.
-    random.cleanString = (inStr) => {
+    random.cleanString = function (inStr) {
       inStr = inStr.replace(/(^\s*)|(\s*$)/gi, ""); // remove any/all leading spaces
       inStr = inStr.replace(/[\x00-\x1F]/gi, ""); // remove any/all control characters
       inStr = inStr.replace(/\n /, "\n"); // remove any/all trailing spaces
@@ -170,7 +170,7 @@ const uheprng = (seed) =>
 
     // this EXPORTED "hash string" function hashes the provided character string after first removing
     // any leading or trailing spaces and ignoring any embedded carriage returns (CR) or Line Feeds (LF)
-    random.hashString = (inStr) => {
+    random.hashString = function (inStr) {
       inStr = random.cleanString(inStr);
       mash(inStr); // use the string to evolve the 'mash' state
       for (i = 0; i < inStr.length; i++) {
@@ -187,12 +187,12 @@ const uheprng = (seed) =>
     };
 
     // this EXPORTED function allows you to seed the random generator.
-    random.seed = (seed) => {
+    random.seed = function (seed) {
       if (typeof seed === "undefined" || seed === null) {
         seed = Math.random();
       }
       if (typeof seed !== "string") {
-        seed = stringify(seed, (key, value) => {
+        seed = stringify(seed, function (key, value) {
           if (typeof value === "function") {
             return value.toString();
           }
@@ -216,7 +216,7 @@ const uheprng = (seed) =>
     // but without directly setting the internal state variables, this allows
     // us to initialize the mash hash and PRNG's internal state before providing
     // some hashing input
-    random.initState = () => {
+    random.initState = function () {
       mash(); // pass a null arg to force mash hash to init
       for (i = 0; i < o; i++) {
         s[i] = mash(" "); // fill the array with initial mash hash values
@@ -229,7 +229,7 @@ const uheprng = (seed) =>
     // that we're finished using the "Mash" hash function so that it can free up the
     // local "instance variables" is will have been maintaining.  It's not strictly
     // necessary, of course, but it's good JavaScript citizenship.
-    random.done = () => {
+    random.done = function () {
       mash = null;
     };
 
@@ -239,20 +239,28 @@ const uheprng = (seed) =>
     }
 
     // Returns a random integer between 0 (inclusive) and range (exclusive)
-    random.range = (range) => random(range);
+    random.range = function (range) {
+      return random(range);
+    };
 
     // Returns a random float between 0 (inclusive) and 1 (exclusive)
-    random.random = () => random(Number.MAX_VALUE - 1) / Number.MAX_VALUE;
+    random.random = function () {
+      return random(Number.MAX_VALUE - 1) / Number.MAX_VALUE;
+    };
 
-    random.randomBytes = (bytes = 1) =>
-      [...Array(bytes * 2)].map(() => random(16).toString(16)).join("");
+    random.randomBytes = function (bytes = 1) {
+      return [...Array(bytes * 2)].map(() => random(16).toString(16)).join("");
+    };
 
     // Returns a random float between min (inclusive) and max (exclusive)
-    random.floatBetween = (min, max) => random.random() * (max - min) + min;
+    random.floatBetween = function (min, max) {
+      return random.random() * (max - min) + min;
+    };
 
     // Returns a random integer between min (inclusive) and max (inclusive)
-    random.intBetween = (min, max) =>
-      Math.floor(random.random() * (max - min + 1)) + min;
+    random.intBetween = function (min, max) {
+      return Math.floor(random.random() * (max - min + 1)) + min;
+    };
 
     // when our main outer "uheprng" function is called, after setting up our
     // initial variables and entropic state, we return an "instance pointer"
@@ -262,7 +270,10 @@ const uheprng = (seed) =>
     // using any of these functions.
     return random;
   })();
+};
 
 // Modification for use in node:
-uheprng.create = (seed) => new uheprng(seed);
+uheprng.create = function (seed) {
+  return new uheprng(seed);
+};
 module.exports = uheprng;

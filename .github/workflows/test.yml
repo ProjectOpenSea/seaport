@@ -60,6 +60,9 @@ jobs:
           scripts/install-tools.sh
           echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
 
+      - name: Check deployed contract sources are unchanged
+        run: shasum -a 256 --check --quiet scripts/frozen-contracts.sha256
+
       - name: Check Solidity formatting
         run: forge fmt --check contracts test script reference
 

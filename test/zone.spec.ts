@@ -702,7 +702,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, () => {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
-    // eslint-disable-next-line
     const { order, orderHash, value } = await createOrder(
       seller,
       zoneAddr,
@@ -728,7 +727,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, () => {
           value,
         })
       ).to.be.revertedWithCustomError(
-        // eslint-disable-next-line camelcase
         { interface: pausableZoneInterface },
         "ZoneIsPaused"
       );
