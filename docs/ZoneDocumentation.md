@@ -3,7 +3,7 @@
 The `zone` of the order is an optional secondary account attached to the order with two additional privileges:
 
 1. The zone may cancel orders where it is named as the zone by calling `cancel`. (Note that offerers can also cancel their own orders, either individually or for all orders signed with their current counter at once by calling `incrementCounter`).
-2. "Restricted" orders (as specified by the order type) must be approved as indicated by a call to a `validateOrder` when the caller is not the zone.
+2. "Restricted" orders (as specified by the order type) must be approved by the zone when the caller is not the zone. Seaport calls the zone's `authorizeOrder` before any tokens move and `validateOrder` after every transfer in the fulfillment, and each must return its function selector as a magic value.
 
 An example zone contract implementation can be found at `/contracts/zones/PausableZone.sol`.
 
