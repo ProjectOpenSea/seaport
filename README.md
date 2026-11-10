@@ -803,6 +803,7 @@ For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.sv
 - [Zone Documentation](./docs/ZoneDocumentation.md)
 - [Function Signatures](./docs/FunctionSignatures.md)
 - [Order Validator](./docs/OrderValidator.md)
+- [Seaport 1.7 candidates](./docs/Seaport-1.7-candidates.md)
 
 ## Install
 
