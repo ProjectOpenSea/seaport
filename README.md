@@ -60,7 +60,7 @@ Contributions are welcome, especially tests, docs, and readability. A PR should 
 
 [MIT](LICENSE) Copyright 2023 Ozone Networks, Inc.
 
-[version-badge]: https://img.shields.io/github/package-json/v/ProjectOpenSea/seaport
+[version-badge]: https://img.shields.io/github/v/release/ProjectOpenSea/seaport
 [version-link]: https://github.com/ProjectOpenSea/seaport/releases
 [ci-badge]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml/badge.svg
 [ci-link]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml
