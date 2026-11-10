@@ -25,6 +25,10 @@ Changes that leave the deployed 1.6 bytecode alone (tests, tooling, docs, the re
 - Move loop invariants such as `orderParameters.offerer` and `conduitKey` out of the loop in `_applyFractionsAndTransferEach`. The issue is still open. [move loop invariant code out from loop to save gas](https://github.com/ProjectOpenSea/seaport-core/issues/9)
 - Load `OrderStatus` into memory once in `Verifiers` instead of reading storage several times. The fields share one slot, so the saving is only on warm reads, and it hasn't been measured. [change SLOAD to MLOAD to save gas](https://github.com/ProjectOpenSea/seaport-core/pull/6)
 
+## Helpers
+
+- Fix `SeaportRouter`'s tally loop. It only advances its index when an order was filled, so a batch where one Seaport returns a skipped order (or hits `maximumFulfilled` partway through) loops until it runs out of gas. The fix ships with a new router deployment, since the deployed router is frozen. [fix(SeaportRouter): terminate tally loop on partially-available batches](https://github.com/ProjectOpenSea/seaport/pull/1415)
+
 ## Process
 
 - Move files between this repo and seaport-core in a way that keeps git history, so diffs between versions stay readable. The 1.5 split recreated the core files instead of moving them. [Repo does not seem to be setup properly to track changes/diffs](https://github.com/ProjectOpenSea/seaport-core/issues/3)
