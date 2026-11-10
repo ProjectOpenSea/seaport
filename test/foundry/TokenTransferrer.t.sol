@@ -47,11 +47,11 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         context.conduit.executeBatch1155(context.batchTransfers);
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -81,10 +81,7 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         test(
             this.execute,
             Context(
-                conduit,
-                expectedRevert,
-                revertTransfer,
-                noCodeBatchTransfer
+                conduit, expectedRevert, revertTransfer, noCodeBatchTransfer
             )
         );
         test(
@@ -132,10 +129,7 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         test(
             this.execute,
             Context(
-                conduit,
-                expectedRevert,
-                revertTransfer,
-                noCodeBatchTransfer
+                conduit, expectedRevert, revertTransfer, noCodeBatchTransfer
             )
         );
     }
@@ -172,10 +166,7 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         test(
             this.execute,
             Context(
-                conduit,
-                expectedRevert,
-                revertTransfer,
-                noCodeBatchTransfer
+                conduit, expectedRevert, revertTransfer, noCodeBatchTransfer
             )
         );
 
@@ -218,17 +209,11 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             itemType = itemTypes[i];
 
             noCodeTransfer[0] = ConduitTransfer(
-                itemType,
-                address(noCodeTokenAddress),
-                alice,
-                bob,
-                0,
-                1
+                itemType, address(noCodeTokenAddress), alice, bob, 0, 1
             );
 
             expectedRevert = abi.encodeWithSelector(
-                NoContract.selector,
-                noCodeTokenAddress
+                NoContract.selector, noCodeTokenAddress
             );
 
             test(
@@ -243,21 +228,14 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
             test(
                 this.execute,
                 Context(
-                    conduit,
-                    expectedRevert,
-                    noCodeTransfer,
-                    noCodeBatchTransfer
+                    conduit, expectedRevert, noCodeTransfer, noCodeBatchTransfer
                 )
             );
         }
 
         // Test the 1155 batch transfer no code revert.
         noCodeBatchTransfer[0] = ConduitBatch1155Transfer(
-            noCodeTokenAddress,
-            alice,
-            bob,
-            new uint256[](0),
-            new uint256[](0)
+            noCodeTokenAddress, alice, bob, new uint256[](0), new uint256[](0)
         );
 
         test(
@@ -272,10 +250,7 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         test(
             this.executeBatch,
             Context(
-                conduit,
-                expectedRevert,
-                noCodeTransfer,
-                noCodeBatchTransfer
+                conduit, expectedRevert, noCodeTransfer, noCodeBatchTransfer
             )
         );
     }
@@ -289,11 +264,7 @@ contract TokenTransferrerTest is BaseConduitTest, TokenTransferrerErrors {
         noCodeBatchTransfer = new ConduitBatch1155Transfer[](1);
 
         noCodeBatchTransfer[0] = ConduitBatch1155Transfer(
-            noCodeTokenAddress,
-            alice,
-            bob,
-            new uint256[](0),
-            new uint256[](0)
+            noCodeTokenAddress, alice, bob, new uint256[](0), new uint256[](0)
         );
 
         TestERC20NotOk tokenNotOk;

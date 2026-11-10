@@ -152,272 +152,230 @@ library FuzzMutationSelectorLib {
         uint256 i = 0;
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
-        failuresAndFilters[i++] = Failure.InvalidSignature.withOrder(
-            MutationFilters.ineligibleForInvalidSignature
-        );
+        failuresAndFilters[i++] = Failure.InvalidSignature
+            .withOrder(MutationFilters.ineligibleForInvalidSignature);
 
-        failuresAndFilters[i++] = Failure
-            .InvalidSigner_BadSignature
+        failuresAndFilters[i++] = Failure.InvalidSigner_BadSignature
             .and(Failure.InvalidSigner_ModifiedOrder)
             .withOrder(MutationFilters.ineligibleForInvalidSigner);
 
-        failuresAndFilters[i++] = Failure
-            .InvalidTime_NotStarted
+        failuresAndFilters[i++] = Failure.InvalidTime_NotStarted
             .and(Failure.InvalidTime_Expired)
             .withOrder(MutationFilters.ineligibleForInvalidTime);
 
-        failuresAndFilters[i++] = Failure.InvalidConduit.withOrder(
-            MutationFilters.ineligibleForInvalidConduit
-        );
+        failuresAndFilters[i++] = Failure.InvalidConduit
+            .withOrder(MutationFilters.ineligibleForInvalidConduit);
 
-        failuresAndFilters[i++] = Failure.BadSignatureV.withOrder(
-            MutationFilters.ineligibleForBadSignatureV
-        );
+        failuresAndFilters[i++] = Failure.BadSignatureV
+            .withOrder(MutationFilters.ineligibleForBadSignatureV);
 
-        failuresAndFilters[i++] = Failure
-            .BadFraction_PartialContractOrder
-            .withOrder(
-                MutationFilters.ineligibleForBadFractionPartialContractOrder
-            );
+        failuresAndFilters[i++] =
+            Failure.BadFraction_PartialContractOrder
+                .withOrder(
+                    MutationFilters.ineligibleForBadFractionPartialContractOrder
+                );
 
-        failuresAndFilters[i++] = Failure.BadFraction_Overfill.withOrder(
-            MutationFilters.ineligibleForBadFraction
-        );
+        failuresAndFilters[i++] = Failure.BadFraction_Overfill
+            .withOrder(MutationFilters.ineligibleForBadFraction);
 
-        failuresAndFilters[i++] = Failure.BadFraction_NoFill.withOrder(
-            MutationFilters.ineligibleForBadFraction_noFill
-        );
+        failuresAndFilters[i++] = Failure.BadFraction_NoFill
+            .withOrder(MutationFilters.ineligibleForBadFraction_noFill);
 
-        failuresAndFilters[i++] = Failure.CannotCancelOrder.withOrder(
-            MutationFilters.ineligibleForCannotCancelOrder
-        );
+        failuresAndFilters[i++] = Failure.CannotCancelOrder
+            .withOrder(MutationFilters.ineligibleForCannotCancelOrder);
 
-        failuresAndFilters[i++] = Failure.OrderIsCancelled.withOrder(
-            MutationFilters.ineligibleForOrderIsCancelled
-        );
+        failuresAndFilters[i++] = Failure.OrderIsCancelled
+            .withOrder(MutationFilters.ineligibleForOrderIsCancelled);
 
-        failuresAndFilters[i++] = Failure.OrderAlreadyFilled.withOrder(
-            MutationFilters.ineligibleForOrderAlreadyFilled
-        );
+        failuresAndFilters[i++] = Failure.OrderAlreadyFilled
+            .withOrder(MutationFilters.ineligibleForOrderAlreadyFilled);
 
-        failuresAndFilters[i++] = Failure
-            .BadContractSignature_BadSignature
+        failuresAndFilters[i++] = Failure.BadContractSignature_BadSignature
             .and(Failure.BadContractSignature_ModifiedOrder)
             .and(Failure.BadContractSignature_MissingMagic)
             .withOrder(MutationFilters.ineligibleForBadContractSignature);
 
-        failuresAndFilters[i++] = Failure
-            .MissingOriginalConsiderationItems
-            .withOrder(
-                MutationFilters.ineligibleForMissingOriginalConsiderationItems
+        failuresAndFilters[i++] =
+            Failure.MissingOriginalConsiderationItems
+                .withOrder(
+                    MutationFilters.ineligibleForMissingOriginalConsiderationItems
+                );
+
+        failuresAndFilters[i++] = Failure.ConsiderationLengthNotEqualToTotalOriginal_ExtraItems
+                .withOrder(
+                MutationFilters.ineligibleForConsiderationLengthNotEqualToTotalOriginal
             );
 
-        failuresAndFilters[i++] = Failure
-            .ConsiderationLengthNotEqualToTotalOriginal_ExtraItems
-            .withOrder(
-                MutationFilters
-                    .ineligibleForConsiderationLengthNotEqualToTotalOriginal
+        failuresAndFilters[i++] = Failure.ConsiderationLengthNotEqualToTotalOriginal_MissingItems
+                .withOrder(
+                MutationFilters.ineligibleForConsiderationLengthNotEqualToTotalOriginal
             );
 
-        failuresAndFilters[i++] = Failure
-            .ConsiderationLengthNotEqualToTotalOriginal_MissingItems
-            .withOrder(
-                MutationFilters
-                    .ineligibleForConsiderationLengthNotEqualToTotalOriginal
+        failuresAndFilters[i++] =
+            Failure.InvalidFulfillmentComponentData
+                .withGeneric(
+                    MutationFilters.ineligibleForInvalidFulfillmentComponentData
+                );
+
+        failuresAndFilters[i++] =
+            Failure.MissingFulfillmentComponentOnAggregation
+                    .withGeneric(
+                    MutationFilters.ineligibleForMissingFulfillmentComponentOnAggregation
+                );
+
+        failuresAndFilters[i++] =
+            Failure.OfferAndConsiderationRequiredOnFulfillment
+                    .withGeneric(
+                    MutationFilters.ineligibleForOfferAndConsiderationRequiredOnFulfillment
+                );
+
+        failuresAndFilters[i++] = Failure.MismatchedFulfillmentOfferAndConsiderationComponents_Modified
+                .withGeneric(
+                MutationFilters.ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified
             );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidFulfillmentComponentData
-            .withGeneric(
-                MutationFilters.ineligibleForInvalidFulfillmentComponentData
+        failuresAndFilters[i++] = Failure.MismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+                .withGeneric(
+                MutationFilters.ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped
             );
 
-        failuresAndFilters[i++] = Failure
-            .MissingFulfillmentComponentOnAggregation
-            .withGeneric(
-                MutationFilters
-                    .ineligibleForMissingFulfillmentComponentOnAggregation
-            );
+        failuresAndFilters[i++] =
+            Failure.Error_OfferItemMissingApproval
+                .withOrder(
+                    MutationFilters.ineligibleForOfferItemMissingApproval
+                );
 
-        failuresAndFilters[i++] = Failure
-            .OfferAndConsiderationRequiredOnFulfillment
-            .withGeneric(
-                MutationFilters
-                    .ineligibleForOfferAndConsiderationRequiredOnFulfillment
-            );
+        failuresAndFilters[i++] = Failure.Error_CallerMissingApproval
+            .withOrder(MutationFilters.ineligibleForCallerMissingApproval);
 
-        failuresAndFilters[i++] = Failure
-            .MismatchedFulfillmentOfferAndConsiderationComponents_Modified
-            .withGeneric(
-                MutationFilters
-                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Modified
-            );
+        failuresAndFilters[i++] = Failure.InvalidMsgValue
+            .withGeneric(MutationFilters.ineligibleForInvalidMsgValue);
 
-        failuresAndFilters[i++] = Failure
-            .MismatchedFulfillmentOfferAndConsiderationComponents_Swapped
-            .withGeneric(
-                MutationFilters
-                    .ineligibleForMismatchedFulfillmentOfferAndConsiderationComponents_Swapped
-            );
+        failuresAndFilters[i++] =
+            Failure.InsufficientNativeTokensSupplied
+                .withGeneric(
+                    MutationFilters.ineligibleForInsufficientNativeTokens
+                );
 
-        failuresAndFilters[i++] = Failure
-            .Error_OfferItemMissingApproval
-            .withOrder(MutationFilters.ineligibleForOfferItemMissingApproval);
+        failuresAndFilters[i++] =
+            Failure.NativeTokenTransferGenericFailure
+                    .withGeneric(
+                    MutationFilters.ineligibleForNativeTokenTransferGenericFailure
+                );
 
-        failuresAndFilters[i++] = Failure.Error_CallerMissingApproval.withOrder(
-            MutationFilters.ineligibleForCallerMissingApproval
-        );
+        failuresAndFilters[i++] = Failure.CriteriaNotEnabledForItem
+            .withGeneric(MutationFilters.ineligibleForCriteriaNotEnabledForItem);
 
-        failuresAndFilters[i++] = Failure.InvalidMsgValue.withGeneric(
-            MutationFilters.ineligibleForInvalidMsgValue
-        );
+        failuresAndFilters[i++] = Failure.InvalidProof_Merkle
+            .withCriteria(MutationFilters.ineligibleForInvalidProof_Merkle);
 
-        failuresAndFilters[i++] = Failure
-            .InsufficientNativeTokensSupplied
-            .withGeneric(MutationFilters.ineligibleForInsufficientNativeTokens);
+        failuresAndFilters[i++] = Failure.InvalidProof_Wildcard
+            .withCriteria(MutationFilters.ineligibleForInvalidProof_Wildcard);
 
-        failuresAndFilters[i++] = Failure
-            .NativeTokenTransferGenericFailure
-            .withGeneric(
-                MutationFilters.ineligibleForNativeTokenTransferGenericFailure
-            );
+        failuresAndFilters[i++] =
+            Failure.OrderCriteriaResolverOutOfRange
+                .withGeneric(MutationFilters.ineligibleWhenNotAdvanced);
 
-        failuresAndFilters[i++] = Failure.CriteriaNotEnabledForItem.withGeneric(
-            MutationFilters.ineligibleForCriteriaNotEnabledForItem
-        );
-
-        failuresAndFilters[i++] = Failure.InvalidProof_Merkle.withCriteria(
-            MutationFilters.ineligibleForInvalidProof_Merkle
-        );
-
-        failuresAndFilters[i++] = Failure.InvalidProof_Wildcard.withCriteria(
-            MutationFilters.ineligibleForInvalidProof_Wildcard
-        );
-
-        failuresAndFilters[i++] = Failure
-            .OrderCriteriaResolverOutOfRange
-            .withGeneric(MutationFilters.ineligibleWhenNotAdvanced);
-
-        failuresAndFilters[i++] = Failure
-            .OfferCriteriaResolverOutOfRange
+        failuresAndFilters[i++] = Failure.OfferCriteriaResolverOutOfRange
             .and(Failure.UnresolvedOfferCriteria)
             .withCriteria(
                 MutationFilters.ineligibleForOfferCriteriaResolverFailure
             );
 
-        failuresAndFilters[i++] = Failure
-            .ConsiderationCriteriaResolverOutOfRange
+        failuresAndFilters[i++] = Failure.ConsiderationCriteriaResolverOutOfRange
             .and(Failure.UnresolvedConsiderationCriteria)
             .withCriteria(
-                MutationFilters
-                    .ineligibleForConsiderationCriteriaResolverFailure
+                MutationFilters.ineligibleForConsiderationCriteriaResolverFailure
             );
 
-        failuresAndFilters[i++] = Failure
-            .MissingItemAmount_OfferItem_FulfillAvailable
-            .withGeneric(
-                MutationFilters
-                    .ineligibleForMissingItemAmount_OfferItem_FulfillAvailable
-            );
+        failuresAndFilters[i++] =
+            Failure.MissingItemAmount_OfferItem_FulfillAvailable
+                    .withGeneric(
+                    MutationFilters.ineligibleForMissingItemAmount_OfferItem_FulfillAvailable
+                );
 
-        failuresAndFilters[i++] = Failure.MissingItemAmount_OfferItem.withOrder(
-            MutationFilters.ineligibleForMissingItemAmount_OfferItem
-        );
+        failuresAndFilters[i++] = Failure.MissingItemAmount_OfferItem
+            .withOrder(MutationFilters.ineligibleForMissingItemAmount_OfferItem);
 
-        failuresAndFilters[i++] = Failure
-            .MissingItemAmount_ConsiderationItem
-            .withOrder(
-                MutationFilters.ineligibleForMissingItemAmount_ConsiderationItem
-            );
+        failuresAndFilters[i++] =
+            Failure.MissingItemAmount_ConsiderationItem
+                    .withOrder(
+                    MutationFilters.ineligibleForMissingItemAmount_ConsiderationItem
+                );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidContractOrder_generateReturnsInvalidEncoding
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_generateReturnsInvalidEncoding
             .and(Failure.InvalidContractOrder_generateReverts)
             .withOrder(
                 MutationFilters.ineligibleWhenNotContractOrderOrFulfillAvailable
             );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidContractOrder_ratifyReverts
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_ratifyReverts
             .and(Failure.InvalidContractOrder_InvalidMagicValue)
             .withOrder(
                 MutationFilters.ineligibleWhenNotAvailableOrNotContractOrder
             );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidContractOrder_InsufficientMinimumReceived
+        failuresAndFilters[i++] = Failure.InvalidContractOrder_InsufficientMinimumReceived
             .and(Failure.InvalidContractOrder_IncorrectMinimumReceived)
             .withOrder(
-                MutationFilters
-                    .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
+                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoOffer
             );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidContractOrder_ExcessMaximumSpent
-            .withOrder(
-                MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrder
+        failuresAndFilters[i++] =
+            Failure.InvalidContractOrder_ExcessMaximumSpent
+                    .withOrder(
+                    MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrder
+                );
+
+        failuresAndFilters[i++] =
+            Failure.InvalidContractOrder_IncorrectMaximumSpent
+                    .withOrder(
+                    MutationFilters.ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
+                );
+
+        failuresAndFilters[i++] = Failure.InvalidRestrictedOrder_authorizeReverts_matchReverts
+                .withOrder(
+                MutationFilters.ineligibleWhenFulfillAvailableOrNotAvailableOrNotRestricted
             );
 
-        failuresAndFilters[i++] = Failure
-            .InvalidContractOrder_IncorrectMaximumSpent
-            .withOrder(
-                MutationFilters
-                    .ineligibleWhenNotActiveTimeOrNotContractOrderOrNoConsideration
-            );
-
-        failuresAndFilters[i++] = Failure
-            .InvalidRestrictedOrder_authorizeReverts_matchReverts
-            .withOrder(
-                MutationFilters
-                    .ineligibleWhenFulfillAvailableOrNotAvailableOrNotRestricted
-            );
-
-        failuresAndFilters[i++] = Failure
-            .InvalidRestrictedOrder_authorizeInvalidMagicValue
+        failuresAndFilters[i++] = Failure.InvalidRestrictedOrder_authorizeInvalidMagicValue
             .and(Failure.InvalidRestrictedOrder_validateReverts)
             .and(Failure.InvalidRestrictedOrder_validateInvalidMagicValue)
             .withOrder(
                 MutationFilters.ineligibleWhenNotAvailableOrNotRestrictedOrder
             );
 
-        failuresAndFilters[i++] = Failure.NoContract.withGeneric(
-            MutationFilters.ineligibleForNoContract
-        );
+        failuresAndFilters[i++] = Failure.NoContract
+            .withGeneric(MutationFilters.ineligibleForNoContract);
 
-        failuresAndFilters[i++] = Failure.UnusedItemParameters_Token.withOrder(
-            MutationFilters.ineligibleForUnusedItemParameters_Token
-        );
+        failuresAndFilters[i++] = Failure.UnusedItemParameters_Token
+            .withOrder(MutationFilters.ineligibleForUnusedItemParameters_Token);
 
-        failuresAndFilters[i++] = Failure
-            .UnusedItemParameters_Identifier
-            .withOrder(
-                MutationFilters.ineligibleForUnusedItemParameters_Identifier
-            );
+        failuresAndFilters[i++] =
+            Failure.UnusedItemParameters_Identifier
+                .withOrder(
+                    MutationFilters.ineligibleForUnusedItemParameters_Identifier
+                );
 
-        failuresAndFilters[i++] = Failure.InvalidERC721TransferAmount.withOrder(
-            MutationFilters.ineligibleForInvalidERC721TransferAmount
-        );
+        failuresAndFilters[i++] = Failure.InvalidERC721TransferAmount
+            .withOrder(MutationFilters.ineligibleForInvalidERC721TransferAmount);
 
-        failuresAndFilters[i++] = Failure.ConsiderationNotMet.withOrder(
-            MutationFilters.ineligibleForConsiderationNotMet
-        );
+        failuresAndFilters[i++] = Failure.ConsiderationNotMet
+            .withOrder(MutationFilters.ineligibleForConsiderationNotMet);
 
-        failuresAndFilters[i++] = Failure
-            .PartialFillsNotEnabledForOrder
-            .withOrder(
-                MutationFilters.ineligibleForPartialFillsNotEnabledForOrder
-            );
+        failuresAndFilters[i++] =
+            Failure.PartialFillsNotEnabledForOrder
+                .withOrder(
+                    MutationFilters.ineligibleForPartialFillsNotEnabledForOrder
+                );
 
-        failuresAndFilters[i++] = Failure.InexactFraction.withOrder(
-            MutationFilters.ineligibleForInexactFraction
-        );
+        failuresAndFilters[i++] = Failure.InexactFraction
+            .withOrder(MutationFilters.ineligibleForInexactFraction);
 
-        failuresAndFilters[i++] = Failure.Panic_PartialFillOverflow.withOrder(
-            MutationFilters.ineligibleForPanic_PartialFillOverflow
-        );
+        failuresAndFilters[i++] = Failure.Panic_PartialFillOverflow
+            .withOrder(MutationFilters.ineligibleForPanic_PartialFillOverflow);
 
-        failuresAndFilters[i++] = Failure
-            .NoSpecifiedOrdersAvailable
+        failuresAndFilters[i++] = Failure.NoSpecifiedOrdersAvailable
             .withGeneric(
                 MutationFilters.ineligibleForNoSpecifiedOrdersAvailable
             );
@@ -429,9 +387,7 @@ library FuzzMutationSelectorLib {
         }
     }
 
-    function selectMutation(
-        FuzzTestContext memory context
-    )
+    function selectMutation(FuzzTestContext memory context)
         public
         returns (
             string memory name,
@@ -449,10 +405,9 @@ library FuzzMutationSelectorLib {
         // Evaluate each filter and assign respective ineligible failures.
         context.setAllIneligibleFailures(failuresAndFilters);
 
-        (name, mutationSelector, expectedRevertReason, mutationState) = context
-            .failureDetails(
-                context.selectEligibleFailure(),
-                failuresAndFilters
+        (name, mutationSelector, expectedRevertReason, mutationState) =
+            context.failureDetails(
+                context.selectEligibleFailure(), failuresAndFilters
             );
     }
 }
@@ -478,223 +433,190 @@ library FailureDetailsLib {
         uint256 i = 0;
 
         /////////////////// UPDATE THIS TO ADD FAILURE TESTS ///////////////////
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .InvalidSignature
-            .selector
-            .withOrder(
-                "InvalidSignature",
-                FuzzMutations.mutation_invalidSignature.selector
-            );
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.InvalidSignature.selector
+                    .withOrder(
+                    "InvalidSignature",
+                    FuzzMutations.mutation_invalidSignature.selector
+                );
 
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .InvalidSigner
-            .selector
-            .withOrder(
-                "InvalidSigner_BadSignature",
-                FuzzMutations.mutation_invalidSigner_BadSignature.selector
-            );
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.InvalidSigner.selector
+                    .withOrder(
+                    "InvalidSigner_BadSignature",
+                    FuzzMutations.mutation_invalidSigner_BadSignature.selector
+                );
 
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .InvalidSigner
-            .selector
-            .withOrder(
-                "InvalidSigner_ModifiedOrder",
-                FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector
-            );
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.InvalidSigner.selector
+                    .withOrder(
+                    "InvalidSigner_ModifiedOrder",
+                    FuzzMutations.mutation_invalidSigner_ModifiedOrder.selector
+                );
 
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .BadSignatureV
-            .selector
-            .withOrder(
-                "BadSignatureV",
-                FuzzMutations.mutation_badSignatureV.selector,
-                details_BadSignatureV
-            );
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.BadSignatureV.selector
+                    .withOrder(
+                    "BadSignatureV",
+                    FuzzMutations.mutation_badSignatureV.selector,
+                    details_BadSignatureV
+                );
 
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .BadContractSignature
-            .selector
-            .withOrder(
-                "BadContractSignature_BadSignature",
-                FuzzMutations
-                    .mutation_badContractSignature_BadSignature
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.BadContractSignature.selector
+                    .withOrder(
+                    "BadContractSignature_BadSignature",
+                    FuzzMutations.mutation_badContractSignature_BadSignature
+                        .selector
+                );
+
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.BadContractSignature.selector
+                    .withOrder(
+                    "BadContractSignature_ModifiedOrder",
+                    FuzzMutations.mutation_badContractSignature_ModifiedOrder
+                        .selector
+                );
+
+        failureDetailsArray[i++] =
+            SignatureVerificationErrors.BadContractSignature.selector
+                    .withOrder(
+                    "BadContractSignature_MissingMagic",
+                    FuzzMutations.mutation_badContractSignature_MissingMagic
+                        .selector
+                );
+
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.ConsiderationLengthNotEqualToTotalOriginal
                     .selector
-            );
-
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .BadContractSignature
-            .selector
-            .withOrder(
-                "BadContractSignature_ModifiedOrder",
-                FuzzMutations
-                    .mutation_badContractSignature_ModifiedOrder
-                    .selector
-            );
-
-        failureDetailsArray[i++] = SignatureVerificationErrors
-            .BadContractSignature
-            .selector
-            .withOrder(
-                "BadContractSignature_MissingMagic",
-                FuzzMutations
-                    .mutation_badContractSignature_MissingMagic
-                    .selector
-            );
-
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .ConsiderationLengthNotEqualToTotalOriginal
-            .selector
-            .withOrder(
+                .withOrder(
                 "ConsiderationLengthNotEqualToTotalOriginal_ExtraItems",
-                FuzzMutations
-                    .mutation_considerationLengthNotEqualToTotalOriginal_ExtraItems
+                FuzzMutations.mutation_considerationLengthNotEqualToTotalOriginal_ExtraItems
                     .selector
             );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .ConsiderationLengthNotEqualToTotalOriginal
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.ConsiderationLengthNotEqualToTotalOriginal
+                    .selector
+                .withOrder(
                 "ConsiderationLengthNotEqualToTotalOriginal_MissingItens",
-                FuzzMutations
-                    .mutation_considerationLengthNotEqualToTotalOriginal_MissingItems
+                FuzzMutations.mutation_considerationLengthNotEqualToTotalOriginal_MissingItems
                     .selector
             );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .MissingOriginalConsiderationItems
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.MissingOriginalConsiderationItems
+                    .selector
+                .withOrder(
                 "MissingOriginalConsiderationItems",
-                FuzzMutations
-                    .mutation_missingOriginalConsiderationItems
+                FuzzMutations.mutation_missingOriginalConsiderationItems
                     .selector
             );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .InvalidTime
-            .selector
-            .withOrder(
-                "InvalidTime_NotStarted",
-                FuzzMutations.mutation_invalidTime_NotStarted.selector,
-                details_InvalidTime_NotStarted
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.InvalidTime.selector
+                    .withOrder(
+                    "InvalidTime_NotStarted",
+                    FuzzMutations.mutation_invalidTime_NotStarted.selector,
+                    details_InvalidTime_NotStarted
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .InvalidTime
-            .selector
-            .withOrder(
-                "InvalidTime_Expired",
-                FuzzMutations.mutation_invalidTime_Expired.selector,
-                details_InvalidTime_Expired
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.InvalidTime.selector
+                    .withOrder(
+                    "InvalidTime_Expired",
+                    FuzzMutations.mutation_invalidTime_Expired.selector,
+                    details_InvalidTime_Expired
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .InvalidConduit
-            .selector
-            .withOrder(
-                "InvalidConduit",
-                FuzzMutations.mutation_invalidConduit.selector,
-                details_InvalidConduit
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.InvalidConduit.selector
+                    .withOrder(
+                    "InvalidConduit",
+                    FuzzMutations.mutation_invalidConduit.selector,
+                    details_InvalidConduit
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .BadFraction
-            .selector
-            .withOrder(
-                "BadFraction_PartialContractOrder",
-                FuzzMutations.mutation_badFraction_partialContractOrder.selector
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.BadFraction.selector
+                    .withOrder(
+                    "BadFraction_PartialContractOrder",
+                    FuzzMutations.mutation_badFraction_partialContractOrder
+                        .selector
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .BadFraction
-            .selector
-            .withOrder(
-                "BadFraction_NoFill",
-                FuzzMutations.mutation_badFraction_NoFill.selector
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.BadFraction.selector
+                    .withOrder(
+                    "BadFraction_NoFill",
+                    FuzzMutations.mutation_badFraction_NoFill.selector
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .BadFraction
-            .selector
-            .withOrder(
-                "BadFraction_Overfill",
-                FuzzMutations.mutation_badFraction_Overfill.selector
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.BadFraction.selector
+                    .withOrder(
+                    "BadFraction_Overfill",
+                    FuzzMutations.mutation_badFraction_Overfill.selector
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .CannotCancelOrder
-            .selector
-            .withOrder(
-                "CannotCancelOrder",
-                FuzzMutations.mutation_cannotCancelOrder.selector
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.CannotCancelOrder.selector
+                    .withOrder(
+                    "CannotCancelOrder",
+                    FuzzMutations.mutation_cannotCancelOrder.selector
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .OrderIsCancelled
-            .selector
-            .withOrder(
-                "OrderIsCancelled",
-                FuzzMutations.mutation_orderIsCancelled.selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.OrderIsCancelled.selector
+                    .withOrder(
+                    "OrderIsCancelled",
+                    FuzzMutations.mutation_orderIsCancelled.selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .OrderAlreadyFilled
-            .selector
-            .withOrder(
-                "OrderAlreadyFilled",
-                FuzzMutations.mutation_orderAlreadyFilled.selector,
-                details_OrderAlreadyFilled
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.OrderAlreadyFilled.selector
+                    .withOrder(
+                    "OrderAlreadyFilled",
+                    FuzzMutations.mutation_orderAlreadyFilled.selector,
+                    details_OrderAlreadyFilled
+                );
 
-        failureDetailsArray[i++] = FulfillmentApplicationErrors
-            .InvalidFulfillmentComponentData
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = FulfillmentApplicationErrors.InvalidFulfillmentComponentData
+                    .selector
+                .withGeneric(
                 "InvalidFulfillmentComponentData",
                 FuzzMutations.mutation_invalidFulfillmentComponentData.selector
             );
 
-        failureDetailsArray[i++] = FulfillmentApplicationErrors
-            .MissingFulfillmentComponentOnAggregation
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = FulfillmentApplicationErrors.MissingFulfillmentComponentOnAggregation
+                    .selector
+                .withGeneric(
                 "MissingFulfillmentComponentOnAggregation",
-                FuzzMutations
-                    .mutation_missingFulfillmentComponentOnAggregation
+                FuzzMutations.mutation_missingFulfillmentComponentOnAggregation
                     .selector,
                 details_MissingFulfillmentComponentOnAggregation
             );
 
-        failureDetailsArray[i++] = FulfillmentApplicationErrors
-            .OfferAndConsiderationRequiredOnFulfillment
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = FulfillmentApplicationErrors.OfferAndConsiderationRequiredOnFulfillment
+                    .selector
+                .withGeneric(
                 "OfferAndConsiderationRequiredOnFulfillment",
-                FuzzMutations
-                    .mutation_offerAndConsiderationRequiredOnFulfillment
+                FuzzMutations.mutation_offerAndConsiderationRequiredOnFulfillment
                     .selector
             );
 
-        failureDetailsArray[i++] = FulfillmentApplicationErrors
-            .MismatchedFulfillmentOfferAndConsiderationComponents
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = FulfillmentApplicationErrors.MismatchedFulfillmentOfferAndConsiderationComponents
+                    .selector
+                .withGeneric(
                 "MismatchedFulfillmentOfferAndConsiderationComponents_Modified",
-                FuzzMutations
-                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified
+                FuzzMutations.mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Modified
                     .selector,
                 details_MismatchedFulfillmentOfferAndConsiderationComponents
             );
 
-        failureDetailsArray[i++] = FulfillmentApplicationErrors
-            .MismatchedFulfillmentOfferAndConsiderationComponents
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = FulfillmentApplicationErrors.MismatchedFulfillmentOfferAndConsiderationComponents
+                    .selector
+                .withGeneric(
                 "MismatchedFulfillmentOfferAndConsiderationComponents_Swapped",
-                FuzzMutations
-                    .mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped
+                FuzzMutations.mutation_mismatchedFulfillmentOfferAndConsiderationComponents_Swapped
                     .selector,
                 details_MismatchedFulfillmentOfferAndConsiderationComponents
             );
@@ -711,315 +633,268 @@ library FailureDetailsLib {
             errorString("NOT_AUTHORIZED")
         );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .InvalidMsgValue
-            .selector
-            .withGeneric(
-                "InvalidMsgValue",
-                FuzzMutations.mutation_invalidMsgValue.selector,
-                details_InvalidMsgValue
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.InvalidMsgValue.selector
+                    .withGeneric(
+                    "InvalidMsgValue",
+                    FuzzMutations.mutation_invalidMsgValue.selector,
+                    details_InvalidMsgValue
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .InsufficientNativeTokensSupplied
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.InsufficientNativeTokensSupplied
+                    .selector
+                .withGeneric(
                 "InsufficientNativeTokensSupplied",
                 FuzzMutations.mutation_insufficientNativeTokensSupplied.selector
             );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .NativeTokenTransferGenericFailure
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.NativeTokenTransferGenericFailure
+                    .selector
+                .withGeneric(
                 "NativeTokenTransferGenericFailure",
-                FuzzMutations
-                    .mutation_insufficientNativeTokensSupplied
+                FuzzMutations.mutation_insufficientNativeTokensSupplied
                     .selector,
                 details_NativeTokenTransferGenericFailure
             );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .CriteriaNotEnabledForItem
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = CriteriaResolutionErrors.CriteriaNotEnabledForItem
+                    .selector
+                .withGeneric(
                 "CriteriaNotEnabledForItem",
                 FuzzMutations.mutation_criteriaNotEnabledForItem.selector
             );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .InvalidProof
-            .selector
-            .withCriteria(
-                "InvalidProof_Merkle",
-                FuzzMutations.mutation_invalidMerkleProof.selector
-            );
+        failureDetailsArray[i++] =
+            CriteriaResolutionErrors.InvalidProof.selector
+                    .withCriteria(
+                    "InvalidProof_Merkle",
+                    FuzzMutations.mutation_invalidMerkleProof.selector
+                );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .InvalidProof
-            .selector
-            .withCriteria(
-                "InvalidProof_Wildcard",
-                FuzzMutations.mutation_invalidWildcardProof.selector
-            );
+        failureDetailsArray[i++] =
+            CriteriaResolutionErrors.InvalidProof.selector
+                    .withCriteria(
+                    "InvalidProof_Wildcard",
+                    FuzzMutations.mutation_invalidWildcardProof.selector
+                );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .OrderCriteriaResolverOutOfRange
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = CriteriaResolutionErrors.OrderCriteriaResolverOutOfRange
+                    .selector
+                .withGeneric(
                 "OrderCriteriaResolverOutOfRange",
                 FuzzMutations.mutation_orderCriteriaResolverOutOfRange.selector,
                 details_withZero
             );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .OfferCriteriaResolverOutOfRange
-            .selector
-            .withCriteria(
+        failureDetailsArray[i++] = CriteriaResolutionErrors.OfferCriteriaResolverOutOfRange
+                    .selector
+                .withCriteria(
                 "OfferCriteriaResolverOutOfRange",
                 FuzzMutations.mutation_offerCriteriaResolverOutOfRange.selector
             );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .ConsiderationCriteriaResolverOutOfRange
-            .selector
-            .withCriteria(
+        failureDetailsArray[i++] = CriteriaResolutionErrors.ConsiderationCriteriaResolverOutOfRange
+                    .selector
+                .withCriteria(
                 "ConsiderationCriteriaResolverOutOfRange",
-                FuzzMutations
-                    .mutation_considerationCriteriaResolverOutOfRange
+                FuzzMutations.mutation_considerationCriteriaResolverOutOfRange
                     .selector
             );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .UnresolvedOfferCriteria
-            .selector
-            .withCriteria(
+        failureDetailsArray[i++] = CriteriaResolutionErrors.UnresolvedOfferCriteria
+                    .selector
+                .withCriteria(
                 "UnresolvedOfferCriteria",
                 FuzzMutations.mutation_unresolvedCriteria.selector,
                 details_unresolvedCriteria
             );
 
-        failureDetailsArray[i++] = CriteriaResolutionErrors
-            .UnresolvedConsiderationCriteria
-            .selector
-            .withCriteria(
+        failureDetailsArray[i++] = CriteriaResolutionErrors.UnresolvedConsiderationCriteria
+                    .selector
+                .withCriteria(
                 "UnresolvedConsiderationCriteria",
                 FuzzMutations.mutation_unresolvedCriteria.selector,
                 details_unresolvedCriteria
             );
 
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .MissingItemAmount
-            .selector
-            .withGeneric(
-                "MissingItemAmount_OfferItem_FulfillAvailable",
-                FuzzMutations
-                    .mutation_missingItemAmount_OfferItem_FulfillAvailable
+        failureDetailsArray[i++] =
+            TokenTransferrerErrors.MissingItemAmount.selector
+                    .withGeneric(
+                    "MissingItemAmount_OfferItem_FulfillAvailable",
+                    FuzzMutations.mutation_missingItemAmount_OfferItem_FulfillAvailable
+                        .selector
+                );
+
+        failureDetailsArray[i++] =
+            TokenTransferrerErrors.MissingItemAmount.selector
+                    .withOrder(
+                    "MissingItemAmount_OfferItem",
+                    FuzzMutations.mutation_missingItemAmount_OfferItem.selector
+                );
+
+        failureDetailsArray[i++] =
+            TokenTransferrerErrors.MissingItemAmount.selector
+                    .withOrder(
+                    "MissingItemAmount_ConsiderationItem",
+                    FuzzMutations.mutation_missingItemAmount_ConsiderationItem
+                        .selector
+                );
+
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidContractOrder.selector
+                    .withOrder(
+                    "InvalidContractOrder_generateReturnsInvalidEncoding",
+                    FuzzMutations.mutation_invalidContractOrderGenerateReturnsInvalidEncoding
+                        .selector,
+                    details_withOrderHash
+                );
+
+        failureDetailsArray[i++] = HashCalldataContractOfferer.HashCalldataContractOffererGenerateOrderReverts
                     .selector
-            );
-
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .MissingItemAmount
-            .selector
-            .withOrder(
-                "MissingItemAmount_OfferItem",
-                FuzzMutations.mutation_missingItemAmount_OfferItem.selector
-            );
-
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .MissingItemAmount
-            .selector
-            .withOrder(
-                "MissingItemAmount_ConsiderationItem",
-                FuzzMutations
-                    .mutation_missingItemAmount_ConsiderationItem
-                    .selector
-            );
-
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_generateReturnsInvalidEncoding",
-                FuzzMutations
-                    .mutation_invalidContractOrderGenerateReturnsInvalidEncoding
-                    .selector,
-                details_withOrderHash
-            );
-
-        failureDetailsArray[i++] = HashCalldataContractOfferer
-            .HashCalldataContractOffererGenerateOrderReverts
-            .selector
-            .withOrder(
+                .withOrder(
                 "InvalidContractOrder_generateReverts",
-                FuzzMutations
-                    .mutation_invalidContractOrderGenerateReverts
+                FuzzMutations.mutation_invalidContractOrderGenerateReverts
                     .selector
             );
 
-        failureDetailsArray[i++] = HashCalldataContractOfferer
-            .HashCalldataContractOffererRatifyOrderReverts
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = HashCalldataContractOfferer.HashCalldataContractOffererRatifyOrderReverts
+                    .selector
+                .withOrder(
                 "InvalidContractOrder_ratifyReverts",
-                FuzzMutations
-                    .mutation_invalidContractOrderRatifyReverts
+                FuzzMutations.mutation_invalidContractOrderRatifyReverts
                     .selector
             );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_InsufficientMinimumReceived",
-                FuzzMutations
-                    .mutation_invalidContractOrderInsufficientMinimumReceived
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidContractOrder.selector
+                    .withOrder(
+                    "InvalidContractOrder_InsufficientMinimumReceived",
+                    FuzzMutations.mutation_invalidContractOrderInsufficientMinimumReceived
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_IncorrectMinimumReceived",
-                FuzzMutations
-                    .mutation_invalidContractOrderIncorrectMinimumReceived
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidContractOrder.selector
+                    .withOrder(
+                    "InvalidContractOrder_IncorrectMinimumReceived",
+                    FuzzMutations.mutation_invalidContractOrderIncorrectMinimumReceived
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_ExcessMaximumSpent",
-                FuzzMutations
-                    .mutation_invalidContractOrderExcessMaximumSpent
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidContractOrder.selector
+                    .withOrder(
+                    "InvalidContractOrder_ExcessMaximumSpent",
+                    FuzzMutations.mutation_invalidContractOrderExcessMaximumSpent
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_IncorrectMaximumSpent",
-                FuzzMutations
-                    .mutation_invalidContractOrderIncorrectMaximumSpent
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidContractOrder.selector
+                    .withOrder(
+                    "InvalidContractOrder_IncorrectMaximumSpent",
+                    FuzzMutations.mutation_invalidContractOrderIncorrectMaximumSpent
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidContractOrder
-            .selector
-            .withOrder(
-                "InvalidContractOrder_InvalidMagicValue",
-                FuzzMutations
-                    .mutation_invalidContractOrderInvalidMagicValue
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidContractOrder.selector
+                    .withOrder(
+                    "InvalidContractOrder_InvalidMagicValue",
+                    FuzzMutations.mutation_invalidContractOrderInvalidMagicValue
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = HashValidationZoneOfferer
-            .HashValidationZoneOffererAuthorizeOrderReverts
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = HashValidationZoneOfferer.HashValidationZoneOffererAuthorizeOrderReverts
+                    .selector
+                .withOrder(
                 "InvalidRestrictedOrder_authorizeReverts_matchReverts",
-                FuzzMutations
-                    .mutation_invalidRestrictedOrderAuthorizeRevertsMatchReverts
+                FuzzMutations.mutation_invalidRestrictedOrderAuthorizeRevertsMatchReverts
                     .selector
             );
 
-        failureDetailsArray[i++] = HashValidationZoneOfferer
-            .HashValidationZoneOffererValidateOrderReverts
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = HashValidationZoneOfferer.HashValidationZoneOffererValidateOrderReverts
+                    .selector
+                .withOrder(
                 "InvalidRestrictedOrder_validateReverts",
                 FuzzMutations.mutation_invalidRestrictedOrderReverts.selector
             );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidRestrictedOrder
-            .selector
-            .withOrder(
-                "InvalidRestrictedOrder_authorizeInvalidMagicValue",
-                FuzzMutations
-                    .mutation_invalidRestrictedOrderAuthorizeInvalidMagicValue
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidRestrictedOrder.selector
+                    .withOrder(
+                    "InvalidRestrictedOrder_authorizeInvalidMagicValue",
+                    FuzzMutations.mutation_invalidRestrictedOrderAuthorizeInvalidMagicValue
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = ZoneInteractionErrors
-            .InvalidRestrictedOrder
-            .selector
-            .withOrder(
-                "InvalidRestrictedOrder_validateInvalidMagicValue",
-                FuzzMutations
-                    .mutation_invalidRestrictedOrderValidateInvalidMagicValue
-                    .selector,
-                details_withOrderHash
-            );
+        failureDetailsArray[i++] =
+            ZoneInteractionErrors.InvalidRestrictedOrder.selector
+                    .withOrder(
+                    "InvalidRestrictedOrder_validateInvalidMagicValue",
+                    FuzzMutations.mutation_invalidRestrictedOrderValidateInvalidMagicValue
+                        .selector,
+                    details_withOrderHash
+                );
 
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .NoContract
-            .selector
-            .withGeneric(
-                "NoContract",
-                FuzzMutations.mutation_noContract.selector,
-                details_NoContract
-            );
+        failureDetailsArray[i++] =
+            TokenTransferrerErrors.NoContract.selector
+                    .withGeneric(
+                    "NoContract",
+                    FuzzMutations.mutation_noContract.selector,
+                    details_NoContract
+                );
 
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .UnusedItemParameters
-            .selector
-            .withOrder(
-                "UnusedItemParameters_Token",
-                FuzzMutations.mutation_unusedItemParameters_Token.selector
-            );
+        failureDetailsArray[i++] =
+            TokenTransferrerErrors.UnusedItemParameters.selector
+                    .withOrder(
+                    "UnusedItemParameters_Token",
+                    FuzzMutations.mutation_unusedItemParameters_Token.selector
+                );
 
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .UnusedItemParameters
-            .selector
-            .withOrder(
-                "UnusedItemParameters_Identifier",
-                FuzzMutations.mutation_unusedItemParameters_Identifier.selector
-            );
+        failureDetailsArray[i++] =
+            TokenTransferrerErrors.UnusedItemParameters.selector
+                    .withOrder(
+                    "UnusedItemParameters_Identifier",
+                    FuzzMutations.mutation_unusedItemParameters_Identifier
+                        .selector
+                );
 
-        failureDetailsArray[i++] = TokenTransferrerErrors
-            .InvalidERC721TransferAmount
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = TokenTransferrerErrors.InvalidERC721TransferAmount
+                    .selector
+                .withOrder(
                 "InvalidERC721TransferAmount",
                 FuzzMutations.mutation_invalidERC721TransferAmount.selector,
                 details_InvalidERC721TransferAmount
             );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .ConsiderationNotMet
-            .selector
-            .withOrder(
-                "ConsiderationNotMet",
-                FuzzMutations.mutation_considerationNotMet.selector,
-                details_ConsiderationNotMet
-            );
+        failureDetailsArray[i++] =
+            ConsiderationEventsAndErrors.ConsiderationNotMet.selector
+                    .withOrder(
+                    "ConsiderationNotMet",
+                    FuzzMutations.mutation_considerationNotMet.selector,
+                    details_ConsiderationNotMet
+                );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .PartialFillsNotEnabledForOrder
-            .selector
-            .withOrder(
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.PartialFillsNotEnabledForOrder
+                    .selector
+                .withOrder(
                 "PartialFillsNotEnabledForOrder",
                 FuzzMutations.mutation_partialFillsNotEnabledForOrder.selector
             );
 
-        failureDetailsArray[i++] = AmountDerivationErrors
-            .InexactFraction
-            .selector
-            .withOrder(
-                "InexactFraction",
-                FuzzMutations.mutation_inexactFraction.selector
-            );
+        failureDetailsArray[i++] =
+            AmountDerivationErrors.InexactFraction.selector
+                    .withOrder(
+                    "InexactFraction",
+                    FuzzMutations.mutation_inexactFraction.selector
+                );
 
         failureDetailsArray[i++] = PANIC.withOrder(
             "Panic_PartialFillOverflow",
@@ -1027,10 +902,9 @@ library FailureDetailsLib {
             details_PanicOverflow
         );
 
-        failureDetailsArray[i++] = ConsiderationEventsAndErrors
-            .NoSpecifiedOrdersAvailable
-            .selector
-            .withGeneric(
+        failureDetailsArray[i++] = ConsiderationEventsAndErrors.NoSpecifiedOrdersAvailable
+                    .selector
+                .withGeneric(
                 "NoSpecifiedOrderAvailable",
                 FuzzMutations.mutation_noSpecifiedOrdersAvailable.selector
             );
@@ -1048,81 +922,82 @@ library FailureDetailsLib {
 
     //////////////////// ADD NEW FUNCTIONS HERE WHEN NEEDED ////////////////////
     function details_NotAuthorized(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            "NOT_AUTHORIZED"
-        );
+        expectedRevertReason =
+            abi.encodeWithSelector(errorSelector, "NOT_AUTHORIZED");
     }
 
     function details_PanicOverflow(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0x11);
     }
 
     function details_BadSignatureV(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 0xff);
     }
 
     function details_InvalidTime_NotStarted(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            block.timestamp + 1,
-            block.timestamp + 2
+            errorSelector, block.timestamp + 1, block.timestamp + 2
         );
     }
 
     function details_InvalidTime_Expired(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            block.timestamp - 1,
-            block.timestamp
+            errorSelector, block.timestamp - 1, block.timestamp
         );
     }
 
     function details_InvalidConduit(
         FuzzTestContext memory context,
-        MutationState memory /* mutationState */,
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal view returns (bytes memory expectedRevertReason) {
         bytes32 conduitKey = keccak256("invalid conduit");
-        (address conduitAddr, ) = context.conduitController.getConduit(
-            conduitKey
-        );
+        (address conduitAddr,) =
+            context.conduitController.getConduit(conduitKey);
 
-        expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            conduitKey,
-            conduitAddr
-        );
+        expectedRevertReason =
+            abi.encodeWithSelector(errorSelector, conduitKey, conduitAddr);
     }
 
     function details_withOrderHash(
-        FuzzTestContext memory /* context */,
+        FuzzTestContext memory,
+        /* context */
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            mutationState.selectedOrderHash
+            errorSelector, mutationState.selectedOrderHash
         );
     }
 
@@ -1133,49 +1008,45 @@ library FailureDetailsLib {
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
             errorSelector,
-            context
-                .executionState
-                .orderDetails[mutationState.selectedOrderIndex]
-                .orderHash
+            context.executionState
+                .orderDetails[mutationState.selectedOrderIndex].orderHash
         );
     }
 
     function details_MissingFulfillmentComponentOnAggregation(
-        FuzzTestContext memory /* context */,
+        FuzzTestContext memory,
+        /* context */
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            uint8(mutationState.side)
-        );
+        expectedRevertReason =
+            abi.encodeWithSelector(errorSelector, uint8(mutationState.side));
     }
 
     function details_MismatchedFulfillmentOfferAndConsiderationComponents(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            uint256(0)
-        );
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, uint256(0));
     }
 
     function details_withZero(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            uint256(0)
-        );
+        expectedRevertReason = abi.encodeWithSelector(errorSelector, uint256(0));
     }
 
     function details_InvalidMsgValue(
         FuzzTestContext memory context,
-        MutationState memory /* mutationState */,
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         uint256 value = context.executionState.value == 0 ? 1 : 0;
@@ -1184,12 +1055,12 @@ library FailureDetailsLib {
 
     function details_NativeTokenTransferGenericFailure(
         FuzzTestContext memory context,
-        MutationState memory /* mutationState */,
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        uint256 totalImplicitExecutions = (
-            context.expectations.expectedImplicitPostExecutions.length
-        );
+        uint256 totalImplicitExecutions =
+            (context.expectations.expectedImplicitPostExecutions.length);
         ReceivedItem memory item;
         if (context.expectations.expectedNativeTokensReturned == 0) {
             if (totalImplicitExecutions == 0) {
@@ -1200,10 +1071,8 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i >= 0; --i) {
-                item = context
-                    .expectations
-                    .expectedImplicitPostExecutions[i]
-                    .item;
+                item =
+                context.expectations.expectedImplicitPostExecutions[i].item;
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
                     break;
@@ -1228,10 +1097,8 @@ library FailureDetailsLib {
 
             bool foundNative;
             for (uint256 i = totalImplicitExecutions - 1; i > 0; --i) {
-                item = context
-                    .expectations
-                    .expectedImplicitPostExecutions[i - 1]
-                    .item;
+                item =
+                context.expectations.expectedImplicitPostExecutions[i - 1].item;
 
                 if (item.itemType == ItemType.NATIVE) {
                     foundNative = true;
@@ -1256,29 +1123,31 @@ library FailureDetailsLib {
     }
 
     function details_unresolvedCriteria(
-        FuzzTestContext memory /* context */,
+        FuzzTestContext memory,
+        /* context */
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
-        CriteriaResolver memory resolver = mutationState
-            .selectedCriteriaResolver;
+        CriteriaResolver memory resolver =
+        mutationState.selectedCriteriaResolver;
         expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            resolver.orderIndex,
-            resolver.index
+            errorSelector, resolver.orderIndex, resolver.index
         );
     }
 
     function details_InvalidERC721TransferAmount(
-        FuzzTestContext memory /* context */,
-        MutationState memory /* mutationState */,
+        FuzzTestContext memory,
+        /* context */
+        MutationState memory,
+        /* mutationState */
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(errorSelector, 2);
     }
 
     function details_ConsiderationNotMet(
-        FuzzTestContext memory /* context */,
+        FuzzTestContext memory,
+        /* context */
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
@@ -1291,31 +1160,26 @@ library FailureDetailsLib {
     }
 
     function details_NoContract(
-        FuzzTestContext memory /* context */,
+        FuzzTestContext memory,
+        /* context */
         MutationState memory mutationState,
         bytes4 errorSelector
     ) internal pure returns (bytes memory expectedRevertReason) {
         expectedRevertReason = abi.encodeWithSelector(
-            errorSelector,
-            mutationState.selectedArbitraryAddress
+            errorSelector, mutationState.selectedArbitraryAddress
         );
     }
 
-    function errorString(
-        string memory errorMessage
-    )
+    function errorString(string memory errorMessage)
         internal
         pure
-        returns (
-            function(FuzzTestContext memory, MutationState memory, bytes4)
+        returns (function(FuzzTestContext memory, MutationState memory, bytes4)
                 internal
-                pure
-                returns (bytes memory)
-        )
+                pure returns (bytes memory))
     {
         if (
-            keccak256(abi.encodePacked(errorMessage)) ==
-            keccak256(abi.encodePacked("NOT_AUTHORIZED"))
+            keccak256(abi.encodePacked(errorMessage))
+                == keccak256(abi.encodePacked("NOT_AUTHORIZED"))
         ) {
             return details_NotAuthorized;
         }
@@ -1339,9 +1203,8 @@ library FailureDetailsLib {
             MutationState memory
         )
     {
-        FailureDetails memory details = (
-            declareFailureDetails()[uint256(failure)]
-        );
+        FailureDetails memory details =
+        (declareFailureDetails()[uint256(failure)]);
 
         MutationState memory mutationState = context.deriveMutationContext(
             details.derivationMethod,

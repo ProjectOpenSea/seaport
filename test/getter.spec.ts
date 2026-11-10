@@ -1,19 +1,17 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-
+import type {
+  ConduitControllerInterface,
+  ConsiderationInterface,
+} from "../typechain-types";
 import { randomHex } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 
-import type {
-  ConduitControllerInterface,
-  ConsiderationInterface,
-} from "../typechain-types";
-
 const { keccak256, toUtf8Bytes } = ethers.utils;
 
-describe(`Getter tests (Seaport v${VERSION})`, function () {
+describe(`Getter tests (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 

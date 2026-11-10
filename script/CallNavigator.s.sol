@@ -43,9 +43,7 @@ contract CallNavigator is Script {
         );
 
         // Set up orders, using navigator order structs.
-        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](
-            1
-        );
+        NavigatorAdvancedOrder[] memory orders = new NavigatorAdvancedOrder[](1);
         orders[0] = NavigatorAdvancedOrder({
             parameters: NavigatorOrderParameters({
                 offerer: 0xcc476d5Adc341B31405891E78694186454775926,
@@ -64,11 +62,9 @@ contract CallNavigator is Script {
             }),
             numerator: 1,
             denominator: 1,
-            signature: (
-                hex"3c792711cff5e3b9ca789b3fc08f345d069ca3f161d0a3b3e2700ad95c"
+            signature: (hex"3c792711cff5e3b9ca789b3fc08f345d069ca3f161d0a3b3e2700ad95c"
                 hex"691c6c8079a4c12149a9834797d50a4c0856cc11430bdd28bcf02b0798"
-                hex"7aefb6d21ab2"
-            ),
+                hex"7aefb6d21ab2"),
             extraData: ""
         });
         request.orders = orders;

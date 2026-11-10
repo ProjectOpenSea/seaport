@@ -63,12 +63,10 @@ contract ExcessReturnDataRecipient {
                 0x753a6d1b65325d0c552a4d1345224105391a310b29122104190a110309020100
             )
             mstore(0x40, add(m, 0x100))
-            let
-                magic
-            := 0x818283848586878898a8b8c8d8e8f929395969799a9b9d9e9faaeb6bedeeff
-            let
-                shift
-            := 0x100000000000000000000000000000000000000000000000000000000000000
+            let magic :=
+                0x818283848586878898a8b8c8d8e8f929395969799a9b9d9e9faaeb6bedeeff
+            let shift :=
+                0x100000000000000000000000000000000000000000000000000000000000000
             let a := div(mul(x, magic), shift)
             y := div(mload(add(m, sub(255, a))), shift)
             y := add(
@@ -92,11 +90,7 @@ contract ExcessReturnDataRecipient {
             case 1 {
                 z := y
                 let x := div(add(y, 1), 2)
-                for {
-
-                } lt(x, z) {
-
-                } {
+                for { } lt(x, z) { } {
                     z := x
                     x := div(add(div(y, x), x), 2)
                 }
@@ -117,9 +111,9 @@ contract ExcessReturnDataRecipient {
         magic = this.onERC1155Received.selector;
         if (revertDataSize > 0) {
             uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
-            uint256 w = (sqrt(
-                2048 * (gasleft() - gasToCalculateSqrt) + 9431040
-            ) - 3072) / 4;
+            uint256 w =
+                (sqrt(2048 * (gasleft() - gasToCalculateSqrt) + 9431040) - 3072)
+                    / 4;
 
             assembly {
                 let size := mul(w, 32)
@@ -132,9 +126,9 @@ contract ExcessReturnDataRecipient {
     receive() external payable {
         if (revertDataSize > 0) {
             uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
-            uint256 w = (sqrt(
-                2048 * (gasleft() - gasToCalculateSqrt) + 9431040
-            ) - 3072) / 2;
+            uint256 w =
+                (sqrt(2048 * (gasleft() - gasToCalculateSqrt) + 9431040) - 3072)
+                    / 2;
 
             assembly {
                 let size := mul(w, 32)

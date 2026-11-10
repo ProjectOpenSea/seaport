@@ -26,9 +26,10 @@ contract StatefulTestZone is ERC165, ZoneInterface {
     bool public authorizeCalled = false;
     bool public validateCalled = false;
 
-    function authorizeOrder(
-        ZoneParameters calldata zoneParameters
-    ) public returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata zoneParameters)
+        public
+        returns (bytes4)
+    {
         _checkZoneParameters(zoneParameters);
 
         // Set the global called flag to true.
@@ -46,9 +47,10 @@ contract StatefulTestZone is ERC165, ZoneInterface {
      *
      * @return validOrderMagicValue The validOrder magic value.
      */
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        returns (bytes4 validOrderMagicValue)
+    {
         _checkZoneParameters(zoneParameters);
 
         // Set the global called flag to true.
@@ -77,17 +79,20 @@ contract StatefulTestZone is ERC165, ZoneInterface {
         return ("StatefulTestZone", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
-    function _checkZoneParameters(
-        ZoneParameters calldata zoneParameters
-    ) internal view {
+    function _checkZoneParameters(ZoneParameters calldata zoneParameters)
+        internal
+        view
+    {
         // Check that the amount in the offer is correct.
         if (zoneParameters.offer[0].amount != amountToCheck) {
             revert IncorrectAmount(

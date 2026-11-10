@@ -11,16 +11,20 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ZoneInterface } from "seaport-types/src/interfaces/ZoneInterface.sol";
 
 contract TestZone is ERC165, ZoneInterface {
-    function authorizeOrder(
-        ZoneParameters calldata
-    ) public pure returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
         return this.authorizeOrder.selector;
     }
 
     // Called by Consideration whenever any extraData is provided by the caller.
-    function validateOrder(
-        ZoneParameters calldata
-    ) external pure returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata)
+        external
+        pure
+        returns (bytes4 validOrderMagicValue)
+    {
         return ZoneInterface.validateOrder.selector;
     }
 
@@ -43,11 +47,13 @@ contract TestZone is ERC165, ZoneInterface {
         return ("TestZone", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

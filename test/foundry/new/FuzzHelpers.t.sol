@@ -58,24 +58,21 @@ contract FuzzHelpersTest is BaseOrderTest {
     function setUp() public virtual override {
         super.setUp();
 
-        OrderParameters memory standardOrderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
-            .toOrderParameters();
+        OrderParameters memory standardOrderParameters =
+            OrderComponentsLib.fromDefault(STANDARD).toOrderParameters();
 
-        OrderLib.empty().withParameters(standardOrderParameters).saveDefault(
-            STANDARD
-        );
+        OrderLib.empty()
+            .withParameters(standardOrderParameters)
+            .saveDefault(STANDARD);
     }
 
     /// @dev An order with no advanced order parameters is STANDARD
     function test_getStructure_Standard() public {
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         assertEq(order.getStructure(address(getSeaport())), Structure.STANDARD);
     }
@@ -86,8 +83,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         erc721s[0].mint(offerer1.addr, 1);
 
         OfferItem[] memory offerItems = new OfferItem[](1);
-        OfferItem memory offerItem = OfferItemLib
-            .empty()
+        OfferItem memory offerItem = OfferItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withToken(address(erc721s[0]))
             .withIdentifierOrCriteria(1)
@@ -95,11 +91,9 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         offerItems[0] = offerItem;
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            1
-        );
-        ConsiderationItem memory considerationItem = ConsiderationItemLib
-            .empty()
+        ConsiderationItem[] memory considerationItems =
+            new ConsiderationItem[](1);
+        ConsiderationItem memory considerationItem = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(erc20s[0]))
             .withAmount(1)
@@ -107,18 +101,17 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         considerationItems[0] = considerationItem;
 
-        OrderComponents memory orderComponents = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderComponents memory orderComponents = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(offerer1.addr)
             .withOffer(offerItems)
             .withConsideration(considerationItems);
 
-        Order memory order = OrderLib
-            .fromDefault(STANDARD)
+        Order memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(
-                orderComponents.toOrderParameters().withOrderType(
-                    OrderType.FULL_OPEN
-                )
+                orderComponents.toOrderParameters()
+                    .withOrderType(OrderType.FULL_OPEN)
             )
             .withSignature("");
 
@@ -129,8 +122,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         });
 
         assertEq(
-            advancedOrder.getStructure(address(getSeaport())),
-            Structure.BASIC
+            advancedOrder.getStructure(address(getSeaport())), Structure.BASIC
         );
     }
 
@@ -144,13 +136,11 @@ contract FuzzHelpersTest is BaseOrderTest {
         vm.assume(denominator != 0);
         vm.assume(extraData.length != 0);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: numerator,
-                denominator: denominator,
-                extraData: extraData
-            });
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: numerator,
+            denominator: denominator,
+            extraData: extraData
+        });
 
         assertEq(order.getStructure(address(getSeaport())), Structure.ADVANCED);
     }
@@ -158,17 +148,16 @@ contract FuzzHelpersTest is BaseOrderTest {
     /// @dev A non-contract order with offer item criteria is ADVANCED
     function test_getStructure_Advanced_OfferERC721Criteria() public {
         OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib.empty().withItemType(
-            ItemType.ERC721_WITH_CRITERIA
-        );
+        offer[0] =
+            OfferItemLib.empty().withItemType(ItemType.ERC721_WITH_CRITERIA);
 
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOffer(offer);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -182,17 +171,16 @@ contract FuzzHelpersTest is BaseOrderTest {
     /// @dev A non-contract order with offer item criteria is ADVANCED
     function test_getStructure_Advanced_OfferERC1155Criteria() public {
         OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItemLib.empty().withItemType(
-            ItemType.ERC1155_WITH_CRITERIA
-        );
+        offer[0] =
+            OfferItemLib.empty().withItemType(ItemType.ERC1155_WITH_CRITERIA);
 
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOffer(offer);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -206,17 +194,16 @@ contract FuzzHelpersTest is BaseOrderTest {
     /// @dev A non-contract order with consideration item criteria is ADVANCED
     function test_getStructure_Advanced_ConsiderationERC721Criteria() public {
         ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib.empty().withItemType(
-            ItemType.ERC721_WITH_CRITERIA
-        );
+        consideration[0] = ConsiderationItemLib.empty()
+            .withItemType(ItemType.ERC721_WITH_CRITERIA);
 
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withConsideration(consideration);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -230,17 +217,16 @@ contract FuzzHelpersTest is BaseOrderTest {
     /// @dev A non-contract order with consideration item criteria is ADVANCED
     function test_getStructure_Advanced_ConsiderationERC1155Criteria() public {
         ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib.empty().withItemType(
-            ItemType.ERC1155_WITH_CRITERIA
-        );
+        consideration[0] = ConsiderationItemLib.empty()
+            .withItemType(ItemType.ERC1155_WITH_CRITERIA);
 
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withConsideration(consideration);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -257,18 +243,17 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib.empty().withItemType(
-            ItemType.ERC721_WITH_CRITERIA
-        );
+        consideration[0] = ConsiderationItemLib.empty()
+            .withItemType(ItemType.ERC721_WITH_CRITERIA);
 
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withConsideration(consideration)
             .withOrderType(OrderType.CONTRACT);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -285,19 +270,18 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItemLib
-            .empty()
+        consideration[0] = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC721_WITH_CRITERIA)
             .withIdentifierOrCriteria(1);
 
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withConsideration(consideration)
             .withOrderType(OrderType.CONTRACT);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -310,13 +294,13 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev An order with type FULL_OPEN is OPEN
     function test_getType_FullOpen() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOrderType(OrderType.FULL_OPEN);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -329,13 +313,13 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev An order with type PARTIAL_OPEN is OPEN
     function test_getType_PartialOpen() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOrderType(OrderType.PARTIAL_OPEN);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -348,13 +332,13 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev An order with type FULL_RESTRICTED is RESTRICTED
     function test_getType_FullRestricted() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOrderType(OrderType.FULL_RESTRICTED);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -367,13 +351,13 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev An order with type PARTIAL_RESTRICTED is RESTRICTED
     function test_getType_PartialRestricted() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOrderType(OrderType.PARTIAL_RESTRICTED);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -386,13 +370,13 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev An order with type CONTRACT is CONTRACT
     function test_getType_Contract() public {
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .toOrderParameters()
             .withOrderType(OrderType.CONTRACT);
 
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .toAdvancedOrder({
                 numerator: 0,
@@ -406,19 +390,18 @@ contract FuzzHelpersTest is BaseOrderTest {
     /// @dev A validated order is in state VALIDATED
     function test_getState_ValidatedOrder() public {
         uint256 counter = getSeaport().getCounter(offerer1.addr);
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(offerer1.addr)
             .withCounter(counter)
             .withOrderType(OrderType.FULL_OPEN)
             .toOrderParameters();
-        bytes32 orderHash = getSeaport().getOrderHash(
-            orderParameters.toOrderComponents(counter)
-        );
+        bytes32 orderHash = getSeaport()
+            .getOrderHash(orderParameters.toOrderComponents(counter));
 
         Order[] memory orders = new Order[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
+        orders[0] = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .withSignature(signOrder(getSeaport(), offerer1.key, orderHash));
 
@@ -436,19 +419,18 @@ contract FuzzHelpersTest is BaseOrderTest {
     /// @dev A cancelled order is in state CANCELLED
     function test_getState_CancelledOrder() public {
         uint256 counter = getSeaport().getCounter(offerer1.addr);
-        OrderParameters memory orderParameters = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderParameters memory orderParameters = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(offerer1.addr)
             .withCounter(counter)
             .withOrderType(OrderType.FULL_OPEN)
             .toOrderParameters();
-        bytes32 orderHash = getSeaport().getOrderHash(
-            orderParameters.toOrderComponents(counter)
-        );
+        bytes32 orderHash = getSeaport()
+            .getOrderHash(orderParameters.toOrderComponents(counter));
 
         Order[] memory orders = new Order[](1);
-        orders[0] = OrderLib
-            .fromDefault(STANDARD)
+        orders[0] = OrderLib.fromDefault(STANDARD)
             .withParameters(orderParameters)
             .withSignature(signOrder(getSeaport(), offerer1.key, orderHash));
 
@@ -471,13 +453,11 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     /// @dev A new order is in state UNUSED
     function test_getState_NewOrder() public {
-        AdvancedOrder memory order = OrderLib
-            .fromDefault(STANDARD)
-            .toAdvancedOrder({
-                numerator: 0,
-                denominator: 0,
-                extraData: bytes("")
-            });
+        AdvancedOrder memory order = OrderLib.fromDefault(STANDARD).toAdvancedOrder({
+            numerator: 0,
+            denominator: 0,
+            extraData: bytes("")
+        });
 
         assertEq(order.getState(getSeaport()), State.UNUSED);
     }
@@ -531,12 +511,11 @@ contract FuzzHelpersTest is BaseOrderTest {
         ItemType considerationItemType,
         OrderType orderType
     ) internal view returns (AdvancedOrder memory order) {
-        bool nftOffered = offerItemType == ItemType.ERC721 ||
-            offerItemType == ItemType.ERC1155;
+        bool nftOffered = offerItemType == ItemType.ERC721
+            || offerItemType == ItemType.ERC1155;
 
         OfferItem[] memory offerItems = new OfferItem[](1);
-        OfferItem memory offerItem = OfferItemLib
-            .empty()
+        OfferItem memory offerItem = OfferItemLib.empty()
             .withItemType(offerItemType)
             .withToken(nftOffered ? address(erc721s[0]) : address(0))
             .withIdentifierOrCriteria(nftOffered ? 1 : 0)
@@ -544,26 +523,24 @@ contract FuzzHelpersTest is BaseOrderTest {
 
         offerItems[0] = offerItem;
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            1
-        );
-        ConsiderationItem memory considerationItem = ConsiderationItemLib
-            .empty()
+        ConsiderationItem[] memory considerationItems =
+            new ConsiderationItem[](1);
+        ConsiderationItem memory considerationItem = ConsiderationItemLib.empty()
             .withItemType(considerationItemType)
             .withIdentifierOrCriteria(nftOffered ? 0 : 1)
             .withAmount(1);
 
         considerationItems[0] = considerationItem;
 
-        OrderComponents memory orderComponents = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderComponents memory orderComponents = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(offerer1.addr)
             .withOffer(offerItems)
             .withConsideration(considerationItems)
             .withOrderType(orderType);
 
-        order = OrderLib
-            .fromDefault(STANDARD)
+        order = OrderLib.fromDefault(STANDARD)
             .withParameters(orderComponents.toOrderParameters())
             .toAdvancedOrder({
                 numerator: 0,
@@ -578,15 +555,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC721_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.NATIVE,
-            OrderType.FULL_OPEN
+            ItemType.ERC721, ItemType.NATIVE, OrderType.FULL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ETH_TO_ERC721_FULL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ETH_TO_ERC721_FULL_OPEN
         );
     }
 
@@ -596,15 +570,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC721_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.NATIVE,
-            OrderType.PARTIAL_OPEN
+            ItemType.ERC721, ItemType.NATIVE, OrderType.PARTIAL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN
         );
     }
 
@@ -614,9 +585,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC721_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.NATIVE,
-            OrderType.FULL_RESTRICTED
+            ItemType.ERC721, ItemType.NATIVE, OrderType.FULL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -632,9 +601,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC721_PARTIAL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.NATIVE,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC721, ItemType.NATIVE, OrderType.PARTIAL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -650,15 +617,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.NATIVE,
-            OrderType.FULL_OPEN
+            ItemType.ERC1155, ItemType.NATIVE, OrderType.FULL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ETH_TO_ERC1155_FULL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ETH_TO_ERC1155_FULL_OPEN
         );
     }
 
@@ -668,9 +632,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.NATIVE,
-            OrderType.PARTIAL_OPEN
+            ItemType.ERC1155, ItemType.NATIVE, OrderType.PARTIAL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -686,9 +648,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.NATIVE,
-            OrderType.FULL_RESTRICTED
+            ItemType.ERC1155, ItemType.NATIVE, OrderType.FULL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -704,9 +664,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ETH_TO_ERC1155_PARTIAL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.NATIVE,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC1155, ItemType.NATIVE, OrderType.PARTIAL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -722,15 +680,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.ERC20,
-            OrderType.FULL_OPEN
+            ItemType.ERC721, ItemType.ERC20, OrderType.FULL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
         );
     }
 
@@ -740,9 +695,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.ERC20,
-            OrderType.PARTIAL_OPEN
+            ItemType.ERC721, ItemType.ERC20, OrderType.PARTIAL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -758,9 +711,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC20_TO_ERC721_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.ERC20,
-            OrderType.FULL_RESTRICTED
+            ItemType.ERC721, ItemType.ERC20, OrderType.FULL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -778,9 +729,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC721,
-            ItemType.ERC20,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC721, ItemType.ERC20, OrderType.PARTIAL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -796,15 +745,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.ERC20,
-            OrderType.FULL_OPEN
+            ItemType.ERC1155, ItemType.ERC20, OrderType.FULL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
         );
     }
 
@@ -814,9 +760,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.ERC20,
-            OrderType.PARTIAL_OPEN
+            ItemType.ERC1155, ItemType.ERC20, OrderType.PARTIAL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -832,9 +776,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC20_TO_ERC1155_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.ERC20,
-            OrderType.FULL_RESTRICTED
+            ItemType.ERC1155, ItemType.ERC20, OrderType.FULL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -852,9 +794,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC1155,
-            ItemType.ERC20,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC1155, ItemType.ERC20, OrderType.PARTIAL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -870,15 +810,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC721,
-            OrderType.FULL_OPEN
+            ItemType.ERC20, ItemType.ERC721, OrderType.FULL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
         );
     }
 
@@ -888,9 +825,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC721,
-            OrderType.PARTIAL_OPEN
+            ItemType.ERC20, ItemType.ERC721, OrderType.PARTIAL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -906,9 +841,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC721_TO_ERC20_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC721,
-            OrderType.FULL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC721, OrderType.FULL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -926,9 +859,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC721,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC721, OrderType.PARTIAL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -944,15 +875,12 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_FULL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.FULL_OPEN
+            ItemType.ERC20, ItemType.ERC1155, OrderType.FULL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
         assertEq(
-            order.getBasicOrderType(),
-            BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
+            order.getBasicOrderType(), BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
         );
     }
 
@@ -962,9 +890,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_PARTIAL_OPEN() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_OPEN
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_OPEN
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -980,9 +906,7 @@ contract FuzzHelpersTest is BaseOrderTest {
      */
     function test_getBasicOrderType_ERC1155_TO_ERC20_FULL_RESTRICTED() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.FULL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.FULL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -1000,9 +924,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_RESTRICTED
         );
 
         order.getBasicOrderTypeEligibility(address(getSeaport()));
@@ -1014,22 +936,18 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     function test_getBasicOrderTypeEligibility_failure_criteria() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_RESTRICTED
         );
 
-        order.parameters.consideration[0].itemType = ItemType
-            .ERC1155_WITH_CRITERIA;
+        order.parameters.consideration[0].itemType =
+        ItemType.ERC1155_WITH_CRITERIA;
 
         assertFalse(order.getBasicOrderTypeEligibility(address(getSeaport())));
     }
 
     function test_getBasicOrderTypeEligibility_failure_extraData() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_RESTRICTED
         );
 
         order.extraData = bytes("extraData");
@@ -1041,9 +959,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_RESTRICTED
         );
 
         OfferItem[] memory offer = new OfferItem[](2);
@@ -1064,9 +980,7 @@ contract FuzzHelpersTest is BaseOrderTest {
         public
     {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_RESTRICTED
         );
 
         order.parameters.consideration = new ConsiderationItem[](0);
@@ -1076,9 +990,7 @@ contract FuzzHelpersTest is BaseOrderTest {
 
     function test_getBasicOrderTypeEligibility_failure_nftCount() public {
         AdvancedOrder memory order = _createOrder(
-            ItemType.ERC20,
-            ItemType.ERC1155,
-            OrderType.PARTIAL_RESTRICTED
+            ItemType.ERC20, ItemType.ERC1155, OrderType.PARTIAL_RESTRICTED
         );
 
         OfferItem[] memory offer = new OfferItem[](1);

@@ -1,7 +1,6 @@
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
-import { subtask } from "hardhat/config";
-
 import type { HardhatUserConfig } from "hardhat/config";
+import { subtask } from "hardhat/config";
 
 import "dotenv/config";
 import "@nomiclabs/hardhat-ethers";
@@ -14,7 +13,7 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   async (_, __, runSuper) => {
     const paths = await runSuper();
 
-    return paths.filter((p: any) => !p.includes("contracts/"));
+    return paths.filter((p: string) => !p.includes("contracts/"));
   }
 );
 

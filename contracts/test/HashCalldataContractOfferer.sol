@@ -89,11 +89,9 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         );
     }
 
-    function addDropItemMutation(
-        Side side,
-        uint256 index,
-        bytes32 orderHash
-    ) external {
+    function addDropItemMutation(Side side, uint256 index, bytes32 orderHash)
+        external
+    {
         // TODO: add safety checks to ensure that item is in range
         // and that any failure-inducing mutations have the correct
         // failure reason appropriately set; also should consider
@@ -143,16 +141,16 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
             _consideration = consideration;
         } else {
             _offer = offer;
-            _consideration = _cast(
-                dropIndex(_cast(consideration), mutation.index)
-            );
+            _consideration =
+                _cast(dropIndex(_cast(consideration), mutation.index));
         }
     }
 
-    function dropIndex(
-        SpentItem[] memory items,
-        uint256 index
-    ) internal pure returns (SpentItem[] memory newItems) {
+    function dropIndex(SpentItem[] memory items, uint256 index)
+        internal
+        pure
+        returns (SpentItem[] memory newItems)
+    {
         newItems = new SpentItem[](items.length - 1);
         uint256 newIndex = 0;
         uint256 originalLength = items.length;
@@ -164,17 +162,21 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         }
     }
 
-    function _cast(
-        ReceivedItem[] memory items
-    ) internal pure returns (SpentItem[] memory _items) {
+    function _cast(ReceivedItem[] memory items)
+        internal
+        pure
+        returns (SpentItem[] memory _items)
+    {
         assembly {
             _items := items
         }
     }
 
-    function _cast(
-        SpentItem[] memory items
-    ) internal pure returns (ReceivedItem[] memory _items) {
+    function _cast(SpentItem[] memory items)
+        internal
+        pure
+        returns (ReceivedItem[] memory _items)
+    {
         assembly {
             _items := items
         }
@@ -201,10 +203,11 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         }
     }
 
-    function appendItem(
-        ReceivedItem[] memory items,
-        ReceivedItem memory item
-    ) internal pure returns (ReceivedItem[] memory newItems) {
+    function appendItem(ReceivedItem[] memory items, ReceivedItem memory item)
+        internal
+        pure
+        returns (ReceivedItem[] memory newItems)
+    {
         newItems = new ReceivedItem[](items.length + 1);
         for (uint256 i = 0; i < items.length; i++) {
             newItems[i] = items[i];
@@ -212,7 +215,7 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         newItems[items.length] = item;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 
     constructor(address seaport) {
         _SEAPORT = seaport;
@@ -241,14 +244,13 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         );
 
         if (
-            failureReasons[orderHash] ==
-            OffererZoneFailureReason.ContractOfferer_generateReverts
+            failureReasons[orderHash]
+                == OffererZoneFailureReason.ContractOfferer_generateReverts
         ) {
             revert HashCalldataContractOffererGenerateOrderReverts();
         } else if (
-            failureReasons[orderHash] ==
-            OffererZoneFailureReason
-                .ContractOfferer_generateReturnsInvalidEncoding
+            failureReasons[orderHash]
+                == OffererZoneFailureReason.ContractOfferer_generateReturnsInvalidEncoding
         ) {
             assembly {
                 mstore(0, 0x12345678)
@@ -275,9 +277,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
 
         (offer, consideration) = previewOrder(msg.sender, fulfiller, a, b, c);
 
-        (bool success, ) = payable(_SEAPORT).call{
-            value: _getOfferedNativeTokens(offer)
-        }("");
+        (bool success,) =
+            payable(_SEAPORT).call{ value: _getOfferedNativeTokens(offer) }("");
 
         if (!success) {
             revert NativeTokenTransferFailed();
@@ -318,27 +319,21 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         for (uint256 i; i < itemAmountMutations.length; i++) {
             if (itemAmountMutations[i].orderHash == orderHash) {
                 (offer, consideration) = applyItemAmountMutation(
-                    offer,
-                    consideration,
-                    itemAmountMutations[i]
+                    offer, consideration, itemAmountMutations[i]
                 );
             }
         }
         for (uint256 i; i < extraItemMutations.length; i++) {
             if (extraItemMutations[i].orderHash == orderHash) {
                 (offer, consideration) = applyExtraItemMutation(
-                    offer,
-                    consideration,
-                    extraItemMutations[i]
+                    offer, consideration, extraItemMutations[i]
                 );
             }
         }
         for (uint256 i; i < dropItemMutations.length; i++) {
             if (dropItemMutations[i].orderHash == orderHash) {
                 (offer, consideration) = applyDropItemMutation(
-                    offer,
-                    consideration,
-                    dropItemMutations[i]
+                    offer, consideration, dropItemMutations[i]
                 );
             }
         }
@@ -360,24 +355,33 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
      * @return ratifyOrderMagicValue The magic value to indicate things are OK.
      */
     function ratifyOrder(
-        SpentItem[] calldata /* minimumReceived */,
-        ReceivedItem[] calldata /* maximumSpent */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata,
+        /* minimumReceived */
+        ReceivedItem[] calldata,
+        /* maximumSpent */
+        bytes calldata,
+        /* context */
+        bytes32[] calldata,
+        /* orderHashes */
         uint256 contractNonce
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         require(
             msg.sender == _SEAPORT,
             "HashCalldataContractOfferer: ratify caller not seaport"
         );
 
-        bytes32 orderHash = bytes32(
-            contractNonce ^ (uint256(uint160(address(this))) << 96)
-        );
+        bytes32 orderHash =
+            bytes32(contractNonce ^ (uint256(uint160(address(this))) << 96));
 
         if (
-            failureReasons[orderHash] ==
-            OffererZoneFailureReason.ContractOfferer_ratifyReverts
+            failureReasons[orderHash]
+                == OffererZoneFailureReason.ContractOfferer_ratifyReverts
         ) {
             revert HashCalldataContractOffererRatifyOrderReverts();
         }
@@ -401,8 +405,8 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         }
 
         if (
-            failureReasons[orderHash] ==
-            OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
+            failureReasons[orderHash]
+                == OffererZoneFailureReason.ContractOfferer_InvalidMagicValue
         ) {
             return bytes4(0x12345678);
         } else {
@@ -433,34 +437,38 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         schemas[0].metadata = new bytes(0);
     }
 
-    function _convertSpentToReceived(
-        SpentItem[] calldata spentItems
-    ) internal view returns (ReceivedItem[] memory) {
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            spentItems.length
-        );
+    function _convertSpentToReceived(SpentItem[] calldata spentItems)
+        internal
+        view
+        returns (ReceivedItem[] memory)
+    {
+        ReceivedItem[] memory receivedItems =
+            new ReceivedItem[](spentItems.length);
         for (uint256 i = 0; i < spentItems.length; ++i) {
             receivedItems[i] = _convertSpentToReceived(spentItems[i]);
         }
         return receivedItems;
     }
 
-    function _convertSpentToReceived(
-        SpentItem calldata spentItem
-    ) internal view returns (ReceivedItem memory) {
-        return
-            ReceivedItem({
-                itemType: spentItem.itemType,
-                token: spentItem.token,
-                identifier: spentItem.identifier,
-                amount: spentItem.amount,
-                recipient: payable(address(this))
-            });
+    function _convertSpentToReceived(SpentItem calldata spentItem)
+        internal
+        view
+        returns (ReceivedItem memory)
+    {
+        return ReceivedItem({
+            itemType: spentItem.itemType,
+            token: spentItem.token,
+            identifier: spentItem.identifier,
+            amount: spentItem.amount,
+            recipient: payable(address(this))
+        });
     }
 
-    function _getOfferedNativeTokens(
-        SpentItem[] memory offer
-    ) internal pure returns (uint256 amount) {
+    function _getOfferedNativeTokens(SpentItem[] memory offer)
+        internal
+        pure
+        returns (uint256 amount)
+    {
         for (uint256 i = 0; i < offer.length; ++i) {
             SpentItem memory item = offer[i];
             if (item.itemType == ItemType.NATIVE) {
@@ -482,9 +490,13 @@ contract HashCalldataContractOfferer is ContractOffererInterface {
         return this.onERC1155Received.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ContractOffererInterface) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ContractOffererInterface)
+        returns (bool)
+    {
         return interfaceId == type(ContractOffererInterface).interfaceId;
     }
 

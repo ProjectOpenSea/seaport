@@ -52,19 +52,20 @@ import {
 } from "../contracts/helpers/navigator/lib/ValidatorHelper.sol";
 
 interface ImmutableCreate2Factory {
-    function hasBeenDeployed(
-        address deploymentAddress
-    ) external view returns (bool);
+    function hasBeenDeployed(address deploymentAddress)
+        external
+        view
+        returns (bool);
 
-    function findCreate2Address(
-        bytes32 salt,
-        bytes calldata initializationCode
-    ) external view returns (address deploymentAddress);
+    function findCreate2Address(bytes32 salt, bytes calldata initializationCode)
+        external
+        view
+        returns (address deploymentAddress);
 
-    function safeCreate2(
-        bytes32 salt,
-        bytes calldata initializationCode
-    ) external payable returns (address deploymentAddress);
+    function safeCreate2(bytes32 salt, bytes calldata initializationCode)
+        external
+        payable
+        returns (address deploymentAddress);
 }
 
 contract NavigatorDeployer is Script {
@@ -93,12 +94,10 @@ contract NavigatorDeployer is Script {
         // Deploy the helpers, seaport validator, and navigator.
         vm.startBroadcast();
         address seaportValidatorHelper = deploy(
-            "SeaportValidatorHelper",
-            type(SeaportValidatorHelper).creationCode
+            "SeaportValidatorHelper", type(SeaportValidatorHelper).creationCode
         );
         address readOnlyOrderValidator = deploy(
-            "ReadOnlyOrderValidator",
-            type(ReadOnlyOrderValidator).creationCode
+            "ReadOnlyOrderValidator", type(ReadOnlyOrderValidator).creationCode
         );
         deploy(
             "SeaportValidator",
@@ -113,34 +112,23 @@ contract NavigatorDeployer is Script {
             )
         );
 
-        address requestValidator = deploy(
-            "RequestValidator",
-            type(RequestValidator).creationCode
-        );
-        address criteriaHelper = deploy(
-            "CriteriaHelper",
-            type(CriteriaHelper).creationCode
-        );
-        address validatorHelper = deploy(
-            "ValidatorHelper",
-            type(ValidatorHelper).creationCode
-        );
+        address requestValidator =
+            deploy("RequestValidator", type(RequestValidator).creationCode);
+        address criteriaHelper =
+            deploy("CriteriaHelper", type(CriteriaHelper).creationCode);
+        address validatorHelper =
+            deploy("ValidatorHelper", type(ValidatorHelper).creationCode);
         address orderDetailsHelper = deploy(
-            "OrderDetailsHelper",
-            type(OrderDetailsHelper).creationCode
+            "OrderDetailsHelper", type(OrderDetailsHelper).creationCode
         );
         address fulfillmentsHelper = deploy(
-            "FulfillmentsHelper",
-            type(FulfillmentsHelper).creationCode
+            "FulfillmentsHelper", type(FulfillmentsHelper).creationCode
         );
         address suggestedActionHelper = deploy(
-            "SuggestedActionHelper",
-            type(SuggestedActionHelper).creationCode
+            "SuggestedActionHelper", type(SuggestedActionHelper).creationCode
         );
-        address executionsHelper = deploy(
-            "ExecutionsHelper",
-            type(ExecutionsHelper).creationCode
-        );
+        address executionsHelper =
+            deploy("ExecutionsHelper", type(ExecutionsHelper).creationCode);
 
         deploy(
             "SeaportNavigator",
@@ -160,18 +148,17 @@ contract NavigatorDeployer is Script {
         );
     }
 
-    function deploy(
-        string memory name,
-        bytes memory initCode
-    ) internal returns (address) {
+    function deploy(string memory name, bytes memory initCode)
+        internal
+        returns (address)
+    {
         return deploy(name, DEFAULT_SALT, initCode);
     }
 
-    function deploy(
-        string memory name,
-        bytes32 salt,
-        bytes memory initCode
-    ) internal returns (address) {
+    function deploy(string memory name, bytes32 salt, bytes memory initCode)
+        internal
+        returns (address)
+    {
         bytes32 initCodeHash = keccak256(initCode);
         address deploymentAddress = address(
             uint160(
@@ -189,10 +176,8 @@ contract NavigatorDeployer is Script {
         );
         bool deploying;
         if (!IMMUTABLE_CREATE2_FACTORY.hasBeenDeployed(deploymentAddress)) {
-            deploymentAddress = IMMUTABLE_CREATE2_FACTORY.safeCreate2(
-                salt,
-                initCode
-            );
+            deploymentAddress =
+                IMMUTABLE_CREATE2_FACTORY.safeCreate2(salt, initCode);
             deploying = true;
         }
         console.log(
@@ -204,10 +189,11 @@ contract NavigatorDeployer is Script {
         return deploymentAddress;
     }
 
-    function pad(
-        string memory name,
-        uint256 n
-    ) internal pure returns (string memory) {
+    function pad(string memory name, uint256 n)
+        internal
+        pure
+        returns (string memory)
+    {
         string memory padded = name;
         while (bytes(padded).length < n) {
             padded = string.concat(padded, " ");

@@ -1,17 +1,15 @@
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import { constants } from "ethers";
 import { getCreate2Address, keccak256 } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
-
-import { deployContract } from "../contracts";
-import { randomHex } from "../encoding";
-
 import type {
-  ConduitControllerInterface,
   Conduit__factory,
+  ConduitControllerInterface,
   ImmutableCreate2FactoryInterface,
 } from "../../../typechain-types";
-import type { Wallet } from "ethers";
+import { deployContract } from "../contracts";
+import { randomHex } from "../encoding";
 
 const deployConstants = require("../../../constants/constants");
 
@@ -30,9 +28,8 @@ export const conduitFixture = async (
     conduitImplementation = await ethers.getContractFactory("Conduit");
 
     // Deploy conduit controller through efficient create2 factory
-    const conduitControllerFactory = await ethers.getContractFactory(
-      "ConduitController"
-    );
+    const conduitControllerFactory =
+      await ethers.getContractFactory("ConduitController");
 
     const conduitControllerAddress = await create2Factory.findCreate2Address(
       deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
@@ -67,7 +64,6 @@ export const conduitFixture = async (
   const { conduit: conduitOneAddress, exists } =
     await conduitController.getConduit(conduitKeyOne);
 
-  // eslint-disable-next-line no-unused-expressions
   expect(exists).to.be.true;
 
   const conduitOne = conduitImplementation.attach(conduitOneAddress);
@@ -88,9 +84,8 @@ export const conduitFixture = async (
     const assignedConduitKey =
       conduitKey ?? owner.address + randomHex(12).slice(2);
 
-    const { conduit: tempConduitAddress } = await conduitController.getConduit(
-      assignedConduitKey
-    );
+    const { conduit: tempConduitAddress } =
+      await conduitController.getConduit(assignedConduitKey);
 
     if (!process.env.REFERENCE) {
       await expect(

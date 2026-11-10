@@ -55,25 +55,23 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
 
     modifier validateInputs(FuzzInputsCommon memory args) {
         vm.assume(
-            args.paymentAmts[0] > 0 &&
-                args.paymentAmts[1] > 0 &&
-                args.paymentAmts[2] > 0
+            args.paymentAmts[0] > 0 && args.paymentAmts[1] > 0
+                && args.paymentAmts[2] > 0
         );
         vm.assume(
-            args.paymentAmts[0].add(args.paymentAmts[1]).add(
-                args.paymentAmts[2]
-            ) <= uint128(MAX_INT)
+            args.paymentAmts[0].add(args.paymentAmts[1])
+                    .add(args.paymentAmts[2]) <= uint128(MAX_INT)
         );
         _;
     }
@@ -83,15 +81,11 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 tipAmt
     ) {
         vm.assume(
-            args.paymentAmts[0] > 0 &&
-                args.paymentAmts[1] > 0 &&
-                args.paymentAmts[2] > 0 &&
-                tipAmt > 0
+            args.paymentAmts[0] > 0 && args.paymentAmts[1] > 0
+                && args.paymentAmts[2] > 0 && tipAmt > 0
         );
         vm.assume(
-            args
-                .paymentAmts[0]
-                .add(args.paymentAmts[1])
+            args.paymentAmts[0].add(args.paymentAmts[1])
                 .add(args.paymentAmts[2])
                 .add(tipAmt) <= uint128(MAX_INT)
         );
@@ -105,14 +99,11 @@ contract FulfillOrderTest is BaseOrderTest {
         {
             numTips = (numTips % 64) + 1;
             vm.assume(
-                args.paymentAmts[0] > 0 &&
-                    args.paymentAmts[1] > 0 &&
-                    args.paymentAmts[2] > 0
+                args.paymentAmts[0] > 0 && args.paymentAmts[1] > 0
+                    && args.paymentAmts[2] > 0
             );
             vm.assume(
-                args
-                    .paymentAmts[0]
-                    .add(args.paymentAmts[1])
+                args.paymentAmts[0].add(args.paymentAmts[1])
                     .add(args.paymentAmts[2])
                     .add(numTips.mul(numTips + 1).div(2)) <= uint128(MAX_INT)
             );
@@ -152,20 +143,15 @@ contract FulfillOrderTest is BaseOrderTest {
         configureOrderParameters(alice);
         uint256 counter = context.consideration.getCounter(alice);
         configureOrderComponents(counter);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, alicePk, orderHash);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidNativeOfferItem()"));
 
         context.consideration.fulfillOrder{ value: 1 ether }(
-            Order(baseOrderParameters, signature),
-            bytes32(0)
+            Order(baseOrderParameters, signature), bytes32(0)
         );
     }
 
@@ -185,32 +171,29 @@ contract FulfillOrderTest is BaseOrderTest {
             Context(referenceConsideration, empty, 0, 0, 0)
         );
         test(
-            this.nullAddressSpendReverts,
-            Context(consideration, empty, 0, 0, 0)
+            this.nullAddressSpendReverts, Context(consideration, empty, 0, 0, 0)
         );
     }
 
-    function nullAddressSpendReverts(
-        Context memory context
-    ) external stateless {
+    function nullAddressSpendReverts(Context memory context)
+        external
+        stateless
+    {
         // create a bad signature
-        bytes memory signature = abi.encodePacked(
-            bytes32(0),
-            bytes32(0),
-            bytes1(uint8(27))
-        );
+        bytes memory signature =
+            abi.encodePacked(bytes32(0), bytes32(0), bytes1(uint8(27)));
         // test that signature is recognized as invalid even though signer recovered is null address
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
 
-        context.consideration.fulfillOrder(
-            Order(baseOrderParameters, signature),
-            bytes32(0)
-        );
+        context.consideration
+            .fulfillOrder(Order(baseOrderParameters, signature), bytes32(0));
     }
 
-    function testFulfillAscendingDescendingOffer(
-        FuzzInputsCommon memory inputs
-    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+    function testFulfillAscendingDescendingOffer(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
         vm.assume(inputs.startAmount > 0 && inputs.endAmount > 0);
         inputs.warpAmount %= 1000;
         test(
@@ -223,23 +206,21 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillAscendingDescendingOffer(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillAscendingDescendingOffer(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
         token1.mint(
             alice,
-            (
-                context.args.endAmount > context.args.startAmount
+            (context.args.endAmount > context.args.startAmount
                     ? context.args.endAmount
-                    : context.args.startAmount
-            ).mul(1000)
+                    : context.args.startAmount)
+            .mul(1000)
         );
         addErc20OfferItem(
-            context.args.startAmount.mul(1000),
-            context.args.endAmount.mul(1000)
+            context.args.startAmount.mul(1000), context.args.endAmount.mul(1000)
         );
         addEthConsiderationItem(alice, 1000);
         OrderParameters memory orderParameters = OrderParameters(
@@ -248,8 +229,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1000,
             bytes32(0),
             context.args.salt,
             conduitKey,
@@ -257,8 +238,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getCounter(alice)
+            orderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -266,8 +246,8 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        uint256 startTime = block.timestamp;
-        vm.warp(block.timestamp + context.args.warpAmount);
+        uint256 startTime = vm.getBlockTimestamp();
+        vm.warp(vm.getBlockTimestamp() + context.args.warpAmount);
         uint256 expectedAmount = _locateCurrentAmount(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000),
@@ -278,8 +258,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.expectEmit(true, true, false, true, address(token1));
         emit Transfer(alice, address(this), expectedAmount);
         context.consideration.fulfillOrder{ value: 1000 }(
-            Order(orderParameters, signature),
-            conduitKey
+            Order(orderParameters, signature), conduitKey
         );
     }
 
@@ -299,13 +278,13 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillAscendingDescendingConsideration(
-        Context memory context
-    ) external stateless {
+    function fulfillAscendingDescendingConsideration(Context memory context)
+        external
+        stateless
+    {
         context.args.warpAmount %= 1000;
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         addErc1155OfferItem(context.args.id, context.erc1155Amt);
@@ -321,8 +300,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1000,
             bytes32(0),
             context.args.salt,
             conduitKey,
@@ -332,8 +311,7 @@ contract FulfillOrderTest is BaseOrderTest {
         delete considerationItems;
 
         OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getCounter(alice)
+            orderParameters, context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -341,8 +319,8 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        uint256 startTime = block.timestamp;
-        vm.warp(block.timestamp + context.args.warpAmount);
+        uint256 startTime = vm.getBlockTimestamp();
+        vm.warp(vm.getBlockTimestamp() + context.args.warpAmount);
         uint256 expectedAmount = _locateCurrentAmount(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000),
@@ -353,15 +331,15 @@ contract FulfillOrderTest is BaseOrderTest {
         token1.mint(address(this), expectedAmount);
         vm.expectEmit(true, true, false, true, address(token1));
         emit Transfer(address(this), address(alice), expectedAmount);
-        context.consideration.fulfillOrder(
-            Order(orderParameters, signature),
-            conduitKey
-        );
+        context.consideration
+            .fulfillOrder(Order(orderParameters, signature), conduitKey);
     }
 
-    function testFulfillOrderEthToErc721(
-        FuzzInputsCommon memory inputs
-    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+    function testFulfillOrderEthToErc721(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
         test(
             this.fulfillOrderEthToErc721,
             Context(referenceConsideration, inputs, 0, 0, 0)
@@ -392,15 +370,12 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt
     ) public onlyPayable(inputs.zone) {
         vm.assume(
-            inputs.paymentAmts[0] > 0 &&
-                inputs.paymentAmts[1] > 0 &&
-                inputs.paymentAmts[2] > 0 &&
-                tipAmt > 0
+            inputs.paymentAmts[0] > 0 && inputs.paymentAmts[1] > 0
+                && inputs.paymentAmts[2] > 0 && tipAmt > 0
         );
         vm.assume(
-            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
-                inputs.paymentAmts[2].add(tipAmt)
-            ) <= uint128(MAX_INT)
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1])
+                .add(inputs.paymentAmts[2].add(tipAmt)) <= uint128(MAX_INT)
         );
         test(
             this.fulfillOrderEthToErc721WithSingleEthTip,
@@ -419,15 +394,12 @@ contract FulfillOrderTest is BaseOrderTest {
     ) public onlyPayable(inputs.zone) {
         vm.assume(tokenAmt > 0);
         vm.assume(
-            inputs.paymentAmts[0] > 0 &&
-                inputs.paymentAmts[1] > 0 &&
-                inputs.paymentAmts[2] > 0 &&
-                tipAmt > 0
+            inputs.paymentAmts[0] > 0 && inputs.paymentAmts[1] > 0
+                && inputs.paymentAmts[2] > 0 && tipAmt > 0
         );
         vm.assume(
-            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
-                inputs.paymentAmts[2].add(tipAmt)
-            ) <= uint128(MAX_INT)
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1])
+                .add(inputs.paymentAmts[2].add(tipAmt)) <= uint128(MAX_INT)
         );
         test(
             this.fulfillOrderEthToErc1155WithSingleEthTip,
@@ -562,9 +534,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function testFulfillOrderEthToErc721WithErc20Tips(
-        FuzzInputsCommon memory inputs
-    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+    function testFulfillOrderEthToErc721WithErc20Tips(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
         test(
             this.fulfillOrderEthToErc721WithErc20Tips,
             Context(referenceConsideration, inputs, 0, 0, 0)
@@ -595,9 +569,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function testFulfillOrderEthToErc721FullRestricted(
-        FuzzInputsCommon memory inputs
-    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+    function testFulfillOrderEthToErc721FullRestricted(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
         test(
             this.fulfillOrderEthToErc721FullRestricted,
             Context(referenceConsideration, inputs, 0, 0, 0)
@@ -631,19 +607,16 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillOrder64And65Byte1271Signatures(
-        Context memory context
-    ) external stateless {
+    function fulfillOrder64And65Byte1271Signatures(Context memory context)
+        external
+        stateless
+    {
         test1155_1.mint(address(this), 1, 1);
         addErc1155OfferItem(1, 1);
         addEthConsiderationItem(payable(this), 1);
 
         _configureOrderParameters(
-            address(this),
-            address(0),
-            bytes32(0),
-            globalSalt++,
-            false
+            address(this), address(0), bytes32(0), globalSalt++, false
         );
 
         Order memory order = Order(baseOrderParameters, signature1271);
@@ -665,21 +638,13 @@ contract FulfillOrderTest is BaseOrderTest {
         addEthConsiderationItem(payable(bob), 1);
 
         _configureOrderParameters(
-            bob,
-            address(0),
-            bytes32(0),
-            globalSalt++,
-            false
+            bob, address(0), bytes32(0), globalSalt++, false
         );
         configureOrderComponents(context.consideration.getCounter(bob));
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder2098(
-            context.consideration,
-            bobPk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder2098(context.consideration, bobPk, orderHash);
 
         Order memory order = Order(baseOrderParameters, signature);
 
@@ -693,24 +658,19 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 totalConsiderationItems = fuzzTotalConsiderationItems % 200;
         // Set amount to subtract from consideration item length
         // to be at most totalConsiderationItems.
-        uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems >
-                0
-                ? fuzzAmountToSubtractFromConsiderationItemsLength %
-                    totalConsiderationItems
-                : 0;
+        uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems
+            > 0
+            ? fuzzAmountToSubtractFromConsiderationItemsLength
+                % totalConsiderationItems
+            : 0;
 
         // Create order
-        (
-            Order memory _order,
-            OrderParameters memory _orderParameters,
-
-        ) = _prepareOrder(1, totalConsiderationItems);
+        (Order memory _order, OrderParameters memory _orderParameters,) =
+            _prepareOrder(1, totalConsiderationItems);
 
         // Get the calldata that will be passed into fulfillOrder.
         bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
-            consideration.fulfillOrder.selector,
-            _order,
-            conduitKeyOne
+            consideration.fulfillOrder.selector, _order, conduitKeyOne
         );
 
         _performTestFulfillOrderRevertInvalidArrayLength(
@@ -728,21 +688,17 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillOrderEthToErc721(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillOrderEthToErc721(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -782,8 +738,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -800,28 +756,29 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length
         );
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc1155(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillOrderEthToErc1155(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         offerItems.push(
@@ -871,8 +828,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -889,28 +846,29 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length
         );
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderSingleErc20ToSingleErc1155(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillOrderSingleErc20ToSingleErc1155(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
 
@@ -961,8 +919,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -979,38 +937,35 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc721WithSingleEthTip(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillOrderEthToErc721WithSingleEthTip(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -1050,8 +1005,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1081,30 +1036,31 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - 1
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
                 .add(context.tipAmt)
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc1155WithSingleEthTip(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillOrderEthToErc1155WithSingleEthTip(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
 
@@ -1155,8 +1111,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1186,41 +1142,38 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - 1
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
                 .add(context.tipAmt)
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc721WithMultipleEthTips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithMultipleEthTips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -1260,8 +1213,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1280,12 +1233,7 @@ contract FulfillOrderTest is BaseOrderTest {
             sumOfTips += i;
             considerationItems.push(
                 ConsiderationItem(
-                    ItemType.NATIVE,
-                    address(0),
-                    0,
-                    i,
-                    i,
-                    payable(tipAddr)
+                    ItemType.NATIVE, address(0), 0, i, i, payable(tipAddr)
                 )
             );
         }
@@ -1296,32 +1244,33 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
                 .add(sumOfTips)
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc1155WithMultipleEthTips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithMultipleEthTips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
 
@@ -1372,8 +1321,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1393,12 +1342,7 @@ contract FulfillOrderTest is BaseOrderTest {
             sumOfTips += i;
             considerationItems.push(
                 ConsiderationItem(
-                    ItemType.NATIVE,
-                    address(0),
-                    0,
-                    i,
-                    i,
-                    payable(tipAddr)
+                    ItemType.NATIVE, address(0), 0, i, i, payable(tipAddr)
                 )
             );
         }
@@ -1409,41 +1353,38 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
                 .add(sumOfTips)
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc721WithErc721Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithErc721Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -1483,8 +1424,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1519,31 +1460,32 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc1155WithErc721Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithErc721Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         offerItems.push(
@@ -1593,8 +1535,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1629,41 +1571,38 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc721WithErc1155Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721WithErc1155Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -1703,8 +1642,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1738,31 +1677,32 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc1155WithErc1155Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithErc1155Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         offerItems.push(
@@ -1811,8 +1751,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1846,39 +1786,36 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc721WithErc20Tips(
-        Context memory context
-    ) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function fulfillOrderEthToErc721WithErc20Tips(Context memory context)
+        external
+        stateless
+    {
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -1918,8 +1855,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1952,31 +1889,32 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc1155WithErc20Tips(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc1155WithErc20Tips(Context memory context)
+        external
+        stateless
+    {
         context.numTips = (context.numTips % 64) + 1;
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         offerItems.push(
@@ -2026,8 +1964,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -2060,42 +1998,39 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
 
-        context.consideration.fulfillOrder{
-            value: context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
+        context.consideration
+        .fulfillOrder{
+            value: context.args
+                .paymentAmts[0].add(context.args.paymentAmts[1])
                 .add(context.args.paymentAmts[2])
-        }(Order(orderParameters, signature), conduitKey);
+        }(
+            Order(orderParameters, signature), conduitKey
+        );
     }
 
-    function fulfillOrderEthToErc721FullRestricted(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderEthToErc721FullRestricted(Context memory context)
+        external
+        stateless
+    {
         context.args.zone = address(
             uint160(bound(uint160(context.args.zone), 1, type(uint160).max))
         );
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.args.useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
+                ItemType.ERC721, address(test721_1), context.args.id, 1, 1
             )
         );
         considerationItems.push(
@@ -2135,8 +2070,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_RESTRICTED,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -2154,23 +2089,21 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_RESTRICTED,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
             considerationItems.length
         );
 
-        uint256 value = context
-            .args
+        uint256 value = context.args
             .paymentAmts[0]
             .add(context.args.paymentAmts[1])
             .add(context.args.paymentAmts[2]);
         hoax(context.args.zone, value);
         context.consideration.fulfillOrder{ value: value }(
-            Order(orderParameters, signature),
-            conduitKey
+            Order(orderParameters, signature), conduitKey
         );
     }
 
@@ -2185,20 +2118,19 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(inputs.id > 0);
         vm.assume(tokenAmount > 0);
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration,
+            this.fulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration,
             Context(consideration, inputs, tokenAmount, 0, 0)
         );
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration,
+            this.fulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration,
             Context(referenceConsideration, inputs, tokenAmount, 0, 0)
         );
     }
 
-    function fulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderRevertUnusedItemParametersAddressSetOnNativeConsideration(Context memory context)
+        external
+        stateless
+    {
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         addErc1155OfferItem(context.args.id, context.erc1155Amt);
         addEthConsiderationItem(alice, 100);
@@ -2211,8 +2143,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2230,8 +2162,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2241,8 +2173,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
         context.consideration.fulfillOrder{ value: 100 }(
-            Order(orderParameters, signature),
-            bytes32(0)
+            Order(orderParameters, signature), bytes32(0)
         );
     }
 
@@ -2257,20 +2188,19 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(inputs.id > 0);
         vm.assume(tokenAmount > 0);
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnNativeConsideration,
+            this.fulfillOrderRevertUnusedItemParametersIdentifierSetOnNativeConsideration,
             Context(consideration, inputs, tokenAmount, 0, 0)
         );
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnNativeConsideration,
+            this.fulfillOrderRevertUnusedItemParametersIdentifierSetOnNativeConsideration,
             Context(referenceConsideration, inputs, tokenAmount, 0, 0)
         );
     }
 
-    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnNativeConsideration(Context memory context)
+        external
+        stateless
+    {
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         addErc1155OfferItem(context.args.id, context.erc1155Amt);
         addEthConsiderationItem(alice, 100);
@@ -2283,8 +2213,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2302,8 +2232,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2313,8 +2243,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
         context.consideration.fulfillOrder{ value: 100 }(
-            Order(orderParameters, signature),
-            bytes32(0)
+            Order(orderParameters, signature), bytes32(0)
         );
     }
 
@@ -2331,20 +2260,19 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(inputs.id > 0);
         vm.assume(tokenAmount > 0);
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration,
+            this.fulfillOrderRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration,
             Context(consideration, inputs, tokenAmount, 0, 0)
         );
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration,
+            this.fulfillOrderRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration,
             Context(referenceConsideration, inputs, tokenAmount, 0, 0)
         );
     }
 
-    function fulfillOrderRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration(Context memory context)
+        external
+        stateless
+    {
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
         addErc1155OfferItem(context.args.id, context.erc1155Amt);
         addEthConsiderationItem(alice, 100);
@@ -2358,8 +2286,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2377,8 +2305,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2388,8 +2316,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
         context.consideration.fulfillOrder{ value: 100 }(
-            Order(orderParameters, signature),
-            bytes32(0)
+            Order(orderParameters, signature), bytes32(0)
         );
     }
 
@@ -2404,20 +2331,19 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(inputs.id > 0);
         vm.assume(tokenAmount > 0);
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer,
+            this.fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer,
             Context(consideration, inputs, tokenAmount, 0, 0)
         );
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer,
+            this.fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer,
             Context(referenceConsideration, inputs, tokenAmount, 0, 0)
         );
     }
 
-    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer(Context memory context)
+        external
+        stateless
+    {
         test721_1.mint(bob, context.args.id);
 
         addErc20OfferItem(100);
@@ -2431,8 +2357,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2450,8 +2376,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2460,10 +2386,8 @@ contract FulfillOrderTest is BaseOrderTest {
 
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
-        context.consideration.fulfillOrder(
-            Order(orderParameters, signature),
-            bytes32(0)
-        );
+        context.consideration
+            .fulfillOrder(Order(orderParameters, signature), bytes32(0));
     }
 
     function testFulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration(
@@ -2477,20 +2401,19 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(inputs.id > 0);
         vm.assume(tokenAmount > 0);
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration,
+            this.fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration,
             Context(consideration, inputs, tokenAmount, 0, 0)
         );
         test(
-            this
-                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration,
+            this.fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration,
             Context(referenceConsideration, inputs, tokenAmount, 0, 0)
         );
     }
 
-    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration(Context memory context)
+        external
+        stateless
+    {
         test721_1.mint(alice, context.args.id);
         addErc721OfferItem(context.args.id);
         addErc20ConsiderationItem(alice, 100);
@@ -2503,8 +2426,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2522,8 +2445,8 @@ contract FulfillOrderTest is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
+            vm.getBlockTimestamp(),
+            vm.getBlockTimestamp() + 1,
             context.args.zoneHash,
             context.args.salt,
             bytes32(0),
@@ -2532,10 +2455,8 @@ contract FulfillOrderTest is BaseOrderTest {
 
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
-        context.consideration.fulfillOrder(
-            Order(orderParameters, signature),
-            bytes32(0)
-        );
+        context.consideration
+            .fulfillOrder(Order(orderParameters, signature), bytes32(0));
     }
 
     function testFulfillOrderRevertCounterIncremented() public {
@@ -2549,9 +2470,10 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function fulfillOrderRevertCounterIncremented(
-        Context memory context
-    ) external stateless {
+    function fulfillOrderRevertCounterIncremented(Context memory context)
+        external
+        stateless
+    {
         // Roll to a high block to get a blockhash that's high enough to produce
         // a non-0 value when right shifted by 128 bits.
         vm.roll(type(uint248).max);
@@ -2561,21 +2483,13 @@ contract FulfillOrderTest is BaseOrderTest {
         addEthConsiderationItem(payable(bob), 1);
 
         _configureOrderParameters(
-            bob,
-            address(0),
-            bytes32(0),
-            globalSalt++,
-            false
+            bob, address(0), bytes32(0), globalSalt++, false
         );
         configureOrderComponents(context.consideration.getCounter(bob));
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder2098(
-            context.consideration,
-            bobPk,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder2098(context.consideration, bobPk, orderHash);
 
         Order memory order = Order(baseOrderParameters, signature);
 

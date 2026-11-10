@@ -27,10 +27,9 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         ConsiderationInterface seaport;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail(
                 "Stateless test function should have reverted with assertion failure status."
@@ -40,9 +39,10 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         }
     }
 
-    function setUpFilterOfferItemBySpecifyingOffererAsRecipient(
-        Context memory context
-    ) internal returns (AdvancedOrder[] memory, Fulfillment[] memory) {
+    function setUpFilterOfferItemBySpecifyingOffererAsRecipient(Context memory context)
+        internal
+        returns (AdvancedOrder[] memory, Fulfillment[] memory)
+    {
         string memory offererName = "offerer";
         address offerer = makeAddr(offererName);
         string memory fulfillerName = "fulfiller";
@@ -91,10 +91,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
                 recipient: payable(offerer)
             })
         );
-        Order memory offererOrder = createSignedOrder(
-            context.seaport,
-            offererName
-        );
+        Order memory offererOrder =
+            createSignedOrder(context.seaport, offererName);
 
         // offer 10k of token1
 
@@ -129,20 +127,15 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
                 recipient: payable(offerer)
             })
         );
-        Order memory fulfillerOrder = createSignedOrder(
-            context.seaport,
-            fulfillerName
-        );
+        Order memory fulfillerOrder =
+            createSignedOrder(context.seaport, fulfillerName);
 
         Fulfillment[] memory _fulfillments = createFulfillmentsFromMirrorOrders(
-            offererOrder.parameters,
-            fulfillerOrder.parameters
+            offererOrder.parameters, fulfillerOrder.parameters
         );
 
         AdvancedOrder memory offererAdvanced = toAdvancedOrder(offererOrder);
-        AdvancedOrder memory fulfillerAdvanced = toAdvancedOrder(
-            fulfillerOrder
-        );
+        AdvancedOrder memory fulfillerAdvanced = toAdvancedOrder(fulfillerOrder);
 
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = offererAdvanced;
@@ -160,9 +153,10 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
         );
     }
 
-    function setUpSweepRemaining(
-        Context memory context
-    ) internal returns (Order[] memory, Fulfillment[] memory) {
+    function setUpSweepRemaining(Context memory context)
+        internal
+        returns (Order[] memory, Fulfillment[] memory)
+    {
         string memory offererName = "offerer";
         address offerer = makeAddr(offererName);
         string memory fulfillerName = "fulfiller";
@@ -198,10 +192,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
             })
         );
 
-        Order memory offererOrder = createSignedOrder(
-            context.seaport,
-            offererName
-        );
+        Order memory offererOrder =
+            createSignedOrder(context.seaport, offererName);
 
         // offer 10k of token1
 
@@ -226,14 +218,11 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
             })
         );
 
-        Order memory fulfillerOrder = createSignedOrder(
-            context.seaport,
-            fulfillerName
-        );
+        Order memory fulfillerOrder =
+            createSignedOrder(context.seaport, fulfillerName);
 
         Fulfillment[] memory _fulfillments = createFulfillmentsFromMirrorOrders(
-            offererOrder.parameters,
-            fulfillerOrder.parameters
+            offererOrder.parameters, fulfillerOrder.parameters
         );
 
         Order[] memory orders = new Order[](2);
@@ -246,10 +235,8 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
      * @dev test that unmatched item amounts are swept to the fulfiller when calling matchOrders
      */
     function execSweepRemaining(Context memory context) external stateless {
-        (
-            Order[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpSweepRemaining(context);
+        (Order[] memory orders, Fulfillment[] memory _fulfillments) =
+            setUpSweepRemaining(context);
         uint256 startingToken1Balance = token1.balanceOf(address(this));
         context.seaport.matchOrders(orders, _fulfillments);
         uint256 endingToken1Balance = token1.balanceOf(address(this));
@@ -259,8 +246,7 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
     // TODO: look into sporadic failures here
     function xtestSweepRemainingAdvanced() public {
         test(
-            this.execSweepRemainingAdvanced,
-            Context({ seaport: consideration })
+            this.execSweepRemainingAdvanced, Context({ seaport: consideration })
         );
         test(
             this.execSweepRemainingAdvanced,
@@ -271,24 +257,24 @@ contract MatchOrderUnspentOfferTest is BaseOrderTest {
     /**
      * @dev test that unmatched item amounts are swept to the fulfiller when calling matchAdvancedOrders with a recipient of 0
      */
-    function execSweepRemainingAdvanced(
-        Context memory context
-    ) external stateless {
-        (
-            Order[] memory orders,
-            Fulfillment[] memory _fulfillments
-        ) = setUpSweepRemaining(context);
+    function execSweepRemainingAdvanced(Context memory context)
+        external
+        stateless
+    {
+        (Order[] memory orders, Fulfillment[] memory _fulfillments) =
+            setUpSweepRemaining(context);
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
         advancedOrders[0] = toAdvancedOrder(orders[0]);
         advancedOrders[1] = toAdvancedOrder(orders[1]);
 
         uint256 startingToken1Balance = token1.balanceOf(address(this));
-        context.seaport.matchAdvancedOrders({
-            orders: advancedOrders,
-            criteriaResolvers: new CriteriaResolver[](0),
-            fulfillments: _fulfillments,
-            recipient: address(0)
-        });
+        context.seaport
+            .matchAdvancedOrders({
+                orders: advancedOrders,
+                criteriaResolvers: new CriteriaResolver[](0),
+                fulfillments: _fulfillments,
+                recipient: address(0)
+            });
         uint256 endingToken1Balance = token1.balanceOf(address(this));
         assertEq(endingToken1Balance, startingToken1Balance + 200);
     }

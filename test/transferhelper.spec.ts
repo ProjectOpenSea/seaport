@@ -1,17 +1,7 @@
 import { expect } from "chai";
 import { randomInt } from "crypto";
+import type { BigNumber, Wallet } from "ethers";
 import { ethers, network } from "hardhat";
-
-import { randomHex } from "./utils/encoding";
-import { faucet } from "./utils/faucet";
-import {
-  fixtureERC1155,
-  fixtureERC20,
-  fixtureERC721,
-  seaportFixture,
-} from "./utils/fixtures";
-import { VERSION } from "./utils/helpers";
-
 import type {
   ConduitControllerInterface,
   ConduitInterface,
@@ -19,10 +9,18 @@ import type {
   EIP1271Wallet__factory,
   TransferHelper,
 } from "../typechain-types";
+import { randomHex } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import type { SeaportFixtures } from "./utils/fixtures";
-import type { BigNumber, Wallet } from "ethers";
+import {
+  fixtureERC20,
+  fixtureERC721,
+  fixtureERC1155,
+  seaportFixture,
+} from "./utils/fixtures";
+import { VERSION } from "./utils/helpers";
 
-describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
+describe(`TransferHelper tests (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -138,9 +136,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     }
 
     // Deploy a new TransferHelper with the tempConduitController address
-    const transferHelperFactory = await ethers.getContractFactory(
-      "TransferHelper"
-    );
+    const transferHelperFactory =
+      await ethers.getContractFactory("TransferHelper");
     tempTransferHelper = await transferHelperFactory.deploy(
       conduitController.address
     );
@@ -204,9 +201,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
+        const { testERC1155: tempERC1155Contract } =
+          await fixtureERC1155(owner);
         // Create/Approve numERC1155s amount of ERC1155s
         const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
@@ -255,12 +251,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           case 1: // ERC20
             // Check balance
             expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
+              await (token as (typeof erc20Contracts)[0]).balanceOf(
                 sender.address
               )
             ).to.equal(0);
             expect(
-              await (token as typeof erc20Contracts[0]).balanceOf(
+              await (token as (typeof erc20Contracts)[0]).balanceOf(
                 recipient.address
               )
             ).to.equal(amount);
@@ -268,7 +264,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
           case 2: // ERC721
           case 4: // ERC721_WITH_CRITERIA
             expect(
-              await (token as typeof erc721Contracts[0]).ownerOf(identifier)
+              await (token as (typeof erc721Contracts)[0]).ownerOf(identifier)
             ).to.equal(recipient.address);
             break;
           case 3: // ERC1155
@@ -338,9 +334,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
+        const { testERC1155: tempERC1155Contract } =
+          await fixtureERC1155(owner);
         // Create/Approve numERC1155s amount of ERC1155s
         const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
@@ -383,9 +378,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
     it("Cannot execute ERC721 transfers to a contract recipient without a conduit", async () => {
       // Deploy recipient contract
-      const erc721RecipientFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
+      const erc721RecipientFactory =
+        await ethers.getContractFactory("ERC721ReceiverMock");
       const erc721Recipient = await erc721RecipientFactory.deploy(
         Buffer.from("150b7a02", "hex"),
         0
@@ -656,9 +650,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       // Deploy mock ERC721 receiver
-      const mockERC721ReceiverFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
+      const mockERC721ReceiverFactory =
+        await ethers.getContractFactory("ERC721ReceiverMock");
       const mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
         Buffer.from("abcd0000", "hex"),
         1
@@ -720,9 +713,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       // Deploy mock ERC721 receiver
-      const mockERC721ReceiverFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
+      const mockERC721ReceiverFactory =
+        await ethers.getContractFactory("ERC721ReceiverMock");
       const mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
         Buffer.from("abcd0000", "hex"),
         1
@@ -892,9 +884,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         1 // ConduitMockRevertNoReason
       );
 
-      const mockTransferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
+      const mockTransferHelperFactory =
+        await ethers.getContractFactory("TransferHelper");
       const mockTransferHelper = await mockTransferHelperFactory.deploy(
         mockConduitController.address
       );
@@ -960,9 +951,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
     it("Reverts with bubbled up panic error from call to conduit", async () => {
       // Deploy mock ERC20
-      const mockERC20PanicFactory = await ethers.getContractFactory(
-        "TestERC20Panic"
-      );
+      const mockERC20PanicFactory =
+        await ethers.getContractFactory("TestERC20Panic");
       const mockERC20Panic = await mockERC20PanicFactory.deploy();
 
       const transfers = [
@@ -1025,9 +1015,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         2 // ConduitMockInvalidMagic
       );
 
-      const mockTransferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
+      const mockTransferHelperFactory =
+        await ethers.getContractFactory("TransferHelper");
       const mockTransferHelper = await mockTransferHelperFactory.deploy(
         mockConduitController.address
       );
@@ -1087,9 +1076,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         3 // ConduitMockRevertBytes
       );
 
-      const mockTransferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
+      const mockTransferHelperFactory =
+        await ethers.getContractFactory("TransferHelper");
       const mockTransferHelper = await mockTransferHelperFactory.deploy(
         mockConduitController.address
       );
@@ -1263,9 +1251,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         // Create numERC1155s amount of ERC1155 objects
         for (let i = 0; i < numERC1155s; i++) {
           // Deploy Contract
-          const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-            owner
-          );
+          const { testERC1155: tempERC1155Contract } =
+            await fixtureERC1155(owner);
           // Create/Approve numERC1155s amount of ERC1155s
           const erc1155Transfer = await createTransferWithApproval(
             tempERC1155Contract,
@@ -1318,12 +1305,12 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             case 1: // ERC20
               // Check balance
               expect(
-                await (token as typeof erc20Contracts[0]).balanceOf(
+                await (token as (typeof erc20Contracts)[0]).balanceOf(
                   sender.address
                 )
               ).to.equal(0);
               expect(
-                await (token as typeof erc20Contracts[0]).balanceOf(
+                await (token as (typeof erc20Contracts)[0]).balanceOf(
                   transfersWithRecipients[i].recipient
                 )
               ).to.equal(amount);
@@ -1331,7 +1318,7 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
             case 2: // ERC721
             case 4: // ERC721_WITH_CRITERIA
               expect(
-                await (token as typeof erc721Contracts[0]).ownerOf(identifier)
+                await (token as (typeof erc721Contracts)[0]).ownerOf(identifier)
               ).to.equal(transfersWithRecipients[i].recipient);
               break;
             case 3: // ERC1155
@@ -1422,9 +1409,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         // Create numERC1155s amount of ERC1155 objects
         for (let i = 0; i < numERC1155s; i++) {
           // Deploy Contract
-          const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-            owner
-          );
+          const { testERC1155: tempERC1155Contract } =
+            await fixtureERC1155(owner);
           // Create/Approve numERC1155s amount of ERC1155s
           const erc1155Transfer = await createTransferWithApproval(
             tempERC1155Contract,
@@ -1473,9 +1459,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
     it("Cannot execute ERC721 transfers to multiple contract recipients without a conduit", async () => {
       // Deploy recipient contract
-      const erc721RecipientFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
+      const erc721RecipientFactory =
+        await ethers.getContractFactory("ERC721ReceiverMock");
       const erc721RecipientOne = await erc721RecipientFactory.deploy(
         Buffer.from("150b7a02", "hex"),
         0
@@ -1676,9 +1661,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
       // Will accept ERC721 transfers
-      const mockERC721ReceiverFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
+      const mockERC721ReceiverFactory =
+        await ethers.getContractFactory("ERC721ReceiverMock");
       const erc721Receiver = await mockERC721ReceiverFactory.deploy(
         "0x150b7a02", // Magic value
         0
@@ -1873,9 +1857,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
 
       // Deploy mock ERC721 receiver
-      const mockERC721ReceiverFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
+      const mockERC721ReceiverFactory =
+        await ethers.getContractFactory("ERC721ReceiverMock");
       const mockERC721ReceiverOne = await mockERC721ReceiverFactory.deploy(
         Buffer.from("abcd0000", "hex"),
         1
@@ -2112,9 +2095,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         1 // ConduitMockRevertNoReason
       );
 
-      const mockTransferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
+      const mockTransferHelperFactory =
+        await ethers.getContractFactory("TransferHelper");
       const mockTransferHelper = await mockTransferHelperFactory.deploy(
         mockConduitController.address
       );
@@ -2210,9 +2192,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
     it("Reverts with bubbled up panic error from call to conduit", async () => {
       // Deploy mock ERC20
-      const mockERC20PanicFactory = await ethers.getContractFactory(
-        "TestERC20Panic"
-      );
+      const mockERC20PanicFactory =
+        await ethers.getContractFactory("TestERC20Panic");
       const mockERC20Panic = await mockERC20PanicFactory.deploy();
 
       const transfers = [
@@ -2294,9 +2275,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         2 // ConduitMockInvalidMagic
       );
 
-      const mockTransferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
+      const mockTransferHelperFactory =
+        await ethers.getContractFactory("TransferHelper");
       const mockTransferHelper = await mockTransferHelperFactory.deploy(
         mockConduitController.address
       );
@@ -2374,9 +2354,8 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
         3 // ConduitMockRevertBytes
       );
 
-      const mockTransferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
+      const mockTransferHelperFactory =
+        await ethers.getContractFactory("TransferHelper");
       const mockTransferHelper = await mockTransferHelperFactory.deploy(
         mockConduitController.address
       );

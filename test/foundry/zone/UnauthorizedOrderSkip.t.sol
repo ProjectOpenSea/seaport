@@ -167,10 +167,9 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
     string constant SINGLE_721 = "single 721";
     string constant STD_RESTRICTED = "validation zone";
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -185,16 +184,13 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         // Can this be removed?
         conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(this),
-            true
+            address(referenceConduit), address(this), true
         );
 
         // create a default consideration for a single 721;
         // note that it does not have recipient, token or
         // identifier set
-        ConsiderationItemLib
-            .empty()
+        ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withStartAmount(1)
             .withEndAmount(1)
@@ -202,15 +198,13 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // create a default offerItem for a single 721;
         // note that it does not have token or identifier set
-        OfferItemLib
-            .empty()
+        OfferItemLib.empty()
             .withItemType(ItemType.ERC721)
             .withStartAmount(1)
             .withEndAmount(1)
             .saveDefault(SINGLE_721);
 
-        OrderComponentsLib
-            .empty()
+        OrderComponentsLib.empty()
             .withOfferer(offerer1.addr)
             .withOrderType(OrderType.FULL_RESTRICTED)
             .withStartTime(block.timestamp)
@@ -221,9 +215,9 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             .saveDefault(STD_RESTRICTED);
     }
 
-    function testMatchAuthRevertAndInvMagicValue(
-        MatchFuzzInputs memory _matchArgs
-    ) public {
+    function testMatchAuthRevertAndInvMagicValue(MatchFuzzInputs memory _matchArgs)
+        public
+    {
         _matchArgs = _boundMatchArgs(_matchArgs);
 
         test(
@@ -271,22 +265,17 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         });
 
         // The prime offerer is offering NFTs and considering ERC20/Native.
-        fuzzPrimeOfferer = makeAndAllocateAccount(
-            context.matchArgs.primeOfferer
-        );
+        fuzzPrimeOfferer =
+            makeAndAllocateAccount(context.matchArgs.primeOfferer);
         // The mirror offerer is offering ERC20/Native and considering NFTs.
-        fuzzMirrorOfferer = makeAndAllocateAccount(
-            context.matchArgs.mirrorOfferer
-        );
+        fuzzMirrorOfferer =
+            makeAndAllocateAccount(context.matchArgs.mirrorOfferer);
 
         // Create the orders and fulfuillments.
-        (
-            infra.orders,
-            infra.fulfillments
-        ) = _buildOrdersAndFulfillmentsMirrorOrdersFromFuzzArgs(
-            context,
-            address(verboseZone)
-        );
+        (infra.orders, infra.fulfillments) =
+            _buildOrdersAndFulfillmentsMirrorOrdersFromFuzzArgs(
+                context, address(verboseZone)
+            );
 
         // Set up the advanced orders array.
         infra.advancedOrders = new AdvancedOrder[](infra.orders.length);
@@ -299,8 +288,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 context.matchArgs.shouldIncludeJunkDataInAdvancedOrder
                     ? bytes(
                         abi.encodePacked(
-                            context.matchArgs.salt,
-                            context.matchArgs.salt
+                            context.matchArgs.salt, context.matchArgs.salt
                         )
                     )
                     : bytes("")
@@ -309,18 +297,17 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // Store the native token balances before the call for later reference.
         infra.callerBalanceBefore = address(this).balance;
-        infra.primeOffererBalanceBefore = address(fuzzPrimeOfferer.addr)
-            .balance;
+        infra.primeOffererBalanceBefore = address(fuzzPrimeOfferer.addr).balance;
 
         // Set up expectations for the call.
-        uint256 offererCounter = context.seaport.getCounter(
-            infra.orders[0].parameters.offerer
-        );
+        uint256 offererCounter =
+            context.seaport.getCounter(infra.orders[0].parameters.offerer);
 
         // Set up the first orderHash.
-        bytes32 orderHash = context.seaport.getOrderHash(
-            infra.orders[0].parameters.toOrderComponents(offererCounter)
-        );
+        bytes32 orderHash = context.seaport
+            .getOrderHash(
+                infra.orders[0].parameters.toOrderComponents(offererCounter)
+            );
 
         if (context.matchArgs.shouldReturnInvalidMagicValue) {
             // Expect AuthorizeOrderNonMagicValue event.
@@ -328,8 +315,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             emit AuthorizeOrderNonMagicValue(orderHash);
             vm.expectRevert(
                 abi.encodeWithSignature(
-                    "InvalidRestrictedOrder(bytes32)",
-                    orderHash
+                    "InvalidRestrictedOrder(bytes32)", orderHash
                 )
             );
         } else if (context.matchArgs.shouldRevert) {
@@ -339,36 +325,31 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             if (context.isReference) {
                 vm.expectRevert(
                     abi.encodeWithSignature(
-                        "InvalidRestrictedOrder(bytes32)",
-                        orderHash
+                        "InvalidRestrictedOrder(bytes32)", orderHash
                     )
                 );
             } else {
-                vm.expectRevert(
-                    abi.encodeWithSignature("OrderNotAuthorized()")
-                );
+                vm.expectRevert(abi.encodeWithSignature("OrderNotAuthorized()"));
             }
         } else {
             if (
-                !context.matchArgs.shouldRevert &&
-                !context.matchArgs.shouldReturnInvalidMagicValue
+                !context.matchArgs.shouldRevert
+                    && !context.matchArgs.shouldReturnInvalidMagicValue
             ) {
-                bytes32[] memory orderHashesToAuth = new bytes32[](
-                    infra.orders.length
-                );
+                bytes32[] memory orderHashesToAuth =
+                    new bytes32[](infra.orders.length);
 
                 // Iterate over the orders and authorize them, then set up event expectations.
                 for (uint256 i = 0; i < infra.orders.length; i++) {
-                    offererCounter = context.seaport.getCounter(
-                        infra.orders[i].parameters.offerer
-                    );
+                    offererCounter = context.seaport
+                        .getCounter(infra.orders[i].parameters.offerer);
 
                     // Set up the orderHash.
-                    orderHash = context.seaport.getOrderHash(
-                        infra.orders[i].parameters.toOrderComponents(
-                            offererCounter
-                        )
-                    );
+                    orderHash = context.seaport
+                        .getOrderHash(
+                            infra.orders[i].parameters
+                                .toOrderComponents(offererCounter)
+                        );
 
                     orderHashesToAuth[i] = orderHash;
 
@@ -382,11 +363,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                     if (orderHashesToAuth[i] != bytes32(0)) {
                         // Expect Authorized event.
                         vm.expectEmit(
-                            true,
-                            false,
-                            false,
-                            true,
-                            address(verboseZone)
+                            true, false, false, true, address(verboseZone)
                         );
                         emit Authorized(orderHashesToAuth[i]);
                     }
@@ -410,12 +387,11 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             }
 
             if (
-                context
-                    .matchArgs
+                context.matchArgs.
                     // When considerationItemsPerPrimeOrderCount is 3, there will be
                     // exactly one token2 consideration item per orderPairCount.
                     // And they'll all get aggregated into a single transfer.
-                    .considerationItemsPerPrimeOrderCount >= 3
+                    considerationItemsPerPrimeOrderCount >= 3
             ) {
                 vm.expectEmit(true, true, false, true, address(token2));
                 emit Transfer(
@@ -427,10 +403,10 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         }
 
         // Make the call to Seaport.
-        context.seaport.matchAdvancedOrders{
-            value: (context.matchArgs.amount *
-                context.matchArgs.orderPairCount) +
-                context.matchArgs.excessNativeTokens
+        context.seaport
+        .matchAdvancedOrders{
+            value: (context.matchArgs.amount * context.matchArgs.orderPairCount)
+                + context.matchArgs.excessNativeTokens
         }(
             infra.advancedOrders,
             infra.criteriaResolvers,
@@ -447,8 +423,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         // If the call should return an invalid magic value or revert, return
         // early.
         if (
-            context.matchArgs.shouldReturnInvalidMagicValue ||
-            context.matchArgs.shouldRevert
+            context.matchArgs.shouldReturnInvalidMagicValue
+                || context.matchArgs.shouldRevert
         ) {
             return;
         }
@@ -483,15 +459,13 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             // This also checks that excess native tokens are being swept back
             // to the caller.
             assertEq(
-                infra.callerBalanceBefore -
-                    context.matchArgs.amount *
-                    context.matchArgs.orderPairCount,
+                infra.callerBalanceBefore - context.matchArgs.amount
+                    * context.matchArgs.orderPairCount,
                 infra.callerBalanceAfter
             );
             assertEq(
-                infra.primeOffererBalanceBefore +
-                    context.matchArgs.amount *
-                    context.matchArgs.orderPairCount,
+                infra.primeOffererBalanceBefore + context.matchArgs.amount
+                    * context.matchArgs.orderPairCount,
                 infra.primeOffererBalanceAfter
             );
         } else {
@@ -499,9 +473,9 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         }
     }
 
-    function testFulfillAvailableAuthRevertAndInvMagicValue(
-        FulfillFuzzInputs memory fulfillArgs
-    ) public {
+    function testFulfillAvailableAuthRevertAndInvMagicValue(FulfillFuzzInputs memory fulfillArgs)
+        public
+    {
         fulfillArgs = _boundFulfillArgs(fulfillArgs);
 
         test(
@@ -516,8 +490,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
     function execFulfillAvailable(Context memory context) external stateless {
         // Set up the infrastructure.
-        FulfillAvailableAdvancedOrdersInfra
-            memory infra = FulfillAvailableAdvancedOrdersInfra({
+        FulfillAvailableAdvancedOrdersInfra memory infra =
+            FulfillAvailableAdvancedOrdersInfra({
                 advancedOrders: new AdvancedOrder[](
                     context.fulfillArgs.orderCount
                 ),
@@ -530,20 +504,18 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 criteriaResolvers: new CriteriaResolver[](0),
                 callerBalanceBefore: address(this).balance,
                 callerBalanceAfter: address(this).balance,
-                considerationRecipientNativeBalanceBefore: context
-                    .fulfillArgs
-                    .considerationRecipient
-                    .balance,
+                considerationRecipientNativeBalanceBefore: context.fulfillArgs
+                .considerationRecipient
+                .balance,
                 considerationRecipientToken1BalanceBefore: token1.balanceOf(
                     context.fulfillArgs.considerationRecipient
                 ),
                 considerationRecipientToken2BalanceBefore: token2.balanceOf(
                     context.fulfillArgs.considerationRecipient
                 ),
-                considerationRecipientNativeBalanceAfter: context
-                    .fulfillArgs
-                    .considerationRecipient
-                    .balance,
+                considerationRecipientNativeBalanceAfter: context.fulfillArgs
+                .considerationRecipient
+                .balance,
                 considerationRecipientToken1BalanceAfter: token1.balanceOf(
                     context.fulfillArgs.considerationRecipient
                 ),
@@ -553,9 +525,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             });
 
         // Use a conduit sometimes.
-        bytes32 conduitKey = context.fulfillArgs.shouldUseConduit
-            ? conduitKeyOne
-            : bytes32(0);
+        bytes32 conduitKey =
+            context.fulfillArgs.shouldUseConduit ? conduitKeyOne : bytes32(0);
 
         // Mint enough ERC721s to cover the number of NFTs for sale.
         for (uint256 i; i < context.fulfillArgs.orderCount; i++) {
@@ -582,9 +553,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // Create the orders.
         infra.advancedOrders = _buildOrdersFromFuzzArgs(
-            context,
-            offerer1.key,
-            address(verboseZone)
+            context, offerer1.key, address(verboseZone)
         );
 
         // Create the fulfillments.
@@ -592,54 +561,50 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = fulfillAvailableFulfillmentHelper
-                .getAggregatedFulfillmentComponents(infra.advancedOrders);
+            ) = fulfillAvailableFulfillmentHelper.getAggregatedFulfillmentComponents(
+                    infra.advancedOrders
+                );
         } else {
             (
                 infra.offerFulfillmentComponents,
                 infra.considerationFulfillmentComponents
-            ) = fulfillAvailableFulfillmentHelper.getNaiveFulfillmentComponents(
-                infra.advancedOrders
-            );
+            ) =
+                fulfillAvailableFulfillmentHelper.getNaiveFulfillmentComponents(
+                        infra.advancedOrders
+                    );
         }
 
         // Store balances before the call for later comparison.
         infra.callerBalanceBefore = address(this).balance;
-        infra.considerationRecipientNativeBalanceBefore = address(
-            context.fulfillArgs.considerationRecipient
-        ).balance;
-        infra.considerationRecipientToken1BalanceBefore = token1.balanceOf(
-            context.fulfillArgs.considerationRecipient
-        );
-        infra.considerationRecipientToken2BalanceBefore = token2.balanceOf(
-            context.fulfillArgs.considerationRecipient
-        );
+        infra.considerationRecipientNativeBalanceBefore =
+        address(context.fulfillArgs.considerationRecipient).balance;
+        infra.considerationRecipientToken1BalanceBefore =
+            token1.balanceOf(context.fulfillArgs.considerationRecipient);
+        infra.considerationRecipientToken2BalanceBefore =
+            token2.balanceOf(context.fulfillArgs.considerationRecipient);
 
-        bytes32[] memory orderHashesThatShouldRevertInAuth = new bytes32[](
-            infra.advancedOrders.length
-        );
+        bytes32[] memory orderHashesThatShouldRevertInAuth =
+            new bytes32[](infra.advancedOrders.length);
         uint256 skippedOrderCount;
 
         // Set up expectations for the call.
         if (context.fulfillArgs.shouldReturnInvalidMagicValue) {
-            uint256 offererCounter = context.seaport.getCounter(
-                infra.advancedOrders[0].parameters.offerer
-            );
+            uint256 offererCounter = context.seaport
+                .getCounter(infra.advancedOrders[0].parameters.offerer);
 
             // Set up the orderHash.
-            bytes32 orderHash = context.seaport.getOrderHash(
-                infra.advancedOrders[0].parameters.toOrderComponents(
-                    offererCounter
-                )
-            );
+            bytes32 orderHash = context.seaport
+                .getOrderHash(
+                    infra.advancedOrders[0].parameters
+                        .toOrderComponents(offererCounter)
+                );
 
             // Expect AuthorizeOrderNonMagicValue event.
             vm.expectEmit(true, false, false, true, address(verboseZone));
             emit AuthorizeOrderNonMagicValue(orderHash);
             vm.expectRevert(
                 abi.encodeWithSignature(
-                    "InvalidRestrictedOrder(bytes32)",
-                    orderHash
+                    "InvalidRestrictedOrder(bytes32)", orderHash
                 )
             );
         } else if (context.fulfillArgs.shouldRevert) {
@@ -647,16 +612,15 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
             // Iterate over the orders and expect AuthorizeOrderReverted events.
             for (uint256 i = 0; i < infra.advancedOrders.length; i++) {
-                uint256 offererCounter = context.seaport.getCounter(
-                    infra.advancedOrders[i].parameters.offerer
-                );
+                uint256 offererCounter = context.seaport
+                    .getCounter(infra.advancedOrders[i].parameters.offerer);
 
                 // Set up the orderHash.
-                bytes32 orderHash = context.seaport.getOrderHash(
-                    infra.advancedOrders[i].parameters.toOrderComponents(
-                        offererCounter
-                    )
-                );
+                bytes32 orderHash = context.seaport
+                    .getOrderHash(
+                        infra.advancedOrders[i].parameters
+                            .toOrderComponents(offererCounter)
+                    );
 
                 if ((uint256(orderHash) % 2) == 0 && gotOneKeeper) {
                     orderHashesThatShouldRevertInAuth[i] = orderHash;
@@ -676,22 +640,17 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 if (orderHashesThatShouldRevertInAuth[i] != bytes32(0)) {
                     // Expect AuthorizeOrderReverted event.
                     vm.expectEmit(
-                        true,
-                        false,
-                        false,
-                        true,
-                        address(verboseZone)
+                        true, false, false, true, address(verboseZone)
                     );
-                    emit AuthorizeOrderReverted(
-                        orderHashesThatShouldRevertInAuth[i]
-                    );
+                    emit AuthorizeOrderReverted(orderHashesThatShouldRevertInAuth[
+                            i
+                        ]);
                 }
             }
         } else {
             // This is the happy path (no reverts or invalid magic values).
-            bytes32[] memory orderHashesToAuth = new bytes32[](
-                infra.advancedOrders.length
-            );
+            bytes32[] memory orderHashesToAuth =
+                new bytes32[](infra.advancedOrders.length);
 
             // Iterate over the orders and authorize them, then set up event
             // expectations.
@@ -700,16 +659,16 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 i < context.fulfillArgs.maximumFulfilledCount;
                 i++
             ) {
-                uint256 offererCounter = context.seaport.getCounter(
-                    infra.advancedOrders[i].parameters.offerer
-                );
+                uint256
+                    offererCounter = context.seaport
+                    .getCounter(infra.advancedOrders[i].parameters.offerer);
 
                 // Set up the orderHash.
-                bytes32 orderHash = context.seaport.getOrderHash(
-                    infra.advancedOrders[i].parameters.toOrderComponents(
-                        offererCounter
-                    )
-                );
+                bytes32 orderHash = context.seaport
+                    .getOrderHash(
+                        infra.advancedOrders[i].parameters
+                            .toOrderComponents(offererCounter)
+                    );
 
                 orderHashesToAuth[i] = orderHash;
 
@@ -723,11 +682,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 if (orderHashesToAuth[i] != bytes32(0)) {
                     // Expect Authorized event.
                     vm.expectEmit(
-                        true,
-                        false,
-                        false,
-                        true,
-                        address(verboseZone)
+                        true, false, false, true, address(verboseZone)
                     );
                     emit Authorized(orderHashesToAuth[i]);
                 }
@@ -736,20 +691,20 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // This is the happyish path.
         if (!context.fulfillArgs.shouldReturnInvalidMagicValue) {
-            uint256 eligibleOrders = infra.advancedOrders.length -
-                skippedOrderCount;
-            uint256 expectedFulfilledOrderCount = eligibleOrders <
-                context.fulfillArgs.maximumFulfilledCount
+            uint256 eligibleOrders =
+                infra.advancedOrders.length - skippedOrderCount;
+            uint256 expectedFulfilledOrderCount = eligibleOrders
+                < context.fulfillArgs.maximumFulfilledCount
                 ? eligibleOrders
                 : context.fulfillArgs.maximumFulfilledCount;
 
             if (
-                !context.fulfillArgs.shouldIncludeNativeConsideration &&
-                // If the fuzz args pick this address as the consideration
-                // recipient, then the ERC20 transfers and the native token
-                // transfers will be filtered, so there will be no events.
-                address(context.fulfillArgs.considerationRecipient) !=
-                address(this)
+                !context.fulfillArgs.shouldIncludeNativeConsideration && 
+                    // If the fuzz args pick this address as the consideration
+                    // recipient, then the ERC20 transfers and the native token
+                    // transfers will be filtered, so there will be no events.
+                    address(context.fulfillArgs.considerationRecipient)
+                        != address(this)
             ) {
                 // This checks that the ERC20 transfers were not all aggregated
                 // into a single transfer.
@@ -760,14 +715,11 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                     // The value should in the transfer event should either be
                     // the amount * the number of NFTs for sale (if aggregating) or
                     // the amount (if not aggregating).
-                    context.fulfillArgs.amount *
-                        (
-                            context
-                                .fulfillArgs
-                                .shouldAggregateFulfillmentComponents
+                    context.fulfillArgs.amount
+                        * (context.fulfillArgs
+                            .shouldAggregateFulfillmentComponents
                                 ? expectedFulfilledOrderCount
-                                : 1
-                        )
+                                : 1)
                 );
 
                 if (context.fulfillArgs.considerationItemsPerOrderCount >= 2) {
@@ -777,14 +729,11 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                     emit Transfer(
                         address(this), // from
                         address(context.fulfillArgs.considerationRecipient), // to
-                        context.fulfillArgs.amount *
-                            (
-                                context
-                                    .fulfillArgs
+                        context.fulfillArgs.amount
+                            * (context.fulfillArgs
                                     .shouldAggregateFulfillmentComponents
                                     ? expectedFulfilledOrderCount
-                                    : 1
-                            ) // value
+                                    : 1) // value
                     );
                 }
             }
@@ -794,14 +743,13 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         // consideration, send enough native tokens to cover the amount per sale
         // * the number of sales.  Otherwise, send just the excess native
         // tokens.
-        context.seaport.fulfillAvailableAdvancedOrders{
-            value: context.fulfillArgs.excessNativeTokens +
-                (
-                    context.fulfillArgs.shouldIncludeNativeConsideration
-                        ? context.fulfillArgs.amount *
-                            context.fulfillArgs.maximumFulfilledCount
-                        : 0
-                )
+        context.seaport
+        .fulfillAvailableAdvancedOrders{
+            value: context.fulfillArgs.excessNativeTokens
+                + (context.fulfillArgs.shouldIncludeNativeConsideration
+                        ? context.fulfillArgs.amount
+                        * context.fulfillArgs.maximumFulfilledCount
+                        : 0)
         }({
             advancedOrders: infra.advancedOrders,
             criteriaResolvers: infra.criteriaResolvers,
@@ -825,22 +773,15 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // Store balances after the call for later comparison.
         infra.callerBalanceAfter = address(this).balance;
-        infra.considerationRecipientNativeBalanceAfter = address(
-            context.fulfillArgs.considerationRecipient
-        ).balance;
-        infra.considerationRecipientToken1BalanceAfter = token1.balanceOf(
-            context.fulfillArgs.considerationRecipient
-        );
-        infra.considerationRecipientToken2BalanceAfter = token2.balanceOf(
-            context.fulfillArgs.considerationRecipient
-        );
+        infra.considerationRecipientNativeBalanceAfter =
+        address(context.fulfillArgs.considerationRecipient).balance;
+        infra.considerationRecipientToken1BalanceAfter =
+            token1.balanceOf(context.fulfillArgs.considerationRecipient);
+        infra.considerationRecipientToken2BalanceAfter =
+            token2.balanceOf(context.fulfillArgs.considerationRecipient);
 
         // Check that the NFTs were transferred to the expected recipient.
-        for (
-            uint256 i = 0;
-            i < context.fulfillArgs.maximumFulfilledCount;
-            i++
-        ) {
+        for (uint256 i = 0; i < context.fulfillArgs.maximumFulfilledCount; i++) {
             if (orderHashesThatShouldRevertInAuth[i] == bytes32(0)) {
                 // The NFT should be owned according to this snippet if the order
                 // was not skipped.
@@ -863,10 +804,10 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         }
 
         {
-            uint256 eligibleOrders = infra.advancedOrders.length -
-                skippedOrderCount;
-            uint256 expectedFulfilledOrderCount = eligibleOrders <
-                context.fulfillArgs.maximumFulfilledCount
+            uint256 eligibleOrders =
+                infra.advancedOrders.length - skippedOrderCount;
+            uint256 expectedFulfilledOrderCount = eligibleOrders
+                < context.fulfillArgs.maximumFulfilledCount
                 ? eligibleOrders
                 : context.fulfillArgs.maximumFulfilledCount;
 
@@ -874,8 +815,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             // expected recipient according to the fuzz args.
             if (context.fulfillArgs.shouldIncludeNativeConsideration) {
                 if (
-                    address(context.fulfillArgs.considerationRecipient) ==
-                    address(this)
+                    address(context.fulfillArgs.considerationRecipient)
+                        == address(this)
                 ) {
                     // Edge case: If the fuzz args pick this address for the
                     // consideration recipient, then the caller's balance should not
@@ -890,17 +831,16 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                     // increased by the amount * the number of NFTs for sale.
                     assertEq(
                         infra.considerationRecipientNativeBalanceAfter,
-                        infra.considerationRecipientNativeBalanceBefore +
-                            context.fulfillArgs.amount *
-                            expectedFulfilledOrderCount,
+                        infra.considerationRecipientNativeBalanceBefore
+                            + context.fulfillArgs.amount
+                            * expectedFulfilledOrderCount,
                         "Consideration recipient native balance incorrect."
                     );
                     // The consideration (amount * maximumFulfilledCount) should be
                     // spent, and the excessNativeTokens should be returned.
                     assertEq(
-                        infra.callerBalanceAfter +
-                            context.fulfillArgs.amount *
-                            expectedFulfilledOrderCount,
+                        infra.callerBalanceAfter + context.fulfillArgs.amount
+                            * expectedFulfilledOrderCount,
                         infra.callerBalanceBefore,
                         "Caller balance incorrect."
                     );
@@ -908,8 +848,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             } else {
                 // The `else` here is the case where no native consieration is used.
                 if (
-                    address(context.fulfillArgs.considerationRecipient) ==
-                    address(this)
+                    address(context.fulfillArgs.considerationRecipient)
+                        == address(this)
                 ) {
                     // Edge case: If the fuzz args pick this address for the
                     // consideration recipient, then the caller's balance should not
@@ -922,17 +862,17 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 } else {
                     assertEq(
                         infra.considerationRecipientToken1BalanceAfter,
-                        infra.considerationRecipientToken1BalanceBefore +
-                            context.fulfillArgs.amount *
-                            expectedFulfilledOrderCount,
+                        infra.considerationRecipientToken1BalanceBefore
+                            + context.fulfillArgs.amount
+                            * expectedFulfilledOrderCount,
                         "Consideration recipient token1 balance incorrect."
                     );
                 }
 
                 if (context.fulfillArgs.considerationItemsPerOrderCount >= 2) {
                     if (
-                        address(context.fulfillArgs.considerationRecipient) ==
-                        address(this)
+                        address(context.fulfillArgs.considerationRecipient)
+                            == address(this)
                     ) {
                         // Edge case: If the fuzz args pick this address for the
                         // consideration recipient, then the caller's balance should
@@ -945,9 +885,9 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                     } else {
                         assertEq(
                             infra.considerationRecipientToken2BalanceAfter,
-                            infra.considerationRecipientToken2BalanceBefore +
-                                context.fulfillArgs.amount *
-                                expectedFulfilledOrderCount,
+                            infra.considerationRecipientToken2BalanceBefore
+                                + context.fulfillArgs.amount
+                                * expectedFulfilledOrderCount,
                             "Consideration recipient token2 balance incorrect."
                         );
                     }
@@ -972,14 +912,12 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         // Create the OrderComponents array from the fuzz args.
         OrderComponents[] memory orderComponents;
         orderComponents = _buildOrderComponentsArrayFromFuzzArgs(
-            context,
-            verboseZoneAddress
+            context, verboseZoneAddress
         );
 
         // Set up the AdvancedOrder array.
-        AdvancedOrder[] memory _advancedOrders = new AdvancedOrder[](
-            context.fulfillArgs.orderCount
-        );
+        AdvancedOrder[] memory _advancedOrders =
+            new AdvancedOrder[](context.fulfillArgs.orderCount);
 
         // Iterate over the OrderComponents array and build an AdvancedOrder
         // for each OrderComponents.
@@ -1030,21 +968,16 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         // used as the number of order pairs to make here.
         for (i = 0; i < context.matchArgs.orderPairCount; i++) {
             // Mint the NFTs for the prime offerer to sell.
+            test721_1.mint(fuzzPrimeOfferer.addr, context.matchArgs.tokenId + i);
             test721_1.mint(
-                fuzzPrimeOfferer.addr,
-                context.matchArgs.tokenId + i
-            );
-            test721_1.mint(
-                fuzzPrimeOfferer.addr,
-                (context.matchArgs.tokenId + i) * 2
+                fuzzPrimeOfferer.addr, (context.matchArgs.tokenId + i) * 2
             );
 
             // Build the OfferItem array for the prime offerer's order.
             infra.offerItemArray = _buildPrimeOfferItemArray(context, i);
             // Build the ConsiderationItem array for the prime offerer's order.
-            infra.considerationItemArray = _buildPrimeConsiderationItemArray(
-                context
-            );
+            infra.considerationItemArray =
+                _buildPrimeConsiderationItemArray(context);
 
             // Build the OrderComponents for the prime offerer's order.
             infra.orderComponents = _buildOrderComponents(
@@ -1057,9 +990,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
             // Add the order to the orders array.
             infra.orders[i] = _toOrder(
-                context.seaport,
-                infra.orderComponents,
-                fuzzPrimeOfferer.key
+                context.seaport, infra.orderComponents, fuzzPrimeOfferer.key
             );
 
             // Build the offerItemArray for the mirror offerer's order.
@@ -1068,10 +999,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             // Build the considerationItemArray for the mirror offerer's order.
             // Note that the consideration on the mirror is always just one NFT,
             // even if the prime order has an excess item.
-            infra.considerationItemArray = buildMirrorConsiderationItemArray(
-                context,
-                i
-            );
+            infra.considerationItemArray =
+                buildMirrorConsiderationItemArray(context, i);
 
             // Build the OrderComponents for the mirror offerer's order.
             infra.orderComponents = _buildOrderComponents(
@@ -1084,35 +1013,29 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
             // Create the order and add the order to the orders array.
             infra.orders[i + context.matchArgs.orderPairCount] = _toOrder(
-                context.seaport,
-                infra.orderComponents,
-                fuzzMirrorOfferer.key
+                context.seaport, infra.orderComponents, fuzzMirrorOfferer.key
             );
         }
 
-        bytes32[] memory orderHashes = new bytes32[](
-            context.matchArgs.orderPairCount * 2
-        );
+        bytes32[] memory orderHashes =
+            new bytes32[](context.matchArgs.orderPairCount * 2);
 
-        UnavailableReason[] memory unavailableReasons = new UnavailableReason[](
-            context.matchArgs.orderPairCount * 2
-        );
+        UnavailableReason[] memory unavailableReasons =
+            new UnavailableReason[](context.matchArgs.orderPairCount * 2);
 
         // Build fulfillments.
-        (infra.fulfillments, , ) = matchFulfillmentHelper
-            .getMatchedFulfillments(
-                infra.orders,
-                orderHashes,
-                unavailableReasons
-            );
+        (infra.fulfillments,,) = matchFulfillmentHelper.getMatchedFulfillments(
+            infra.orders, orderHashes, unavailableReasons
+        );
 
         return (infra.orders, infra.fulfillments);
     }
 
-    function _buildPrimeOfferItemArray(
-        Context memory context,
-        uint256 i
-    ) internal view returns (OfferItem[] memory _offerItemArray) {
+    function _buildPrimeOfferItemArray(Context memory context, uint256 i)
+        internal
+        view
+        returns (OfferItem[] memory _offerItemArray)
+    {
         // Set up the OfferItem array.
         OfferItem[] memory offerItemArray = new OfferItem[](
             context.matchArgs.shouldIncludeExcessOfferItems ? 2 : 1
@@ -1123,12 +1046,10 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             // Create the OfferItem array containing the offered item and the
             // excess item.
             offerItemArray = SeaportArrays.OfferItems(
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
+                OfferItemLib.fromDefault(SINGLE_721)
                     .withToken(address(test721_1))
                     .withIdentifierOrCriteria(context.matchArgs.tokenId + i),
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
+                OfferItemLib.fromDefault(SINGLE_721)
                     .withToken(address(test721_1))
                     .withIdentifierOrCriteria(
                         (context.matchArgs.tokenId + i) * 2
@@ -1138,8 +1059,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             // Otherwise, create the OfferItem array containing the one offered
             // item.
             offerItemArray = SeaportArrays.OfferItems(
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
+                OfferItemLib.fromDefault(SINGLE_721)
                     .withToken(address(test721_1))
                     .withIdentifierOrCriteria(context.matchArgs.tokenId + i)
             );
@@ -1148,18 +1068,15 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         return offerItemArray;
     }
 
-    function _buildPrimeConsiderationItemArray(
-        Context memory context
-    )
+    function _buildPrimeConsiderationItemArray(Context memory context)
         internal
         view
         returns (ConsiderationItem[] memory _considerationItemArray)
     {
         // Set up the ConsiderationItem array.
-        ConsiderationItem[]
-            memory considerationItemArray = new ConsiderationItem[](
-                context.matchArgs.considerationItemsPerPrimeOrderCount
-            );
+        ConsiderationItem[] memory considerationItemArray = new ConsiderationItem[](
+            context.matchArgs.considerationItemsPerPrimeOrderCount
+        );
 
         // Create the consideration items.
         (
@@ -1167,39 +1084,34 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             ConsiderationItem memory erc20ConsiderationItemOne,
             ConsiderationItem memory erc20ConsiderationItemTwo
         ) = _createReusableConsiderationItems(
-                context.matchArgs.amount,
-                fuzzPrimeOfferer.addr
-            );
+            context.matchArgs.amount, fuzzPrimeOfferer.addr
+        );
 
         if (context.matchArgs.considerationItemsPerPrimeOrderCount == 1) {
             // If the fuzz args call for native consideration...
             if (context.matchArgs.shouldIncludeNativeConsideration) {
                 // ...add a native consideration item...
-                considerationItemArray = SeaportArrays.ConsiderationItems(
-                    nativeConsiderationItem
-                );
+                considerationItemArray =
+                    SeaportArrays.ConsiderationItems(nativeConsiderationItem);
             } else {
                 // ...otherwise, add an ERC20 consideration item.
                 considerationItemArray = SeaportArrays.ConsiderationItems(
                     erc20ConsiderationItemOne
                 );
             }
-        } else if (
-            context.matchArgs.considerationItemsPerPrimeOrderCount == 2
-        ) {
+        } else if (context.matchArgs.considerationItemsPerPrimeOrderCount == 2)
+        {
             // If the fuzz args call for native consideration...
             if (context.matchArgs.shouldIncludeNativeConsideration) {
                 // ...add a native consideration item and an ERC20
                 // consideration item...
                 considerationItemArray = SeaportArrays.ConsiderationItems(
-                    nativeConsiderationItem,
-                    erc20ConsiderationItemOne
+                    nativeConsiderationItem, erc20ConsiderationItemOne
                 );
             } else {
                 // ...otherwise, add two ERC20 consideration items.
                 considerationItemArray = SeaportArrays.ConsiderationItems(
-                    erc20ConsiderationItemOne,
-                    erc20ConsiderationItemTwo
+                    erc20ConsiderationItemOne, erc20ConsiderationItemTwo
                 );
             }
         } else {
@@ -1235,18 +1147,18 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             orderComponentInfra.nativeConsiderationItem,
             orderComponentInfra.erc20ConsiderationItemOne,
             orderComponentInfra.erc20ConsiderationItemTwo
-        ) = _createReusableConsiderationItems(
-            context.fulfillArgs.amount,
-            context.fulfillArgs.considerationRecipient
-        );
+        ) =
+            _createReusableConsiderationItems(
+                context.fulfillArgs.amount,
+                context.fulfillArgs.considerationRecipient
+            );
 
         // Iterate once for each order and create the OfferItems[] and
         // ConsiderationItems[] for each order.
         for (uint256 i; i < context.fulfillArgs.orderCount; i++) {
             // Add a one-element OfferItems[] to the OfferItems[][].
             orderComponentInfra.offerItemArray[i] = SeaportArrays.OfferItems(
-                OfferItemLib
-                    .fromDefault(SINGLE_721)
+                OfferItemLib.fromDefault(SINGLE_721)
                     .withToken(address(test721_1))
                     .withIdentifierOrCriteria(context.fulfillArgs.tokenId + i)
             );
@@ -1255,44 +1167,39 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 // If the fuzz args call for native consideration...
                 if (context.fulfillArgs.shouldIncludeNativeConsideration) {
                     // ...add a native consideration item...
-                    orderComponentInfra.considerationItemArray[
-                        i
-                    ] = SeaportArrays.ConsiderationItems(
-                        orderComponentInfra.nativeConsiderationItem
-                    );
+                    orderComponentInfra.considerationItemArray[i] =
+                        SeaportArrays.ConsiderationItems(
+                            orderComponentInfra.nativeConsiderationItem
+                        );
                 } else {
                     // ...otherwise, add an ERC20 consideration item.
-                    orderComponentInfra.considerationItemArray[
-                        i
-                    ] = SeaportArrays.ConsiderationItems(
-                        orderComponentInfra.erc20ConsiderationItemOne
-                    );
+                    orderComponentInfra.considerationItemArray[i] =
+                        SeaportArrays.ConsiderationItems(
+                            orderComponentInfra.erc20ConsiderationItemOne
+                        );
                 }
-            } else if (
-                context.fulfillArgs.considerationItemsPerOrderCount == 2
-            ) {
+            } else if (context.fulfillArgs.considerationItemsPerOrderCount == 2)
+            {
                 // If the fuzz args call for native consideration...
                 if (context.fulfillArgs.shouldIncludeNativeConsideration) {
                     // ...add a native consideration item and an ERC20
                     // consideration item...
-                    orderComponentInfra.considerationItemArray[
-                        i
-                    ] = SeaportArrays.ConsiderationItems(
-                        orderComponentInfra.nativeConsiderationItem,
-                        orderComponentInfra.erc20ConsiderationItemOne
-                    );
+                    orderComponentInfra.considerationItemArray[i] =
+                        SeaportArrays.ConsiderationItems(
+                            orderComponentInfra.nativeConsiderationItem,
+                            orderComponentInfra.erc20ConsiderationItemOne
+                        );
                 } else {
                     // ...otherwise, add two ERC20 consideration items.
-                    orderComponentInfra.considerationItemArray[
-                        i
-                    ] = SeaportArrays.ConsiderationItems(
-                        orderComponentInfra.erc20ConsiderationItemOne,
-                        orderComponentInfra.erc20ConsiderationItemTwo
-                    );
+                    orderComponentInfra.considerationItemArray[i] =
+                        SeaportArrays.ConsiderationItems(
+                            orderComponentInfra.erc20ConsiderationItemOne,
+                            orderComponentInfra.erc20ConsiderationItemTwo
+                        );
                 }
             } else {
-                orderComponentInfra.considerationItemArray[i] = SeaportArrays
-                    .ConsiderationItems(
+                orderComponentInfra.considerationItemArray[i] =
+                    SeaportArrays.ConsiderationItems(
                         orderComponentInfra.nativeConsiderationItem,
                         orderComponentInfra.erc20ConsiderationItemOne,
                         orderComponentInfra.erc20ConsiderationItemTwo
@@ -1312,17 +1219,16 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             //          use conduits for all
             // This is plainly deranged, but it allows for conduit use
             // for all, for some, and none without weighing down the stack.
-            conduitKey = !context
-                .fulfillArgs
-                .shouldIncludeNativeConsideration &&
-                context.fulfillArgs.shouldUseConduit &&
-                (context.fulfillArgs.tokenId % 2 == 0 ? i % 2 == 0 : true)
+            conduitKey = !context.fulfillArgs.shouldIncludeNativeConsideration
+                && context.fulfillArgs.shouldUseConduit
+                && (context.fulfillArgs.tokenId % 2 == 0 ? i % 2 == 0 : true)
                 ? conduitKeyOne
                 : bytes32(0);
 
             // Build the order components.
-            orderComponentInfra.orderComponents = OrderComponentsLib
-                .fromDefault(STD_RESTRICTED)
+            orderComponentInfra.orderComponents = OrderComponentsLib.fromDefault(
+                    STD_RESTRICTED
+                )
                 .withOffer(orderComponentInfra.offerItemArray[i])
                 .withConsideration(
                     orderComponentInfra.considerationItemArray[i]
@@ -1333,8 +1239,8 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 .withSalt(context.fulfillArgs.salt % (i + 1)); // Is this dumb?
 
             // Add the OrderComponents to the OrderComponents[].
-            orderComponentInfra.orderComponentsArray[i] = orderComponentInfra
-                .orderComponents;
+            orderComponentInfra.orderComponentsArray[i] =
+            orderComponentInfra.orderComponents;
         }
 
         // Return the OrderComponents[].
@@ -1352,12 +1258,11 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // Create the offer and consideration item arrays.
         OfferItem[] memory _offerItemArray = offerItemArray;
-        ConsiderationItem[]
-            memory _considerationItemArray = considerationItemArray;
+        ConsiderationItem[] memory _considerationItemArray =
+        considerationItemArray;
 
         // Build the OrderComponents for the prime offerer's order.
-        orderComponents = OrderComponentsLib
-            .fromDefault(STD_RESTRICTED)
+        orderComponents = OrderComponentsLib.fromDefault(STD_RESTRICTED)
             .withOffer(_offerItemArray)
             .withConsideration(_considerationItemArray)
             .withZone(verboseZoneAddress)
@@ -1370,8 +1275,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
 
         // ... set the zone to the verboseZone and set the order type to
         // FULL_RESTRICTED.
-        orderComponents = orderComponents
-            .copy()
+        orderComponents = orderComponents.copy()
             .withZone(verboseZoneAddress)
             .withOrderType(OrderType.FULL_RESTRICTED);
 
@@ -1385,15 +1289,16 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
     ) internal view returns (Order memory order) {
         bytes32 orderHash = seaport.getOrderHash(orderComponents);
         bytes memory signature = signOrder(seaport, pkey, orderHash);
-        order = OrderLib
-            .empty()
+        order = OrderLib.empty()
             .withParameters(orderComponents.toOrderParameters())
             .withSignature(signature);
     }
 
-    function _buildMirrorOfferItemArray(
-        Context memory context
-    ) internal view returns (OfferItem[] memory _offerItemArray) {
+    function _buildMirrorOfferItemArray(Context memory context)
+        internal
+        view
+        returns (OfferItem[] memory _offerItemArray)
+    {
         // Set up the OfferItem array.
         OfferItem[] memory offerItemArray = new OfferItem[](1);
 
@@ -1403,17 +1308,15 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             ConsiderationItem memory erc20ConsiderationItemOne,
             ConsiderationItem memory erc20ConsiderationItemTwo
         ) = _createReusableConsiderationItems(
-                context.matchArgs.amount,
-                fuzzPrimeOfferer.addr
-            );
+            context.matchArgs.amount, fuzzPrimeOfferer.addr
+        );
 
         // Convert them to OfferItems.
-        OfferItem memory nativeOfferItem = nativeConsiderationItem
-            .toOfferItem();
-        OfferItem memory erc20OfferItemOne = erc20ConsiderationItemOne
-            .toOfferItem();
-        OfferItem memory erc20OfferItemTwo = erc20ConsiderationItemTwo
-            .toOfferItem();
+        OfferItem memory nativeOfferItem = nativeConsiderationItem.toOfferItem();
+        OfferItem memory erc20OfferItemOne =
+            erc20ConsiderationItemOne.toOfferItem();
+        OfferItem memory erc20OfferItemTwo =
+            erc20ConsiderationItemTwo.toOfferItem();
 
         if (context.matchArgs.considerationItemsPerPrimeOrderCount == 1) {
             // If the fuzz args call for native consideration...
@@ -1424,29 +1327,24 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
                 // ...otherwise, add an ERC20 consideration item.
                 offerItemArray = SeaportArrays.OfferItems(erc20OfferItemOne);
             }
-        } else if (
-            context.matchArgs.considerationItemsPerPrimeOrderCount == 2
-        ) {
+        } else if (context.matchArgs.considerationItemsPerPrimeOrderCount == 2)
+        {
             // If the fuzz args call for native consideration...
             if (context.matchArgs.shouldIncludeNativeConsideration) {
                 // ...add a native consideration item and an ERC20
                 // consideration item...
                 offerItemArray = SeaportArrays.OfferItems(
-                    nativeOfferItem,
-                    erc20OfferItemOne
+                    nativeOfferItem, erc20OfferItemOne
                 );
             } else {
                 // ...otherwise, add two ERC20 consideration items.
                 offerItemArray = SeaportArrays.OfferItems(
-                    erc20OfferItemOne,
-                    erc20OfferItemTwo
+                    erc20OfferItemOne, erc20OfferItemTwo
                 );
             }
         } else {
             offerItemArray = SeaportArrays.OfferItems(
-                nativeOfferItem,
-                erc20OfferItemOne,
-                erc20OfferItemTwo
+                nativeOfferItem, erc20OfferItemOne, erc20OfferItemTwo
             );
         }
 
@@ -1462,16 +1360,14 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         returns (ConsiderationItem[] memory _considerationItemArray)
     {
         // Set up the ConsiderationItem array.
-        ConsiderationItem[]
-            memory considerationItemArray = new ConsiderationItem[](
-                context.matchArgs.considerationItemsPerPrimeOrderCount
-            );
+        ConsiderationItem[] memory considerationItemArray = new ConsiderationItem[](
+            context.matchArgs.considerationItemsPerPrimeOrderCount
+        );
 
         // Note that the consideration array here will always be just one NFT
         // so because the second NFT on the offer side is meant to be excess.
         considerationItemArray = SeaportArrays.ConsiderationItems(
-            ConsiderationItemLib
-                .fromDefault(SINGLE_721)
+            ConsiderationItemLib.fromDefault(SINGLE_721)
                 .withToken(address(test721_1))
                 .withIdentifierOrCriteria(context.matchArgs.tokenId + i)
                 .withRecipient(fuzzMirrorOfferer.addr)
@@ -1493,8 +1389,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         )
     {
         // Create a reusable native consideration item.
-        nativeConsiderationItem = ConsiderationItemLib
-            .empty()
+        nativeConsiderationItem = ConsiderationItemLib.empty()
             .withItemType(ItemType.NATIVE)
             .withIdentifierOrCriteria(0)
             .withStartAmount(amount)
@@ -1502,8 +1397,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             .withRecipient(recipient);
 
         // Create a reusable ERC20 consideration item.
-        erc20ConsiderationItemOne = ConsiderationItemLib
-            .empty()
+        erc20ConsiderationItemOne = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withToken(address(token1))
             .withIdentifierOrCriteria(0)
@@ -1512,8 +1406,7 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             .withRecipient(recipient);
 
         // Create a second reusable ERC20 consideration item.
-        erc20ConsiderationItemTwo = ConsiderationItemLib
-            .empty()
+        erc20ConsiderationItemTwo = ConsiderationItemLib.empty()
             .withItemType(ItemType.ERC20)
             .withIdentifierOrCriteria(0)
             .withToken(address(token2))
@@ -1522,13 +1415,13 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             .withRecipient(recipient);
     }
 
-    function _boundMatchArgs(
-        MatchFuzzInputs memory matchArgs
-    ) internal returns (MatchFuzzInputs memory) {
+    function _boundMatchArgs(MatchFuzzInputs memory matchArgs)
+        internal
+        returns (MatchFuzzInputs memory)
+    {
         // Avoid weird overflow issues.
-        matchArgs.amount = uint128(
-            bound(matchArgs.amount, 1, 0xffffffffffffffff)
-        );
+        matchArgs.amount =
+            uint128(bound(matchArgs.amount, 1, 0xffffffffffffffff));
         // Avoid trying to mint the same token.
         matchArgs.tokenId = bound(matchArgs.tokenId, 0xff, 0xffffffffffffffff);
         // Make 2-8 order pairs per call.  Each order pair will have 1-2 offer
@@ -1536,23 +1429,18 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         // shouldIncludeExcessOfferItems is true or false).
         matchArgs.orderPairCount = bound(matchArgs.orderPairCount, 2, 32);
         // Use 1-3 (prime) consideration items per order.
-        matchArgs.considerationItemsPerPrimeOrderCount = bound(
-            matchArgs.considerationItemsPerPrimeOrderCount,
-            1,
-            3
-        );
+        matchArgs.considerationItemsPerPrimeOrderCount =
+            bound(matchArgs.considerationItemsPerPrimeOrderCount, 1, 3);
         // To put three items in the consideration, native tokens must be
         // included.
         matchArgs.shouldIncludeNativeConsideration =
-            matchArgs.shouldIncludeNativeConsideration ||
-            matchArgs.considerationItemsPerPrimeOrderCount >= 3;
+            matchArgs.shouldIncludeNativeConsideration
+                || matchArgs.considerationItemsPerPrimeOrderCount >= 3;
         // Include some excess native tokens to check that they're ending up
         // with the caller afterward.
         matchArgs.excessNativeTokens = uint128(
             bound(
-                matchArgs.excessNativeTokens,
-                0,
-                0xfffffffffffffffffffffffffffff
+                matchArgs.excessNativeTokens, 0, 0xfffffffffffffffffffffffffffff
             )
         );
         // Don't set the offer recipient to the null address, because that's the
@@ -1570,39 +1458,33 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
         );
 
         matchArgs.shouldRevert =
-            matchArgs.shouldRevert &&
-            !matchArgs.shouldReturnInvalidMagicValue;
+            matchArgs.shouldRevert && !matchArgs.shouldReturnInvalidMagicValue;
 
         return matchArgs;
     }
 
-    function _boundFulfillArgs(
-        FulfillFuzzInputs memory fulfillArgs
-    ) internal returns (FulfillFuzzInputs memory) {
+    function _boundFulfillArgs(FulfillFuzzInputs memory fulfillArgs)
+        internal
+        returns (FulfillFuzzInputs memory)
+    {
         // Limit this value to avoid overflow issues.
-        fulfillArgs.amount = uint128(
-            bound(fulfillArgs.amount, 1, 0xffffffffffffffff)
-        );
+        fulfillArgs.amount =
+            uint128(bound(fulfillArgs.amount, 1, 0xffffffffffffffff));
         // Limit this value to avoid overflow issues.
         fulfillArgs.tokenId = bound(fulfillArgs.tokenId, 1, 0xffffffffffffffff);
         // Create between 4 and 16 orders.
         fulfillArgs.orderCount = bound(fulfillArgs.orderCount, 4, 32);
         // Use between 1 and 3 consideration items per order.
-        fulfillArgs.considerationItemsPerOrderCount = bound(
-            fulfillArgs.considerationItemsPerOrderCount,
-            1,
-            3
-        );
+        fulfillArgs.considerationItemsPerOrderCount =
+            bound(fulfillArgs.considerationItemsPerOrderCount, 1, 3);
         // To put three items in the consideration, native tokens must be
         // included.
         fulfillArgs.shouldIncludeNativeConsideration =
-            fulfillArgs.shouldIncludeNativeConsideration ||
-            fulfillArgs.considerationItemsPerOrderCount >= 3;
+            fulfillArgs.shouldIncludeNativeConsideration
+                || fulfillArgs.considerationItemsPerOrderCount >= 3;
         // Fulfill between 2 and the orderCount.
         fulfillArgs.maximumFulfilledCount = bound(
-            fulfillArgs.maximumFulfilledCount,
-            2,
-            fulfillArgs.orderCount
+            fulfillArgs.maximumFulfilledCount, 2, fulfillArgs.orderCount
         );
         // Limit this value to avoid overflow issues.
         fulfillArgs.excessNativeTokens = uint128(
@@ -1640,16 +1522,16 @@ contract UnauthorizedOrderSkipTest is BaseOrderTest {
             )
         );
 
-        fulfillArgs.shouldRevert =
-            fulfillArgs.shouldRevert &&
-            !fulfillArgs.shouldReturnInvalidMagicValue;
+        fulfillArgs.shouldRevert = fulfillArgs.shouldRevert
+            && !fulfillArgs.shouldReturnInvalidMagicValue;
 
         return fulfillArgs;
     }
 
-    function _nudgeAddressIfProblematic(
-        address _address
-    ) internal returns (address) {
+    function _nudgeAddressIfProblematic(address _address)
+        internal
+        returns (address)
+    {
         // Move clear of the precompile range before probing. Precompiles
         // revert on a bare value transfer, and nudging by one is not enough
         // to escape: under cancun 0x09 nudges to 0x0a, which reverts too.

@@ -1,9 +1,8 @@
-import fs from "fs";
-
-import { getAllRawReports, getCommitHash } from "./utils";
+import fs from "node:fs";
+import type { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import type { CommitGasReport, ContractReport } from "./utils";
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
+import { getAllRawReports, getCommitHash } from "./utils";
 
 export function writeReports(hre: HardhatRuntimeEnvironment): void {
   const rawReports = getAllRawReports();

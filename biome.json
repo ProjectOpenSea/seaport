@@ -1,0 +1,46 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!!**/lib",
+      "!!**/artifacts",
+      "!!**/typechain-types",
+      "!!**/coverage",
+      "!!**/out",
+      "!!**/cache",
+      "!!**/broadcast",
+      "!!.gas_reports",
+      "!!diagrams",
+      "!!img",
+      "!!test/utils/seeded-rng.js"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "javascript": {
+    "formatter": {
+      "trailingCommas": "es5"
+    }
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["test/**"],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ]
+}

@@ -34,9 +34,10 @@ contract VerboseAuthZone is ERC165, ZoneInterface {
         orderIsAuthorized[orderHash] = status;
     }
 
-    function authorizeOrder(
-        ZoneParameters calldata zoneParameters
-    ) public returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata zoneParameters)
+        public
+        returns (bytes4)
+    {
         if (!orderIsAuthorized[zoneParameters.orderHash]) {
             if (shouldReturnInvalidMagicValue) {
                 emit AuthorizeOrderNonMagicValue(zoneParameters.orderHash);
@@ -60,7 +61,11 @@ contract VerboseAuthZone is ERC165, ZoneInterface {
 
     function validateOrder(
         ZoneParameters calldata /* zoneParameters */
-    ) external pure returns (bytes4 validOrderMagicValue) {
+    )
+        external
+        pure
+        returns (bytes4 validOrderMagicValue)
+    {
         // Return the validOrderMagicValue.
         return ZoneInterface.validateOrder.selector;
     }
@@ -81,11 +86,13 @@ contract VerboseAuthZone is ERC165, ZoneInterface {
         return ("VerboseAuthZone", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

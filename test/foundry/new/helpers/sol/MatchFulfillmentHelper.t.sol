@@ -67,12 +67,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
     function testGetMatchedFulfillments_self() public {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withItemType(ItemType.ERC20)
                             .withAmount(100)
@@ -80,8 +78,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withItemType(ItemType.ERC20)
                             .withAmount(100)
@@ -101,12 +98,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             )
         });
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order),
-                new bytes32[](1),
-                new UnavailableReason[](1)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order),
+            new bytes32[](1),
+            new UnavailableReason[](1)
+        );
 
         assertEq(fulfillments.length, 1);
         assertEq(fulfillments[0], expectedFulfillment, "fulfillments[0]");
@@ -119,12 +115,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
     function testGetMatchedFulfillments_self_conduitDisparity() public {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withItemType(ItemType.ERC20)
                             .withAmount(100)
@@ -132,8 +126,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withItemType(ItemType.ERC20)
                             .withAmount(100)
@@ -145,12 +138,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         order = _toMatchableOrder(order, offerer1, 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withItemType(ItemType.ERC20)
                             .withAmount(101)
@@ -158,8 +149,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withItemType(ItemType.ERC20)
                             .withAmount(101)
@@ -193,12 +183,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order, otherOrder),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order, otherOrder),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 2);
         assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
@@ -215,24 +204,21 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_1ItemTo1Item(true);
     }
 
-    function execGetMatchedFulfillments_1ItemTo1Item(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_1ItemTo1Item(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(100)
                     )
@@ -240,27 +226,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
@@ -272,15 +251,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         // use different conduit keys, so just toggle it back and for to make
         // sure nothing goes wrong.
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -304,12 +280,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(otherOrder, order),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(otherOrder, order),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -326,16 +301,14 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_1ItemTo1Item_ascending(true);
     }
 
-    function execGetMatchedFulfillments_1ItemTo1Item_ascending(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_1ItemTo1Item_ascending(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -343,8 +316,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -353,19 +325,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -373,8 +339,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -384,15 +349,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -416,12 +378,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(otherOrder, order),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(otherOrder, order),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -438,16 +399,14 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_1ItemTo1Item_descending(true);
     }
 
-    function execGetMatchedFulfillments_1ItemTo1Item_descending(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_1ItemTo1Item_descending(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withStartAmount(100)
                             .withEndAmount(1)
@@ -455,8 +414,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withStartAmount(100)
                             .withEndAmount(1)
@@ -465,19 +423,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withStartAmount(100)
                             .withEndAmount(1)
@@ -485,8 +437,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withStartAmount(100)
                             .withEndAmount(1)
@@ -496,15 +447,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -528,12 +476,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(otherOrder, order),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(otherOrder, order),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -552,16 +499,14 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_1ItemTo1Item_descending_leftover(true);
     }
 
-    function execGetMatchedFulfillments_1ItemTo1Item_descending_leftover(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_1ItemTo1Item_descending_leftover(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withStartAmount(100)
                             .withEndAmount(1)
@@ -569,8 +514,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -579,19 +523,13 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -599,8 +537,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withStartAmount(1)
                             .withEndAmount(100)
@@ -610,15 +547,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -647,10 +581,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             MatchComponent[] memory leftoverOffer,
             MatchComponent[] memory leftoverConsideration
         ) = matcher.getMatchedFulfillments(
-                SeaportArrays.Orders(otherOrder, order),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+            SeaportArrays.Orders(otherOrder, order),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -658,9 +592,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         assertEq(leftoverOffer.length, 1, "leftoverOffer.length");
         assertEq(leftoverOffer[0].getAmount(), 99, "leftoverOffer[0].amount()");
         assertEq(
-            leftoverConsideration.length,
-            0,
-            "leftoverConsideration.length"
+            leftoverConsideration.length, 0, "leftoverConsideration.length"
         );
 
         seaport.matchOrders({
@@ -674,24 +606,21 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_1ItemTo1ItemExcessOffer(true);
     }
 
-    function execGetMatchedFulfillments_1ItemTo1ItemExcessOffer(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_1ItemTo1ItemExcessOffer(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(100)
                     )
@@ -700,27 +629,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(200)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
@@ -730,15 +652,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -762,12 +681,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(otherOrder, order),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(otherOrder, order),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 2, "fulfillments.length");
         assertEq(fulfillments[0], expectedFulfillments[1], "fulfillments[0]");
@@ -784,32 +702,27 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_3ItemsTo1Item(true);
     }
 
-    function execGetMatchedFulfillments_3ItemsTo1Item(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_3ItemsTo1Item(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10)
                     )
@@ -818,27 +731,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(80)
                             .withRecipient(offerer2.addr)
@@ -849,15 +755,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -890,12 +793,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order, otherOrder),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order, otherOrder),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -914,32 +816,27 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_3ItemsTo1Item_extra(true);
     }
 
-    function execGetMatchedFulfillments_3ItemsTo1Item_extra(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_3ItemsTo1Item_extra(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(110)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10)
                     )
@@ -948,27 +845,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(80)
                             .withRecipient(offerer2.addr)
@@ -979,15 +869,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -1020,12 +907,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order, otherOrder),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order, otherOrder),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1044,36 +930,30 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_3ItemsTo2Items(true);
     }
 
-    function execGetMatchedFulfillments_3ItemsTo2Items(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_3ItemsTo2Items(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(90)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10)
                     )
@@ -1082,27 +962,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(80)
                             .withRecipient(offerer2.addr)
@@ -1113,15 +986,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -1155,12 +1025,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order, otherOrder),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order, otherOrder),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1180,36 +1049,30 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_3ItemsTo2Items_swap(true);
     }
 
-    function execGetMatchedFulfillments_3ItemsTo2Items_swap(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_3ItemsTo2Items_swap(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(90),
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10)
                     )
@@ -1218,27 +1081,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(80)
                             .withRecipient(offerer2.addr)
@@ -1249,15 +1105,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 1 : 0
+            otherOrder, offerer2, useDifferentConduits ? 1 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -1291,12 +1144,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order, otherOrder),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order, otherOrder),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
 
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
@@ -1322,20 +1174,17 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         bool useDifferentConduitsBetweenOrderPairs
     ) public {
         Order memory orderOne = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(100)
                     )
@@ -1348,26 +1197,21 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             offerer1,
             useDifferentConduitsBetweenPrimeAndMirror
                 ? 0
-                : useDifferentConduitsBetweenOrderPairs
-                ? 1
-                : 2
+                : useDifferentConduitsBetweenOrderPairs ? 1 : 2
         );
 
         Order memory otherOrderOne = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(100)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(100)
                     )
@@ -1376,9 +1220,8 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduitsBetweenPrimeAndMirror) {
-            otherOrderOne.parameters = otherOrderOne.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrderOne.parameters =
+                otherOrderOne.parameters.withConduitKey(conduitKey);
         }
 
         otherOrderOne = _toMatchableOrder(
@@ -1386,26 +1229,21 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             offerer2,
             useDifferentConduitsBetweenPrimeAndMirror
                 ? 0
-                : useDifferentConduitsBetweenOrderPairs
-                ? 1
-                : 2
+                : useDifferentConduitsBetweenOrderPairs ? 1 : 2
         );
 
         Order memory orderTwo = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(101)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(101)
                     )
@@ -1414,9 +1252,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduitsBetweenOrderPairs) {
-            orderTwo.parameters = orderTwo.parameters.withConduitKey(
-                conduitKey
-            );
+            orderTwo.parameters = orderTwo.parameters.withConduitKey(conduitKey);
         }
 
         orderTwo = _toMatchableOrder(
@@ -1424,26 +1260,21 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             offerer1,
             useDifferentConduitsBetweenPrimeAndMirror
                 ? 0
-                : useDifferentConduitsBetweenOrderPairs
-                ? 1
-                : 2
+                : useDifferentConduitsBetweenOrderPairs ? 1 : 2
         );
 
         Order memory otherOrderTwo = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(101)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(101)
                     )
@@ -1452,12 +1283,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (
-            useDifferentConduitsBetweenPrimeAndMirror ||
-            useDifferentConduitsBetweenOrderPairs
+            useDifferentConduitsBetweenPrimeAndMirror
+                || useDifferentConduitsBetweenOrderPairs
         ) {
-            otherOrderTwo.parameters = otherOrderTwo.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrderTwo.parameters = otherOrderTwo.parameters
+            .withConduitKey(conduitKey);
         }
 
         otherOrderTwo = _toMatchableOrder(
@@ -1465,9 +1295,7 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             offerer2,
             useDifferentConduitsBetweenPrimeAndMirror
                 ? 0
-                : useDifferentConduitsBetweenOrderPairs
-                ? 1
-                : 2
+                : useDifferentConduitsBetweenOrderPairs ? 1 : 2
         );
 
         Fulfillment[] memory expectedFulfillments;
@@ -1479,34 +1307,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                         FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
                         FulfillmentComponent({ orderIndex: 3, itemIndex: 0 })
                     ),
-                    considerationComponents: SeaportArrays
-                        .FulfillmentComponents(
-                            FulfillmentComponent({
-                                orderIndex: 0,
-                                itemIndex: 0
-                            }),
-                            FulfillmentComponent({
-                                orderIndex: 2,
-                                itemIndex: 0
-                            })
-                        )
+                    considerationComponents: SeaportArrays.FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+                        FulfillmentComponent({ orderIndex: 2, itemIndex: 0 })
+                    )
                 }),
                 Fulfillment({
                     offerComponents: SeaportArrays.FulfillmentComponents(
                         FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
                         FulfillmentComponent({ orderIndex: 2, itemIndex: 0 })
                     ),
-                    considerationComponents: SeaportArrays
-                        .FulfillmentComponents(
-                            FulfillmentComponent({
-                                orderIndex: 1,
-                                itemIndex: 0
-                            }),
-                            FulfillmentComponent({
-                                orderIndex: 3,
-                                itemIndex: 0
-                            })
-                        )
+                    considerationComponents: SeaportArrays.FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+                        FulfillmentComponent({ orderIndex: 3, itemIndex: 0 })
+                    )
                 })
             );
         } else {
@@ -1521,117 +1335,76 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
                     offerComponents: SeaportArrays.FulfillmentComponents(
                         FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
                     ),
-                    considerationComponents: SeaportArrays
-                        .FulfillmentComponents(
-                            FulfillmentComponent({
-                                orderIndex: 0,
-                                itemIndex: 0
-                            }),
-                            FulfillmentComponent({
-                                orderIndex: 2,
-                                itemIndex: 0
-                            })
-                        )
+                    considerationComponents: SeaportArrays.FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: 0, itemIndex: 0 }),
+                        FulfillmentComponent({ orderIndex: 2, itemIndex: 0 })
+                    )
                 }),
                 Fulfillment({
                     offerComponents: SeaportArrays.FulfillmentComponents(
                         FulfillmentComponent({ orderIndex: 3, itemIndex: 0 })
                     ),
-                    considerationComponents: SeaportArrays
-                        .FulfillmentComponents(
-                            FulfillmentComponent({
-                                orderIndex: 0,
-                                itemIndex: 0
-                            })
-                        )
+                    considerationComponents: SeaportArrays.FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
+                    )
                 }),
                 Fulfillment({
                     offerComponents: SeaportArrays.FulfillmentComponents(
                         FulfillmentComponent({ orderIndex: 0, itemIndex: 0 })
                     ),
-                    considerationComponents: SeaportArrays
-                        .FulfillmentComponents(
-                            FulfillmentComponent({
-                                orderIndex: 1,
-                                itemIndex: 0
-                            }),
-                            FulfillmentComponent({
-                                orderIndex: 3,
-                                itemIndex: 0
-                            })
-                        )
+                    considerationComponents: SeaportArrays.FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: 1, itemIndex: 0 }),
+                        FulfillmentComponent({ orderIndex: 3, itemIndex: 0 })
+                    )
                 }),
                 Fulfillment({
                     offerComponents: SeaportArrays.FulfillmentComponents(
                         FulfillmentComponent({ orderIndex: 2, itemIndex: 0 })
                     ),
-                    considerationComponents: SeaportArrays
-                        .FulfillmentComponents(
-                            FulfillmentComponent({
-                                orderIndex: 1,
-                                itemIndex: 0
-                            })
-                        )
+                    considerationComponents: SeaportArrays.FulfillmentComponents(
+                        FulfillmentComponent({ orderIndex: 1, itemIndex: 0 })
+                    )
                 })
             );
         }
 
         bytes32[] memory orderHashes = new bytes32[](4);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(
-                    orderOne,
-                    otherOrderOne,
-                    orderTwo,
-                    otherOrderTwo
-                ),
-                orderHashes,
-                new UnavailableReason[](4)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(
+                orderOne, otherOrderOne, orderTwo, otherOrderTwo
+            ),
+            orderHashes,
+            new UnavailableReason[](4)
+        );
 
         if (!useDifferentConduitsBetweenOrderPairs) {
             assertEq(fulfillments.length, 2, "fulfillments.length");
             assertEq(
-                fulfillments[0],
-                expectedFulfillments[0],
-                "fulfillments[0]"
+                fulfillments[0], expectedFulfillments[0], "fulfillments[0]"
             );
             assertEq(
-                fulfillments[1],
-                expectedFulfillments[1],
-                "fulfillments[1]"
+                fulfillments[1], expectedFulfillments[1], "fulfillments[1]"
             );
         } else {
             assertEq(fulfillments.length, 4, "fulfillments.length");
             assertEq(
-                fulfillments[0],
-                expectedFulfillments[0],
-                "fulfillments[0]"
+                fulfillments[0], expectedFulfillments[0], "fulfillments[0]"
             );
             assertEq(
-                fulfillments[1],
-                expectedFulfillments[1],
-                "fulfillments[1]"
+                fulfillments[1], expectedFulfillments[1], "fulfillments[1]"
             );
             assertEq(
-                fulfillments[2],
-                expectedFulfillments[2],
-                "fulfillments[2]"
+                fulfillments[2], expectedFulfillments[2], "fulfillments[2]"
             );
             assertEq(
-                fulfillments[3],
-                expectedFulfillments[3],
-                "fulfillments[3]"
+                fulfillments[3], expectedFulfillments[3], "fulfillments[3]"
             );
         }
 
         seaport.matchOrders({
             orders: SeaportArrays.Orders(
-                orderOne,
-                otherOrderOne,
-                orderTwo,
-                otherOrderTwo
+                orderOne, otherOrderOne, orderTwo, otherOrderTwo
             ),
             fulfillments: fulfillments
         });
@@ -1642,36 +1415,30 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         execGetMatchedFulfillments_consolidatedConsideration(true);
     }
 
-    function execGetMatchedFulfillments_consolidatedConsideration(
-        bool useDifferentConduits
-    ) public {
+    function execGetMatchedFulfillments_consolidatedConsideration(bool useDifferentConduits)
+        public
+    {
         Order memory order = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(90),
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(10)
                     )
                 )
                 .withConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(90),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10)
                     )
@@ -1680,27 +1447,20 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             signature: ""
         });
 
-        order = _toMatchableOrder(
-            order,
-            offerer1,
-            useDifferentConduits ? 1 : 0
-        );
+        order = _toMatchableOrder(order, offerer1, useDifferentConduits ? 1 : 0);
 
         Order memory otherOrder = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(30)
                     )
                 )
                 .withConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(10)
                     )
@@ -1710,15 +1470,12 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         });
 
         if (useDifferentConduits) {
-            otherOrder.parameters = otherOrder.parameters.withConduitKey(
-                conduitKey
-            );
+            otherOrder.parameters =
+                otherOrder.parameters.withConduitKey(conduitKey);
         }
 
         otherOrder = _toMatchableOrder(
-            otherOrder,
-            offerer2,
-            useDifferentConduits ? 2 : 0
+            otherOrder, offerer2, useDifferentConduits ? 2 : 0
         );
 
         Fulfillment[] memory expectedFulfillments = SeaportArrays.Fulfillments(
@@ -1752,12 +1509,11 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
         bytes32[] memory orderHashes = new bytes32[](2);
 
-        (Fulfillment[] memory fulfillments, , ) = matcher
-            .getMatchedFulfillments(
-                SeaportArrays.Orders(order, otherOrder),
-                orderHashes,
-                new UnavailableReason[](2)
-            );
+        (Fulfillment[] memory fulfillments,,) = matcher.getMatchedFulfillments(
+            SeaportArrays.Orders(order, otherOrder),
+            orderHashes,
+            new UnavailableReason[](2)
+        );
         assertEq(fulfillments.length, 3, "fulfillments.length");
 
         assertEq(fulfillments[0], expectedFulfillments[0], "fulfillments[0]");
@@ -1772,30 +1528,25 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
     function testRemainingItems_availableOrder() public {
         Order memory order1 = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withStartTime(block.timestamp)
                 .withEndTime(block.timestamp + 1)
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(11)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(2)
                     )
@@ -1813,37 +1564,27 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             MatchComponent[] memory remainingOffer,
             MatchComponent[] memory remainingConsideration
         ) = matcher.getMatchedFulfillments(
-                SeaportArrays.Orders(order1),
-                orderHashes,
-                new UnavailableReason[](1)
-            );
+            SeaportArrays.Orders(order1),
+            orderHashes,
+            new UnavailableReason[](1)
+        );
 
         assertEq(remainingOffer.length, 2, "remainingOffer.length");
         assertEq(
-            remainingConsideration.length,
-            2,
-            "remainingConsideration.length"
+            remainingConsideration.length, 2, "remainingConsideration.length"
         );
         assertEq(
-            remainingOffer[0].getOrderIndex(),
-            0,
-            "remainingOffer[0].orderIndex"
+            remainingOffer[0].getOrderIndex(), 0, "remainingOffer[0].orderIndex"
         );
         assertEq(
-            remainingOffer[0].getItemIndex(),
-            0,
-            "remainingOffer[0].itemIndex"
+            remainingOffer[0].getItemIndex(), 0, "remainingOffer[0].itemIndex"
         );
         assertEq(remainingOffer[0].getAmount(), 10, "remainingOffer[0].amount");
         assertEq(
-            remainingOffer[1].getOrderIndex(),
-            0,
-            "remainingOffer[1].orderIndex"
+            remainingOffer[1].getOrderIndex(), 0, "remainingOffer[1].orderIndex"
         );
         assertEq(
-            remainingOffer[1].getItemIndex(),
-            1,
-            "remainingOffer[1].itemIndex"
+            remainingOffer[1].getItemIndex(), 1, "remainingOffer[1].itemIndex"
         );
         assertEq(remainingOffer[1].getAmount(), 11, "remainingOffer[1].amount");
 
@@ -1881,28 +1622,23 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
 
     function testRemainingItems_unavailableOrder() public {
         Order memory order1 = Order({
-            parameters: OrderParametersLib
-                .empty()
+            parameters: OrderParametersLib.empty()
                 .withOffer(
                     SeaportArrays.OfferItems(
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(10),
-                        OfferItemLib
-                            .empty()
+                        OfferItemLib.empty()
                             .withToken(address(erc20s[0]))
                             .withAmount(11)
                     )
                 )
                 .withTotalConsideration(
                     SeaportArrays.ConsiderationItems(
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(1),
-                        ConsiderationItemLib
-                            .empty()
+                        ConsiderationItemLib.empty()
                             .withToken(address(erc20s[1]))
                             .withAmount(2)
                     )
@@ -1920,10 +1656,10 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
             MatchComponent[] memory remainingOffer,
             MatchComponent[] memory remainingConsideration
         ) = matcher.getMatchedFulfillments(
-                SeaportArrays.Orders(order1),
-                orderHashes,
-                new UnavailableReason[](1)
-            );
+            SeaportArrays.Orders(order1),
+            orderHashes,
+            new UnavailableReason[](1)
+        );
 
         assertEq(remainingOffer.length, 0);
         assertEq(remainingConsideration.length, 0);
@@ -1985,23 +1721,18 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         uint256 salt
     ) internal view returns (Order memory) {
         for (uint256 i = 0; i < order.parameters.offer.length; i++) {
-            order.parameters.offer[i] = order
-                .parameters
-                .offer[i]
-                .copy()
-                .withItemType(ItemType.ERC20);
+            order.parameters.offer[i] =
+                order.parameters.offer[i].copy().withItemType(ItemType.ERC20);
         }
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
-            order.parameters.consideration[i] = order
-                .parameters
+            order.parameters.consideration[i] = order.parameters
                 .consideration[i]
                 .copy()
                 .withItemType(ItemType.ERC20);
         }
 
-        OrderParameters memory parameters = order
-            .parameters
+        OrderParameters memory parameters = order.parameters
             .copy()
             .withOfferer(offerer.addr)
             .withStartTime(block.timestamp)
@@ -2013,8 +1744,9 @@ contract MatchFulfillmentHelperTest is BaseOrderTest {
         // Bump the end time by 100 so that the test doesn't try to match the
         // same order twice.
 
-        OrderComponents memory orderComponents = parameters
-            .toOrderComponents(seaport.getCounter(offerer.addr))
+        OrderComponents memory orderComponents = parameters.toOrderComponents(
+                seaport.getCounter(offerer.addr)
+            )
             .withCounter(seaport.getCounter(offerer.addr));
 
         bytes32 orderHash = seaport.getOrderHash(orderComponents);

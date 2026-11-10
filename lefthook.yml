@@ -1,0 +1,29 @@
+# Install with `scripts/install-tools.sh && .tools/bin/lefthook install`.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: forge fmt
+      glob: "*.sol"
+      # forge fmt applies only exact paths from foundry.toml's [fmt] ignore
+      # when given files, so repeat the deployed contracts here.
+      exclude:
+        - "lib/**"
+        - "contracts/Seaport.sol"
+        - "contracts/conduit/**"
+        - "contracts/helpers/**"
+        - "contracts/interfaces/**"
+        - "contracts/zones/**"
+      run: forge fmt {staged_files}
+      stage_fixed: true
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,jsonc,md,yml,yaml}"
+      exclude:
+        - "lib/**"
+      run: .tools/bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    - name: taplo
+      glob: "*.toml"
+      exclude:
+        - "lib/**"
+      run: .tools/bin/taplo fmt {staged_files}
+      stage_fixed: true

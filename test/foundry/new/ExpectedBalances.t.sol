@@ -45,44 +45,28 @@ contract ExpectedBalancesTest is Test {
             offerer: alice,
             conduitKey: bytes32(0),
             item: ReceivedItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                0.5 ether,
-                payable(bob)
+                ItemType.NATIVE, address(0), 0, 0.5 ether, payable(bob)
             )
         });
         executions[1] = Execution({
             offerer: alice,
             conduitKey: bytes32(0),
             item: ReceivedItem(
-                ItemType.ERC20,
-                address(erc20),
-                0,
-                250,
-                payable(bob)
+                ItemType.ERC20, address(erc20), 0, 250, payable(bob)
             )
         });
         executions[2] = Execution({
             offerer: bob,
             conduitKey: bytes32(0),
             item: ReceivedItem(
-                ItemType.ERC721,
-                address(erc721),
-                1,
-                1,
-                payable(alice)
+                ItemType.ERC721, address(erc721), 1, 1, payable(alice)
             )
         });
         executions[3] = Execution({
             offerer: bob,
             conduitKey: bytes32(0),
             item: ReceivedItem(
-                ItemType.ERC1155,
-                address(erc1155),
-                1,
-                50,
-                payable(alice)
+                ItemType.ERC1155, address(erc1155), 1, 50, payable(alice)
             )
         });
         balances.addTransfers(executions);
@@ -112,11 +96,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.NATIVE,
-                    address(0),
-                    0,
-                    0.5 ether,
-                    payable(bob)
+                    ItemType.NATIVE, address(0), 0, 0.5 ether, payable(bob)
                 )
             })
         );
@@ -125,11 +105,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    250,
-                    payable(bob)
+                    ItemType.ERC20, address(erc20), 0, 250, payable(bob)
                 )
             })
         );
@@ -138,11 +114,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: bob,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC721,
-                    address(erc721),
-                    1,
-                    1,
-                    payable(alice)
+                    ItemType.ERC721, address(erc721), 1, 1, payable(alice)
                 )
             })
         );
@@ -151,11 +123,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: bob,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC1155,
-                    address(erc1155),
-                    1,
-                    50,
-                    payable(alice)
+                    ItemType.ERC1155, address(erc1155), 1, 50, payable(alice)
                 )
             })
         );
@@ -182,11 +150,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.insufficientNativeBalance(
-                    alice,
-                    bob,
-                    0,
-                    1,
-                    false
+                    alice, bob, 0, 1, false
                 )
             )
         );
@@ -212,11 +176,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.NATIVE,
-                    address(0),
-                    0,
-                    0.5 ether,
-                    payable(bob)
+                    ItemType.NATIVE, address(0), 0, 0.5 ether, payable(bob)
                 )
             })
         );
@@ -224,9 +184,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.nativeUnexpectedBalance(
-                    alice,
-                    0,
-                    0.5 ether
+                    alice, 0, 0.5 ether
                 )
             )
         );
@@ -241,11 +199,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.NATIVE,
-                    address(0),
-                    0,
-                    0.5 ether,
-                    payable(bob)
+                    ItemType.NATIVE, address(0), 0, 0.5 ether, payable(bob)
                 )
             })
         );
@@ -268,12 +222,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.insufficientERC20Balance(
-                    address(erc20),
-                    alice,
-                    bob,
-                    0,
-                    200,
-                    false
+                    address(erc20), alice, bob, 0, 200, false
                 )
             )
         );
@@ -282,11 +231,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    200,
-                    payable(bob)
+                    ItemType.ERC20, address(erc20), 0, 200, payable(bob)
                 )
             })
         );
@@ -299,11 +244,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    5,
-                    payable(bob)
+                    ItemType.ERC20, address(erc20), 0, 5, payable(bob)
                 )
             })
         );
@@ -314,10 +255,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.erc20UnexpectedBalance(
-                    address(erc20),
-                    alice,
-                    5,
-                    6
+                    address(erc20), alice, 5, 6
                 )
             )
         );
@@ -331,11 +269,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    5,
-                    payable(bob)
+                    ItemType.ERC20, address(erc20), 0, 5, payable(bob)
                 )
             })
         );
@@ -343,10 +277,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.erc20UnexpectedBalance(
-                    address(erc20),
-                    alice,
-                    5,
-                    10
+                    address(erc20), alice, 5, 10
                 )
             )
         );
@@ -361,11 +292,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    50,
-                    payable(bob)
+                    ItemType.ERC20, address(erc20), 0, 50, payable(bob)
                 )
             })
         );
@@ -374,11 +301,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: bob,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC20,
-                    address(erc20),
-                    0,
-                    50,
-                    payable(alice)
+                    ItemType.ERC20, address(erc20), 0, 50, payable(alice)
                 )
             })
         );
@@ -397,11 +320,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC721,
-                    address(erc721),
-                    1,
-                    1,
-                    payable(bob)
+                    ItemType.ERC721, address(erc721), 1, 1, payable(bob)
                 )
             })
         );
@@ -414,11 +333,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC721,
-                    address(erc721),
-                    1,
-                    1,
-                    payable(bob)
+                    ItemType.ERC721, address(erc721), 1, 1, payable(bob)
                 )
             })
         );
@@ -427,10 +342,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.erc721UnexpectedBalance(
-                    address(erc721),
-                    alice,
-                    0,
-                    2
+                    address(erc721), alice, 0, 2
                 )
             )
         );
@@ -444,20 +356,14 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC721,
-                    address(erc721),
-                    1,
-                    1,
-                    payable(bob)
+                    ItemType.ERC721, address(erc721), 1, 1, payable(bob)
                 )
             })
         );
         erc721.mint(bob, 2);
         vm.prank(alice);
         erc721.transferFrom(alice, address(1000), 1);
-        vm.expectRevert(
-            "ExpectedBalances: account does not own expected token"
-        );
+        vm.expectRevert("ExpectedBalances: account does not own expected token");
         balances.checkBalances();
     }
 
@@ -469,11 +375,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC721,
-                    address(erc721),
-                    1,
-                    1,
-                    payable(bob)
+                    ItemType.ERC721, address(erc721), 1, 1, payable(bob)
                 )
             })
         );
@@ -482,11 +384,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC721,
-                    address(erc721),
-                    2,
-                    1,
-                    payable(bob)
+                    ItemType.ERC721, address(erc721), 2, 1, payable(bob)
                 )
             })
         );
@@ -505,13 +403,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.insufficientERC1155Balance(
-                    address(erc1155),
-                    0,
-                    alice,
-                    bob,
-                    0,
-                    200,
-                    false
+                    address(erc1155), 0, alice, bob, 0, 200, false
                 )
             )
         );
@@ -520,11 +412,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC1155,
-                    address(erc1155),
-                    0,
-                    200,
-                    payable(bob)
+                    ItemType.ERC1155, address(erc1155), 0, 200, payable(bob)
                 )
             })
         );
@@ -537,11 +425,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC1155,
-                    address(erc1155),
-                    1,
-                    5,
-                    payable(bob)
+                    ItemType.ERC1155, address(erc1155), 1, 5, payable(bob)
                 )
             })
         );
@@ -552,11 +436,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.erc1155UnexpectedBalance(
-                    address(erc1155),
-                    alice,
-                    1,
-                    5,
-                    6
+                    address(erc1155), alice, 1, 5, 6
                 )
             )
         );
@@ -570,11 +450,7 @@ contract ExpectedBalancesTest is Test {
                 offerer: alice,
                 conduitKey: bytes32(0),
                 item: ReceivedItem(
-                    ItemType.ERC1155,
-                    address(erc1155),
-                    1,
-                    5,
-                    payable(bob)
+                    ItemType.ERC1155, address(erc1155), 1, 5, payable(bob)
                 )
             })
         );
@@ -583,11 +459,7 @@ contract ExpectedBalancesTest is Test {
         vm.expectRevert(
             bytes(
                 BalanceErrorMessages.erc1155UnexpectedBalance(
-                    address(erc1155),
-                    bob,
-                    1,
-                    5,
-                    0
+                    address(erc1155), bob, 1, 5, 0
                 )
             )
         );

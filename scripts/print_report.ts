@@ -1,9 +1,8 @@
+import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { err, toCommentTable, warn } from "./comment-table";
+import type { ContractReport } from "./utils";
 import { getAllReports } from "./utils";
 import { writeReports } from "./write_reports";
-
-import type { ContractReport } from "./utils";
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
 
 export function printReport(report: ContractReport) {
   const rows: string[][] = [];

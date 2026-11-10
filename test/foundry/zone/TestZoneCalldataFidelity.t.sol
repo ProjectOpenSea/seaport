@@ -57,10 +57,9 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         uint256 salt;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
         try fn(context) {
             fail();
         } catch (bytes memory reason) {
@@ -72,9 +71,7 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         super.setUp();
         conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(this),
-            true
+            address(referenceConduit), address(this), true
         );
         vm.label(address(testZone), "TestZone");
     }
@@ -132,8 +129,8 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
             orderParameters.consideration[i] = ConsiderationItem({
                 itemType: ItemType(testCase.itemType),
                 token: address(test721_1),
-                identifierOrCriteria: testCase
-                    .considerationItemStartingIdentifier + i,
+                identifierOrCriteria: testCase.considerationItemStartingIdentifier
+                    + i,
                 startAmount: testCase.startAmount,
                 endAmount: testCase.endAmount,
                 recipient: payable(address(uint160(testCase.recipient)))
@@ -150,9 +147,8 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         });
 
         // Generate the order hash.
-        bytes32 orderHash = context.consideration.getOrderHash(
-            advancedOrder.parameters.toOrderComponents(0)
-        );
+        bytes32 orderHash = context.consideration
+            .getOrderHash(advancedOrder.parameters.toOrderComponents(0));
 
         // Create the expected zone parameters.
         ZoneParameters memory zoneParameters = ZoneParameters({
@@ -169,9 +165,8 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         });
 
         // Hash the zone parameters.
-        bytes32 expectedZoneHash = bytes32(
-            keccak256(abi.encode(zoneParameters))
-        );
+        bytes32 expectedZoneHash =
+            bytes32(keccak256(abi.encode(zoneParameters)));
 
         // Send the expectation for authorize to the test zone.
         testZone.setExpectedAuthorizeCalldataHash(expectedZoneHash);
@@ -187,50 +182,41 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         testZone.setExpectedValidateCalldataHash(expectedZoneHash);
 
         // Fulfill the advanced order.
-        context.consideration.fulfillAdvancedOrder({
-            advancedOrder: advancedOrder,
-            criteriaResolvers: new CriteriaResolver[](0),
-            fulfillerConduitKey: bytes32(0),
-            recipient: payable(address(uint160(testCase.recipient)))
-        });
+        context.consideration
+            .fulfillAdvancedOrder({
+                advancedOrder: advancedOrder,
+                criteriaResolvers: new CriteriaResolver[](0),
+                fulfillerConduitKey: bytes32(0),
+                recipient: payable(address(uint160(testCase.recipient)))
+            });
     }
 
-    function _boundTestCase(
-        TestCase memory _testCase
-    ) internal view returns (TestCase memory) {
+    function _boundTestCase(TestCase memory _testCase)
+        internal
+        view
+        returns (TestCase memory)
+    {
         TestCase memory testCase = _testCase;
 
         testCase.itemType = bound(testCase.itemType, 2, 2);
-        testCase.offerItemStartingIdentifier = bound(
-            testCase.offerItemStartingIdentifier,
-            1,
-            type(uint16).max
-        );
+        testCase.offerItemStartingIdentifier =
+            bound(testCase.offerItemStartingIdentifier, 1, type(uint16).max);
         testCase.considerationItemStartingIdentifier = bound(
             testCase.considerationItemStartingIdentifier,
             type(uint32).max,
             type(uint64).max
         );
         testCase.startAmount = bound(testCase.startAmount, 1, 1);
-        testCase.endAmount = bound(
-            testCase.endAmount,
-            1,
-            testCase.itemType == 2 ? 1 : 1000
-        );
+        testCase.endAmount =
+            bound(testCase.endAmount, 1, testCase.itemType == 2 ? 1 : 1000);
         testCase.recipient = bound(testCase.recipient, 10, type(uint160).max);
         testCase.offerLength = bound(testCase.offerLength, 1, 30);
-        testCase.considerationLength = bound(
-            testCase.considerationLength,
-            1,
-            30
-        );
+        testCase.considerationLength =
+            bound(testCase.considerationLength, 1, 30);
         testCase.orderType = bound(testCase.orderType, 1, 3); // 0, 4);
         testCase.startTime = bound(testCase.startTime, 0, 1);
-        testCase.endTime = bound(
-            testCase.endTime,
-            block.timestamp + 1,
-            type(uint256).max
-        );
+        testCase.endTime =
+            bound(testCase.endTime, block.timestamp + 1, type(uint256).max);
 
         return testCase;
     }
@@ -238,8 +224,7 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
     function _mintNecessaryTokens(TestCase memory testCase) internal {
         for (uint256 i = 0; i < testCase.offerLength; i++) {
             test721_1.mint(
-                address(this),
-                testCase.offerItemStartingIdentifier + i
+                address(this), testCase.offerItemStartingIdentifier + i
             );
             test1155_1.mint(
                 address(this),
@@ -249,8 +234,7 @@ contract PreAndPostFulfillmentCheckTest is BaseOrderTest {
         }
         for (uint256 i = 0; i < testCase.considerationLength; i++) {
             test721_1.mint(
-                address(this),
-                testCase.considerationItemStartingIdentifier + i
+                address(this), testCase.considerationItemStartingIdentifier + i
             );
             test1155_1.mint(
                 address(this),

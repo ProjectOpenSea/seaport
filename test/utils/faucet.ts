@@ -1,9 +1,7 @@
+import type { JsonRpcProvider } from "@ethersproject/providers";
 import { parseEther } from "@ethersproject/units";
 import { ethers } from "hardhat";
-
 import { randomHex } from "./encoding";
-
-import type { JsonRpcProvider } from "@ethersproject/providers";
 
 const TEN_THOUSAND_ETH = parseEther("10000").toHexString().replace("0x0", "0x");
 

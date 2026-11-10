@@ -1,20 +1,18 @@
 import { expect } from "chai";
+import type { BigNumber, Wallet } from "ethers";
 import { constants } from "ethers";
 import { network } from "hardhat";
-
-import { merkleTree } from "../utils/criteria";
-import { buildResolver, toBN, toKey } from "../utils/encoding";
-import { getWalletWithEther } from "../utils/faucet";
-import { seaportFixture } from "../utils/fixtures";
-
 import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
+import { merkleTree } from "../utils/criteria";
+import { buildResolver, toBN, toKey } from "../utils/encoding";
+import { getWalletWithEther } from "../utils/faucet";
 import type { SeaportFixtures } from "../utils/fixtures";
+import { seaportFixture } from "../utils/fixtures";
 import type { AdvancedOrder } from "../utils/types";
-import type { BigNumber, Wallet } from "ethers";
 
 const IS_FIXED = true;
 

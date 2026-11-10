@@ -33,29 +33,35 @@ abstract contract ERC2981 is IERC2981, ERC165 {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(IERC165, ERC165) returns (bool) {
-        return
-            interfaceId == type(IERC2981).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(IERC165, ERC165)
+        returns (bool)
+    {
+        return interfaceId == type(IERC2981).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     /**
      * @inheritdoc IERC2981
      */
-    function royaltyInfo(
-        uint256 _tokenId,
-        uint256 _salePrice
-    ) public view virtual override returns (address, uint256) {
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        public
+        view
+        virtual
+        override
+        returns (address, uint256)
+    {
         RoyaltyInfo memory royalty = _tokenRoyaltyInfo[_tokenId];
 
         if (royalty.receiver == address(0)) {
             royalty = _defaultRoyaltyInfo;
         }
 
-        uint256 royaltyAmount = (_salePrice * royalty.royaltyFraction) /
-            _feeDenominator();
+        uint256 royaltyAmount =
+            (_salePrice * royalty.royaltyFraction) / _feeDenominator();
 
         return (royalty.receiver, royaltyAmount);
     }
@@ -77,10 +83,10 @@ abstract contract ERC2981 is IERC2981, ERC165 {
      * - `receiver` cannot be the zero address.
      * - `feeNumerator` cannot be greater than the fee denominator.
      */
-    function _setDefaultRoyalty(
-        address receiver,
-        uint96 feeNumerator
-    ) internal virtual {
+    function _setDefaultRoyalty(address receiver, uint96 feeNumerator)
+        internal
+        virtual
+    {
         require(
             feeNumerator <= _feeDenominator(),
             "ERC2981: royalty fee will exceed salePrice"

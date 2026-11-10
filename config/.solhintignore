@@ -1,7 +1,0 @@
-node_modules/
-
-contracts/test/
-contracts/zones/PausableZone.sol
-
-test/
-lib/

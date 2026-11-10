@@ -27,11 +27,11 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
         return true;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool ok) {
+    function transferFrom(address from, address to, uint256 amount)
+        public
+        override
+        returns (bool ok)
+    {
         if (blocked) {
             return false;
         }
@@ -53,10 +53,10 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
         ok = true;
     }
 
-    function increaseAllowance(
-        address spender,
-        uint256 amount
-    ) external returns (bool) {
+    function increaseAllowance(address spender, uint256 amount)
+        external
+        returns (bool)
+    {
         uint256 current = allowance[msg.sender][spender];
         uint256 remaining = type(uint256).max - current;
         if (amount > remaining) {

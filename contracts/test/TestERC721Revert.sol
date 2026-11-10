@@ -5,10 +5,16 @@ import { TestERC721 } from "./TestERC721.sol";
 
 contract TestERC721Revert is TestERC721 {
     function transferFrom(
-        address /* from */,
-        address /* to */,
+        address,
+        /* from */
+        address,
+        /* to */
         uint256 /* amount */
-    ) public pure override {
+    )
+        public
+        pure
+        override
+    {
         revert(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         );

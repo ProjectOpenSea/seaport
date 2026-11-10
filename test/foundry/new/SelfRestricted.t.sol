@@ -190,9 +190,7 @@ contract SelfRestrictedTest is BaseOrderTest {
         );
     }
 
-    function setUpSelfFulfillRestricted(
-        ContextOverride memory context
-    )
+    function setUpSelfFulfillRestricted(ContextOverride memory context)
         internal
         returns (
             AdvancedOrder[] memory orders,
@@ -208,20 +206,15 @@ contract SelfRestrictedTest is BaseOrderTest {
         uint256 considerAmount = 10;
         zone = new ValidationOffererZone(considerAmount + 1);
 
-        uint256 matchAmount = context.exactAmount
-            ? considerAmount
-            : considerAmount + 1;
+        uint256 matchAmount =
+            context.exactAmount ? considerAmount : considerAmount + 1;
 
-        advancedOrder = createOpenConsiderErc20(
-            context,
-            offerer1,
-            considerAmount
-        );
+        advancedOrder =
+            createOpenConsiderErc20(context, offerer1, considerAmount);
         advancedOrder2 = createRestrictedOfferErc20(context, matchAmount);
 
         fulfillments = SeaportArrays.Fulfillments(
-            FulfillmentLib.fromDefault(FF_SF),
-            FulfillmentLib.fromDefault(SF_FF)
+            FulfillmentLib.fromDefault(FF_SF), FulfillmentLib.fromDefault(SF_FF)
         );
         orders = SeaportArrays.AdvancedOrders(advancedOrder, advancedOrder2);
 
@@ -238,15 +231,13 @@ contract SelfRestrictedTest is BaseOrderTest {
         // consider: 10 ERC20
 
         OfferItem[] memory offer = SeaportArrays.OfferItems(
-            OfferItemLib
-                .fromDefault(SINGLE_ERC721)
+            OfferItemLib.fromDefault(SINGLE_ERC721)
                 .withToken(address(erc721s[0]))
                 .withIdentifierOrCriteria(1)
         );
-        ConsiderationItem[] memory consideration = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib
-                    .empty()
+        ConsiderationItem[] memory consideration =
+            SeaportArrays.ConsiderationItems(
+                ConsiderationItemLib.empty()
                     .withItemType(ItemType.ERC20)
                     .withToken(address(erc20s[0]))
                     .withRecipient(account.addr)
@@ -254,8 +245,9 @@ contract SelfRestrictedTest is BaseOrderTest {
                     .withEndAmount(considerAmount)
             );
 
-        OrderComponents memory components = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderComponents memory components = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(account.addr)
             .withOffer(offer)
             .withConsideration(consideration)
@@ -263,13 +255,9 @@ contract SelfRestrictedTest is BaseOrderTest {
             .withConduitKey(context.conduitKey);
 
         bytes32 orderHash = seaport.getOrderHash(components);
-        bytes memory signature = signOrder(
-            context.seaport,
-            account.key,
-            orderHash
-        );
-        advancedOrder = AdvancedOrderLib
-            .fromDefault(FULL)
+        bytes memory signature =
+            signOrder(context.seaport, account.key, orderHash);
+        advancedOrder = AdvancedOrderLib.fromDefault(FULL)
             .withParameters(components.toOrderParameters())
             .withSignature(signature);
     }
@@ -279,24 +267,23 @@ contract SelfRestrictedTest is BaseOrderTest {
         uint256 amount
     ) internal view returns (AdvancedOrder memory advancedOrder) {
         OfferItem[] memory offer = SeaportArrays.OfferItems(
-            OfferItemLib
-                .empty()
+            OfferItemLib.empty()
                 .withItemType(ItemType.ERC20)
                 .withToken(address(erc20s[0]))
                 .withStartAmount(amount)
                 .withEndAmount(amount)
         );
-        ConsiderationItem[] memory consideration = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib
-                    .fromDefault(SINGLE_ERC721)
+        ConsiderationItem[] memory consideration =
+            SeaportArrays.ConsiderationItems(
+                ConsiderationItemLib.fromDefault(SINGLE_ERC721)
                     .withToken(address(erc721s[0]))
                     .withRecipient(context.offerer.addr)
                     .withIdentifierOrCriteria(1)
             );
         Account memory _offerer = context.offerer;
-        OrderComponents memory components = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderComponents memory components = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(_offerer.addr)
             .withOffer(offer)
             .withConsideration(consideration)
@@ -306,20 +293,14 @@ contract SelfRestrictedTest is BaseOrderTest {
             .withZone(address(zone));
 
         bytes32 orderHash = seaport.getOrderHash(components);
-        bytes memory signature = signOrder(
-            context.seaport,
-            _offerer.key,
-            orderHash
-        );
-        advancedOrder = AdvancedOrderLib
-            .fromDefault(FULL)
+        bytes memory signature =
+            signOrder(context.seaport, _offerer.key, orderHash);
+        advancedOrder = AdvancedOrderLib.fromDefault(FULL)
             .withParameters(components.toOrderParameters())
             .withSignature(signature);
     }
 
-    function setUpSelfFulfillRestrictedMultiOffer(
-        ContextOverride memory context
-    )
+    function setUpSelfFulfillRestrictedMultiOffer(ContextOverride memory context)
         internal
         returns (
             AdvancedOrder[] memory orders,
@@ -335,27 +316,21 @@ contract SelfRestrictedTest is BaseOrderTest {
         uint256 considerAmount = 10;
         zone = new ValidationOffererZone(considerAmount + 1);
 
-        uint256 matchAmount = context.exactAmount
-            ? considerAmount
-            : considerAmount - 1;
+        uint256 matchAmount =
+            context.exactAmount ? considerAmount : considerAmount - 1;
 
-        advancedOrder = createOpenConsiderErc20(
-            context,
-            offerer1,
-            considerAmount
-        );
+        advancedOrder =
+            createOpenConsiderErc20(context, offerer1, considerAmount);
         advancedOrder2 = createRestrictedOffersErc20(context, matchAmount);
 
         fulfillments = SeaportArrays.Fulfillments(
             FulfillmentLib.fromDefault(FF_SF),
             Fulfillment({
                 offerComponents: SeaportArrays.FulfillmentComponents(
-                    FulfillmentComponentLib
-                        .empty()
+                    FulfillmentComponentLib.empty()
                         .withOrderIndex(1)
                         .withItemIndex(0),
-                    FulfillmentComponentLib
-                        .empty()
+                    FulfillmentComponentLib.empty()
                         .withOrderIndex(1)
                         .withItemIndex(1)
                 ),
@@ -375,12 +350,10 @@ contract SelfRestrictedTest is BaseOrderTest {
             CriteriaResolver[] memory resolvers,
             Fulfillment[] memory fulfillments
         ) = setUpSelfFulfillRestrictedMultiOffer(context);
-        context.seaport.matchAdvancedOrders(
-            orders,
-            resolvers,
-            fulfillments,
-            address(0x1234)
-        );
+        context.seaport
+            .matchAdvancedOrders(
+                orders, resolvers, fulfillments, address(0x1234)
+            );
     }
 
     function createRestrictedOffersErc20(
@@ -388,30 +361,28 @@ contract SelfRestrictedTest is BaseOrderTest {
         uint256 amountLessOne
     ) internal view returns (AdvancedOrder memory advancedOrder) {
         OfferItem[] memory offer = SeaportArrays.OfferItems(
-            OfferItemLib
-                .empty()
+            OfferItemLib.empty()
                 .withItemType(ItemType.ERC20)
                 .withToken(address(erc20s[0]))
                 .withStartAmount(amountLessOne)
                 .withEndAmount(amountLessOne),
-            OfferItemLib
-                .empty()
+            OfferItemLib.empty()
                 .withItemType(ItemType.ERC20)
                 .withToken(address(erc20s[0]))
                 .withStartAmount(amountLessOne)
                 .withEndAmount(amountLessOne)
         );
-        ConsiderationItem[] memory consideration = SeaportArrays
-            .ConsiderationItems(
-                ConsiderationItemLib
-                    .fromDefault(SINGLE_ERC721)
+        ConsiderationItem[] memory consideration =
+            SeaportArrays.ConsiderationItems(
+                ConsiderationItemLib.fromDefault(SINGLE_ERC721)
                     .withToken(address(erc721s[0]))
                     .withRecipient(context.offerer.addr)
                     .withIdentifierOrCriteria(1)
             );
         Account memory _offerer = context.offerer;
-        OrderComponents memory components = OrderComponentsLib
-            .fromDefault(STANDARD)
+        OrderComponents memory components = OrderComponentsLib.fromDefault(
+                STANDARD
+            )
             .withOfferer(_offerer.addr)
             .withOffer(offer)
             .withConsideration(consideration)
@@ -421,31 +392,26 @@ contract SelfRestrictedTest is BaseOrderTest {
             .withZone(address(zone));
 
         bytes32 orderHash = seaport.getOrderHash(components);
-        bytes memory signature = signOrder(
-            context.seaport,
-            _offerer.key,
-            orderHash
-        );
-        advancedOrder = AdvancedOrderLib
-            .fromDefault(FULL)
+        bytes memory signature =
+            signOrder(context.seaport, _offerer.key, orderHash);
+        advancedOrder = AdvancedOrderLib.fromDefault(FULL)
             .withParameters(components.toOrderParameters())
             .withSignature(signature);
     }
 
-    function execSelfFulfillRestricted(
-        ContextOverride memory context
-    ) external stateless {
+    function execSelfFulfillRestricted(ContextOverride memory context)
+        external
+        stateless
+    {
         (
             AdvancedOrder[] memory orders,
             CriteriaResolver[] memory resolvers,
             Fulfillment[] memory fulfillments
         ) = setUpSelfFulfillRestricted(context);
 
-        context.seaport.matchAdvancedOrders(
-            orders,
-            resolvers,
-            fulfillments,
-            address(0x1234)
-        );
+        context.seaport
+            .matchAdvancedOrders(
+                orders, resolvers, fulfillments, address(0x1234)
+            );
     }
 }

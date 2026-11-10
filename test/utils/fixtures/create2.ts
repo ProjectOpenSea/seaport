@@ -1,10 +1,9 @@
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
 
-import { faucet } from "../faucet";
-
 import type { ImmutableCreate2FactoryInterface } from "../../../typechain-types";
-import type { Wallet } from "ethers";
+import { faucet } from "../faucet";
 
 const deployConstants = require("../../../constants/constants");
 

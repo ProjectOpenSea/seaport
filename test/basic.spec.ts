@@ -1,7 +1,17 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import { ethers, network } from "hardhat";
-
+import type {
+  ConduitInterface,
+  ConsiderationInterface,
+  EIP1271Wallet,
+  EIP1271Wallet__factory,
+  TestERC20,
+  TestERC721,
+  TestPostExecution,
+  TestZone,
+} from "../typechain-types";
 import { deployContract } from "./utils/contracts";
 import {
   convertSignatureToEIP2098,
@@ -18,26 +28,14 @@ import {
   toKey,
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
+import type { SeaportFixtures } from "./utils/fixtures";
 import { seaportFixture } from "./utils/fixtures";
 import {
-  VERSION,
   minRandom,
   simulateAdvancedMatchOrders,
   simulateMatchOrders,
+  VERSION,
 } from "./utils/helpers";
-
-import type {
-  ConduitInterface,
-  ConsiderationInterface,
-  EIP1271Wallet,
-  EIP1271Wallet__factory,
-  TestERC20,
-  TestERC721,
-  TestPostExecution,
-  TestZone,
-} from "../typechain-types";
-import type { SeaportFixtures } from "./utils/fixtures";
-import type { Wallet } from "ethers";
 
 const { parseEther, keccak256 } = ethers.utils;
 
@@ -45,7 +43,7 @@ const { parseEther, keccak256 } = ethers.utils;
  * Buy now or accept offer for a single ERC721 or ERC1155 in exchange for
  * ETH, WETH or ERC20
  */
-describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function () {
+describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 

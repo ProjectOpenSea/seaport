@@ -33,11 +33,11 @@ contract StatefulOffererTest is BaseOrderTest {
         uint8 numToAdd;
     }
 
-    function test(
-        function(Context memory) external fn,
-        Context memory context
-    ) internal {
-        try fn(context) {} catch (bytes memory reason) {
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) { }
+        catch (bytes memory reason) {
             assertPass(reason);
         }
     }
@@ -90,12 +90,13 @@ contract StatefulOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        context.consideration.fulfillAdvancedOrder({
-            advancedOrder: order,
-            criteriaResolvers: criteriaResolvers,
-            fulfillerConduitKey: bytes32(0),
-            recipient: address(0)
-        });
+        context.consideration
+            .fulfillAdvancedOrder({
+                advancedOrder: order,
+                criteriaResolvers: criteriaResolvers,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(0)
+            });
 
         assertTrue(offerer.called());
     }
@@ -134,9 +135,8 @@ contract StatefulOffererTest is BaseOrderTest {
 
         configureOrderComponents(0);
 
-        OrderComponents[] memory myBaseOrderComponents = new OrderComponents[](
-            1
-        );
+        OrderComponents[] memory myBaseOrderComponents =
+            new OrderComponents[](1);
         myBaseOrderComponents[0] = baseOrderComponents;
 
         vm.prank(address(offerer));
@@ -197,12 +197,13 @@ contract StatefulOffererTest is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        context.consideration.fulfillAdvancedOrder({
-            advancedOrder: order,
-            criteriaResolvers: criteriaResolvers,
-            fulfillerConduitKey: bytes32(0),
-            recipient: address(0)
-        });
+        context.consideration
+            .fulfillAdvancedOrder({
+                advancedOrder: order,
+                criteriaResolvers: criteriaResolvers,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(0)
+            });
 
         assertTrue(offerer.called());
     }
@@ -218,9 +219,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execMatchAdvancedOrders(
-        Context memory context
-    ) external stateless {
+    function execMatchAdvancedOrders(Context memory context)
+        external
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -251,11 +253,8 @@ contract StatefulOffererTest is BaseOrderTest {
             extraData: "context"
         });
 
-        AdvancedOrder memory mirror = createMirrorContractOffererOrder(
-            context,
-            "mirroroooor",
-            order
-        );
+        AdvancedOrder memory mirror =
+            createMirrorContractOffererOrder(context, "mirroroooor", order);
 
         CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
@@ -295,12 +294,13 @@ contract StatefulOffererTest is BaseOrderTest {
             })
         });
 
-        context.consideration.matchAdvancedOrders({
-            orders: orders,
-            criteriaResolvers: criteriaResolvers,
-            fulfillments: fulfillments,
-            recipient: address(0)
-        });
+        context.consideration
+            .matchAdvancedOrders({
+                orders: orders,
+                criteriaResolvers: criteriaResolvers,
+                fulfillments: fulfillments,
+                recipient: address(0)
+            });
         assertTrue(offerer.called());
     }
 
@@ -315,9 +315,10 @@ contract StatefulOffererTest is BaseOrderTest {
         );
     }
 
-    function execFulfillAvailableAdvancedOrders(
-        Context memory context
-    ) external stateless {
+    function execFulfillAvailableAdvancedOrders(Context memory context)
+        external
+        stateless
+    {
         offerer = new StatefulRatifierOfferer(
             address(context.consideration),
             ERC20Interface(address(token1)),
@@ -374,15 +375,16 @@ contract StatefulOffererTest is BaseOrderTest {
         );
         considerationComponentsArray.push(considerationComponents);
 
-        context.consideration.fulfillAvailableAdvancedOrders({
-            advancedOrders: orders,
-            criteriaResolvers: criteriaResolvers,
-            offerFulfillments: offerComponentsArray,
-            considerationFulfillments: considerationComponentsArray,
-            fulfillerConduitKey: bytes32(0),
-            recipient: address(0),
-            maximumFulfilled: 1
-        });
+        context.consideration
+            .fulfillAvailableAdvancedOrders({
+                advancedOrders: orders,
+                criteriaResolvers: criteriaResolvers,
+                offerFulfillments: offerComponentsArray,
+                considerationFulfillments: considerationComponentsArray,
+                fulfillerConduitKey: bytes32(0),
+                recipient: address(0),
+                maximumFulfilled: 1
+            });
         assertTrue(offerer.called());
     }
 
@@ -415,14 +417,9 @@ contract StatefulOffererTest is BaseOrderTest {
             });
         }
         // do the same for considerationItem -> offerItem
-        for (
-            uint256 i;
-            i < advancedOrder.parameters.consideration.length;
-            i++
-        ) {
-            ConsiderationItem memory _considerationItem = advancedOrder
-                .parameters
-                .consideration[i];
+        for (uint256 i; i < advancedOrder.parameters.consideration.length; i++) {
+            ConsiderationItem memory _considerationItem =
+                advancedOrder.parameters.consideration[i];
 
             addOfferItem({
                 itemType: _considerationItem.itemType,
@@ -442,14 +439,10 @@ contract StatefulOffererTest is BaseOrderTest {
         });
 
         configureOrderComponents(0);
-        bytes32 orderHash = context.consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            pkey,
-            orderHash
-        );
+        bytes32 orderHash =
+            context.consideration.getOrderHash(baseOrderComponents);
+        bytes memory signature =
+            signOrder(context.consideration, pkey, orderHash);
 
         AdvancedOrder memory order = AdvancedOrder({
             parameters: baseOrderParameters,

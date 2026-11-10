@@ -7,7 +7,8 @@ import {
   toUtf8Bytes,
 } from "ethers/lib/utils";
 import { MerkleTree } from "merkletreejs";
-
+import type { OrderComponents } from "../types";
+import type { EIP712TypeDefinitions } from "./defaults";
 import { DefaultGetter } from "./defaults";
 import {
   bufferKeccak,
@@ -17,9 +18,6 @@ import {
   getRoot,
   hexToBuffer,
 } from "./utils";
-
-import type { OrderComponents } from "../types";
-import type { EIP712TypeDefinitions } from "./defaults";
 
 type BulkOrderElements =
   | [OrderComponents, OrderComponents]
@@ -53,7 +51,7 @@ export class Eip712MerkleTree<BaseType extends Record<string, any> = any> {
   encoder: TypedDataEncoder;
 
   get completedSize() {
-    return Math.pow(2, this.depth);
+    return 2 ** this.depth;
   }
 
   /** Returns the array of elements in the tree, padded to the complete size with empty items. */

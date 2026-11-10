@@ -1,12 +1,10 @@
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+import type { HardhatUserConfig } from "hardhat/config";
 import { subtask, task } from "hardhat/config";
-
 import { compareLastTwoReports } from "./scripts/compare_reports";
 import { printLastReport } from "./scripts/print_report";
 import { getReportPathForCommit } from "./scripts/utils";
 import { writeReports } from "./scripts/write_reports";
-
-import type { HardhatUserConfig } from "hardhat/config";
 
 import "dotenv/config";
 import "@nomiclabs/hardhat-ethers";
@@ -21,24 +19,24 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   async (_, __, runSuper) => {
     const paths = await runSuper();
 
-    return paths.filter((p: any) => !p.includes("contracts/reference/"));
+    return paths.filter((p: string) => !p.includes("contracts/reference/"));
   }
 );
 
 task("write-reports", "Write pending gas reports").setAction(
-  async (taskArgs, hre) => {
+  async (_taskArgs, hre) => {
     writeReports(hre);
   }
 );
 
 task("compare-reports", "Compare last two gas reports").setAction(
-  async (taskArgs, hre) => {
+  async (_taskArgs, hre) => {
     compareLastTwoReports(hre);
   }
 );
 
 task("print-report", "Print the last gas report").setAction(
-  async (taskArgs, hre) => {
+  async (_taskArgs, hre) => {
     printLastReport(hre);
   }
 );

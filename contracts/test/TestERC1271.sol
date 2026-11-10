@@ -10,10 +10,11 @@ contract TestERC1271 is IERC1271 {
         owner = owner_;
     }
 
-    function isValidSignature(
-        bytes32 digest,
-        bytes memory signature
-    ) external view returns (bytes4) {
+    function isValidSignature(bytes32 digest, bytes memory signature)
+        external
+        view
+        returns (bytes4)
+    {
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -25,8 +26,8 @@ contract TestERC1271 is IERC1271 {
         }
 
         if (
-            uint256(s) >
-            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+            uint256(s)
+                > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
         ) {
             revert();
         }

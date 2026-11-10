@@ -6,12 +6,12 @@ import {
 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
 
 contract ERC721Recipient is ERC721TokenReceiver {
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) public virtual override returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes calldata)
+        public
+        virtual
+        override
+        returns (bytes4)
+    {
         return ERC721TokenReceiver.onERC721Received.selector;
     }
 }

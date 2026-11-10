@@ -17,15 +17,20 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract TestPostExecution is ERC165, ZoneInterface {
-    function authorizeOrder(
-        ZoneParameters calldata
-    ) public pure returns (bytes4) {
+    function authorizeOrder(ZoneParameters calldata)
+        public
+        pure
+        returns (bytes4)
+    {
         return this.authorizeOrder.selector;
     }
 
-    function validateOrder(
-        ZoneParameters calldata zoneParameters
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    function validateOrder(ZoneParameters calldata zoneParameters)
+        external
+        view
+        override
+        returns (bytes4 validOrderMagicValue)
+    {
         if (zoneParameters.consideration.length == 0) {
             revert("No consideration items supplied");
         }
@@ -33,9 +38,10 @@ contract TestPostExecution is ERC165, ZoneInterface {
         ReceivedItem memory receivedItem = zoneParameters.consideration[0];
 
         address currentOwner;
-        try
-            ERC721Interface(receivedItem.token).ownerOf(receivedItem.identifier)
-        returns (address owner) {
+        try ERC721Interface(receivedItem.token)
+            .ownerOf(receivedItem.identifier) returns (
+            address owner
+        ) {
             currentOwner = owner;
         } catch {
             revert("Unsupported consideration token type (must implement 721)");
@@ -78,11 +84,13 @@ contract TestPostExecution is ERC165, ZoneInterface {
         return ("TestPostExecution", schemas);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC165, ZoneInterface) returns (bool) {
-        return
-            interfaceId == type(ZoneInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, ZoneInterface)
+        returns (bool)
+    {
+        return interfaceId == type(ZoneInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

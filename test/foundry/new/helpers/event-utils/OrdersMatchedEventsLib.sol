@@ -10,18 +10,17 @@ import { UnavailableReason } from "seaport-sol/src/SpaceEnums.sol";
 library OrdersMatchedEventsLib {
     event OrdersMatched(bytes32[] orderHashes);
 
-    function getOrdersMatchedEventHash(
-        FuzzTestContext memory context
-    ) internal pure returns (bytes32 eventHash) {
+    function getOrdersMatchedEventHash(FuzzTestContext memory context)
+        internal
+        pure
+        returns (bytes32 eventHash)
+    {
         uint256 totalAvailableOrders = 0;
         for (
-            uint256 i = 0;
-            i < context.executionState.orderDetails.length;
-            ++i
-        ) {
+            uint256 i = 0; i < context.executionState.orderDetails.length; ++i) {
             if (
-                context.executionState.orderDetails[i].unavailableReason ==
-                UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason
+                    == UnavailableReason.AVAILABLE
             ) {
                 ++totalAvailableOrders;
             }
@@ -31,26 +30,20 @@ library OrdersMatchedEventsLib {
 
         totalAvailableOrders = 0;
         for (
-            uint256 i = 0;
-            i < context.executionState.orderDetails.length;
-            ++i
-        ) {
+            uint256 i = 0; i < context.executionState.orderDetails.length; ++i) {
             if (
-                context.executionState.orderDetails[i].unavailableReason ==
-                UnavailableReason.AVAILABLE
+                context.executionState.orderDetails[i].unavailableReason
+                    == UnavailableReason.AVAILABLE
             ) {
-                orderHashes[totalAvailableOrders++] = context
-                    .executionState
-                    .orderDetails[i]
-                    .orderHash;
+                orderHashes[totalAvailableOrders++] =
+                context.executionState.orderDetails[i].orderHash;
             }
         }
 
-        return
-            getEventHashWithTopics(
-                address(context.seaport), // emitter
-                OrdersMatched.selector, // topic0
-                keccak256(abi.encode(orderHashes)) // dataHash
-            );
+        return getEventHashWithTopics(
+            address(context.seaport), // emitter
+            OrdersMatched.selector, // topic0
+            keccak256(abi.encode(orderHashes)) // dataHash
+        );
     }
 }

@@ -40,13 +40,48 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - name: Use Node.js
-        uses: actions/setup-node@v7
         with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn lint:check
+          submodules: recursive
+
+      - uses: ./.github/actions/setup-foundry
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+
+      # The tools are pinned by version and SHA-256 in the install script, so
+      # the cache only skips downloads.
+      - name: Restore tools
+        uses: actions/cache@v6
+        with:
+          path: .tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/install-tools.sh') }}
+
+      - name: Install tools
+        run: |
+          scripts/install-tools.sh
+          echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
+
+      - name: Check deployed contract sources are unchanged
+        run: shasum -a 256 --check --quiet scripts/frozen-contracts.sha256
+
+      - name: Check Solidity formatting
+        run: forge fmt --check contracts test script reference
+
+      - name: Lint Solidity
+        run: forge lint --deny warnings
+
+      - name: Check formatting and lint with Biome
+        run: biome ci .
+
+      - name: Check TOML formatting
+        run: taplo fmt --check
+
+      - name: Lint shell scripts
+        run: |
+          shellcheck scripts/*.sh templates/*.sh
+          shfmt -d scripts/*.sh templates/*.sh
+
+      - name: Lint workflows
+        run: actionlint
 
   test:
     name: Run Tests
@@ -157,10 +192,14 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Check the build matches deployed Seaport 1.6
-        run: FOUNDRY_PROFILE=test forge test --match-path test/foundry/DeployedBytecode.t.sol -vvv
+        env:
+          FOUNDRY_PROFILE: test
+        run: forge test --match-path test/foundry/DeployedBytecode.t.sol -vvv
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=test forge test -vvv
+        env:
+          FOUNDRY_PROFILE: test
+        run: forge test -vvv
 
   forge-ref:
     name: Run Forge Reference Tests (via_ir = false)
@@ -181,7 +220,10 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run reference tests
-        run: FOUNDRY_PROFILE=reference MOAT_PROFILE=reference forge test -vvv
+        env:
+          FOUNDRY_PROFILE: reference
+          MOAT_PROFILE: reference
+        run: forge test -vvv
 
   forge-offerers:
     name: Run Contract Offerer Forge Tests (via_ir = false)
@@ -202,7 +244,9 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=offerers forge test -vvv
+        env:
+          FOUNDRY_PROFILE: offerers
+        run: forge test -vvv
 
   forge-coverage:
     name: Run Forge Coverage report on tests
@@ -223,7 +267,10 @@ jobs:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
       - name: Run coverage with lcov output
-        run: FOUNDRY_PROFILE=default SEAPORT_COVERAGE=true forge coverage --report lcov
+        env:
+          FOUNDRY_PROFILE: default
+          SEAPORT_COVERAGE: true
+        run: forge coverage --report lcov
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:

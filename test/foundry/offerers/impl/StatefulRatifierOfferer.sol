@@ -185,12 +185,22 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata minimumReceived /* offer */,
-        ReceivedItem[] calldata maximumSpent /* consideration */,
-        bytes calldata context /* context */,
-        bytes32[] calldata orderHashes /* orderHashes */,
+        SpentItem[] calldata minimumReceived,
+        /* offer */
+        ReceivedItem[] calldata maximumSpent,
+        /* consideration */
+        bytes calldata context,
+        /* context */
+        bytes32[] calldata orderHashes,
+        /* orderHashes */
         uint256 /* contractNonce */
-    ) external override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         // check that the length matches what is expected
         if (minimumReceived.length != numOffersToReturn) {
             revert IncorrectLength(
@@ -212,10 +222,7 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
             // Check that the token address for each minimumReceived item is
             // correct.
             if (minimumReceived[i].token != address(token1)) {
-                revert IncorrectToken(
-                    minimumReceived[i].token,
-                    address(token1)
-                );
+                revert IncorrectToken(minimumReceived[i].token, address(token1));
             }
 
             // Check that the value of each minimumReceived item is correct.
@@ -261,18 +268,15 @@ contract StatefulRatifierOfferer is ERC165, ContractOffererInterface {
         return ContractOffererInterface.ratifyOrder.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(ERC165, ContractOffererInterface)
         returns (bool)
     {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(ContractOffererInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     /**

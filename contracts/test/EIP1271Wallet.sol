@@ -58,10 +58,11 @@ contract EIP1271Wallet {
         token.setApprovalForAll(operator, true);
     }
 
-    function isValidSignature(
-        bytes32 digest,
-        bytes memory signature
-    ) external view returns (bytes4) {
+    function isValidSignature(bytes32 digest, bytes memory signature)
+        external
+        view
+        returns (bytes4)
+    {
         if (digestApproved[digest]) {
             return _EIP_1271_MAGIC_VALUE;
         }
@@ -87,8 +88,8 @@ contract EIP1271Wallet {
         }
 
         if (
-            uint256(s) >
-            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+            uint256(s)
+                > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
         ) {
             revert();
         }

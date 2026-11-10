@@ -892,18 +892,16 @@ For information on Foundry, including installation and testing, see the [Foundry
 
 ### Linting
 
-To run lint checks:
-
 ```bash
-yarn lint:check
+scripts/install-tools.sh   # once: pinned tools into .tools/bin
+scripts/lint.sh check
+scripts/lint.sh fix
+.tools/bin/lefthook install  # optional pre-commit hook
 ```
 
-Lint checks utilize prettier, prettier-plugin-solidity, and solhint.
+Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, TOML uses taplo, shell scripts use shellcheck and shfmt, and workflows use actionlint. The install script downloads each tool from its GitHub release and checks it against a pinned SHA-256, so linting needs nothing from npm. The install script supports macOS and Linux; on Windows, use WSL.
 
-```javascript
-"prettier": "^2.5.1",
-"prettier-plugin-solidity": "^1.0.0-beta.19",
-```
+The deployed contracts (`contracts/Seaport.sol`, `conduit/`, `helpers/`, `interfaces/`, `zones/`) are excluded from `forge fmt` and `forge lint`, so their source stays identical to what was verified onchain. `scripts/frozen-contracts.sha256` pins each of those files, and CI fails if one changes. After a deliberate change, regenerate it with `scripts/lint.sh freeze`.
 
 ## Audits
 

@@ -1,15 +1,14 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import type { Contract, Wallet } from "ethers";
 import { ethers, network } from "hardhat";
-
 import {
   type ConduitInterface,
   type ConsiderationInterface,
+  PausableZoneEventsAndErrors__factory as pausableZoneFactory,
   type TestERC721,
   type TestZone,
-  PausableZoneEventsAndErrors__factory as pausableZoneFactory,
 } from "../typechain-types";
-
 import { merkleTree } from "./utils/criteria";
 import {
   buildResolver,
@@ -23,17 +22,15 @@ import {
 } from "./utils/encoding";
 import { decodeEvents } from "./utils/events";
 import { faucet } from "./utils/faucet";
+import type { SeaportFixtures } from "./utils/fixtures";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
-
-import type { SeaportFixtures } from "./utils/fixtures";
-import type { Contract, Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
 const pausableZoneInterface = pausableZoneFactory.createInterface();
 
-describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
+describe(`Zone - PausableZone (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -705,7 +702,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
       getItemETH(parseEther("1"), parseEther("1"), owner.address),
     ];
 
-    // eslint-disable-next-line
     const { order, orderHash, value } = await createOrder(
       seller,
       zoneAddr,
@@ -731,7 +727,6 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
           value,
         })
       ).to.be.revertedWithCustomError(
-        // eslint-disable-next-line camelcase
         { interface: pausableZoneInterface },
         "ZoneIsPaused"
       );
@@ -1016,7 +1011,7 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
   });
 });
 
-describe(`Zone - Transfer Validation (Seaport v${VERSION})`, function () {
+describe(`Zone - Transfer Validation (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 

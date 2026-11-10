@@ -29,7 +29,7 @@ There are a number of known limitations that are explicitly out of scope for the
 - As extensions to the consideration array on fulfillment (i.e. "tipping") can be arbitrarily set by the caller, fulfillments where all matched orders have already been signed for or validated can be frontrun on submission, with the frontrunner modifying any tips. Therefore, it is important that orders fulfilled in this manner either leverage "restricted" order types with a zone that enforces appropriate allocation of consideration extensions, or that each offer item is fully spent and each consideration item is appropriately declared on order creation.
 - As orders that have been verified (via a call to `validate`) or partially filled will skip signature validation on subsequent fulfillments, orders that utilize EIP-1271 for verifying orders may end up in an inconsistent state where the original signature is no longer valid but the order is still fulfillable. In these cases, the offerer must explicitly cancel the previously verified order in question if they no longer wish for the order to be fulfillable.
 - As orders filled by the "fulfill available" method will only be skipped if those orders have been cancelled, fully filled, or are inactive, fulfillments may still be attempted on unfulfillable orders (examples include revoked approvals or insufficient balances). This scenario (as well as issues with order formatting) will result in the full batch failing.
-- As order parameters must be supplied upon cancellation, orders that were meant to remain private (e.g. were not published publicly) will be made visible upon cancellation. While these orders would not be *fulfillable* without a corresponding signature, cancellation of private orders without broadcasting intent currently requires the offerer (or the zone, if the order type is restricted and the zone supports it) to increment the counter.
+- As order parameters must be supplied upon cancellation, orders that were meant to remain private (e.g. were not published publicly) will be made visible upon cancellation. While these orders would not be _fulfillable_ without a corresponding signature, cancellation of private orders without broadcasting intent currently requires the offerer (or the zone, if the order type is restricted and the zone supports it) to increment the counter.
 - As order fulfillment attempts may become public before being included in a block, there is a risk of those orders being front-run. This risk is magnified in cases where offered items contain ascending amounts or consideration items contain descending amounts, as there is added incentive to leave the order unfulfilled until another interested fulfiller attempts to fulfill the order in question.
 - As validated orders may still be unfulfillable due to invalid item amounts or other factors, callers should determine whether validated orders are fulfillable by simulating the fulfillment call prior to execution. Also note that anyone can validate a signed order, but only the offerer can validate an order without supplying a signature.
 - As the offerer or the zone of a given order may cancel an order that differs from the intended order, callers should ensure that the intended order was cancelled by calling `getOrderStatus` and confirming that `isCancelled` returns `true`.
@@ -40,7 +40,7 @@ There are a number of known limitations that are explicitly out of scope for the
 
 ## Tiers:
 
-**Low / Informational:** 
+**Low / Informational:**
 
 - Informational issues, like returning the wrong error type.
 - Issues with the reference implementation where behavior does not map 1:1 with the optimized contracts (with the exception of revert reasons as some are not reproducible without optimizations)
@@ -61,24 +61,24 @@ While wardens should submit any bugs they identify for review, we particularly e
 - transfer of multiple assets
 - arithmetic for order amounts
 - aggregation of fulfillments
-    - FulfillmentApplier.sol
+  - FulfillmentApplier.sol
 - transfer accumulation
-    - Executor.sol
-    - OrderCombiner.sol
-    - OrderFulfiller.sol
-    - BasicOrderFulfiller.sol
+  - Executor.sol
+  - OrderCombiner.sol
+  - OrderFulfiller.sol
+  - BasicOrderFulfiller.sol
 - low-level handling of nested dynamic types in calldata or loaded from calldata
-    - OrderFulfiller.sol
-    - BasicOrderFulfiller.sol
-    - FulfillmentApplier.sol
-    - GettersAndDerivers.sol
-    - CriteriaResolution.sol
+  - OrderFulfiller.sol
+  - BasicOrderFulfiller.sol
+  - FulfillmentApplier.sol
+  - GettersAndDerivers.sol
+  - CriteriaResolution.sol
 - order matching / fulfillment validation
-    - OrderFulfiller.sol
-    - BasicOrderFulfiller.sol
-    - OrderCombiner.sol
-    - FulfillmentApplier.sol
-    - CriteriaResolution.sol
+  - OrderFulfiller.sol
+  - BasicOrderFulfiller.sol
+  - OrderCombiner.sol
+  - FulfillmentApplier.sol
+  - CriteriaResolution.sol
 
 ## **Tests**
 

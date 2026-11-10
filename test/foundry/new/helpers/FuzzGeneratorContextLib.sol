@@ -103,42 +103,38 @@ library FuzzGeneratorContextLib {
 
         TestHelpers testHelpers = TestHelpers(address(this));
 
-        return
-            FuzzGeneratorContext({
-                vm: Vm(address(0)),
-                seaport: SeaportInterface(address(0)),
-                conduitController: ConduitControllerInterface(address(0)),
-                erc20s: new TestERC20[](0),
-                erc721s: new TestERC721[](0),
-                erc1155s: new TestERC1155[](0),
-                prng: prng,
-                testHelpers: testHelpers,
-                timestamp: block.timestamp,
-                validatorZone: new HashValidationZoneOfferer(address(0)),
-                contractOfferer: new HashCalldataContractOfferer(address(0)),
-                eip1271Offerer: new EIP1271Offerer(),
-                self: address(this),
-                caller: address(this),
-                alice: testHelpers.makeAccountWrapper("alice"),
-                bob: testHelpers.makeAccountWrapper("bob"),
-                carol: testHelpers.makeAccountWrapper("carol"),
-                dillon: testHelpers.makeAccountWrapper("dillon"),
-                eve: testHelpers.makeAccountWrapper("eve"),
-                frank: testHelpers.makeAccountWrapper("frank"),
-                conduits: new TestConduit[](2),
-                starting721offerIndex: 0,
-                starting721considerationIndex: 0,
-                potential1155TokenIds: potential1155TokenIds,
-                basicOrderCategory: BasicOrderCategory.NONE,
-                basicOfferSpace: OfferItemSpace(
-                    ItemType.NATIVE,
-                    TokenIndex.ONE,
-                    Criteria.MERKLE,
-                    Amount.FIXED
-                ),
-                counter: 0,
-                contractOffererNonce: 0
-            });
+        return FuzzGeneratorContext({
+            vm: Vm(address(0)),
+            seaport: SeaportInterface(address(0)),
+            conduitController: ConduitControllerInterface(address(0)),
+            erc20s: new TestERC20[](0),
+            erc721s: new TestERC721[](0),
+            erc1155s: new TestERC1155[](0),
+            prng: prng,
+            testHelpers: testHelpers,
+            timestamp: block.timestamp,
+            validatorZone: new HashValidationZoneOfferer(address(0)),
+            contractOfferer: new HashCalldataContractOfferer(address(0)),
+            eip1271Offerer: new EIP1271Offerer(),
+            self: address(this),
+            caller: address(this),
+            alice: testHelpers.makeAccountWrapper("alice"),
+            bob: testHelpers.makeAccountWrapper("bob"),
+            carol: testHelpers.makeAccountWrapper("carol"),
+            dillon: testHelpers.makeAccountWrapper("dillon"),
+            eve: testHelpers.makeAccountWrapper("eve"),
+            frank: testHelpers.makeAccountWrapper("frank"),
+            conduits: new TestConduit[](2),
+            starting721offerIndex: 0,
+            starting721considerationIndex: 0,
+            potential1155TokenIds: potential1155TokenIds,
+            basicOrderCategory: BasicOrderCategory.NONE,
+            basicOfferSpace: OfferItemSpace(
+                ItemType.NATIVE, TokenIndex.ONE, Criteria.MERKLE, Amount.FIXED
+            ),
+            counter: 0,
+            contractOffererNonce: 0
+        });
     }
 
     /**
@@ -170,54 +166,48 @@ library FuzzGeneratorContextLib {
         conduits[0] = _createConduit(conduitController, seaport, uint96(1));
         conduits[1] = _createConduit(conduitController, seaport, uint96(2));
 
-        HashValidationZoneOfferer validatorZone = new HashValidationZoneOfferer(
-            address(0)
-        );
-        HashCalldataContractOfferer contractOfferer = new HashCalldataContractOfferer(
-                address(seaport)
-            );
+        HashValidationZoneOfferer validatorZone =
+            new HashValidationZoneOfferer(address(0));
+        HashCalldataContractOfferer contractOfferer =
+            new HashCalldataContractOfferer(address(seaport));
         EIP1271Offerer eip1271Offerer = new EIP1271Offerer();
 
         setLabel(address(validatorZone), "validatorZone");
         setLabel(address(contractOfferer), "contractOfferer");
         setLabel(address(eip1271Offerer), "eip1271Offerer");
 
-        return
-            FuzzGeneratorContext({
-                vm: vm,
-                seaport: seaport,
-                conduitController: conduitController,
-                erc20s: erc20s,
-                erc721s: erc721s,
-                erc1155s: erc1155s,
-                prng: prng,
-                testHelpers: testHelpers,
-                timestamp: block.timestamp,
-                validatorZone: validatorZone,
-                contractOfferer: contractOfferer,
-                eip1271Offerer: eip1271Offerer,
-                self: address(this),
-                caller: address(this),
-                alice: testHelpers.makeAccountWrapper("alice"),
-                bob: testHelpers.makeAccountWrapper("bob"),
-                carol: testHelpers.makeAccountWrapper("carol"),
-                dillon: testHelpers.makeAccountWrapper("dillon"),
-                eve: testHelpers.makeAccountWrapper("eve"),
-                frank: testHelpers.makeAccountWrapper("frank"),
-                conduits: conduits,
-                starting721offerIndex: 0,
-                starting721considerationIndex: 0,
-                potential1155TokenIds: potential1155TokenIds,
-                basicOrderCategory: BasicOrderCategory.NONE,
-                basicOfferSpace: OfferItemSpace(
-                    ItemType.NATIVE,
-                    TokenIndex.ONE,
-                    Criteria.MERKLE,
-                    Amount.FIXED
-                ),
-                counter: 0,
-                contractOffererNonce: 0
-            });
+        return FuzzGeneratorContext({
+            vm: vm,
+            seaport: seaport,
+            conduitController: conduitController,
+            erc20s: erc20s,
+            erc721s: erc721s,
+            erc1155s: erc1155s,
+            prng: prng,
+            testHelpers: testHelpers,
+            timestamp: block.timestamp,
+            validatorZone: validatorZone,
+            contractOfferer: contractOfferer,
+            eip1271Offerer: eip1271Offerer,
+            self: address(this),
+            caller: address(this),
+            alice: testHelpers.makeAccountWrapper("alice"),
+            bob: testHelpers.makeAccountWrapper("bob"),
+            carol: testHelpers.makeAccountWrapper("carol"),
+            dillon: testHelpers.makeAccountWrapper("dillon"),
+            eve: testHelpers.makeAccountWrapper("eve"),
+            frank: testHelpers.makeAccountWrapper("frank"),
+            conduits: conduits,
+            starting721offerIndex: 0,
+            starting721considerationIndex: 0,
+            potential1155TokenIds: potential1155TokenIds,
+            basicOrderCategory: BasicOrderCategory.NONE,
+            basicOfferSpace: OfferItemSpace(
+                ItemType.NATIVE, TokenIndex.ONE, Criteria.MERKLE, Amount.FIXED
+            ),
+            counter: 0,
+            contractOffererNonce: 0
+        });
     }
 
     /**
@@ -229,16 +219,13 @@ library FuzzGeneratorContextLib {
         uint96 conduitSalt
     ) internal returns (TestConduit memory) {
         bytes32 conduitKey = abi.decode(
-            abi.encodePacked(address(this), conduitSalt),
-            (bytes32)
+            abi.encodePacked(address(this), conduitSalt), (bytes32)
         );
         Conduit conduit = Conduit(
             conduitController.createConduit(conduitKey, address(this))
         );
         conduitController.updateChannel(
-            address(conduit),
-            address(seaport),
-            true
+            address(conduit), address(seaport), true
         );
         return TestConduit({ addr: address(conduit), key: conduitKey });
     }

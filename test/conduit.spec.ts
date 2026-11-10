@@ -1,8 +1,17 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { randomInt } from "crypto";
+import type { Wallet } from "ethers";
 import { ethers, network } from "hardhat";
-
+import type {
+  Conduit__factory,
+  ConduitControllerInterface,
+  ConduitInterface,
+  ConsiderationInterface,
+  TestERC20,
+  TestERC721,
+  TestERC1155,
+} from "../typechain-types";
 import { deployContract } from "./utils/contracts";
 import {
   getItemETH,
@@ -14,34 +23,23 @@ import {
   toFulfillment,
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
+import type { SeaportFixtures } from "./utils/fixtures";
 import {
-  fixtureERC1155,
   fixtureERC20,
   fixtureERC721,
+  fixtureERC1155,
   seaportFixture,
 } from "./utils/fixtures";
 import {
-  VERSION,
   getCustomRevertSelector,
   minRandom,
   simulateMatchOrders,
+  VERSION,
 } from "./utils/helpers";
-
-import type {
-  ConduitControllerInterface,
-  ConduitInterface,
-  Conduit__factory,
-  ConsiderationInterface,
-  TestERC1155,
-  TestERC20,
-  TestERC721,
-} from "../typechain-types";
-import type { SeaportFixtures } from "./utils/fixtures";
-import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Conduit tests (Seaport v${VERSION})`, function () {
+describe(`Conduit tests (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -594,16 +592,16 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
         case 1: // ERC20
           // Check balance
           expect(
-            await (token as typeof erc20Contracts[0]).balanceOf(from)
+            await (token as (typeof erc20Contracts)[0]).balanceOf(from)
           ).to.equal(0);
           expect(
-            await (token as typeof erc20Contracts[0]).balanceOf(to)
+            await (token as (typeof erc20Contracts)[0]).balanceOf(to)
           ).to.equal(amount);
           break;
         case 2: // ERC721
         case 4: // ERC721_WITH_CRITERIA
           expect(
-            await (token as typeof erc721Contracts[0]).ownerOf(identifier)
+            await (token as (typeof erc721Contracts)[0]).ownerOf(identifier)
           ).to.equal(to);
           break;
         case 3: // ERC1155
@@ -771,9 +769,8 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   it("Makes batch transfer 1155 items through a conduit", async () => {
     const tempConduitKey = owner.address + "ff00000000000000000000f1";
 
-    const { conduit: tempConduitAddress } = await conduitController.getConduit(
-      tempConduitKey
-    );
+    const { conduit: tempConduitAddress } =
+      await conduitController.getConduit(tempConduitKey);
 
     await conduitController
       .connect(owner)
@@ -849,9 +846,8 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   it("Performs complex batch transfer through a conduit", async () => {
     const tempConduitKey = owner.address + "f100000000000000000000f1";
 
-    const { conduit: tempConduitAddress } = await conduitController.getConduit(
-      tempConduitKey
-    );
+    const { conduit: tempConduitAddress } =
+      await conduitController.getConduit(tempConduitKey);
 
     await conduitController
       .connect(owner)

@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { randomBytes as nodeRandomBytes } from "crypto";
+import type { BigNumberish, ContractTransaction } from "ethers";
 import { BigNumber, constants, utils } from "ethers";
 import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
-
 import type {
   BasicOrderParameters,
   ConsiderationItem,
@@ -13,7 +13,6 @@ import type {
   Order,
   OrderComponents,
 } from "./types";
-import type { BigNumberish, ContractTransaction } from "ethers";
 
 const SeededRNG = require("./seeded-rng");
 
@@ -37,10 +36,10 @@ export const toHex = (n: BigNumberish, numBytes: number = 0) => {
   const asHexString = BigNumber.isBigNumber(n)
     ? n.toHexString().slice(2)
     : typeof n === "string"
-    ? hexRegex.test(n)
-      ? n.replace(/0x/, "")
-      : Number(n).toString(16)
-    : Number(n).toString(16);
+      ? hexRegex.test(n)
+        ? n.replace(/0x/, "")
+        : Number(n).toString(16)
+      : Number(n).toString(16);
   return `0x${asHexString.padStart(numBytes * 2, "0")}`;
 };
 
@@ -111,7 +110,7 @@ export const getBasicOrderParameters = (
 });
 
 export const getOfferOrConsiderationItem = <
-  RecipientType extends string | undefined = undefined
+  RecipientType extends string | undefined = undefined,
 >(
   itemType: number = 0,
   token: string = constants.AddressZero,

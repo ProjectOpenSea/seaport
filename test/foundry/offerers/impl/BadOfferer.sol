@@ -117,27 +117,35 @@ contract BadOfferer is ERC165, ContractOffererInterface {
     }
 
     function ratifyOrder(
-        SpentItem[] calldata /* offer */,
-        ReceivedItem[] calldata /* consideration */,
-        bytes calldata /* context */,
-        bytes32[] calldata /* orderHashes */,
+        SpentItem[] calldata,
+        /* offer */
+        ReceivedItem[] calldata,
+        /* consideration */
+        bytes calldata,
+        /* context */
+        bytes32[] calldata,
+        /* orderHashes */
         uint256 /* contractNonce */
-    ) external pure override returns (bytes4 /* ratifyOrderMagicValue */) {
+    )
+        external
+        pure
+        override
+        returns (
+            bytes4 /* ratifyOrderMagicValue */
+        )
+    {
         return BadOfferer.ratifyOrder.selector;
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
         override(ERC165, ContractOffererInterface)
         returns (bool)
     {
-        return
-            interfaceId == type(ContractOffererInterface).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(ContractOffererInterface).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 
     /**

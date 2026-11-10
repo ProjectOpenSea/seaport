@@ -1,9 +1,17 @@
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import type { Wallet } from "ethers";
 import { BigNumber, constants } from "ethers";
 import { ethers, network } from "hardhat";
-
+import type {
+  ConduitInterface,
+  ConsiderationInterface,
+  TestERC20,
+  TestERC721,
+  TestERC1155,
+  TestZone,
+} from "../typechain-types";
 import { deployContract } from "./utils/contracts";
 import { merkleTree } from "./utils/criteria";
 import {
@@ -21,29 +29,19 @@ import {
   toKey,
 } from "./utils/encoding";
 import { faucet } from "./utils/faucet";
+import type { SeaportFixtures } from "./utils/fixtures";
 import { seaportFixture } from "./utils/fixtures";
 import {
-  VERSION,
   minRandom,
   simulateAdvancedMatchOrders,
   simulateMatchOrders,
+  VERSION,
 } from "./utils/helpers";
-
-import type {
-  ConduitInterface,
-  ConsiderationInterface,
-  TestERC1155,
-  TestERC20,
-  TestERC721,
-  TestZone,
-} from "../typechain-types";
-import type { SeaportFixtures } from "./utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
-import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Advanced orders (Seaport v${VERSION})`, function () {
+describe(`Advanced orders (Seaport v${VERSION})`, () => {
   const { provider } = ethers;
   const owner = new ethers.Wallet(randomHex(32), provider);
 
@@ -642,9 +640,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
             }
           );
         const receipt = await (await tx).wait();
-        const orderStatus1 = await marketplaceContract.getOrderStatus(
-          orderHash
-        );
+        const orderStatus1 =
+          await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus1 }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -6237,9 +6234,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       const { nftId, amount } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       // Seller mints third nft
       const { nftId: thirdNftId, amount: thirdAmount } =
@@ -6322,9 +6318,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       const { nftId, amount } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       // Seller mints third nft
       const { nftId: thirdNftId, amount: thirdAmount } =
@@ -6416,9 +6411,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       const { nftId, amount } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       // Seller mints third nft
       const { nftId: thirdNftId, amount: thirdAmount } =
@@ -6513,9 +6507,8 @@ describe(`Advanced orders (Seaport v${VERSION})`, function () {
       const { nftId, amount } = await mint1155(seller);
 
       // Seller mints second nft
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        seller
-      );
+      const { nftId: secondNftId, amount: secondAmount } =
+        await mint1155(seller);
 
       // Seller mints third nft
       const { nftId: thirdNftId, amount: thirdAmount } =

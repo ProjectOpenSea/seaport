@@ -1,18 +1,8 @@
 import { expect } from "chai";
+import type { Contract, Wallet } from "ethers";
 import { constants } from "ethers";
 import { keccak256, recoverAddress } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
-
-import { deployContract } from "../contracts";
-import { getBulkOrderTree } from "../eip712/bulk-orders";
-import {
-  calculateOrderHash,
-  convertSignatureToEIP2098,
-  randomHex,
-  toBN,
-} from "../encoding";
-import { VERSION } from "../helpers";
-
 import type {
   ConduitControllerInterface,
   ConduitInterface,
@@ -23,6 +13,15 @@ import type {
   TestPostExecution,
   TestZone,
 } from "../../../typechain-types";
+import { deployContract } from "../contracts";
+import { getBulkOrderTree } from "../eip712/bulk-orders";
+import {
+  calculateOrderHash,
+  convertSignatureToEIP2098,
+  randomHex,
+  toBN,
+} from "../encoding";
+import { VERSION } from "../helpers";
 import type {
   AdvancedOrder,
   ConsiderationItem,
@@ -30,7 +29,6 @@ import type {
   OfferItem,
   OrderComponents,
 } from "../types";
-import type { Contract, Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
 // const { bulkOrderType } = require("../../../eip-712-types/bulkOrder");
@@ -230,7 +228,7 @@ export const marketplaceFixture = async (
     const orderParameters = {
       offerer: offerer.address,
       zone: !extraCheap
-        ? (zone as Wallet).address ?? zone
+        ? ((zone as Wallet).address ?? zone)
         : constants.AddressZero,
       offer,
       consideration,

@@ -78,32 +78,28 @@ library OrderFulfilledEventsLib {
         FuzzTestContext memory context,
         uint256 orderIndex
     ) internal pure returns (bytes32 eventHash) {
-        OrderParameters memory orderParams = context
-            .executionState
-            .orders[orderIndex]
-            .parameters;
+        OrderParameters memory orderParams =
+        context.executionState.orders[orderIndex].parameters;
 
-        OrderDetails memory details = (
-            context.executionState.orderDetails[orderIndex]
+        OrderDetails memory details =
+        (context.executionState.orderDetails[orderIndex]);
+
+        return getEventHashWithTopics(
+            address(context.seaport), // emitter
+            OrderFulfilled.selector, // topic0
+            orderParams.offerer.toBytes32(), // topic1 - offerer
+            orderParams.zone.toBytes32(), // topic2 - zone
+            keccak256(
+                abi.encode(
+                    details.orderHash,
+                    context.executionState.recipient == address(0)
+                        ? context.executionState.caller
+                        : context.executionState.recipient,
+                    details.offer,
+                    details.consideration
+                )
+            ) // dataHash
         );
-
-        return
-            getEventHashWithTopics(
-                address(context.seaport), // emitter
-                OrderFulfilled.selector, // topic0
-                orderParams.offerer.toBytes32(), // topic1 - offerer
-                orderParams.zone.toBytes32(), // topic2 - zone
-                keccak256(
-                    abi.encode(
-                        details.orderHash,
-                        context.executionState.recipient == address(0)
-                            ? context.executionState.caller
-                            : context.executionState.recipient,
-                        details.offer,
-                        details.consideration
-                    )
-                ) // dataHash
-            );
     }
 }
 

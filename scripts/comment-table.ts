@@ -24,7 +24,7 @@ export function diffPctString(
   const value = diffOnly ? diff : newValue;
   return `${valuePrefix}${value} (${color(`${pctPrefix}${pct}%`)})`;
 }
-// eslint-disable-next-line no-control-regex
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matches ANSI escape codes
 const stripANSI = (str: string) => str.replace(/\u001b\[.*?m/g, "");
 
 export function getColumnSizesAndAlignments(

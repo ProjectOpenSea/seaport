@@ -1,7 +1,6 @@
-import { ethers } from "hardhat";
-
 import type { JsonRpcSigner } from "@ethersproject/providers";
 import type { Contract, Wallet } from "ethers";
+import { ethers } from "hardhat";
 
 import "dotenv/config";
 
@@ -21,7 +20,7 @@ export const deployContract = async <C extends Contract>(
 
   const nameWithReference =
     process.env.REFERENCE && references.has(name)
-      ? references.get(name) ?? name
+      ? (references.get(name) ?? name)
       : name;
 
   const f = await ethers.getContractFactory(nameWithReference, signer);

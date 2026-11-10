@@ -7,9 +7,11 @@ import {
 } from "seaport-types/src/lib/ConsiderationStructs.sol";
 
 contract ReferenceGenerateOrderReturndataDecoder {
-    function decode(
-        bytes calldata returnedBytes
-    ) external pure returns (SpentItem[] memory, ReceivedItem[] memory) {
+    function decode(bytes calldata returnedBytes)
+        external
+        pure
+        returns (SpentItem[] memory, ReceivedItem[] memory)
+    {
         return abi.decode(returnedBytes, (SpentItem[], ReceivedItem[]));
     }
 }
