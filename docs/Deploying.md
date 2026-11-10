@@ -89,7 +89,7 @@ cast call --rpc-url ${RPC_URL} 0x0000000000000068F116a894984e2DB1123eB395 'name(
 After `Seaport` and `ConduitController` are deployed, they are verified as follows:
 
 1. Ensure that `EXPLORER_API_KEY` and `NETWORK_RPC` are set in `.env` appropriately.
-2. For verifying the `ConduitController`, navigate to the `1.1` release tag on the Seaport repo and build artifacts:
+2. For verifying the `ConduitController`, navigate to the `1.1` release tag on the Seaport repo and build artifacts. This uses that tag's own Hardhat setup; the current repo has no Node tooling.
 ```
 git clone https://github.com/ProjectOpenSea/seaport && cd seaport
 git checkout 821a049

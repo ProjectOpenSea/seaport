@@ -20,20 +20,6 @@ env:
   FOUNDRY_VERSION: v1.9.0
 
 jobs:
-  build:
-    name: Build Artifacts
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-
   lint:
     name: Run Linters
     runs-on: ubuntu-latest
@@ -82,62 +68,6 @@ jobs:
 
       - name: Lint workflows
         run: actionlint
-
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-      - run: yarn test
-
-  reference-test:
-    name: Run Reference Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      REFERENCE: true
-    steps:
-      - uses: actions/checkout@v7
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-      - run: yarn build:ref
-      - run: yarn test:ref
-
-  reference-coverage:
-    name: Run Reference Coverage Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      REFERENCE: true
-    steps:
-      - uses: actions/checkout@v7
-      - name: Use Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: yarn
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
-      - run: yarn build:ref
-      - run: yarn coverage:ref
-      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          files: ./coverage/lcov.info
-          flags: reference
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   # Compiles the reference (via_ir = false) and optimized (via_ir = true)
   # profiles once and caches them. The Forge test jobs restore that cache

@@ -16,7 +16,7 @@ pre-commit:
       run: forge fmt {staged_files}
       stage_fixed: true
     - name: biome
-      glob: "*.{js,jsx,ts,tsx,json,jsonc,md,yml,yaml}"
+      glob: "*.{json,jsonc,md,yml,yaml}"
       exclude:
         - "lib/**"
       run: .tools/bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}

@@ -39,7 +39,7 @@ FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=test forge test
 ```
 
-This needs Foundry v1.9.0. [docs/Development.md](docs/Development.md) covers the Hardhat suite, coverage, and linting.
+This needs Foundry v1.9.0. [docs/Development.md](docs/Development.md) covers coverage and linting.
 
 ## Audits
 

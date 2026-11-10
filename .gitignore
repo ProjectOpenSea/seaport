@@ -1,15 +1,5 @@
-node_modules
 .env
 coverage
-coverage.json
-typechain-types
-yarn-error.log
-
-#Hardhat files
-artifacts/
-artifacts-ref/
-hh-cache/
-hh-cache-ref/
 
 
 #foundry test compilation files
@@ -37,8 +27,6 @@ Seaport.yul
 html
 lcov.info
 
-test/utils/eip712/gen.sol
-.gas_reports/*.md
 
 # fuzz metrics
 metrics.txt

@@ -9,38 +9,21 @@
     "includes": [
       "**",
       "!!**/lib",
-      "!!**/artifacts",
-      "!!**/typechain-types",
       "!!**/coverage",
       "!!**/out",
       "!!**/cache",
       "!!**/broadcast",
-      "!!.gas_reports",
       "!!diagrams",
-      "!!img",
-      "!!test/utils/seeded-rng.js"
+      "!!img"
     ]
   },
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2
   },
-  "javascript": {
-    "formatter": {
-      "trailingCommas": "es5"
-    }
-  },
   "linter": {
     "rules": {
       "preset": "recommended"
     }
-  },
-  "overrides": [
-    {
-      "includes": ["test/**"],
-      "linter": {
-        "enabled": false
-      }
-    }
-  ]
+  }
 }

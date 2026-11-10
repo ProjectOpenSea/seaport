@@ -8,12 +8,6 @@ Install [Foundry](https://getfoundry.sh) v1.9.0 (`foundryup --install v1.9.0`), 
 git clone --recurse-submodules https://github.com/ProjectOpenSea/seaport && cd seaport
 ```
 
-The legacy Hardhat suite also needs Node from `.nvmrc` and yarn:
-
-```bash
-yarn install --frozen-lockfile
-```
-
 ## Foundry tests
 
 The tests deploy precompiled artifacts, so build both profiles first. Rebuild them after changing `contracts/`, `reference/`, or a submodule.
@@ -42,15 +36,12 @@ lcov -o lcov.info --remove lcov.info --rc lcov_branch_coverage=1 --rc lcov_funct
 genhtml lcov.info -o html --branch && open html/index.html
 ```
 
-## Hardhat tests
-
-The TypeScript suite in `test/*.spec.ts` predates the Foundry tests and is being ported to Foundry.
+Fuzz engine call counts, and the optimized build's distance from the 24,576-byte size limit:
 
 ```bash
-yarn build && yarn test              # optimized contracts
-yarn build:ref && yarn test:ref      # reference contracts
-yarn coverage && yarn coverage:ref   # coverage reports in coverage/
-yarn profile                         # gas report
+SEAPORT_COLLECT_FUZZ_METRICS=true FOUNDRY_PROFILE=test forge test --match-path test/foundry/new/FuzzMain.t.sol
+scripts/plot-metrics.sh call-metrics.txt
+FOUNDRY_PROFILE=optimized forge build --sizes
 ```
 
 ## Linting

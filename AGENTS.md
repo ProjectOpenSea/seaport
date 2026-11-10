@@ -10,7 +10,7 @@ The deployed bytecode must not change. Don't change `contracts/Seaport.sol`, the
 
 - `contracts/`: the `Seaport` wrapper (core logic is in `lib/seaport-core`), helpers, zones, and test mocks in `contracts/test/`.
 - `reference/`: an unoptimized implementation that differential tests compare against.
-- `test/foundry/`: Foundry tests. `test/*.spec.ts` is the legacy Hardhat suite, being ported.
+- `test/foundry/`: Foundry tests.
 
 ## Commands
 
@@ -26,4 +26,4 @@ scripts/lint.sh check
 
 Tests load both builds, so run both `forge build` commands first. To check only the bytecode: `FOUNDRY_PROFILE=test forge test --match-path test/foundry/DeployedBytecode.t.sol`.
 
-Node from `.nvmrc` runs the Hardhat suite: `yarn install --frozen-lockfile && yarn build && yarn test`.
+The repo has no Node or npm dependencies. Keep it that way: add tools through `scripts/install-tools.sh`, pinned by version and SHA-256.
