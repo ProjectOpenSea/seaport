@@ -1028,4 +1028,112 @@ contract TransferHelperSingleRecipientTest is BaseOrderTest {
         mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice);
         vm.stopPrank();
     }
+
+    function _mixedItems()
+        internal
+        view
+        returns (TransferHelperItem[] memory items)
+    {
+        items = new TransferHelperItem[](4);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721, address(erc721s[0]), 1, 1
+        );
+        items[1] = TransferHelperItem(
+            ConduitItemType.ERC721, address(erc721s[0]), 2, 1
+        );
+        items[2] = TransferHelperItem(
+            ConduitItemType.ERC20, address(erc20s[0]), 0, 10
+        );
+        items[3] = TransferHelperItem(
+            ConduitItemType.ERC1155, address(erc1155s[0]), 3, 20
+        );
+    }
+
+    function testRevertBulkTransferWithoutConduit() public {
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            _getTransferHelperItemsWithRecipientFromTransferHelperItems(
+                _mixedItems(), bob
+            );
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferHelperErrors.InvalidConduit.selector,
+                bytes32(0),
+                address(0)
+            )
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, bytes32(0));
+    }
+
+    function testRevertBulkTransferERC721ToContractRecipientWithoutConduit()
+        public
+    {
+        ERC721ReceiverMock erc721Receiver = new ERC721ReceiverMock(
+            IERC721Receiver.onERC721Received.selector,
+            ERC721ReceiverMock.Error.None
+        );
+
+        TransferHelperItem[] memory items = new TransferHelperItem[](5);
+        for (uint256 i = 0; i < items.length; i++) {
+            items[i] = TransferHelperItem(
+                ConduitItemType.ERC721,
+                address(erc721s[i % erc721s.length]),
+                i,
+                1
+            );
+        }
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            _getTransferHelperItemsWithRecipientFromTransferHelperItems(
+                items, address(erc721Receiver)
+            );
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferHelperErrors.InvalidConduit.selector,
+                bytes32(0),
+                address(0)
+            )
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, bytes32(0));
+    }
+
+    function testRevertRecipientCannotBeZeroAddress() public {
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            _getTransferHelperItemsWithRecipientFromTransferHelperItems(
+                _mixedItems(), address(0)
+            );
+
+        vm.prank(alice);
+        vm.expectRevert(
+            TransferHelperErrors.RecipientCannotBeZeroAddress.selector
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
+    }
+
+    function testRevertERC721ReceiverErrorRevertBytes() public {
+        // An ERC721 token contract has no onERC721Received, so the receiver
+        // check reverts with empty data, which TransferHelper wraps.
+        address recipient = address(erc721s[0]);
+        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        items[0] = TransferHelperItem(ConduitItemType.ERC721, recipient, 1, 1);
+        items[1] = TransferHelperItem(ConduitItemType.ERC721, recipient, 2, 1);
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            _getTransferHelperItemsWithRecipientFromTransferHelperItems(
+                items, recipient
+            );
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferHelperErrors.ERC721ReceiverErrorRevertBytes.selector,
+                "",
+                recipient,
+                alice,
+                1
+            )
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
+    }
 }
