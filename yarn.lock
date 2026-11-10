@@ -2,72 +2,6 @@
 # yarn lockfile v1
 
 
-"@biomejs/biome@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/biome/-/biome-2.6.3.tgz#649bf3d08d702823a9ce62a7022fa16b4e7b64dc"
-  integrity sha512-va/0xPku7wnfzv+D8Zpdm5uKiGJWiV8neqoEPnRjvNQQwhl4tVXS4fETs4H0CCB2rGeqJ4cu9y4iOZOnOYKAUA==
-  optionalDependencies:
-    "@biomejs/cli-android-arm64" "2.6.3"
-    "@biomejs/cli-android-x64" "2.6.3"
-    "@biomejs/cli-darwin-arm64" "2.6.3"
-    "@biomejs/cli-darwin-x64" "2.6.3"
-    "@biomejs/cli-linux-arm64" "2.6.3"
-    "@biomejs/cli-linux-arm64-musl" "2.6.3"
-    "@biomejs/cli-linux-x64" "2.6.3"
-    "@biomejs/cli-linux-x64-musl" "2.6.3"
-    "@biomejs/cli-win32-arm64" "2.6.3"
-    "@biomejs/cli-win32-x64" "2.6.3"
-
-"@biomejs/cli-android-arm64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-android-arm64/-/cli-android-arm64-2.6.3.tgz#929aa987accb55957db62d1e11b76dbcc0a7f2e4"
-  integrity sha512-5JD7QQDEHxdeEb4sftEHG+lsuUyu8Cob/hVLqRELbgGlFl68Rldv/PPi2k4dRjERZ/EItJ3O6Xmv8lqsEtUBiw==
-
-"@biomejs/cli-android-x64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-android-x64/-/cli-android-x64-2.6.3.tgz#f130f0ee898b437686d1cddd87e9ca5e5b7dc4de"
-  integrity sha512-70WOGKCgpT+Uqg6LFdTLqefV54/DypdZg+LnBQDO6AWvkgXO+9xhVClajQyDsIHYjnXMtI1pRO5sP+zMXlS/bw==
-
-"@biomejs/cli-darwin-arm64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-arm64/-/cli-darwin-arm64-2.6.3.tgz#b232a0fce9b30097f69d52382fc6e7074860b012"
-  integrity sha512-ezf+XEKeyJ2yYlBhrzyEEHLvfRYrhtNKc6maLzR/WcAcBccb4RVDeFxsymjBve2LO0bpIMRUAiS90D4bUBRT0A==
-
-"@biomejs/cli-darwin-x64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-darwin-x64/-/cli-darwin-x64-2.6.3.tgz#8a31e6a26e26bba170a0ce36fff947038b733d72"
-  integrity sha512-Lg2tFdg4elJo+7i707PpLMs6N1hATVt4kqDo6MD/q/VnPs8rsKReKXsz1TA5GNdfRVAQNJ5GRiyK2EwNptK+MA==
-
-"@biomejs/cli-linux-arm64-musl@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64-musl/-/cli-linux-arm64-musl-2.6.3.tgz#84defa2b38f3fcf04b8eee8c76cbf60b3fa5ef05"
-  integrity sha512-dYU70A89OFHzakQPE9VOPbE60JNcQt4mtxvUGQl+EgTkGtqCFxLD2RUn1SbiMu8Mu5xFscS1bfYDpoasaUrqNA==
-
-"@biomejs/cli-linux-arm64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-arm64/-/cli-linux-arm64-2.6.3.tgz#c7cb949571e8088b463385b15d60d4f1690c9242"
-  integrity sha512-8Stcvq98n1gs9VyLKuaWrnsd8kbXE2nKDAHtuLHGSYdGyNWN5JIIm5a28xdnmgdKzKHmiDgYyATetkEv7+zGow==
-
-"@biomejs/cli-linux-x64-musl@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64-musl/-/cli-linux-x64-musl-2.6.3.tgz#6c6de66af5537443c3fe1fef429e801c556a6b5a"
-  integrity sha512-j6eFjUcWSphmgVTbrobEMA0wdbfNHKrGi8hRsFkc17jeS1n7nHwFACxp6jWqe9sxQqyFAeyOgt2/1bOGVcbATA==
-
-"@biomejs/cli-linux-x64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-linux-x64/-/cli-linux-x64-2.6.3.tgz#d50121c6396a00cfb84ccf4cfd5e809a9cb4aa6b"
-  integrity sha512-CShmx0bO6BngywT3minv8K1xsQX1ig1vsBqYTLnmDY3mBiDYHlaLRIsdHoM1pEU9dV3BN5a0uiH0IGDtYh9TWA==
-
-"@biomejs/cli-win32-arm64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-arm64/-/cli-win32-arm64-2.6.3.tgz#6b7564eddb8fb30c7cb0bd1f958e2ccacbf38dd7"
-  integrity sha512-00SthDxBPwNiT7IL/mOneif6fiEU1PXK875zhr+InpeZjovY1mF5tCuDhXo1Hh0GYyiKHKzLbItzn58SAyLhJQ==
-
-"@biomejs/cli-win32-x64@2.6.3":
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-2.6.3.tgz#57a5dbf7c25ff435a1b5162c68d6c6f8082ab6cb"
-  integrity sha512-GhtOPphBWlnCepqpNk/w5eGN5oGRCzL20EbAkL1XCIpyboeVC9R642noyT43l8LSenGS4qz9IL8sKPfwY37V/Q==
-
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
   resolved "https://registry.npmjs.org/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz"
@@ -803,11 +737,6 @@
   integrity sha512-+PmQX0PiAYPMeVYe237LJAYvOMYW1j2rH5YROyS3b4CTVJum34HfRvKvAzozHAQG0TnHNdUfY9nCeUyRAs//cw==
   dependencies:
     defer-to-connect "^2.0.1"
-
-"@taplo/cli@0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@taplo/cli/-/cli-0.7.0.tgz#f0b2c65a169fc6ae9ebecadc2e09d5c681177731"
-  integrity sha512-Ck3zFhQhIhi02Hl6T4ZmJsXdnJE+wXcJz5f8klxd4keRYgenMnip3JDPMGDRLbnC/2iGd8P0sBIQqI3KxfVjBg==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
@@ -3224,78 +3153,6 @@ klaw@^1.0.0:
   integrity sha512-TED5xi9gGQjGpNnvRWknrwAB1eL5GciPfVFOt3Vk1OJCVDQbzuSfrF3hkUQKlsgKrG1F+0t5W0m+Fje1jIt8rw==
   optionalDependencies:
     graceful-fs "^4.1.9"
-
-lefthook-android-arm64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-android-arm64/-/lefthook-android-arm64-2.2.2.tgz#53689859d22d48f0cdc3b4a278236cb216ea0d01"
-  integrity sha512-wb9rQQFLX7u1dJLxvMrq9VUfMYi5kxM7tJQ6Y4mWEOwaU+SmIm2wjoT/nromKq27Y8fh2Qd7FgCD3G1wfW8CnQ==
-
-lefthook-darwin-arm64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-darwin-arm64/-/lefthook-darwin-arm64-2.2.2.tgz#e6ee0c36818b8028b681c8de158023747901972a"
-  integrity sha512-6V8D3bLnD/60Xhqn0o2EQD6H3Fe/U9LGkt4WF1O/3eBHbux+5ZJqoH0hfrC+Bi9Dy1Ve1AWxiAY7U2asYl8qVA==
-
-lefthook-darwin-x64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-darwin-x64/-/lefthook-darwin-x64-2.2.2.tgz#3a0fc33c4f644b391cb0e460e9e11061ed4bb516"
-  integrity sha512-fH/kArZ9ZZ65wCFtvBMgGcq25qwQpkQ5jp93ba+8wpjgxxzjczYGluwHvM/NQDJWLOFXuKXW0yFs76SramQkyQ==
-
-lefthook-freebsd-arm64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-freebsd-arm64/-/lefthook-freebsd-arm64-2.2.2.tgz#d1efa5546e910f3acfc60019acc4fffe9db3c34a"
-  integrity sha512-MCRsU01ju989QQffOfS3gCeFfyVDXs5B/FzR65fmrNvqcxb98fldvfzzoAbnK2q6SBJlRT3QT1tNEMCxddCwlA==
-
-lefthook-freebsd-x64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-freebsd-x64/-/lefthook-freebsd-x64-2.2.2.tgz#7423a786490e1e774410d3dc5b2df0a01c4f4030"
-  integrity sha512-LkKuJU0S2oLimeoHwPTy1TLWB6GcN0t5lLxiXNlsBKUkr6R47QRcvPMZMoXmu3IetQtd+WliXMLE8qTwi2fqBg==
-
-lefthook-linux-arm64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-linux-arm64/-/lefthook-linux-arm64-2.2.2.tgz#0122d35efa3d89d63e4e4ee786ac38fd5f5a1489"
-  integrity sha512-d+HFtS2DEKaOnD7vRU0tUz8pNgHwsUYmQ22+1dyXpOrXGyzNXR0AqX5KsIRF36JGhVvO5X5Anw5QYgR3mxVSuA==
-
-lefthook-linux-x64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-linux-x64/-/lefthook-linux-x64-2.2.2.tgz#ed669c891d9bca70dd9a5c3f597a6944b0c42966"
-  integrity sha512-N/OlQyAhcU6RAXjrwFxLsh70sn96rBoi+XkuLJ8CVBkk9Ci3VDXQayDZTNz5B1xML8RwoMcV8Wblniy1xFOmSA==
-
-lefthook-openbsd-arm64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-openbsd-arm64/-/lefthook-openbsd-arm64-2.2.2.tgz#42e62d8f197f5e279f4779e3c3cbffb06c77e9b9"
-  integrity sha512-6G/gKXcpIwC+XcODg7ELZYP/hIrVIHQxhy2GoRdVyecmpGMFj+BZo3iqcUmeWusQMuL+UdNexbkrUaeJalIkNw==
-
-lefthook-openbsd-x64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-openbsd-x64/-/lefthook-openbsd-x64-2.2.2.tgz#c69b7621dd1240fd25f0dd8047b5a44ef6b36162"
-  integrity sha512-eMJGi3/tqKEqu7XCZlqwQWRtK5JlL/9diaqqgRlEdlRD7GxwzHZN21z6awbITum9emea3lALvXFe6V8odQLGOA==
-
-lefthook-windows-arm64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-windows-arm64/-/lefthook-windows-arm64-2.2.2.tgz#54ec3469b8a5842dc82a3d2a0ba36fc63cfdc2f8"
-  integrity sha512-4P1EaQb5xG1zhYD1RLJ6TEGdFkmHkB+Slqx6yRDPKuBDNxMiD0+kTAAdUY2E8xPuRR35xHpVPR+b3/HtzPrjQQ==
-
-lefthook-windows-x64@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook-windows-x64/-/lefthook-windows-x64-2.2.2.tgz#a2d5af792df1c15774add5184b3512cc0166595e"
-  integrity sha512-9Ck4zancQilBfXT3ZeRipm7Lcq4RQfxyMpy8SAVINw0t/BrbjsT25V46ZuziERcwdajnE4myfMzC33GoCBwr7g==
-
-lefthook@2.2.2:
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/lefthook/-/lefthook-2.2.2.tgz#5c14e9031ccc40be28f026e40462bc8770ebda21"
-  integrity sha512-37fYHAhL12r1twaEV0PA5TwoIT491eTGGYjhhXxlYNMq3DSkiGZBQ++Jfk5maXj0vq52NRauLtMikBKtbNJs3Q==
-  optionalDependencies:
-    lefthook-android-arm64 "2.2.2"
-    lefthook-darwin-arm64 "2.2.2"
-    lefthook-darwin-x64 "2.2.2"
-    lefthook-freebsd-arm64 "2.2.2"
-    lefthook-freebsd-x64 "2.2.2"
-    lefthook-linux-arm64 "2.2.2"
-    lefthook-linux-x64 "2.2.2"
-    lefthook-openbsd-arm64 "2.2.2"
-    lefthook-openbsd-x64 "2.2.2"
-    lefthook-windows-arm64 "2.2.2"
-    lefthook-windows-x64 "2.2.2"
 
 levn@~0.3.0:
   version "0.3.0"

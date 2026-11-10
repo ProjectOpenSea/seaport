@@ -8,7 +8,7 @@ Install [Foundry](https://getfoundry.sh) v1.9.0 (`foundryup --install v1.9.0`), 
 git clone --recurse-submodules https://github.com/ProjectOpenSea/seaport && cd seaport
 ```
 
-The Hardhat suite and the JavaScript tooling also need Node from `.nvmrc` and yarn:
+The legacy Hardhat suite also needs Node from `.nvmrc` and yarn:
 
 ```bash
 yarn install --frozen-lockfile
@@ -56,10 +56,14 @@ yarn profile                         # gas report
 ## Linting
 
 ```bash
-yarn lint:check
-yarn lint:fix
+scripts/install-tools.sh     # once: pinned tools into .tools/bin
+scripts/lint.sh check
+scripts/lint.sh fix
+.tools/bin/lefthook install  # optional pre-commit hook
 ```
 
-Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, and TOML uses taplo. CI also runs shellcheck and shfmt on shell scripts and actionlint on the workflows. `yarn install` adds a lefthook pre-commit hook that formats staged files.
+Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, TOML uses taplo, shell scripts use shellcheck and shfmt, and workflows use actionlint.
+
+The install script downloads each tool from its GitHub release and checks it against a pinned SHA-256, so linting needs nothing from npm. `scripts/lint.sh` runs the same checks as CI and warns when your Foundry version differs from CI's.
 
 The deployed contracts (`contracts/Seaport.sol`, `conduit/`, `helpers/`, `interfaces/`, `zones/`) are excluded from `forge fmt` and `forge lint`, so their source stays identical to what was verified onchain.

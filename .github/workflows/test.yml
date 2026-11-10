@@ -47,13 +47,18 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
 
-      - name: Use Node.js
-        uses: actions/setup-node@v7
+      # The tools are pinned by version and SHA-256 in the install script, so
+      # the cache only skips downloads.
+      - name: Restore tools
+        uses: actions/cache@v6
         with:
-          node-version-file: .nvmrc
-          cache: yarn
+          path: .tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/install-tools.sh') }}
 
-      - run: yarn install --frozen-lockfile --ignore-scripts
+      - name: Install tools
+        run: |
+          scripts/install-tools.sh
+          echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
 
       - name: Check Solidity formatting
         run: forge fmt --check
@@ -62,22 +67,18 @@ jobs:
         run: forge lint --deny warnings
 
       - name: Check formatting and lint with Biome
-        run: yarn biome ci .
+        run: biome ci .
 
       - name: Check TOML formatting
-        run: yarn taplo fmt --check
+        run: taplo fmt --check
 
       - name: Lint shell scripts
         run: |
-          curl -sSfL -o "$RUNNER_TEMP/shfmt" "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"
-          chmod +x "$RUNNER_TEMP/shfmt"
-          shellcheck templates/*.sh scripts/*.sh
-          "$RUNNER_TEMP/shfmt" -d templates/*.sh scripts/*.sh
-        env:
-          SHFMT_VERSION: v3.14.1
+          shellcheck scripts/*.sh templates/*.sh
+          shfmt -d scripts/*.sh templates/*.sh
 
       - name: Lint workflows
-        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+        run: actionlint
 
   test:
     name: Run Tests
