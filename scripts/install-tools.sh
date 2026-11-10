@@ -79,9 +79,17 @@ while read -r tool tool_platform expected url; do
         exit 1
     fi
 
+    # One command per line: set -e ignores a failure on the left of &&, which
+    # would leave the old binary in place under the new checksum.
     case "$file" in
-    *.tar.gz) tar -xzf "$file" -C "$tmp" "$tool" && mv "$tmp/$tool" "$bin/$tool" ;;
-    *.tar.xz) tar -xJf "$file" -C "$tmp" && mv "$tmp"/shellcheck-*/shellcheck "$bin/$tool" ;;
+    *.tar.gz)
+        tar -xzf "$file" -C "$tmp" "$tool"
+        mv "$tmp/$tool" "$bin/$tool"
+        ;;
+    *.tar.xz)
+        tar -xJf "$file" -C "$tmp"
+        mv "$tmp"/shellcheck-*/shellcheck "$bin/$tool"
+        ;;
     *.gz) gunzip -c "$file" >"$bin/$tool" ;;
     *) mv "$file" "$bin/$tool" ;;
     esac
