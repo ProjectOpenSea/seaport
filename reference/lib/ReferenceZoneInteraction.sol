@@ -44,39 +44,35 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         bytes32[] memory orderHashes = new bytes32[](0);
 
         // Convert the order params and types to spent and received items.
-        (
-            SpentItem[] memory offer,
-            ReceivedItem[] memory consideration
-        ) = _convertToSpentAndReceivedItems(
-                basicOrderParameters,
-                offeredItemType,
-                receivedItemType
-            );
+        (SpentItem[] memory offer, ReceivedItem[] memory consideration) = _convertToSpentAndReceivedItems(
+            basicOrderParameters, offeredItemType, receivedItemType
+        );
 
         // Order types 2-3 require zone or offerer be caller or zone to approve.
         // Note that in cases where fulfiller == zone, the restricted order
         // validation will be skipped.
         if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != basicOrderParameters.zone
+            (orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED)
+                && msg.sender != basicOrderParameters.zone
         ) {
             // Validate the order with the zone.
             if (
-                ZoneInterface(basicOrderParameters.zone).authorizeOrder(
-                    ZoneParameters({
-                        orderHash: orderHash,
-                        fulfiller: msg.sender,
-                        offerer: basicOrderParameters.offerer,
-                        offer: offer,
-                        consideration: consideration,
-                        extraData: "",
-                        orderHashes: orderHashes,
-                        startTime: basicOrderParameters.startTime,
-                        endTime: basicOrderParameters.endTime,
-                        zoneHash: basicOrderParameters.zoneHash
-                    })
-                ) != ZoneInterface.authorizeOrder.selector
+                ZoneInterface(basicOrderParameters.zone)
+                        .authorizeOrder(
+                            ZoneParameters({
+                                orderHash: orderHash,
+                                fulfiller: msg.sender,
+                                offerer: basicOrderParameters.offerer,
+                                offer: offer,
+                                consideration: consideration,
+                                extraData: "",
+                                orderHashes: orderHashes,
+                                startTime: basicOrderParameters.startTime,
+                                endTime: basicOrderParameters.endTime,
+                                zoneHash: basicOrderParameters.zoneHash
+                            })
+                        ) != ZoneInterface.authorizeOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
             }
@@ -106,39 +102,35 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         orderHashes[0] = orderHash;
 
         // Convert the order params and types to spent and received items.
-        (
-            SpentItem[] memory offer,
-            ReceivedItem[] memory consideration
-        ) = _convertToSpentAndReceivedItems(
-                basicOrderParameters,
-                offeredItemType,
-                receivedItemType
-            );
+        (SpentItem[] memory offer, ReceivedItem[] memory consideration) = _convertToSpentAndReceivedItems(
+            basicOrderParameters, offeredItemType, receivedItemType
+        );
 
         // Order types 2-3 require zone or offerer be caller or zone to approve.
         // Note that in cases where fulfiller == zone, the restricted order
         // validation will be skipped.
         if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != basicOrderParameters.zone
+            (orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED)
+                && msg.sender != basicOrderParameters.zone
         ) {
             // Validate the order with the zone.
             if (
-                ZoneInterface(basicOrderParameters.zone).validateOrder(
-                    ZoneParameters({
-                        orderHash: orderHash,
-                        fulfiller: msg.sender,
-                        offerer: basicOrderParameters.offerer,
-                        offer: offer,
-                        consideration: consideration,
-                        extraData: "",
-                        orderHashes: orderHashes,
-                        startTime: basicOrderParameters.startTime,
-                        endTime: basicOrderParameters.endTime,
-                        zoneHash: basicOrderParameters.zoneHash
-                    })
-                ) != ZoneInterface.validateOrder.selector
+                ZoneInterface(basicOrderParameters.zone)
+                        .validateOrder(
+                            ZoneParameters({
+                                orderHash: orderHash,
+                                fulfiller: msg.sender,
+                                offerer: basicOrderParameters.offerer,
+                                offer: offer,
+                                consideration: consideration,
+                                extraData: "",
+                                orderHashes: orderHashes,
+                                startTime: basicOrderParameters.startTime,
+                                endTime: basicOrderParameters.endTime,
+                                zoneHash: basicOrderParameters.zoneHash
+                            })
+                        ) != ZoneInterface.validateOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
             }
@@ -154,8 +146,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      * @param orderToExecute       The order to execute.
      * @param orderHashes          The order hashes of each order supplied
      *                             alongside the current order as part of a
-                                   "match" or "fulfill available" variety of
-                                   order fulfillment.
+     *                                "match" or "fulfill available" variety of
+     *                                order fulfillment.
      * @param orderHash            The hash of the order to execute.
      * @param revertOnUnauthorized A boolean indicating whether the function
      *                             should revert if the order is invalid.
@@ -174,14 +166,14 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal returns (bool authorized, bool checked) {
         // Order types 2-3 require zone or offerer be caller or zone to approve.
         if (
-            (advancedOrder.parameters.orderType == OrderType.FULL_RESTRICTED ||
-                advancedOrder.parameters.orderType ==
-                OrderType.PARTIAL_RESTRICTED) &&
-            msg.sender != advancedOrder.parameters.zone
+            (advancedOrder.parameters.orderType == OrderType.FULL_RESTRICTED
+                    || advancedOrder.parameters.orderType
+                        == OrderType.PARTIAL_RESTRICTED)
+                && msg.sender != advancedOrder.parameters.zone
         ) {
             // Authorize the order.
-            try
-                ZoneInterface(advancedOrder.parameters.zone).authorizeOrder(
+            try ZoneInterface(advancedOrder.parameters.zone)
+                .authorizeOrder(
                     ZoneParameters({
                         orderHash: orderHash,
                         fulfiller: msg.sender,
@@ -194,8 +186,9 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
                         endTime: advancedOrder.parameters.endTime,
                         zoneHash: advancedOrder.parameters.zoneHash
                     })
-                )
-            returns (bytes4 selector) {
+                ) returns (
+                bytes4 selector
+            ) {
                 if (selector != ZoneInterface.authorizeOrder.selector) {
                     revert InvalidRestrictedOrder(orderHash);
                 }
@@ -222,8 +215,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      * @param orderToExecute       The order to execute.
      * @param orderHashes          The order hashes of each order supplied
      *                             alongside the current order as part of a
-                                   "match" or "fulfill available" variety of
-                                   order fulfillment.
+     *                                "match" or "fulfill available" variety of
+     *                                order fulfillment.
      * @param orderHash            The hash of the order to execute.
      * @param zoneHash             The hash to provide upon calling the zone.
      * @param orderType            The type of the order.
@@ -242,25 +235,27 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal {
         // Order types 2-3 require zone or offerer be caller or zone to approve.
         if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) && msg.sender != zone
+            (orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED)
+                && msg.sender != zone
         ) {
             // Authorize the order.
             if (
-                ZoneInterface(zone).authorizeOrder(
-                    ZoneParameters({
-                        orderHash: orderHash,
-                        fulfiller: msg.sender,
-                        offerer: offerer,
-                        offer: orderToExecute.spentItems,
-                        consideration: orderToExecute.receivedItems,
-                        extraData: advancedOrder.extraData,
-                        orderHashes: orderHashes,
-                        startTime: advancedOrder.parameters.startTime,
-                        endTime: advancedOrder.parameters.endTime,
-                        zoneHash: zoneHash
-                    })
-                ) != ZoneInterface.authorizeOrder.selector
+                ZoneInterface(zone)
+                        .authorizeOrder(
+                            ZoneParameters({
+                                orderHash: orderHash,
+                                fulfiller: msg.sender,
+                                offerer: offerer,
+                                offer: orderToExecute.spentItems,
+                                consideration: orderToExecute.receivedItems,
+                                extraData: advancedOrder.extraData,
+                                orderHashes: orderHashes,
+                                startTime: advancedOrder.parameters.startTime,
+                                endTime: advancedOrder.parameters.endTime,
+                                zoneHash: zoneHash
+                            })
+                        ) != ZoneInterface.authorizeOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
             }
@@ -294,38 +289,42 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
     ) internal {
         // Order types 2-3 require zone or offerer be caller or zone to approve.
         if (
-            (orderType == OrderType.FULL_RESTRICTED ||
-                orderType == OrderType.PARTIAL_RESTRICTED) && msg.sender != zone
+            (orderType == OrderType.FULL_RESTRICTED
+                    || orderType == OrderType.PARTIAL_RESTRICTED)
+                && msg.sender != zone
         ) {
             // Validate the order.
             if (
-                ZoneInterface(zone).validateOrder(
-                    ZoneParameters({
-                        orderHash: orderHash,
-                        fulfiller: msg.sender,
-                        offerer: offerer,
-                        offer: orderToExecute.spentItems,
-                        consideration: orderToExecute.receivedItems,
-                        extraData: advancedOrder.extraData,
-                        orderHashes: orderHashes,
-                        startTime: advancedOrder.parameters.startTime,
-                        endTime: advancedOrder.parameters.endTime,
-                        zoneHash: zoneHash
-                    })
-                ) != ZoneInterface.validateOrder.selector
+                ZoneInterface(zone)
+                        .validateOrder(
+                            ZoneParameters({
+                                orderHash: orderHash,
+                                fulfiller: msg.sender,
+                                offerer: offerer,
+                                offer: orderToExecute.spentItems,
+                                consideration: orderToExecute.receivedItems,
+                                extraData: advancedOrder.extraData,
+                                orderHashes: orderHashes,
+                                startTime: advancedOrder.parameters.startTime,
+                                endTime: advancedOrder.parameters.endTime,
+                                zoneHash: zoneHash
+                            })
+                        ) != ZoneInterface.validateOrder.selector
             ) {
                 revert InvalidRestrictedOrder(orderHash);
             }
         } else if (orderType == OrderType.CONTRACT) {
             // Ratify the contract order.
             if (
-                ContractOffererInterface(offerer).ratifyOrder(
-                    orderToExecute.spentItems,
-                    orderToExecute.receivedItems,
-                    advancedOrder.extraData,
-                    orderHashes,
-                    uint256(orderHash) ^ (uint256(uint160(offerer)) << 96)
-                ) != ContractOffererInterface.ratifyOrder.selector
+                ContractOffererInterface(offerer)
+                        .ratifyOrder(
+                            orderToExecute.spentItems,
+                            orderToExecute.receivedItems,
+                            advancedOrder.extraData,
+                            orderHashes,
+                            uint256(orderHash)
+                                ^ (uint256(uint160(offerer)) << 96)
+                        ) != ContractOffererInterface.ratifyOrder.selector
             ) {
                 revert InvalidContractOrder(orderHash);
             }
@@ -363,9 +362,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         });
 
         // Create the received item.
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            1 + parameters.additionalRecipients.length
-        );
+        ReceivedItem[] memory receivedItems =
+            new ReceivedItem[](1 + parameters.additionalRecipients.length);
         address token = parameters.considerationToken;
         uint256 amount = parameters.considerationAmount;
         uint256 identifier = parameters.considerationIdentifier;
@@ -380,8 +378,8 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
         // Iterate through the additional recipients and create the received
         // items.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; i++) {
-            AdditionalRecipient calldata additionalRecipient = parameters
-                .additionalRecipients[i];
+            AdditionalRecipient calldata additionalRecipient =
+                parameters.additionalRecipients[i];
             amount = additionalRecipient.amount;
             receivedItems[i + 1] = ReceivedItem({
                 itemType: offerItemType == ItemType.ERC20

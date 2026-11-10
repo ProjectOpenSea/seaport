@@ -36,10 +36,7 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
         // Attempt to transfer the tokens.
         (bool ok, bytes memory data) = token.call(
             abi.encodeWithSelector(
-                ERC20Interface.transferFrom.selector,
-                from,
-                to,
-                amount
+                ERC20Interface.transferFrom.selector, from, to, amount
             )
         );
 
@@ -110,13 +107,8 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
             revert NoContract(token);
         }
 
-        ERC1155Interface(token).safeTransferFrom(
-            from,
-            to,
-            identifier,
-            amount,
-            ""
-        );
+        ERC1155Interface(token)
+            .safeTransferFrom(from, to, identifier, amount, "");
     }
 
     /**
@@ -144,12 +136,7 @@ contract ReferenceTokenTransferrer is TokenTransferrerErrors {
             revert NoContract(token);
         }
 
-        ERC1155Interface(token).safeBatchTransferFrom(
-            from,
-            to,
-            identifiers,
-            amounts,
-            ""
-        );
+        ERC1155Interface(token)
+            .safeBatchTransferFrom(from, to, identifiers, amounts, "");
     }
 }

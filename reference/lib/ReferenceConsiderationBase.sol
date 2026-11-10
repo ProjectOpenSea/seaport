@@ -75,17 +75,14 @@ contract ReferenceConsiderationBase is
         _CHAIN_ID = block.chainid;
 
         // Set supplied conduit controller to an in-memory controller interface.
-        ConduitControllerInterface tempController = ConduitControllerInterface(
-            conduitController
-        );
+        ConduitControllerInterface tempController =
+            ConduitControllerInterface(conduitController);
 
         // Assign the in-memory interface as an immutable.
         _CONDUIT_CONTROLLER = tempController;
 
         // Retrieve the conduit creation code hash from the supplied controller.
-        (_CONDUIT_CREATION_CODE_HASH, ) = (
-            tempController.getConduitCodeHashes()
-        );
+        (_CONDUIT_CREATION_CODE_HASH,) = (tempController.getConduitCodeHashes());
 
         _bulkOrderTypehashes[1] = bytes32(
             0x3ca2711d29384747a8f61d60aad3c450405f7aaff5613541dee28df2d6986d32
@@ -177,12 +174,9 @@ contract ReferenceConsiderationBase is
         bytes32 _nameHash,
         bytes32 _versionHash
     ) internal view virtual returns (bytes32 domainSeparator) {
-        return
-            _deriveDomainSeparator(
-                _eip712DomainTypeHash,
-                _nameHash,
-                _versionHash
-            );
+        return _deriveDomainSeparator(
+            _eip712DomainTypeHash, _nameHash, _versionHash
+        );
     }
 
     /**
@@ -195,16 +189,15 @@ contract ReferenceConsiderationBase is
         bytes32 _nameHash,
         bytes32 _versionHash
     ) internal view virtual returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _eip712DomainTypeHash,
-                    _nameHash,
-                    _versionHash,
-                    block.chainid,
-                    address(this)
-                )
-            );
+        return keccak256(
+            abi.encode(
+                _eip712DomainTypeHash,
+                _nameHash,
+                _versionHash,
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     /**
@@ -329,9 +322,7 @@ contract ReferenceConsiderationBase is
         // Derive the initial domain separator using the domain typehash, the
         // name hash, and the version hash.
         domainSeparator = _deriveInitialDomainSeparator(
-            eip712DomainTypehash,
-            nameHash,
-            versionHash
+            eip712DomainTypehash, nameHash, versionHash
         );
     }
 }

@@ -30,14 +30,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      */
     constructor() {
         // Derive the conduit creation code hash and set it as an immutable.
-        _CONDUIT_CREATION_CODE_HASH = keccak256(
-            type(ReferenceConduit).creationCode
-        );
+        _CONDUIT_CREATION_CODE_HASH =
+            keccak256(type(ReferenceConduit).creationCode);
 
         // Deploy a conduit with the zero hash as the salt.
-        ReferenceConduit zeroConduit = new ReferenceConduit{
-            salt: bytes32(0)
-        }();
+        ReferenceConduit zeroConduit =
+            new ReferenceConduit{ salt: bytes32(0) }();
 
         // Retrieve the conduit runtime code hash and set it as an immutable.
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
@@ -57,10 +55,11 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return conduit The address of the newly deployed conduit.
      */
-    function createConduit(
-        bytes32 conduitKey,
-        address initialOwner
-    ) external override returns (address conduit) {
+    function createConduit(bytes32 conduitKey, address initialOwner)
+        external
+        override
+        returns (address conduit)
+    {
         // Ensure that an initial owner has been supplied.
         if (initialOwner == address(0)) {
             revert InvalidInitialOwner();
@@ -126,11 +125,10 @@ contract ReferenceConduitController is ConduitControllerInterface {
      * @param channel The channel to open or close on the conduit.
      * @param isOpen  A boolean indicating whether to open or close the channel.
      */
-    function updateChannel(
-        address conduit,
-        address channel,
-        bool isOpen
-    ) external override {
+    function updateChannel(address conduit, address channel, bool isOpen)
+        external
+        override
+    {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
@@ -141,9 +139,8 @@ contract ReferenceConduitController is ConduitControllerInterface {
         ConduitProperties storage conduitProperties = _conduits[conduit];
 
         // Retrieve the index, if one currently exists, for the updated channel.
-        uint256 channelIndexPlusOne = (
-            conduitProperties.channelIndexesPlusOne[channel]
-        );
+        uint256 channelIndexPlusOne =
+            (conduitProperties.channelIndexesPlusOne[channel]);
 
         // Determine whether the updated channel is already tracked as open.
         bool channelPreviouslyOpen = channelIndexPlusOne != 0;
@@ -154,9 +151,8 @@ contract ReferenceConduitController is ConduitControllerInterface {
             conduitProperties.channels.push(channel);
 
             // Add new open channel length to associated mapping as index + 1.
-            conduitProperties.channelIndexesPlusOne[channel] = (
-                conduitProperties.channels.length
-            );
+            conduitProperties.channelIndexesPlusOne[channel] =
+            (conduitProperties.channels.length);
         } else if (!isOpen && channelPreviouslyOpen) {
             // Set a previously open channel as closed via "swap & pop" method.
             // Decrement located index to get the index of the closed channel.
@@ -168,17 +164,15 @@ contract ReferenceConduitController is ConduitControllerInterface {
             // If closed channel is not last channel in the channels array...
             if (finalChannelIndex != removedChannelIndex) {
                 // Retrieve the final channel and place the value on the stack.
-                address finalChannel = (
-                    conduitProperties.channels[finalChannelIndex]
-                );
+                address finalChannel =
+                    (conduitProperties.channels[finalChannelIndex]);
 
                 // Overwrite the removed channel using the final channel value.
                 conduitProperties.channels[removedChannelIndex] = finalChannel;
 
                 // Update final index in associated mapping to removed index.
-                conduitProperties.channelIndexesPlusOne[finalChannel] = (
-                    channelIndexPlusOne
-                );
+                conduitProperties.channelIndexesPlusOne[finalChannel] =
+                (channelIndexPlusOne);
             }
 
             // Remove the last channel from the channels array for the conduit.
@@ -199,10 +193,10 @@ contract ReferenceConduitController is ConduitControllerInterface {
      * @param conduit The conduit for which to initiate ownership transfer.
      * @param newPotentialOwner The new potential owner of the conduit.
      */
-    function transferOwnership(
-        address conduit,
-        address newPotentialOwner
-    ) external override {
+    function transferOwnership(address conduit, address newPotentialOwner)
+        external
+        override
+    {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
@@ -270,11 +264,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         delete _conduits[conduit].potentialOwner;
 
         // Emit an event indicating conduit ownership has been transferred.
-        emit OwnershipTransferred(
-            conduit,
-            _conduits[conduit].owner,
-            msg.sender
-        );
+        emit OwnershipTransferred(conduit, _conduits[conduit].owner, msg.sender);
 
         // Set the caller as the owner of the conduit.
         _conduits[conduit].owner = msg.sender;
@@ -288,9 +278,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return owner The owner of the supplied conduit.
      */
-    function ownerOf(
-        address conduit
-    ) external view override returns (address owner) {
+    function ownerOf(address conduit)
+        external
+        view
+        override
+        returns (address owner)
+    {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -307,9 +300,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return conduitKey The conduit key used to deploy the supplied conduit.
      */
-    function getKey(
-        address conduit
-    ) external view override returns (bytes32 conduitKey) {
+    function getKey(address conduit)
+        external
+        view
+        override
+        returns (bytes32 conduitKey)
+    {
         // Attempt to retrieve a conduit key for the conduit in question.
         conduitKey = _conduits[conduit].key;
 
@@ -330,9 +326,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      * @return exists  A boolean indicating whether the derived conduit has been
      *                 deployed or not.
      */
-    function getConduit(
-        bytes32 conduitKey
-    ) external view override returns (address conduit, bool exists) {
+    function getConduit(bytes32 conduitKey)
+        external
+        view
+        override
+        returns (address conduit, bool exists)
+    {
         // Derive address from deployer, conduit key and creation code hash.
         conduit = address(
             uint160(
@@ -363,9 +362,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return potentialOwner The potential owner, if any, for the conduit.
      */
-    function getPotentialOwner(
-        address conduit
-    ) external view override returns (address potentialOwner) {
+    function getPotentialOwner(address conduit)
+        external
+        view
+        override
+        returns (address potentialOwner)
+    {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -382,10 +384,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return isOpen The status of the channel on the given conduit.
      */
-    function getChannelStatus(
-        address conduit,
-        address channel
-    ) external view override returns (bool isOpen) {
+    function getChannelStatus(address conduit, address channel)
+        external
+        view
+        override
+        returns (bool isOpen)
+    {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -401,9 +405,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return totalChannels The total number of open channels for the conduit.
      */
-    function getTotalChannels(
-        address conduit
-    ) external view override returns (uint256 totalChannels) {
+    function getTotalChannels(address conduit)
+        external
+        view
+        override
+        returns (uint256 totalChannels)
+    {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -421,10 +428,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return channel The open channel, if any, at the specified channel index.
      */
-    function getChannel(
-        address conduit,
-        uint256 channelIndex
-    ) external view override returns (address channel) {
+    function getChannel(address conduit, uint256 channelIndex)
+        external
+        view
+        override
+        returns (address channel)
+    {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -449,9 +458,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *
      * @return channels An array of open channels on the given conduit.
      */
-    function getChannels(
-        address conduit
-    ) external view override returns (address[] memory channels) {
+    function getChannels(address conduit)
+        external
+        view
+        override
+        returns (address[] memory channels)
+    {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
