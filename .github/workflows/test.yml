@@ -123,13 +123,15 @@ jobs:
         with:
           version: ${{ env.FOUNDRY_VERSION }}
 
-      # The key covers every input of the two builds: compiler settings,
-      # sources, and each submodule commit (hashFiles can't see gitlinks).
+      # The key covers every input of the two builds: the Foundry version,
+      # compiler settings and remappings, sources, the build steps, and each
+      # submodule commit (hashFiles can't see gitlinks). If an input is
+      # missing, a stale build could satisfy the deployed bytecode check.
       - name: Compute cache key
         id: key
         run: |
           submodules=$(git submodule status --recursive | sha256sum | cut -c1-16)
-          echo "cache-key=forge-precompiled-${{ env.FOUNDRY_VERSION }}-${{ hashFiles('foundry.toml', 'contracts/**', 'reference/**') }}-${submodules}" >> "$GITHUB_OUTPUT"
+          echo "cache-key=forge-precompiled-${{ env.FOUNDRY_VERSION }}-${{ hashFiles('foundry.toml', 'remappings.txt', 'contracts/**', 'reference/**', '.github/actions/**') }}-${submodules}" >> "$GITHUB_OUTPUT"
 
       - uses: ./.github/actions/forge-precompile
         with:
