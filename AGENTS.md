@@ -4,7 +4,7 @@ Tests, docs, and tooling for Seaport 1.6, deployed at `0x0000000000000068F116a89
 
 ## Rule
 
-The deployed bytecode must not change. Don't change `contracts/Seaport.sol`, the `lib/seaport-core` and `lib/seaport-types` pins, or any compiler setting the `optimized` profile uses, including the `solc`, `evm_version`, `optimizer_runs`, and remappings it inherits from `[profile.default]`. `test/foundry/DeployedBytecode.t.sol` fails if a change alters the build; revert the change rather than the test. Ideas that would change bytecode go in `docs/Seaport-1.7-candidates.md`.
+The deployed bytecode must not change. Don't change `contracts/Seaport.sol`, the `lib/seaport-core` and `lib/seaport-types` pins, or any compiler setting the `optimized` profile uses, including the `solc`, `evm_version`, `optimizer_runs`, and remappings it inherits from `[profile.default]`. `test/foundry/DeployedBytecode.t.sol` fails if a change alters the build, and `scripts/frozen-contracts.sha256` fails if any deployed contract's source changes; revert the change rather than the test. Ideas that would change bytecode go in `docs/Seaport-1.7-candidates.md`.
 
 ## Layout
 

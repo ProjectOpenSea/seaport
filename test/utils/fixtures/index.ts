@@ -763,7 +763,6 @@ export const seaportFixture = async (owner: Wallet) => {
             }
           }
 
-          // eslint-disable-next-line no-unused-expressions
           expect(found).to.be.true;
         }
       }
@@ -854,7 +853,6 @@ export const seaportFixture = async (owner: Wallet) => {
             }
           }
 
-          // eslint-disable-next-line no-unused-expressions
           expect(found).to.be.true;
         }
       }

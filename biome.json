@@ -17,7 +17,8 @@
       "!!**/broadcast",
       "!!.gas_reports",
       "!!diagrams",
-      "!!img"
+      "!!img",
+      "!!test/utils/seeded-rng.js"
     ]
   },
   "formatter": {

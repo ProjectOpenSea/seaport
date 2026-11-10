@@ -899,7 +899,9 @@ scripts/lint.sh fix
 .tools/bin/lefthook install  # optional pre-commit hook
 ```
 
-Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, TOML uses taplo, shell scripts use shellcheck and shfmt, and workflows use actionlint. The install script downloads each tool from its GitHub release and checks it against a pinned SHA-256, so linting needs nothing from npm. The deployed contracts are excluded from `forge fmt` and `forge lint` so their source matches what was verified onchain.
+Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, TOML uses taplo, shell scripts use shellcheck and shfmt, and workflows use actionlint. The install script downloads each tool from its GitHub release and checks it against a pinned SHA-256, so linting needs nothing from npm. The install script supports macOS and Linux; on Windows, use WSL.
+
+The deployed contracts (`contracts/Seaport.sol`, `conduit/`, `helpers/`, `interfaces/`, `zones/`) are excluded from `forge fmt` and `forge lint`, so their source stays identical to what was verified onchain. `scripts/frozen-contracts.sha256` pins each of those files, and CI fails if one changes. After a deliberate change, regenerate it with `scripts/lint.sh freeze`.
 
 ## Audits
 
