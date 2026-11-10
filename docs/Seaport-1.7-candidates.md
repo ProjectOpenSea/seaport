@@ -22,7 +22,7 @@ Changes that leave the deployed 1.6 bytecode alone (tests, tooling, docs, the re
 
 - Use pointer library memory copies wherever more than three words are copied in a row. This was a 1.2 work in progress, closed without discussion. [[WIP] 1.2 copy optimizations](https://github.com/ProjectOpenSea/seaport/pull/718)
 - Free bytecode headroom with small rewrites: drop single-use locals, fold the order typehash construction, and filter zero-amount executions in assembly. This was an experiment, closed without merging. [WIP - experiment with freeing up headroom](https://github.com/ProjectOpenSea/seaport-core/pull/10)
-- Move loop invariants such as `orderParameters.offerer` and `conduitKey` out of the loop in `_applyFractionsAndTransferEach`. The issue is still open. [move loop invariant code out from loop to save gas](https://github.com/ProjectOpenSea/seaport-core/issues/9)
+- Move loop invariants such as `orderParameters.offerer` and `conduitKey` out of the loop in `_transferEach`. The saving is about 20 gas per offer item, and the issue was closed in favor of this list. [move loop invariant code out from loop to save gas](https://github.com/ProjectOpenSea/seaport-core/issues/9)
 - Load `OrderStatus` into memory once in `Verifiers` instead of reading storage several times. The fields share one slot, so the saving is only on warm reads, and it hasn't been measured. [change SLOAD to MLOAD to save gas](https://github.com/ProjectOpenSea/seaport-core/pull/6)
 
 ## Conduits
