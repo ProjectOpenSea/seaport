@@ -4,6 +4,12 @@ pragma solidity ^0.8.17;
 
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
+import {
+    ConsiderationInterface
+} from "seaport-types/src/interfaces/ConsiderationInterface.sol";
+
+import { Seaport } from "../../contracts/Seaport.sol";
+
 contract TestGetters is BaseConsiderationTest {
     function testGetCorrectName() public {
         assertEq(consideration.name(), "Consideration");
@@ -100,5 +106,80 @@ contract TestGetters is BaseConsiderationTest {
                 )
             )
         );
+    }
+}
+
+/// @dev Getters on the Seaport wrapper itself. The rest of the suite deploys
+///      Consideration, so this is the only place Seaport's name overrides run.
+contract TestSeaportGetters is BaseConsiderationTest {
+    ConsiderationInterface seaport;
+
+    function setUp() public override {
+        super.setUp();
+        if (!coverage_or_debug) {
+            seaport = ConsiderationInterface(
+                deployCode(
+                    "optimized-out/Seaport.sol/Seaport.json",
+                    abi.encode(address(conduitController))
+                )
+            );
+        } else {
+            seaport = new Seaport(address(conduitController));
+        }
+        vm.label(address(seaport), "seaport");
+    }
+
+    function _expectedDomainSeparator(uint256 chainId)
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256("Seaport"),
+                keccak256("1.6"),
+                chainId,
+                address(seaport)
+            )
+        );
+    }
+
+    function testGetCorrectName() public view {
+        assertEq(seaport.name(), "Seaport");
+        // The Consideration base contract keeps its own name.
+        assertEq(consideration.name(), "Consideration");
+    }
+
+    function testCleanName() public view {
+        // Seaport returns its name from assembly, so check the raw encoding.
+        (bool success, bytes memory returnData) = address(seaport)
+            .staticcall(
+                abi.encodeWithSelector(ConsiderationInterface.name.selector)
+            );
+        assertTrue(success);
+        assertEq(returnData, abi.encode("Seaport"));
+    }
+
+    function testGetCorrectInformation() public view {
+        (string memory version, bytes32 domainSeparator, address controller) =
+            seaport.information();
+        assertEq(version, "1.6");
+        assertEq(domainSeparator, _expectedDomainSeparator(block.chainid));
+        assertEq(controller, address(conduitController));
+    }
+
+    function testGetCorrectDomainSeparator(uint64 _chainId) public {
+        vm.assume(_chainId != block.chainid);
+        (, bytes32 originalDomainSeparator,) = seaport.information();
+
+        // A new chain id makes Seaport derive the separator again from its
+        // name string instead of returning the cached one.
+        vm.chainId(_chainId);
+        (, bytes32 domainSeparator,) = seaport.information();
+        assertFalse(domainSeparator == originalDomainSeparator);
+        assertEq(domainSeparator, _expectedDomainSeparator(_chainId));
     }
 }

@@ -1326,4 +1326,127 @@ contract TransferHelperMultipleRecipientsTest is BaseOrderTest {
         mockTransferHelper.bulkTransfer(itemsWithRecipient, conduitKeyAlice);
         vm.stopPrank();
     }
+
+    function _mixedItems()
+        internal
+        view
+        returns (TransferHelperItem[] memory items)
+    {
+        items = new TransferHelperItem[](4);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721, address(erc721s[0]), 1, 1
+        );
+        items[1] = TransferHelperItem(
+            ConduitItemType.ERC721, address(erc721s[0]), 2, 1
+        );
+        items[2] = TransferHelperItem(
+            ConduitItemType.ERC20, address(erc20s[0]), 0, 10
+        );
+        items[3] = TransferHelperItem(
+            ConduitItemType.ERC1155, address(erc1155s[0]), 3, 20
+        );
+    }
+
+    function testRevertBulkTransferWithoutConduit() public {
+        address[4] memory recipients =
+            [bob, cal, makeAddr("recipient three"), makeAddr("recipient four")];
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            new TransferHelperItemsWithRecipient[](recipients.length);
+        for (uint256 i = 0; i < recipients.length; i++) {
+            itemsWithRecipient[i] = TransferHelperItemsWithRecipient(
+                _mixedItems(), recipients[i], true
+            );
+        }
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferHelperErrors.InvalidConduit.selector,
+                bytes32(0),
+                address(0)
+            )
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, bytes32(0));
+    }
+
+    function testRevertBulkTransferERC721ToContractRecipientsWithoutConduit()
+        public
+    {
+        uint256 numTransfers = 5;
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            new TransferHelperItemsWithRecipient[](numTransfers);
+        for (uint256 i = 0; i < numTransfers; i++) {
+            ERC721ReceiverMock receiver = new ERC721ReceiverMock(
+                IERC721Receiver.onERC721Received.selector,
+                ERC721ReceiverMock.Error.None
+            );
+            TransferHelperItem[] memory items = new TransferHelperItem[](1);
+            items[0] = TransferHelperItem(
+                ConduitItemType.ERC721,
+                address(erc721s[i % erc721s.length]),
+                i,
+                1
+            );
+            itemsWithRecipient[i] = TransferHelperItemsWithRecipient(
+                items, address(receiver), true
+            );
+        }
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferHelperErrors.InvalidConduit.selector,
+                bytes32(0),
+                address(0)
+            )
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, bytes32(0));
+    }
+
+    function testRevertRecipientCannotBeZeroAddress() public {
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            new TransferHelperItemsWithRecipient[](2);
+        itemsWithRecipient[0] =
+            TransferHelperItemsWithRecipient(_mixedItems(), address(0), true);
+        itemsWithRecipient[1] =
+            TransferHelperItemsWithRecipient(_mixedItems(), address(0), true);
+
+        vm.prank(alice);
+        vm.expectRevert(
+            TransferHelperErrors.RecipientCannotBeZeroAddress.selector
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
+    }
+
+    function testRevertERC721ReceiverErrorRevertBytes() public {
+        // An ERC721 token contract has no onERC721Received, so the receiver
+        // check reverts with empty data, which TransferHelper wraps.
+        address recipient = address(erc721s[0]);
+        TransferHelperItemsWithRecipient[] memory itemsWithRecipient =
+            new TransferHelperItemsWithRecipient[](2);
+        TransferHelperItem[] memory firstItems = new TransferHelperItem[](1);
+        firstItems[0] = TransferHelperItem(
+            ConduitItemType.ERC721, address(erc721s[0]), 1, 1
+        );
+        TransferHelperItem[] memory secondItems = new TransferHelperItem[](1);
+        secondItems[0] = TransferHelperItem(
+            ConduitItemType.ERC721, address(erc721s[1]), 2, 1
+        );
+        itemsWithRecipient[0] =
+            TransferHelperItemsWithRecipient(firstItems, recipient, true);
+        itemsWithRecipient[1] =
+            TransferHelperItemsWithRecipient(secondItems, recipient, true);
+
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferHelperErrors.ERC721ReceiverErrorRevertBytes.selector,
+                "",
+                recipient,
+                alice,
+                1
+            )
+        );
+        transferHelper.bulkTransfer(itemsWithRecipient, conduitKeyOne);
+    }
 }
