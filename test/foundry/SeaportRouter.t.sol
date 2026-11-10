@@ -144,7 +144,7 @@ contract SeaportRouterTest is BaseOrderTest {
     }
 
     // "Should return the allowed Seaport contracts usable through the router"
-    function testGetAllowedSeaportContracts() public {
+    function testGetAllowedSeaportContracts() public view {
         Context[2] memory contexts = _contexts();
         for (uint256 i = 0; i < contexts.length; ++i) {
             Context memory context = contexts[i];

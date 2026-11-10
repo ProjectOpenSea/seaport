@@ -925,7 +925,7 @@ contract PausableZoneTest is
     function _assertOrderFulfilledHashes(
         ConsiderationInterface seaport,
         bytes32[3] memory orderHashes
-    ) internal {
+    ) internal view {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         uint256 found;
         for (uint256 i = 0; i < logs.length; ++i) {
