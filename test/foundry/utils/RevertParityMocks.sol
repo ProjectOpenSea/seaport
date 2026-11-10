@@ -83,3 +83,42 @@ contract HugeRevertDataToken {
         }
     }
 }
+
+/**
+ * @dev ERC-1271 wallet that accepts a signature only from its owner and
+ *      rejects any other with revert("BAD SIGNER"), so Seaport has a reason
+ *      string to pass up. Stands in for the EIP1271Wallet mock the Hardhat
+ *      suite used.
+ */
+contract RevertingEIP1271Wallet {
+    address public immutable owner;
+
+    constructor(address _owner) {
+        owner = _owner;
+    }
+
+    function approve(address token, address operator) external {
+        IApprovalForAll(token).setApprovalForAll(operator, true);
+    }
+
+    function isValidSignature(bytes32 digest, bytes calldata signature)
+        external
+        view
+        returns (bytes4)
+    {
+        if (signature.length != 65) {
+            revert("BAD SIGNATURE LENGTH");
+        }
+        bytes32 r = bytes32(signature[0:32]);
+        bytes32 s = bytes32(signature[32:64]);
+        uint8 v = uint8(signature[64]);
+        if (ecrecover(digest, v, r, s) != owner) {
+            revert("BAD SIGNER");
+        }
+        return this.isValidSignature.selector;
+    }
+}
+
+interface IApprovalForAll {
+    function setApprovalForAll(address operator, bool approved) external;
+}

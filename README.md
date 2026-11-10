@@ -39,11 +39,16 @@ FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=test forge test
 ```
 
-This needs Foundry v1.9.0. [docs/Development.md](docs/Development.md) covers the Hardhat suite, coverage, and linting.
+This needs Foundry v1.9.0. [docs/Development.md](docs/Development.md) covers coverage and linting.
 
 ## Audits
 
-Trail of Bits reviewed Seaport from April 18 to May 12, 2022 and found no significant flaws. Their [report](https://github.com/trailofbits/publications/blob/master/reviews/SeaportProtocol.pdf) is public.
+These are the public reports on Seaport:
+
+- Trail of Bits reviewed Seaport 1.0 from April 18 to May 12, 2022 and found no significant flaws. [Report](https://github.com/trailofbits/publications/blob/master/reviews/SeaportProtocol.pdf).
+- Code4rena ran a public contest on Seaport 1.0 in May and June 2022. The high and medium findings were fixed in Seaport 1.1. [Report](https://code4rena.com/reports/2022-05-opensea-seaport).
+- Spearbit reviewed Seaport 1.2 in December 2022. [Report](https://cantina.xyz/portfolio/8a68abac-d90b-43e2-9853-4099f22024de).
+- Code4rena ran a public contest on Seaport 1.2 from January 13 to January 23, 2023. [Report](https://code4rena.com/reports/2023-01-opensea).
 
 Report security issues through [Bugcrowd](https://bugcrowd.com/engagements/opensea), not in public issues or PRs.
 

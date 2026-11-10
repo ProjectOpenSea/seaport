@@ -5,6 +5,8 @@ import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
 
 import { AdjustedAmountOfferer } from "./impl/AdjustedAmountOfferer.sol";
 
+import { AlteredItemOfferer } from "./impl/AlteredItemOfferer.sol";
+
 import {
     ERC20Interface
 } from "seaport-types/src/interfaces/AbridgedTokenInterfaces.sol";
@@ -199,57 +201,78 @@ contract AdjustedAmountOffererTest is
         fulfillAdvanced(context, configureAdvancedOrder());
     }
 
-    // NOTE: this behavior has been modified as generateOrder is now called
-    // after amount derivation; the following tests are no longer valid
-    // function testAlterOfferItem() public {
-    //     setUpOfferer(0, 0);
-    //     setUpNormalOrder(address(offerer));
-    //     offerItems[0].endAmount += 1;
+    // The original testAlterOfferItem and testAlterConsiderationItem changed
+    // amounts, which generateOrder now sees after amount derivation, so they
+    // no longer applied. What advanced.spec.ts checked instead is that a
+    // contract offerer can't swap the item type, token or identifier of an
+    // item it was asked for, on either side.
 
-    //     test(this.execAlterOfferItem, Context({ seaport: consideration }));
-    //     test(
-    //         this.execAlterOfferItem,
-    //         Context({ seaport: referenceConsideration })
-    //     );
-    // }
+    function testAlterOfferItemType() public {
+        _testAlteredItem(false, AlteredItemOfferer.Field.ITEM_TYPE);
+    }
 
-    // function execAlterOfferItem(Context memory context) external stateless {
-    //     vm.expectRevert(
-    //         abi.encodeWithSelector(
-    //             InvalidContractOrder.selector,
-    //             uint256(uint160(address(offerer))) << 96
-    //         )
-    //     );
-    //     fulfillAdvanced(context, configureAdvancedOrder());
-    // }
+    function testAlterOfferToken() public {
+        _testAlteredItem(false, AlteredItemOfferer.Field.TOKEN);
+    }
 
-    // // make sure altering consideration item start/end amount results in falure
-    // function testAlterConsiderationItem() public {
-    //     setUpOfferer(0, 0);
-    //     setUpNormalOrder(address(offerer));
-    //     considerationItems[0].endAmount += 1;
+    function testAlterOfferIdentifier() public {
+        _testAlteredItem(false, AlteredItemOfferer.Field.IDENTIFIER);
+    }
 
-    //     test(
-    //         this.execAlterConsiderationItem, Context({ seaport: consideration })
-    //     );
-    //     test(
-    //         this.execAlterConsiderationItem,
-    //         Context({ seaport: referenceConsideration })
-    //     );
-    // }
+    function testAlterConsiderationItemType() public {
+        _testAlteredItem(true, AlteredItemOfferer.Field.ITEM_TYPE);
+    }
 
-    // function execAlterConsiderationItem(Context memory context)
-    //     external
-    //     stateless
-    // {
-    //     vm.expectRevert(
-    //         abi.encodeWithSelector(
-    //             InvalidContractOrder.selector,
-    //             uint256(uint160(address(offerer))) << 96
-    //         )
-    //     );
-    //     fulfillAdvanced(context, configureAdvancedOrder());
-    // }
+    function testAlterConsiderationToken() public {
+        _testAlteredItem(true, AlteredItemOfferer.Field.TOKEN);
+    }
+
+    function testAlterConsiderationIdentifier() public {
+        _testAlteredItem(true, AlteredItemOfferer.Field.IDENTIFIER);
+    }
+
+    function _testAlteredItem(
+        bool alterConsideration,
+        AlteredItemOfferer.Field field
+    ) internal {
+        address[] memory seaports = new address[](2);
+        seaports[0] = address(consideration);
+        seaports[1] = address(referenceConsideration);
+        AlteredItemOfferer altered = new AlteredItemOfferer(
+            seaports,
+            ERC20Interface(address(token1)),
+            ERC20Interface(address(token2)),
+            address(token3)
+        );
+        offerer = altered;
+        token1.mint(address(altered), 100000);
+        setUpNormalOrder(address(altered));
+
+        ConsiderationInterface[2] memory seaportsToTest =
+            [consideration, referenceConsideration];
+        for (uint256 i; i < 2; ++i) {
+            Context memory context = Context({ seaport: seaportsToTest[i] });
+
+            altered.setAlteration(alterConsideration, field);
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    InvalidContractOrder.selector,
+                    (uint256(uint160(address(altered))) << 96)
+                        + context.seaport
+                        .getContractOffererNonce(address(altered))
+                )
+            );
+            fulfillAdvanced(context, configureAdvancedOrder());
+
+            // Unaltered, the same order fills.
+            altered.setAlteration(false, AlteredItemOfferer.Field.NONE);
+            uint256 token1Balance = token1.balanceOf(address(this));
+            uint256 token2Balance = token2.balanceOf(address(this));
+            fulfillAdvanced(context, configureAdvancedOrder());
+            assertEq(token1.balanceOf(address(this)), token1Balance + 1000);
+            assertEq(token2.balanceOf(address(this)), token2Balance - 1000);
+        }
+    }
 
     function configureAdvancedOrder() internal returns (AdvancedOrder memory) {
         return configureAdvancedOrder(1, 1);

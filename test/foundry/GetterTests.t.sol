@@ -183,3 +183,50 @@ contract TestSeaportGetters is BaseConsiderationTest {
         assertEq(domainSeparator, _expectedDomainSeparator(_chainId));
     }
 }
+
+/// @dev The same getters on the reference build, which getter.spec.ts also
+///      ran (REFERENCE=true) and the tests above don't touch. The reference
+///      build reports version "1.6-reference", so its domain separator
+///      differs from the optimized build's even at the same address.
+contract TestReferenceGetters is BaseConsiderationTest {
+    function testGetCorrectName() public view {
+        assertEq(referenceConsideration.name(), "Consideration");
+    }
+
+    function testGetCorrectInformation() public view {
+        (string memory version, bytes32 domainSeparator, address controller) =
+            referenceConsideration.information();
+        // The reference build names its version apart from the optimized one.
+        assertEq(version, "1.6-reference");
+        assertEq(controller, address(referenceConduitController));
+        assertEq(domainSeparator, _expectedDomainSeparator(block.chainid));
+
+        (, bytes32 optimizedSeparator,) = consideration.information();
+        assertTrue(domainSeparator != optimizedSeparator);
+    }
+
+    function testGetCorrectDomainSeparator(uint64 _chainId) public {
+        vm.assume(_chainId != block.chainid);
+        vm.chainId(_chainId);
+        (, bytes32 domainSeparator,) = referenceConsideration.information();
+        assertEq(domainSeparator, _expectedDomainSeparator(_chainId));
+    }
+
+    function _expectedDomainSeparator(uint256 chainId)
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256("Consideration"),
+                keccak256("1.6-reference"),
+                chainId,
+                address(referenceConsideration)
+            )
+        );
+    }
+}
