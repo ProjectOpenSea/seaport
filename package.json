@@ -22,12 +22,10 @@
     "solady": "^0.0.84"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.3",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@rari-capital/solmate": "^6.2.0",
-    "@taplo/cli": "0.7.0",
     "@typechain/ethers-v5": "^10.0.0",
     "@typechain/hardhat": "^6.0.0",
     "@types/chai": "^4.3.0",
@@ -37,7 +35,6 @@
     "cli-barchart": "^0.2.3",
     "dotenv": "^16.0.0",
     "hardhat-gas-reporter": "^1.0.7",
-    "lefthook": "2.2.2",
     "scuffed-abi": "^1.0.4",
     "solidity-coverage": "^0.8.10",
     "ts-node": "^10.4.0",
@@ -93,8 +90,7 @@
     "test:fuzz": "forge test --mp test/foundry/new/FuzzMain.t.sol",
     "test:fuzz:concrete": "forge test --mt test_concrete",
     "test:fuzz:metrics": "yarn ts-node scripts/plot_metrics.ts",
-    "prepare": "lefthook install",
-    "lint:check": "forge fmt --check && forge lint --deny warnings && biome ci . && taplo fmt --check",
-    "lint:fix": "forge fmt && biome check --write . && taplo fmt"
+    "lint:check": "scripts/lint.sh check",
+    "lint:fix": "scripts/lint.sh fix"
   }
 }
