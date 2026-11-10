@@ -4,6 +4,5 @@ artifacts
 cache
 constants
 coverage
-lib/murky
-lib/openzeppelin-contracts
+lib
 order-validator/test

@@ -7,7 +7,6 @@ libs = ["node_modules", "lib"]
 test = 'test/foundry'
 remappings = [
     '@rari-capital/solmate/=lib/solmate/',
-    'ds-test/=lib/ds-test/src/',
     'forge-std/=lib/forge-std/src/',
     'murky/=lib/murky/src/',
     '@openzeppelin/=lib/openzeppelin-contracts/',
@@ -50,8 +49,14 @@ cache_path = 'reference-cache'
 [profile.optimized]
 via_ir = true
 out = 'optimized-out'
+# Separate from the default `cache`, so the test profile doesn't evict it and
+# CI can cache this build on its own.
+cache_path = 'optimized-cache'
 script = 'contracts'
 bytecode_hash = 'none'
+# This profile reproduces the deployed Seaport 1.6 init code, which
+# test/foundry/DeployedBytecode.t.sol checks. 1.6 was verified with 9_999_999
+# optimizer runs, but the default 4_294_967_295 produces identical bytecode.
 # no need to compile tests with via-ir since they load optimized bytecode directly by default
 test ='contracts'
 

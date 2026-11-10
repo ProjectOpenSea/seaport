@@ -1,0 +1,49 @@
+name: Restore or build precompiled Forge artifacts
+description: >-
+  Restore the reference (via_ir = false) and optimized (via_ir = true) builds
+  from the cache, and compile whichever is missing. A cache outage costs a
+  rebuild instead of failing the job.
+
+inputs:
+  cache-key:
+    description: The key computed by the forge-build job.
+    required: true
+  save:
+    description: Whether to save the build to the cache after compiling it.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Restore precompiled artifacts
+      id: restore
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          reference-out
+          reference-cache
+          optimized-out
+          optimized-cache
+        key: ${{ inputs.cache-key }}
+
+    - name: Precompile reference using 0.8.24 and via-ir=false
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: FOUNDRY_PROFILE=reference forge build
+
+    - name: Precompile optimized using 0.8.24 and via-ir=true
+      if: steps.restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: FOUNDRY_PROFILE=optimized forge build
+
+    - name: Save precompiled artifacts
+      if: inputs.save == 'true' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          reference-out
+          reference-cache
+          optimized-out
+          optimized-cache
+        key: ${{ inputs.cache-key }}

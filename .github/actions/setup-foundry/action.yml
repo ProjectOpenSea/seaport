@@ -1,0 +1,37 @@
+name: Set up Foundry
+description: >-
+  Install a pinned Foundry version, reusing a cached copy so a GitHub releases
+  outage doesn't fail the job.
+
+inputs:
+  version:
+    description: The Foundry version to install, such as v1.9.0.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Foundry
+      id: cache
+      uses: actions/cache@v6
+      with:
+        # foundryup installs the binaries under versions/ and links them
+        # from bin/, so both are cached.
+        path: |
+          ~/.foundry/bin
+          ~/.foundry/versions
+        key: foundry-install-${{ runner.os }}-${{ inputs.version }}
+
+    - name: Install Foundry
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
+      with:
+        version: ${{ inputs.version }}
+
+    - name: Add Foundry to PATH
+      shell: bash
+      run: echo "$HOME/.foundry/bin" >>"$GITHUB_PATH"
+
+    - name: Print Foundry version
+      shell: bash
+      run: forge --version
