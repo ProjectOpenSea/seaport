@@ -264,11 +264,15 @@ jobs:
         with:
           cache-key: ${{ needs.forge-build.outputs.cache-key }}
 
+      # Seaport's core logic is in lib/seaport-core, which forge coverage skips
+      # without --include-libs. The filter drops the other libraries.
       - name: Run coverage with lcov output
         env:
           FOUNDRY_PROFILE: default
           SEAPORT_COVERAGE: true
-        run: forge coverage --report lcov
+        run: >-
+          forge coverage --report lcov --include-libs
+          --no-match-coverage '(^|/)(test|script)/|^lib/(forge-std|murky|solarray|solady|solmate|openzeppelin-contracts|seaport-sol|seaport-types)/'
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:

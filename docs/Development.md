@@ -34,11 +34,11 @@ FOUNDRY_PROFILE=offerers forge test                          # contract offerer 
 - `FOUNDRY_PROFILE=debug` compiles everything without `via_ir` or the optimizer, for full traces and source in the debugger. It doesn't match the deployed bytecode.
 - `FOUNDRY_PROFILE=moat_debug` compiles the fuzz engine in `test/foundry/new/` about twice as fast.
 
-Coverage, with an HTML report:
+Coverage, with an HTML report. Seaport's core logic is in `lib/seaport-core`, so include libraries and filter out the rest, as CI does:
 
 ```bash
-SEAPORT_COVERAGE=true forge coverage --report summary --report lcov
-lcov -o lcov.info --remove lcov.info --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 "test/*" "script/*"
+SEAPORT_COVERAGE=true forge coverage --report summary --report lcov --include-libs \
+  --no-match-coverage '(^|/)(test|script)/|^lib/(forge-std|murky|solarray|solady|solmate|openzeppelin-contracts|seaport-sol|seaport-types)/'
 genhtml lcov.info -o html --branch && open html/index.html
 ```
 
