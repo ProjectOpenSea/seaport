@@ -263,6 +263,15 @@ contract SeaportRouterTest is BaseOrderTest {
         params.recipient = routerOwner;
         params.fulfillerConduitKey = fulfillerConduitKey;
 
+        // The router is the fulfiller, so it can only pay native consideration
+        // and no conduit ever moves the buyer's tokens. Check instead that it
+        // passes the fulfiller conduit key, recipient, and remaining
+        // maximumFulfilled to each Seaport unchanged.
+        _expectSeaportCall(context.seaportA, params, 0, params.maximumFulfilled);
+        _expectSeaportCall(
+            context.seaportB, params, 1, params.maximumFulfilled - 1
+        );
+
         uint256 buyerBefore = buyer.balance;
         uint256 sellerBefore = seller.balance;
 
@@ -675,6 +684,33 @@ contract SeaportRouterTest is BaseOrderTest {
             recipient: address(0),
             maximumFulfilled: 100
         });
+    }
+
+    function _expectSeaportCall(
+        ConsiderationInterface seaport,
+        SeaportRouterInterface
+                .FulfillAvailableAdvancedOrdersParams memory params,
+        uint256 index,
+        uint256 maximumFulfilled
+    ) internal {
+        SeaportRouterInterface.AdvancedOrderParams memory orderParams =
+            params.advancedOrderParams[index];
+        vm.expectCall(
+            address(seaport),
+            orderParams.etherValue,
+            abi.encodeCall(
+                ConsiderationInterface.fulfillAvailableAdvancedOrders,
+                (
+                    orderParams.advancedOrders,
+                    orderParams.criteriaResolvers,
+                    orderParams.offerFulfillments,
+                    orderParams.considerationFulfillments,
+                    params.fulfillerConduitKey,
+                    params.recipient,
+                    maximumFulfilled
+                )
+            )
+        );
     }
 
     function _singleSeaport(ConsiderationInterface seaport)
