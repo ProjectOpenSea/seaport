@@ -25,6 +25,10 @@ Changes that leave the deployed 1.6 bytecode alone (tests, tooling, docs, the re
 - Move loop invariants such as `orderParameters.offerer` and `conduitKey` out of the loop in `_applyFractionsAndTransferEach`. The issue is still open. [move loop invariant code out from loop to save gas](https://github.com/ProjectOpenSea/seaport-core/issues/9)
 - Load `OrderStatus` into memory once in `Verifiers` instead of reading storage several times. The fields share one slot, so the saving is only on warm reads, and it hasn't been measured. [change SLOAD to MLOAD to save gas](https://github.com/ProjectOpenSea/seaport-core/pull/6)
 
+## Conduits
+
+- The canonical ConduitController, and every conduit it creates, is the 1.1 build. A conduit that is asked to move an ERC721 with an amount other than 1 reverts with `InvalidERC721TransferAmount()` (selector `0xefcc00b1`). Seaport 1.2 added the amount to that error, so seaport-core's `Conduit`, Seaport 1.6 itself and the `TokenTransferrerErrors` interface in seaport-types all use `InvalidERC721TransferAmount(uint256)` (selector `0x69f95827`). Tools that decode conduit reverts with the seaport-types ABI won't recognize the deployed conduit's error. Building from current source gives a different ConduitController, and its conduits would have different addresses from the existing ones, so this only ships if a release redeploys the conduit system. [InvalidERC721TransferAmount amount param](https://github.com/ProjectOpenSea/seaport/commit/114c6aae)
+
 ## Helpers
 
 - Fix `SeaportRouter`'s tally loop. It only advances its index when an order was filled, so a batch where one Seaport returns a skipped order (or hits `maximumFulfilled` partway through) loops until it runs out of gas. The fix ships with a new router deployment, since the deployed router is frozen. [fix(SeaportRouter): terminate tally loop on partially-available batches](https://github.com/ProjectOpenSea/seaport/pull/1415)

@@ -89,17 +89,19 @@ cast call --rpc-url ${RPC_URL} 0x0000000000000068F116a894984e2DB1123eB395 'name(
 After `Seaport` and `ConduitController` are deployed, they are verified as follows:
 
 1. Ensure that `EXPLORER_API_KEY` and `NETWORK_RPC` are set in `.env` appropriately.
-2. For verifying the `ConduitController`, navigate to the `1.1` release tag on the Seaport repo and build artifacts. This uses that tag's own Hardhat setup; the current repo has no Node tooling.
+2. The `ConduitController` was built from the `1.1` release tag with solc 0.8.14, `via_ir`, and 1,000,000 optimizer runs. Check out that tag and swap in a minimal Foundry config, since the tag's own config and remappings use different settings and would change the metadata hash:
 ```
-git clone https://github.com/ProjectOpenSea/seaport && cd seaport
-git checkout 821a049
-yarn install && yarn build
+git clone --branch 1.1 --depth 1 https://github.com/ProjectOpenSea/seaport seaport-1.1 && cd seaport-1.1
+rm remappings.txt && printf '[profile.default]\nsrc = "contracts"\nlibs = []\n' > foundry.toml
+forge build contracts/conduit/ConduitController.sol --use 0.8.14 --optimize --optimizer-runs 1000000 --via-ir --evm-version london
 ```
+
+This reproduces the deployed runtime code byte for byte, metadata included, and the init code in the deployment transaction above. The current source in `contracts/conduit/` does not: it wraps seaport-core, whose `Conduit` changed after 1.1 (see [Seaport 1.7 candidates](Seaport-1.7-candidates.md#conduits)).
 
 3. Verify `ConduitController` by calling:
 
 ```
-npx hardhat verify --network verificationNetwork "0x00000000F9490004C11Cef243f5400493c00Ad63"
+forge verify-contract --chain {chain} --compiler-version 0.8.14 --num-of-optimizations 1000000 --via-ir --evm-version london 0x00000000F9490004C11Cef243f5400493c00Ad63 contracts/conduit/ConduitController.sol:ConduitController
 ```
 
 4. Navigate to the `1.6` release tag on the [seaport-core](https://github.com/ProjectOpenSea/seaport-core) repo:
