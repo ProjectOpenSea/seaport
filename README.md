@@ -7,7 +7,6 @@
 [![Docs][docs-badge]][docs-link]
 [![Discussions][discussions-badge]][discussions-link]
 [![JS Library][js-library-badge]][js-library-link]
-[![Discord][discord-badge]][discord-link]
 
 # Seaport
 
@@ -60,7 +59,7 @@ Contributions are welcome, especially tests, docs, and readability. A PR should 
 
 [MIT](LICENSE) Copyright 2023 Ozone Networks, Inc.
 
-[version-badge]: https://img.shields.io/github/package-json/v/ProjectOpenSea/seaport
+[version-badge]: https://img.shields.io/github/v/release/ProjectOpenSea/seaport
 [version-link]: https://github.com/ProjectOpenSea/seaport/releases
 [ci-badge]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml/badge.svg
 [ci-link]: https://github.com/ProjectOpenSea/seaport/actions/workflows/test.yml
@@ -74,8 +73,6 @@ Contributions are welcome, especially tests, docs, and readability. A PR should 
 [discussions-link]: https://github.com/ProjectOpenSea/seaport/discussions
 [js-library-badge]: https://img.shields.io/badge/Seaport.js-library-red
 [js-library-link]: https://github.com/ProjectOpenSea/seaport-js
-[discord-badge]: https://img.shields.io/static/v1?logo=discord&label=discord&message=Join&color=blue
-[discord-link]: https://discord.gg/ADXcTXpqry
 [seaport-core]: https://github.com/ProjectOpenSea/seaport-core
 [seaport-types]: https://github.com/ProjectOpenSea/seaport-types
 [seaport-sol]: https://github.com/ProjectOpenSea/seaport-sol
