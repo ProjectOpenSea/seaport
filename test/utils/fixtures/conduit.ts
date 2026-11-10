@@ -64,7 +64,6 @@ export const conduitFixture = async (
   const { conduit: conduitOneAddress, exists } =
     await conduitController.getConduit(conduitKeyOne);
 
-  // eslint-disable-next-line no-unused-expressions
   expect(exists).to.be.true;
 
   const conduitOne = conduitImplementation.attach(conduitOneAddress);

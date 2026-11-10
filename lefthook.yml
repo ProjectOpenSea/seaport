@@ -4,8 +4,15 @@ pre-commit:
   jobs:
     - name: forge fmt
       glob: "*.sol"
+      # forge fmt applies only exact paths from foundry.toml's [fmt] ignore
+      # when given files, so repeat the deployed contracts here.
       exclude:
         - "lib/**"
+        - "contracts/Seaport.sol"
+        - "contracts/conduit/**"
+        - "contracts/helpers/**"
+        - "contracts/interfaces/**"
+        - "contracts/zones/**"
       run: forge fmt {staged_files}
       stage_fixed: true
     - name: biome

@@ -22,7 +22,7 @@ To check whether a contract exists on a chain, run `cast code <address> --rpc-ur
 
 ## Seaport 1.6
 
-These chains had Seaport 1.6 at the canonical address when checked onchain in November 2026.
+These chains had Seaport 1.6 at the canonical address when checked onchain on November 9 and 10, 2026. Each row's chain ID was confirmed with `cast chain-id` and the code with `cast codesize` (23,981 bytes for Seaport 1.6) against public RPCs.
 
 ### Mainnets
 
@@ -55,7 +55,7 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 | MegaETH           | 4326     | [view](https://mega.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)              |
 | Monad             | 143      | [view](https://monadscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                  |
 | OP Mainnet        | 10       | [view](https://optimistic.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)        |
-| opBNB             | 204      | [view](https://opbnb.bscscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)              |
+| opBNB             | 204      | [view](https://opbnbscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                  |
 | Plasma            | 9745     | [view](https://plasmascan.to/address/0x0000000000000068F116a894984e2DB1123eB395)                  |
 | Polygon PoS       | 137      | [view](https://polygonscan.com/address/0x0000000000000068F116a894984e2DB1123eB395)                |
 | Robinhood Chain   | 4663     | [view](https://robin.etherscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)             |
@@ -70,7 +70,7 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 | Taiko             | 167000   | [view](https://taikoscan.io/address/0x0000000000000068F116a894984e2DB1123eB395)                   |
 | Unichain          | 130      | [view](https://uniscan.xyz/address/0x0000000000000068F116a894984e2DB1123eB395)                    |
 | X Layer           | 196      | [view](https://www.oklink.com/xlayer/address/0x0000000000000068F116a894984e2DB1123eB395)          |
-| zkSync Era        | 324      | [view](https://era.zksync.network/address/0x0000000000000068F116a894984e2DB1123eB395)             |
+| zkSync Era        | 324      | [view](https://explorer.zksync.io/address/0x0000000000000068F116a894984e2DB1123eB395)             |
 | Zora              | 7777777  | [view](https://explorer.zora.energy/address/0x0000000000000068F116a894984e2DB1123eB395)           |
 
 ### Testnets
@@ -105,3 +105,7 @@ These chains had Seaport 1.6 at the canonical address when checked onchain in No
 ## Seaport 1.5 only
 
 Gnosis, Gnosis Chiado, Celo, Moonbeam, Moonriver, and Fantom Opera (chain ID 250) have Seaport 1.5 and the ConduitController but not Seaport 1.6.
+
+## Unverified
+
+Canto (chain ID 7700) was listed with Seaport 1.6, 1.5, 1.1, and the ConduitController, but none of its public RPCs answered on November 10, 2026, so it is left out until it can be checked.
