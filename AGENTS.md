@@ -20,7 +20,8 @@ Foundry v1.9.0, submodules checked out recursively.
 FOUNDRY_PROFILE=reference forge build
 FOUNDRY_PROFILE=optimized forge build
 FOUNDRY_PROFILE=test forge test
-yarn lint:check   # forge fmt, forge lint, Biome, taplo
+scripts/install-tools.sh   # pinned Biome, taplo, lefthook, shellcheck, shfmt, actionlint
+scripts/lint.sh check
 ```
 
 Node from `.nvmrc` runs the Hardhat suite: `yarn install --frozen-lockfile && yarn build && yarn test`.

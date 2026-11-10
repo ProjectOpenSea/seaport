@@ -893,11 +893,13 @@ For information on Foundry, including installation and testing, see the [Foundry
 ### Linting
 
 ```bash
-yarn lint:check   # forge fmt, forge lint, Biome, and taplo
-yarn lint:fix
+scripts/install-tools.sh   # once: pinned tools into .tools/bin
+scripts/lint.sh check
+scripts/lint.sh fix
+.tools/bin/lefthook install  # optional pre-commit hook
 ```
 
-Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, and TOML uses taplo. CI also runs shellcheck and shfmt on shell scripts and actionlint on the workflows. `yarn install` sets up a lefthook pre-commit hook that formats staged files. The deployed contracts are excluded from `forge fmt` and `forge lint` so their source matches what was verified onchain.
+Solidity uses `forge fmt` and `forge lint`. TypeScript, JavaScript, JSON, Markdown, and YAML use Biome, TOML uses taplo, shell scripts use shellcheck and shfmt, and workflows use actionlint. The install script downloads each tool from its GitHub release and checks it against a pinned SHA-256, so linting needs nothing from npm. The deployed contracts are excluded from `forge fmt` and `forge lint` so their source matches what was verified onchain.
 
 ## Audits
 
