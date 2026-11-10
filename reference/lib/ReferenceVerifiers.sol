@@ -26,9 +26,9 @@ contract ReferenceVerifiers is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(
-        address conduitController
-    ) ReferenceAssertions(conduitController) {}
+    constructor(address conduitController)
+        ReferenceAssertions(conduitController)
+    { }
 
     /**
      * @dev Internal view function to ensure that the current time falls within
@@ -87,19 +87,14 @@ contract ReferenceVerifiers is
         bytes32 domainSeparator = _domainSeparator();
 
         // Derive original EIP-712 digest using domain separator and order hash.
-        bytes32 originalDigest = _deriveEIP712Digest(
-            domainSeparator,
-            orderHash
-        );
+        bytes32 originalDigest = _deriveEIP712Digest(domainSeparator, orderHash);
 
         bytes32 digest;
         bytes memory extractedSignature;
         if (_isValidBulkOrderSize(signature)) {
             // Rederive order hash and digest using bulk order proof.
-            (orderHash, extractedSignature) = _computeBulkOrderProof(
-                signature,
-                orderHash
-            );
+            (orderHash, extractedSignature) =
+                _computeBulkOrderProof(signature, orderHash);
             digest = _deriveEIP712Digest(domainSeparator, orderHash);
         } else {
             digest = originalDigest;
@@ -108,11 +103,7 @@ contract ReferenceVerifiers is
 
         // Ensure that the signature for the digest is valid for the offerer.
         _assertValidSignature(
-            offerer,
-            digest,
-            originalDigest,
-            signature,
-            extractedSignature
+            offerer, digest, originalDigest, signature, extractedSignature
         );
     }
 
@@ -123,13 +114,13 @@ contract ReferenceVerifiers is
      *
      * @return validLength True if bulk order size is valid, false otherwise.
      */
-    function _isValidBulkOrderSize(
-        bytes memory signature
-    ) internal pure returns (bool validLength) {
-        validLength =
-            signature.length < 837 &&
-            signature.length > 98 &&
-            ((signature.length - 67) % 32) < 2;
+    function _isValidBulkOrderSize(bytes memory signature)
+        internal
+        pure
+        returns (bool validLength)
+    {
+        validLength = signature.length < 837 && signature.length > 98
+            && ((signature.length - 67) % 32) < 2;
     }
 
     /**
@@ -163,9 +154,10 @@ contract ReferenceVerifiers is
 
         // Compute the key by extracting the next three bytes from the
         // proofAndSignature.
-        uint256 key = (((uint256(uint8(proofAndSignature[length])) << 16) |
-            ((uint256(uint8(proofAndSignature[length + 1]))) << 8)) |
-            (uint256(uint8(proofAndSignature[length + 2]))));
+        uint256 key =
+            (((uint256(uint8(proofAndSignature[length])) << 16)
+                    | ((uint256(uint8(proofAndSignature[length + 1]))) << 8))
+                | (uint256(uint8(proofAndSignature[length + 2]))));
 
         uint256 height = (proofAndSignature.length - length) / 32;
 
@@ -211,9 +203,8 @@ contract ReferenceVerifiers is
         }
 
         // Compute the bulk order hash and return it.
-        bulkOrderHash = keccak256(
-            abi.encodePacked(_bulkOrderTypehashes[height], root)
-        );
+        bulkOrderHash =
+            keccak256(abi.encodePacked(_bulkOrderTypehashes[height], root));
 
         // Return the signature.
         return (bulkOrderHash, signature);

@@ -58,9 +58,9 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
             }
 
             // Aggregate new amounts weighted by time with rounding factor.
-            uint256 totalBeforeDivision = ((startAmount * remaining) +
-                (endAmount * elapsed) +
-                extraCeiling);
+            uint256 totalBeforeDivision =
+                ((startAmount * remaining) + (endAmount * elapsed)
+                    + extraCeiling);
 
             // Divide totalBeforeDivision by duration to get the new amount.
             uint256 newAmount = totalBeforeDivision / duration;
@@ -84,11 +84,11 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
      *
      * @return newValue The value after applying the fraction.
      */
-    function _getFraction(
-        uint256 numerator,
-        uint256 denominator,
-        uint256 value
-    ) internal pure returns (uint256 newValue) {
+    function _getFraction(uint256 numerator, uint256 denominator, uint256 value)
+        internal
+        pure
+        returns (uint256 newValue)
+    {
         // Return value early in cases where the fraction resolves to 1.
         if (numerator == denominator) {
             return value;
@@ -129,9 +129,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
         // If start amount equals end amount, apply fraction to end amount.
         if (startAmount == endAmount) {
             amount = _getFraction(
-                fractionData.numerator,
-                fractionData.denominator,
-                endAmount
+                fractionData.numerator, fractionData.denominator, endAmount
             );
         } else {
             // Otherwise, apply fraction to both to interpolated final amount.
@@ -142,9 +140,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                     startAmount
                 ),
                 _getFraction(
-                    fractionData.numerator,
-                    fractionData.denominator,
-                    endAmount
+                    fractionData.numerator, fractionData.denominator, endAmount
                 ),
                 fractionData.startTime,
                 fractionData.endTime,

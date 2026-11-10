@@ -14,10 +14,12 @@ if ! forge --version | grep -q "Version: $want"; then
     echo "warning: CI uses Foundry $want; run \`foundryup --install v$want\`" >&2
 fi
 shell_scripts=(scripts/*.sh templates/*.sh)
+# forge fmt only covers the profile's src, test, and script dirs by default.
+sol_dirs=(contracts test script reference)
 
 case "${1:-check}" in
 check)
-    forge fmt --check
+    forge fmt --check "${sol_dirs[@]}"
     forge lint --deny warnings
     biome ci .
     taplo fmt --check
@@ -26,7 +28,7 @@ check)
     actionlint
     ;;
 fix)
-    forge fmt
+    forge fmt "${sol_dirs[@]}"
     biome check --write .
     taplo fmt
     shfmt -w "${shell_scripts[@]}"

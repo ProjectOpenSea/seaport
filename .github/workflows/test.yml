@@ -61,7 +61,7 @@ jobs:
           echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
 
       - name: Check Solidity formatting
-        run: forge fmt --check
+        run: forge fmt --check contracts test script reference
 
       - name: Lint Solidity
         run: forge lint --deny warnings
