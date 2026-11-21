@@ -8,6 +8,11 @@ set -euo pipefail
 
 file="${1:-call-metrics.txt}"
 
+[ -s "$file" ] || {
+    echo "Error: $file is missing or empty" >&2
+    exit 1
+}
+
 awk -F'|' '
     NF && $0 !~ /^[[:space:]]*$/ {
         split($1, parts, ":")

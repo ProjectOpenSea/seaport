@@ -19,11 +19,20 @@ if [ "$OPTIMIZER_STATUS" != "optimizer = true" ]; then
     exit 1
 fi
 
+if ! command -v bc >/dev/null; then
+    echo "Error: bc is required but not installed." >&2
+    exit 1
+fi
+
 try_runs() {
     local RUNS=$1
     printf "Trying with FOUNDRY_OPTIMIZER_RUNS=%d\n" "$RUNS"
     RESULT=$(FOUNDRY_OPTIMIZER_RUNS=$RUNS forge build --sizes | grep Seaport | head -n 1)
     CONTRACT_SIZE=$(echo "$RESULT" | awk -F'|' '{print $3}' | awk '{print $1}')
+    if [ -z "$CONTRACT_SIZE" ]; then
+        echo "Error: could not read the Seaport contract size from forge build output" >&2
+        exit 1
+    fi
     [ "$(echo "$CONTRACT_SIZE<=$TARGET_SIZE" | bc)" -eq 1 ]
 }
 
@@ -42,6 +51,11 @@ else
             MAX_RUNS=$((MID_RUNS - 1))
         fi
     done
+fi
+
+if [ "$FOUND_RUNS" -eq 0 ]; then
+    echo "Error: no optimizer runs value keeps the contract within ${TARGET_SIZE}KB" >&2
+    exit 1
 fi
 
 printf "Highest FOUNDRY_OPTIMIZER_RUNS found: %d\n" "$FOUND_RUNS"
