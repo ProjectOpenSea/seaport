@@ -15,6 +15,10 @@ awk -F'|' '
         total++
     }
     END {
+        if (!total) {
+            print "Error: " FILENAME " contains no metrics" > "/dev/stderr"
+            exit 1
+        }
         for (call in count) {
             printf "%-40s %8d (%5.2f%%)\n", call, count[call], count[call] * 100 / total
         }
