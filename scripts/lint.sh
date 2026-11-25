@@ -23,6 +23,15 @@ frozen=(contracts/Seaport.sol contracts/conduit contracts/helpers contracts/inte
 case "${1:-check}" in
 check)
     shasum -a 256 --check --quiet scripts/frozen-contracts.sha256
+    # shasum only verifies the files already listed, so also fail if a file
+    # was added to or removed from the frozen set without running `freeze`.
+    if ! diff \
+        <(git ls-files "${frozen[@]}" | LC_ALL=C sort) \
+        <(awk '{ print $2 }' scripts/frozen-contracts.sha256 | LC_ALL=C sort); then
+        echo "error: frozen contracts do not match scripts/frozen-contracts.sha256" >&2
+        echo "If this change is deliberate, run \`scripts/lint.sh freeze\`." >&2
+        exit 1
+    fi
     forge fmt --check "${sol_dirs[@]}"
     forge lint --deny warnings
     biome ci .
